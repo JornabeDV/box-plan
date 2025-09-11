@@ -52,10 +52,6 @@ La aplicación cuenta con un diseño moderno y atractivo que incluye:
 - Tema oscuro/claro
 - Interfaz intuitiva
 
-## 📄 Licencia
-
-Este proyecto está bajo la Licencia MIT.
-
 ---
 
 **¡Entrena duro, compite más! 💪**
