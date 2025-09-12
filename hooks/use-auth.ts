@@ -43,11 +43,36 @@ export function useAuth() {
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    return { data, error }
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      
+      if (error) {
+        // Mapear errores de Supabase a mensajes más amigables
+        let errorMessage = error.message
+        
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'Email o contraseña incorrectos'
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Por favor confirma tu email antes de iniciar sesión'
+        } else if (error.message.includes('Too many requests')) {
+          errorMessage = 'Demasiados intentos. Intenta más tarde'
+        }
+        
+        return { data, error: { ...error, message: errorMessage } }
+      }
+      
+      return { data, error: null }
+    } catch (err) {
+      return { 
+        data: null, 
+        error: { 
+          message: 'Error inesperado. Intenta nuevamente.' 
+        } 
+      }
+    }
   }
 
   const signUp = async (email: string, password: string, fullName?: string) => {

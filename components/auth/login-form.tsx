@@ -28,6 +28,25 @@ export function LoginForm({ onSuccess, onSwitchToSignUp }: LoginFormProps) {
     setError(null)
     setLoading(true)
 
+    // Validaciones básicas
+    if (!email || !password) {
+      setError('Por favor completa todos los campos')
+      setLoading(false)
+      return
+    }
+
+    if (!email.includes('@')) {
+      setError('Por favor ingresa un email válido')
+      setLoading(false)
+      return
+    }
+
+    if (password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres')
+      setLoading(false)
+      return
+    }
+
     try {
       const { error } = await signIn(email, password)
       
