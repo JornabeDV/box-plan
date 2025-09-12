@@ -51,7 +51,6 @@ export function Header({ currentStreak }: HeaderProps) {
                 className="flex items-center gap-2"
               >
                 <LogOut className="w-4 h-4" />
-                Salir
               </Button>
             </>
           ) : (
