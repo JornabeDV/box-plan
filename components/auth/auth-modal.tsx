@@ -9,14 +9,16 @@ interface AuthModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   defaultMode?: 'login' | 'signup'
+  onSuccess?: () => void
 }
 
-export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthModalProps) {
+export function AuthModal({ open, onOpenChange, defaultMode = 'login', onSuccess }: AuthModalProps) {
   const [mode, setMode] = useState<'login' | 'signup'>(defaultMode)
 
   const handleSuccess = () => {
     onOpenChange(false)
     setMode('login') // Reset to login for next time
+    onSuccess?.() // Call the success callback
   }
 
   const switchToSignUp = () => setMode('signup')
