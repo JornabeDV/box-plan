@@ -155,7 +155,7 @@ export function SubscriptionStatus() {
               Ver Detalles Completos
             </Button>
           </Link>
-          <Link href="/pricing" className="flex-1">
+          <Link href="/subscription" className="flex-1">
             <Button variant="outline" className="w-full">
               Gestionar Suscripción
             </Button>

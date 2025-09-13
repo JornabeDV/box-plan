@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { Calendar, Target, Plus, Trophy, Users, MessageCircle } from "lucide-react"
+import { Calendar, Target, Plus, Trophy, Users, MessageCircle, CreditCard } from "lucide-react"
 import Link from "next/link"
 
 /**
@@ -32,6 +32,12 @@ export function BottomNavigation() {
           <Button variant="ghost" size="sm" className="flex-col gap-1 h-auto py-3 px-4 hover:bg-primary/10">
             <MessageCircle className="w-5 h-5" />
             <span className="text-xs font-medium">Foro</span>
+          </Button>
+        </Link>
+        <Link href="/subscription">
+          <Button variant="ghost" size="sm" className="flex-col gap-1 h-auto py-3 px-4 hover:bg-primary/10">
+            <CreditCard className="w-5 h-5" />
+            <span className="text-xs font-medium">Suscripción</span>
           </Button>
         </Link>
       </div>

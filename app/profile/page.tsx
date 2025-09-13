@@ -214,7 +214,7 @@ export default function ProfilePage() {
                     <p className="text-muted-foreground mb-4">
                       No tienes una suscripción activa en este momento
                     </p>
-                    <Button onClick={() => router.push('/pricing')}>
+                    <Button onClick={() => router.push('/subscription')}>
                       Ver Planes Disponibles
                     </Button>
                   </div>
@@ -284,7 +284,7 @@ export default function ProfilePage() {
                 <Button 
                   variant="outline" 
                   className="w-full justify-start"
-                  onClick={() => router.push('/pricing')}
+                  onClick={() => router.push('/subscription')}
                 >
                   <Crown className="h-4 w-4 mr-2" />
                   Gestionar Suscripción
