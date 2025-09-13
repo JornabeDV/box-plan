@@ -151,6 +151,79 @@ export interface Database {
           created_at?: string
         }
       }
+      subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          plan_id: string
+          status: 'active' | 'canceled' | 'past_due' | 'unpaid'
+          current_period_start: string
+          current_period_end: string
+          cancel_at_period_end: boolean
+          mercadopago_payment_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          plan_id: string
+          status?: 'active' | 'canceled' | 'past_due' | 'unpaid'
+          current_period_start: string
+          current_period_end: string
+          cancel_at_period_end?: boolean
+          mercadopago_payment_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          plan_id?: string
+          status?: 'active' | 'canceled' | 'past_due' | 'unpaid'
+          current_period_start?: string
+          current_period_end?: string
+          cancel_at_period_end?: boolean
+          mercadopago_payment_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      payment_history: {
+        Row: {
+          id: string
+          user_id: string
+          amount: number
+          currency: string
+          status: 'pending' | 'approved' | 'rejected'
+          mercadopago_payment_id: string | null
+          payment_method: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          amount: number
+          currency: string
+          status: 'pending' | 'approved' | 'rejected'
+          mercadopago_payment_id?: string | null
+          payment_method: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          amount?: number
+          currency?: string
+          status?: 'pending' | 'approved' | 'rejected'
+          mercadopago_payment_id?: string | null
+          payment_method?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

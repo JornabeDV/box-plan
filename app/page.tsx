@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Header } from "@/components/layout/header"
 import { TodaySection } from "@/components/dashboard/today-section"
 import { TabsSection } from "@/components/dashboard/tabs-section"
+import { SubscriptionStatus } from "@/components/dashboard/subscription-status"
 import { BottomNavigation } from "@/components/layout/bottom-navigation"
 import { AuthModal } from "@/components/auth/auth-modal"
 import { useAuth } from "@/hooks/use-auth"
@@ -118,14 +119,16 @@ export default function CrossFitApp() {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground">
       <Header currentStreak={currentStreak} />
 
-      <main className="p-6 space-y-8 pb-24">
-        <TodaySection 
-          todaysWOD={todaysWOD}
-          onStartWOD={handleStartWOD}
-        />
-        
-        <TabsSection />
-      </main>
+        <main className="p-6 space-y-8 pb-24">
+          <TodaySection 
+            todaysWOD={todaysWOD}
+            onStartWOD={handleStartWOD}
+          />
+          
+          <SubscriptionStatus />
+          
+          <TabsSection />
+        </main>
 
       <BottomNavigation />
 

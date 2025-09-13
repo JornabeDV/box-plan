@@ -1,4 +1,4 @@
-import { Target, Flame, LogIn, LogOut, CreditCard } from "lucide-react"
+import { Target, Flame, LogIn, LogOut, CreditCard, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/use-auth"
 import Link from "next/link"
@@ -56,14 +56,26 @@ export function Header({ currentStreak }: HeaderProps) {
           </Link>
           
           {user && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => signOut()}
-              className="flex items-center gap-2"
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
+            <>
+              <Link href="/profile">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <User className="w-4 h-4" />
+                </Button>
+              </Link>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => signOut()}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </>
           )}
         </div>
       </div>
