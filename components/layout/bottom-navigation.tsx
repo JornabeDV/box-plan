@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
-import { Calendar, Target, Plus, Trophy, Users } from "lucide-react"
+import { Calendar, Target, Plus, Trophy, Users, MessageCircle } from "lucide-react"
+import Link from "next/link"
 
 /**
  * Componente BottomNavigation - Navegación inferior fija
@@ -27,10 +28,12 @@ export function BottomNavigation() {
           <Trophy className="w-5 h-5" />
           <span className="text-xs font-medium">Progreso</span>
         </Button>
-        <Button variant="ghost" size="sm" className="flex-col gap-1 h-auto py-3 px-4 hover:bg-primary/10">
-          <Users className="w-5 h-5" />
-          <span className="text-xs font-medium">Comunidad</span>
-        </Button>
+        <Link href="/forum">
+          <Button variant="ghost" size="sm" className="flex-col gap-1 h-auto py-3 px-4 hover:bg-primary/10">
+            <MessageCircle className="w-5 h-5" />
+            <span className="text-xs font-medium">Foro</span>
+          </Button>
+        </Link>
       </div>
     </nav>
   )
