@@ -1,6 +1,7 @@
-import { Target, Flame, LogIn, LogOut } from "lucide-react"
+import { Target, Flame, LogIn, LogOut, CreditCard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/use-auth"
+import Link from "next/link"
 
 interface HeaderProps {
   currentStreak: number
@@ -35,32 +36,34 @@ export function Header({ currentStreak }: HeaderProps) {
         </div>
         
         <div className="flex items-center gap-3">
-          {user ? (
-            <>
-              <div className="flex items-center gap-3 bg-secondary/10 px-4 py-2 rounded-full border border-secondary/20">
-                <Flame className="w-5 h-5 text-secondary animate-pulse" />
-                <div className="text-right">
-                  <span className="text-lg font-bold text-secondary-foreground">{currentStreak}</span>
-                  <p className="text-xs text-secondary-foreground/80">días</p>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => signOut()}
-                className="flex items-center gap-2"
-              >
-                <LogOut className="w-4 h-4" />
-              </Button>
-            </>
-          ) : (
-            <div className="flex items-center gap-3 bg-secondary/10 px-4 py-2 rounded-full border border-secondary/20">
-              <Flame className="w-5 h-5 text-secondary animate-pulse" />
-              <div className="text-right">
-                <span className="text-lg font-bold text-secondary-foreground">{currentStreak}</span>
-                <p className="text-xs text-secondary-foreground/80">días</p>
-              </div>
+          <div className="flex items-center gap-3 bg-secondary/10 px-4 py-2 rounded-full border border-secondary/20">
+            <Flame className="w-5 h-5 text-secondary animate-pulse" />
+            <div className="text-right">
+              <span className="text-lg font-bold text-secondary-foreground">{currentStreak}</span>
+              <p className="text-xs text-secondary-foreground/80">días</p>
             </div>
+          </div>
+          
+          <Link href="/pricing">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <CreditCard className="w-4 h-4" />
+              Planes
+            </Button>
+          </Link>
+          
+          {user && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => signOut()}
+              className="flex items-center gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+            </Button>
           )}
         </div>
       </div>
