@@ -1,18 +1,14 @@
-import { Target, Flame, LogIn, LogOut, CreditCard, User } from "lucide-react"
+import { Target, Flame, LogIn, LogOut, CreditCard, User, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuthWithRoles } from "@/hooks/use-auth-with-roles"
 import Link from "next/link"
 
 interface HeaderProps {
   currentStreak: number
 }
 
-/**
- * Componente Header - Barra superior de la aplicación
- * Muestra el logo, título y racha actual del usuario
- */
 export function Header({ currentStreak }: HeaderProps) {
-  const { user, signOut } = useAuth()
+  const { user, isAdmin, signOut } = useAuthWithRoles()
 
   return (
     <header className="relative overflow-hidden bg-gradient-to-r from-card via-card/95 to-primary/10 border-b border-primary/20 backdrop-blur-sm">
@@ -27,10 +23,10 @@ export function Header({ currentStreak }: HeaderProps) {
           </div>
           <div>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
-              CrossFit Pro
+              Bee Training
             </h1>
             <p className="text-sm text-muted-foreground">
-              {user ? `Hola, ${user.email}` : 'Tu entrenamiento de hoy'}
+              {user ? `Hola, Jorge` : 'Tu entrenamiento de hoy'}
             </p>
           </div>
         </div>
@@ -54,6 +50,19 @@ export function Header({ currentStreak }: HeaderProps) {
               Planes
             </Button>
           </Link>
+          
+          {isAdmin && (
+            <Link href="/admin-dashboard">
+              <Button
+                variant="default"
+                size="sm"
+                className="gap-2 bg-primary hover:bg-primary/90"
+              >
+                <Settings className="w-4 h-4" />
+                Admin
+              </Button>
+            </Link>
+          )}          
           
           {user && (
             <>

@@ -26,6 +26,185 @@ export const supabaseAdmin = createClient(
 export interface Database {
   public: {
     Tables: {
+      // Tablas del sistema de roles simplificado
+      user_roles_simple: {
+        Row: {
+          id: string
+          user_id: string
+          role: 'admin' | 'user'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          role: 'admin' | 'user'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          role?: 'admin' | 'user'
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      admin_profiles: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          email: string
+          organization_name: string | null
+          organization_type: string | null
+          bio: string | null
+          avatar_url: string | null
+          contact_phone: string | null
+          contact_email: string | null
+          website: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          email: string
+          organization_name?: string | null
+          organization_type?: string | null
+          bio?: string | null
+          avatar_url?: string | null
+          contact_phone?: string | null
+          contact_email?: string | null
+          website?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          email?: string
+          organization_name?: string | null
+          organization_type?: string | null
+          bio?: string | null
+          avatar_url?: string | null
+          contact_phone?: string | null
+          contact_email?: string | null
+          website?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      admin_user_assignments: {
+        Row: {
+          id: string
+          admin_id: string
+          user_id: string
+          assigned_at: string
+          is_active: boolean
+          notes: string | null
+        }
+        Insert: {
+          id?: string
+          admin_id: string
+          user_id: string
+          assigned_at?: string
+          is_active?: boolean
+          notes?: string | null
+        }
+        Update: {
+          id?: string
+          admin_id?: string
+          user_id?: string
+          assigned_at?: string
+          is_active?: boolean
+          notes?: string | null
+        }
+      }
+      workout_sheet_assignments: {
+        Row: {
+          id: string
+          workout_sheet_id: string
+          user_id: string
+          admin_id: string
+          assigned_at: string
+          due_date: string | null
+          is_completed: boolean
+          completed_at: string | null
+          user_notes: string | null
+          admin_feedback: string | null
+          rating: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          workout_sheet_id: string
+          user_id: string
+          admin_id: string
+          assigned_at?: string
+          due_date?: string | null
+          is_completed?: boolean
+          completed_at?: string | null
+          user_notes?: string | null
+          admin_feedback?: string | null
+          rating?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          workout_sheet_id?: string
+          user_id?: string
+          admin_id?: string
+          assigned_at?: string
+          due_date?: string | null
+          is_completed?: boolean
+          completed_at?: string | null
+          user_notes?: string | null
+          admin_feedback?: string | null
+          rating?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      user_progress: {
+        Row: {
+          id: string
+          user_id: string
+          workout_sheet_id: string
+          admin_id: string
+          progress_data: any
+          notes: string | null
+          completed_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          workout_sheet_id: string
+          admin_id: string
+          progress_data?: any
+          notes?: string | null
+          completed_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          workout_sheet_id?: string
+          admin_id?: string
+          progress_data?: any
+          notes?: string | null
+          completed_at?: string
+          created_at?: string
+        }
+      }
       profiles: {
         Row: {
           id: string
@@ -48,6 +227,68 @@ export interface Database {
           email?: string
           full_name?: string | null
           avatar_url?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      workout_sheets: {
+        Row: {
+          id: string
+          admin_id: string | null
+          category_id: string | null
+          title: string
+          description: string | null
+          content: any
+          difficulty: 'beginner' | 'intermediate' | 'advanced' | null
+          estimated_duration: number | null
+          equipment_needed: string[]
+          tags: string[]
+          is_template: boolean
+          is_public: boolean
+          plan_required: string | null
+          template_data: any | null
+          is_active: boolean
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          admin_id?: string | null
+          category_id?: string | null
+          title: string
+          description?: string | null
+          content?: any
+          difficulty?: 'beginner' | 'intermediate' | 'advanced' | null
+          estimated_duration?: number | null
+          equipment_needed?: string[]
+          tags?: string[]
+          is_template?: boolean
+          is_public?: boolean
+          plan_required?: string | null
+          template_data?: any | null
+          is_active?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          admin_id?: string | null
+          category_id?: string | null
+          title?: string
+          description?: string | null
+          content?: any
+          difficulty?: 'beginner' | 'intermediate' | 'advanced' | null
+          estimated_duration?: number | null
+          equipment_needed?: string[]
+          tags?: string[]
+          is_template?: boolean
+          is_public?: boolean
+          plan_required?: string | null
+          template_data?: any | null
+          is_active?: boolean
+          created_by?: string | null
           created_at?: string
           updated_at?: string
         }

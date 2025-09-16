@@ -6,21 +6,19 @@ import { Header } from "@/components/layout/header"
 import { TodaySection } from "@/components/dashboard/today-section"
 import { TabsSection } from "@/components/dashboard/tabs-section"
 import { SubscriptionStatus } from "@/components/dashboard/subscription-status"
+import { AssignedWorkoutSheets } from "@/components/dashboard/assigned-workout-sheets"
 import { BottomNavigation } from "@/components/layout/bottom-navigation"
 import { AuthModal } from "@/components/auth/auth-modal"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuthWithRoles } from "@/hooks/use-auth-with-roles"
 import { Loader2, Target, LogIn } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-/**
- * Componente principal de la aplicación CrossFit PWA
- * Orquesta todos los componentes de la interfaz principal
- */
 export default function CrossFitApp() {
   const [currentStreak, setCurrentStreak] = useState(12)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const router = useRouter()
-  const { user, loading: authLoading, signOut } = useAuth()
+  const { user, userRole, adminProfile, loading: authLoading, isAdmin, isUser, signOut } = useAuthWithRoles()
+
 
   // Datos de ejemplo para el WOD del día
   const todaysWOD = {
@@ -114,21 +112,22 @@ export default function CrossFitApp() {
     )
   }
 
-  // Usuario autenticado - mostrar dashboard
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground">
       <Header currentStreak={currentStreak} />
 
-        <main className="p-6 space-y-8 pb-24">
-          <TodaySection 
-            todaysWOD={todaysWOD}
-            onStartWOD={handleStartWOD}
-          />
-          
-          <SubscriptionStatus />
-          
-          <TabsSection />
-        </main>
+                <main className="p-6 space-y-8 pb-24">
+                  <TodaySection 
+                    todaysWOD={todaysWOD}
+                    onStartWOD={handleStartWOD}
+                  />
+                  
+                  <SubscriptionStatus />
+                  
+                  <AssignedWorkoutSheets userId={user.id} />
+                  
+                  <TabsSection />
+                </main>
 
       <BottomNavigation />
 
