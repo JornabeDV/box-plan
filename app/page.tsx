@@ -14,7 +14,6 @@ import { Loader2, Target, LogIn } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function CrossFitApp() {
-  const [currentStreak, setCurrentStreak] = useState(12)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const router = useRouter()
   const { user, userRole, adminProfile, loading: authLoading, isAdmin, isUser, signOut } = useAuthWithRoles()
@@ -60,7 +59,7 @@ export default function CrossFitApp() {
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground">
-        <Header currentStreak={currentStreak} />
+        <Header />
         
         <main className="flex items-center justify-center min-h-[calc(100vh-200px)] p-6">
           <div className="text-center space-y-6 max-w-md">
@@ -114,7 +113,7 @@ export default function CrossFitApp() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground">
-      <Header currentStreak={currentStreak} />
+      <Header />
 
                 <main className="p-6 space-y-8 pb-24">
                   <TodaySection 

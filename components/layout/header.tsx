@@ -1,13 +1,11 @@
-import { Target, Flame, LogIn, LogOut, CreditCard, User, Settings } from "lucide-react"
+import { Target, LogIn, LogOut, CreditCard, User, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuthWithRoles } from "@/hooks/use-auth-with-roles"
 import Link from "next/link"
 
-interface HeaderProps {
-  currentStreak: number
-}
+interface HeaderProps {}
 
-export function Header({ currentStreak }: HeaderProps) {
+export function Header({}: HeaderProps) {
   const { user, isAdmin, signOut } = useAuthWithRoles()
 
   return (
@@ -32,14 +30,6 @@ export function Header({ currentStreak }: HeaderProps) {
         </div>
         
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-3 bg-secondary/10 px-4 py-2 rounded-full border border-secondary/20">
-            <Flame className="w-5 h-5 text-secondary animate-pulse" />
-            <div className="text-right">
-              <span className="text-lg font-bold text-secondary-foreground">{currentStreak}</span>
-              <p className="text-xs text-secondary-foreground/80">días</p>
-            </div>
-          </div>
-          
           <Link href="/pricing">
             <Button
               variant="outline"
