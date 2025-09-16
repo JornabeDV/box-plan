@@ -1,4 +1,4 @@
-import { Target, LogIn, LogOut, CreditCard, User, Settings } from "lucide-react"
+import { Target, LogIn, LogOut, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuthWithRoles } from "@/hooks/use-auth-with-roles"
 import Link from "next/link"
@@ -29,54 +29,31 @@ export function Header({}: HeaderProps) {
           </div>
         </div>
         
-        <div className="flex items-center gap-3">
-          <Link href="/pricing">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2"
-            >
-              <CreditCard className="w-4 h-4" />
-              Planes
-            </Button>
-          </Link>
-          
-          {isAdmin && (
-            <Link href="/admin-dashboard">
-              <Button
-                variant="default"
-                size="sm"
-                className="gap-2 bg-primary hover:bg-primary/90"
-              >
-                <Settings className="w-4 h-4" />
-                Admin
-              </Button>
-            </Link>
-          )}          
-          
-          {user && (
-            <>
-              <Link href="/profile">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <User className="w-4 h-4" />
-                </Button>
-              </Link>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => signOut()}
-                className="flex items-center gap-2"
-              >
-                <LogOut className="w-4 h-4" />
-              </Button>
-            </>
-          )}
-        </div>
+               <div className="flex items-center gap-3">
+                 {isAdmin && (
+                   <Link href="/admin-dashboard">
+                     <Button
+                       variant="default"
+                       size="sm"
+                       className="gap-2 bg-primary hover:bg-primary/90"
+                     >
+                       <Settings className="w-4 h-4" />
+                       Admin
+                     </Button>
+                   </Link>
+                 )}          
+
+                 {user && (
+                   <Button
+                     variant="outline"
+                     size="sm"
+                     onClick={() => signOut()}
+                     className="flex items-center gap-2"
+                   >
+                     <LogOut className="w-4 h-4" />
+                   </Button>
+                 )}
+               </div>
       </div>
     </header>
   )

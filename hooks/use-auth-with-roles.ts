@@ -35,15 +35,10 @@ export function useAuthWithRoles() {
   const [roleOverride, setRoleOverride] = useState<'admin' | 'user' | null>(null)
 
   useEffect(() => {
-    console.log('useAuthWithRoles: Starting useEffect')
-    
     // Obtener sesión inicial
     const getInitialSession = async () => {
       try {
-        console.log('useAuthWithRoles: Getting session')
         const { data: { session }, error } = await supabase.auth.getSession()
-        
-        console.log('useAuthWithRoles: Session response:', { session: !!session, error })
         
         if (error) {
           console.error('useAuthWithRoles: Session error:', error)
@@ -52,11 +47,9 @@ export function useAuthWithRoles() {
         }
         
         if (session?.user) {
-          console.log('useAuthWithRoles: User found:', session.user.email)
           setUser(session.user)
           await loadUserRole(session.user.id)
         } else {
-          console.log('useAuthWithRoles: No user found, setting loading to false')
           setUser(null)
           setLoading(false)
         }
@@ -66,14 +59,11 @@ export function useAuthWithRoles() {
       }
     }
 
-    console.log('useAuthWithRoles: About to call getInitialSession')
     getInitialSession()
 
     // Escuchar cambios de autenticación
-    console.log('useAuthWithRoles: Setting up auth state change listener')
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('useAuthWithRoles: Auth change:', event, !!session?.user)
         setUser(session?.user || null)
         
         if (session?.user) {
@@ -86,27 +76,19 @@ export function useAuthWithRoles() {
       }
     )
 
-    console.log('useAuthWithRoles: useEffect setup complete')
-
     return () => {
-      console.log('useAuthWithRoles: Cleanup')
       subscription.unsubscribe()
     }
   }, [])
 
   const loadUserRole = async (userId: string) => {
     try {
-      console.log('loadUserRole: Starting for user:', userId)
-      
       // Cargar rol del usuario
-      console.log('loadUserRole: Querying user_roles_simple table...')
       const { data: roleData, error: roleError } = await supabase
         .from('user_roles_simple')
         .select('*')
         .eq('user_id', userId)
         .single()
-
-      console.log('loadUserRole: Role query result:', { roleData, roleError })
 
       if (roleError) {
         console.error('loadUserRole: Error loading user role:', roleError)
@@ -116,14 +98,11 @@ export function useAuthWithRoles() {
       }
 
       setUserRole(roleData)
-      console.log('loadUserRole: User role loaded:', roleData)
 
       // Si es admin, cargar perfil de admin
       if (roleData.role === 'admin') {
-        console.log('loadUserRole: User is admin, loading admin profile')
         await loadAdminProfile(userId)
       } else {
-        console.log('loadUserRole: User is not admin, setting loading to false')
         setLoading(false)
       }
       

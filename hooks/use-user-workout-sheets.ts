@@ -58,7 +58,6 @@ export function useUserWorkoutSheets(userId: string | null) {
           )
         `)
         .eq('user_id', userId)
-        .eq('is_active', true)
         .order('assigned_at', { ascending: false })
 
       if (assignedError) {

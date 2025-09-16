@@ -37,7 +37,7 @@ export default function RootLayout({
     <html lang="es" className="dark">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} ${oswald.variable} ${inter.variable} antialiased`}>
         <Suspense fallback={null}>{children}</Suspense>
-        <Analytics />
+        {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
   )
