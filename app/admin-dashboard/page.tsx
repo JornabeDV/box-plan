@@ -21,11 +21,18 @@ import {
   Star,
   Eye,
   Edit,
-  Trash2
+  Trash2,
+  Zap,
+  ArrowLeft,
+  Home
 } from 'lucide-react'
 import { CreateWorkoutSheetModal } from '@/components/admin/create-workout-sheet-modal'
+import { CreateWODModal } from '@/components/admin/create-wod-modal'
+import { EditWODModal } from '@/components/admin/edit-wod-modal'
 import { AdminStats } from '@/components/admin/admin-stats'
 import { UsersList } from '@/components/admin/users-list'
+import { WODsList } from '@/components/admin/wods-list'
+import { useWODs } from '@/hooks/use-wods'
 
 export default function AdminDashboardPage() {
   const { user, adminProfile, loading: authLoading, isAdmin } = useSimplifiedAuth()
@@ -35,11 +42,23 @@ export default function AdminDashboardPage() {
     loading: sheetsLoading, 
     createWorkoutSheet,
     searchWorkoutSheets 
-  } = useAdminWorkoutSheets(adminProfile?.id)
+  } = useAdminWorkoutSheets(adminProfile?.id || null)
+
+  const {
+    wods,
+    loading: wodsLoading,
+    createWOD,
+    updateWOD,
+    deleteWOD,
+    searchWODs
+  } = useWODs(adminProfile?.id)
 
   const [activeTab, setActiveTab] = useState('overview')
   const [searchQuery, setSearchQuery] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showCreateWODModal, setShowCreateWODModal] = useState(false)
+  const [showEditWODModal, setShowEditWODModal] = useState(false)
+  const [selectedWOD, setSelectedWOD] = useState<any>(null)
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all')
 
   // Filtrar planillas según búsqueda y dificultad
@@ -55,17 +74,54 @@ export default function AdminDashboardPage() {
   })
 
   const handleCreateSheet = async (sheetData: any) => {
-    console.log('handleCreateSheet called with:', sheetData)
-    console.log('adminProfile:', adminProfile)
-    console.log('adminProfile?.id:', adminProfile?.id)
-    
     const result = await createWorkoutSheet(sheetData)
-    console.log('createWorkoutSheet result:', result)
     
     if (!result.error) {
       setShowCreateModal(false)
     }
-    return result
+    return { error: result.error || undefined }
+  }
+
+  const handleCreateWOD = async (wodData: any) => {
+    if (!adminProfile?.id) {
+      return { error: 'No se encontró el perfil de administrador' }
+    }
+
+    const result = await createWOD({
+      ...wodData,
+      admin_id: adminProfile.id
+    })
+    
+    if (!result.error) {
+      setShowCreateWODModal(false)
+    }
+    return { error: result.error || undefined }
+  }
+
+  const handleEditWOD = async (wod: any) => {
+    setSelectedWOD(wod)
+    setShowEditWODModal(true)
+  }
+
+  const handleUpdateWOD = async (wodId: string, wodData: any) => {
+    const result = await updateWOD(wodId, wodData)
+    
+    if (!result.error) {
+      setShowEditWODModal(false)
+      setSelectedWOD(null)
+    }
+    return { error: result.error || undefined }
+  }
+
+  const handleDeleteWOD = async (wodId: string) => {
+    const result = await deleteWOD(wodId)
+    if (result.error) {
+      console.error('Error deleting WOD:', result.error)
+    }
+  }
+
+  const handleViewWOD = (wod: any) => {
+    // Implementar lógica de visualización
   }
 
   const handleSearch = (query: string) => {
@@ -111,13 +167,28 @@ export default function AdminDashboardPage() {
       <div className="border-b bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">Dashboard Administrador</h1>
-              <p className="text-muted-foreground">
-                {adminProfile?.organization_name || 'Panel de Control'}
-              </p>
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.location.href = '/'}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Volver al Inicio
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold">Dashboard Administrador</h1>
+                <p className="text-muted-foreground">
+                  {adminProfile?.organization_name || 'Panel de Control'}
+                </p>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
+              <Button onClick={() => setShowCreateWODModal(true)} variant="outline">
+                <Zap className="w-4 h-4 mr-2" />
+                Nuevo WOD
+              </Button>
               <Button onClick={() => setShowCreateModal(true)}>
                 <Plus className="w-4 h-4 mr-2" />
                 Nueva Planilla
@@ -130,8 +201,9 @@ export default function AdminDashboardPage() {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Resumen</TabsTrigger>
+            <TabsTrigger value="wods">WODs</TabsTrigger>
             <TabsTrigger value="sheets">Planillas</TabsTrigger>
             <TabsTrigger value="users">Usuarios</TabsTrigger>
             <TabsTrigger value="settings">Configuración</TabsTrigger>
@@ -141,6 +213,7 @@ export default function AdminDashboardPage() {
           <TabsContent value="overview" className="space-y-6">
             <AdminStats 
               totalSheets={workoutSheets.length}
+              totalWODs={wods.length}
               totalUsers={0} // TODO: Implementar contador de usuarios
               completedSheets={0} // TODO: Implementar contador de planillas completadas
             />
@@ -185,6 +258,30 @@ export default function AdminDashboardPage() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* WODs Tab */}
+          <TabsContent value="wods" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">WODs Creados</h2>
+                <p className="text-muted-foreground">
+                  Gestiona todos los Workouts of the Day creados
+                </p>
+              </div>
+              <Button onClick={() => setShowCreateWODModal(true)}>
+                <Zap className="w-4 h-4 mr-2" />
+                Nuevo WOD
+              </Button>
+            </div>
+
+            <WODsList
+              wods={wods}
+              loading={wodsLoading}
+              onEdit={handleEditWOD}
+              onDelete={handleDeleteWOD}
+              onView={handleViewWOD}
+            />
           </TabsContent>
 
           {/* Planillas Tab */}
@@ -303,7 +400,7 @@ export default function AdminDashboardPage() {
 
           {/* Usuarios Tab */}
           <TabsContent value="users" className="space-y-6">
-            <UsersList adminId={adminProfile?.id} />
+            <UsersList adminId={adminProfile?.id || null} />
           </TabsContent>
 
           {/* Configuración Tab */}
@@ -348,6 +445,21 @@ export default function AdminDashboardPage() {
         onOpenChange={setShowCreateModal}
         categories={categories}
         onSubmit={handleCreateSheet}
+      />
+
+      {/* Modal para crear WOD */}
+      <CreateWODModal
+        open={showCreateWODModal}
+        onOpenChange={setShowCreateWODModal}
+        onSubmit={handleCreateWOD}
+      />
+
+      {/* Modal para editar WOD */}
+      <EditWODModal
+        open={showEditWODModal}
+        onOpenChange={setShowEditWODModal}
+        wod={selectedWOD}
+        onSubmit={handleUpdateWOD}
       />
     </div>
   )

@@ -302,6 +302,13 @@ export interface Database {
           difficulty: 'beginner' | 'intermediate' | 'advanced'
           duration_minutes: number | null
           exercises: any[]
+          instructions: string | null
+          scaling: string | null
+          tips: any[]
+          is_public: boolean
+          is_template: boolean
+          date: string | null
+          admin_id: string
           created_at: string
           updated_at: string
         }
@@ -313,6 +320,13 @@ export interface Database {
           difficulty: 'beginner' | 'intermediate' | 'advanced'
           duration_minutes?: number | null
           exercises: any[]
+          instructions?: string | null
+          scaling?: string | null
+          tips?: any[]
+          is_public?: boolean
+          is_template?: boolean
+          date?: string | null
+          admin_id: string
           created_at?: string
           updated_at?: string
         }
@@ -324,6 +338,13 @@ export interface Database {
           difficulty?: 'beginner' | 'intermediate' | 'advanced'
           duration_minutes?: number | null
           exercises?: any[]
+          instructions?: string | null
+          scaling?: string | null
+          tips?: any[]
+          is_public?: boolean
+          is_template?: boolean
+          date?: string | null
+          admin_id?: string
           created_at?: string
           updated_at?: string
         }

@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation"
 import { Header } from "@/components/layout/header"
 import { TodaySection } from "@/components/dashboard/today-section"
 import { TabsSection } from "@/components/dashboard/tabs-section"
-import { SubscriptionStatus } from "@/components/dashboard/subscription-status"
-import { AssignedWorkoutSheets } from "@/components/dashboard/assigned-workout-sheets"
 import { BottomNavigation } from "@/components/layout/bottom-navigation"
 import { AuthModal } from "@/components/auth/auth-modal"
 import { useAuthWithRoles } from "@/hooks/use-auth-with-roles"
@@ -120,10 +118,6 @@ export default function CrossFitApp() {
                     todaysWOD={todaysWOD}
                     onStartWOD={handleStartWOD}
                   />
-                  
-                  <SubscriptionStatus />
-                  
-                  <AssignedWorkoutSheets userId={user.id} />
                   
                   <TabsSection />
                 </main>
