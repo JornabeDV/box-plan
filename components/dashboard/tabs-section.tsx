@@ -45,90 +45,7 @@ export function TabsSection() {
       </TabsList>
 
       <TabsContent value="overview" className="space-y-6 mt-8">
-        <Card className="border-primary/20 bg-gradient-to-br from-card to-primary/5 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
-                <Calendar className="w-4 h-4 text-primary-foreground" />
-              </div>
-              Progreso Semanal
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <span className="font-medium">Entrenamientos completados</span>
-                <span className="text-xl font-bold text-primary">4/5</span>
-              </div>
-              <div className="space-y-2">
-                <Progress value={80} className="h-3 bg-muted/50" />
-                <div className="flex justify-between text-xs text-muted-foreground font-medium">
-                  <span>Lun</span>
-                  <span>Mar</span>
-                  <span>Mié</span>
-                  <span>Jue</span>
-                  <span>Vie</span>
-                </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center shadow-lg shadow-primary/25">
-                  <span className="text-sm font-bold text-primary-foreground">✓</span>
-                </div>
-                <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center shadow-lg shadow-primary/25">
-                  <span className="text-sm font-bold text-primary-foreground">✓</span>
-                </div>
-                <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center shadow-lg shadow-primary/25">
-                  <span className="text-sm font-bold text-primary-foreground">✓</span>
-                </div>
-                <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center shadow-lg shadow-primary/25">
-                  <span className="text-sm font-bold text-primary-foreground">✓</span>
-                </div>
-                <div className="w-10 h-10 bg-muted/50 rounded-full flex items-center justify-center border-2 border-dashed border-muted-foreground/50">
-                  <span className="text-sm font-bold text-muted-foreground">?</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-accent/20 bg-gradient-to-br from-card to-accent/5 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-accent to-accent/80 rounded-lg flex items-center justify-center">
-                <Star className="w-4 h-4 text-accent-foreground" />
-              </div>
-              Logros Recientes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-accent/10 to-transparent rounded-xl border border-accent/20">
-                <div className="w-12 h-12 bg-gradient-to-br from-accent to-accent/80 rounded-full flex items-center justify-center shadow-lg shadow-accent/25">
-                  <Trophy className="w-5 h-5 text-accent-foreground" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-bold">Racha de 10 días</p>
-                  <p className="text-sm text-muted-foreground">Desbloqueado hace 2 días</p>
-                </div>
-                <Badge variant="outline" className="border-accent/50 text-accent">
-                  Nuevo
-                </Badge>
-              </div>
-              <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-secondary/10 to-transparent rounded-xl border border-secondary/20">
-                <div className="w-12 h-12 bg-gradient-to-br from-secondary to-secondary/80 rounded-full flex items-center justify-center shadow-lg shadow-secondary/25">
-                  <Award className="w-5 h-5 text-secondary-foreground" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-bold">PR en Deadlift</p>
-                  <p className="text-sm text-muted-foreground">140kg - Nuevo récord personal</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-lg font-bold text-secondary">+5kg</div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Contenido de la pestaña Inicio - vacío por ahora */}
       </TabsContent>
 
       <TabsContent value="calendar" className="space-y-4 mt-6">
@@ -248,38 +165,6 @@ export function TabsSection() {
                 <p className="text-xs text-muted-foreground mt-2">- Coach María</p>
               </div>
 
-              <div className="space-y-3">
-                <h4 className="font-semibold">Leaderboard Semanal</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between p-3 bg-accent/10 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center">
-                        <span className="text-xs font-bold text-accent-foreground">1</span>
-                      </div>
-                      <span className="font-semibold">Carlos M.</span>
-                    </div>
-                    <span className="text-sm text-muted-foreground">5/5 WODs</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-card rounded-lg border">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
-                        <span className="text-xs font-bold">2</span>
-                      </div>
-                      <span className="font-semibold">Ana L.</span>
-                    </div>
-                    <span className="text-sm text-muted-foreground">5/5 WODs</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border-l-4 border-primary">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                        <span className="text-xs font-bold text-primary-foreground">3</span>
-                      </div>
-                      <span className="font-semibold">Tú</span>
-                    </div>
-                    <span className="text-sm text-muted-foreground">4/5 WODs</span>
-                  </div>
-                </div>
-              </div>
             </div>
           </CardContent>
         </Card>

@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Zap, Clock, ChevronRight, Target } from "lucide-react"
+import { Zap, Clock, ChevronRight, Target, Eye } from "lucide-react"
+import Link from "next/link"
 
 interface Exercise {
   name: string
@@ -59,32 +60,54 @@ export function WODCard({ wod, loading = false, onStartWOD }: WODCardProps) {
             <div className="bg-gradient-to-r from-accent/10 to-transparent p-4 rounded-xl border border-accent/20">
               <h4 className="font-bold text-xl text-accent mb-3">"{wod.name}"</h4>
               <p className="text-muted-foreground mb-4">{wod.description}</p>
-              <div className="grid gap-3">
-                {wod.exercises?.map((exercise, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 bg-card/50 rounded-lg border border-border/50">
+              
+              {/* Resumen de ejercicios - solo los primeros 2 */}
+              <div className="space-y-2">
+                {wod.exercises?.slice(0, 2).map((exercise, index) => (
+                  <div key={index} className="flex items-center gap-3 p-2 bg-card/50 rounded-lg border border-border/50">
                     <div className="w-2 h-2 bg-primary rounded-full"></div>
-                    <span className="font-medium">
+                    <span className="font-medium text-sm">
                       {exercise.name} {exercise.weight && `(${exercise.weight})`}
                     </span>
                   </div>
                 ))}
+                {wod.exercises && wod.exercises.length > 2 && (
+                  <div className="text-center text-sm text-muted-foreground py-2">
+                    +{wod.exercises.length - 2} ejercicios más
+                  </div>
+                )}
               </div>
             </div>
+            
             <div className="flex items-center justify-between pt-4 border-t border-border/50">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Clock className="w-4 h-4" />
-                <span className="font-medium">
-                  Tiempo objetivo: {wod.duration_minutes ? `${wod.duration_minutes} min` : 'Variable'}
+                <span className="font-medium text-sm">
+                  {wod.duration_minutes ? `${wod.duration_minutes} min` : 'Variable'}
                 </span>
               </div>
-              <Button
-                size="lg"
-                onClick={onStartWOD}
-                className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg shadow-primary/25 px-6"
-              >
-                Iniciar WOD
-                <ChevronRight className="w-5 h-5 ml-2" />
-              </Button>
+              
+              <div className="flex gap-3">
+                <Button
+                  size="sm"
+                  onClick={onStartWOD}
+                  className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg shadow-primary/25"
+                >
+                  Iniciar
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+                
+                <Link href={`/wod/${wod.id}`}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-primary/50 text-primary hover:bg-primary/10"
+                  >
+                    <Eye className="w-4 h-4 mr-1" />
+                    Ver completo
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
         ) : (
