@@ -20,7 +20,7 @@ export const PLANS: Plan[] = [
     currency: 'USD',
     interval: 'month',
     features: [
-      'Acceso a WODs diarios',
+      'Acceso a entrenamientos diarios',
       'Registro de entrenamientos',
       'Estadísticas básicas',
       'Soporte por email',
@@ -38,7 +38,7 @@ export const PLANS: Plan[] = [
     interval: 'month',
     features: [
       'Todo lo del plan Básico',
-      'WODs personalizados',
+      'Entrenamientos personalizados',
       'Análisis avanzado de progreso',
       'Records personales ilimitados',
       'Planificación de entrenamientos',

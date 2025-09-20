@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useSimplifiedAuth } from '@/hooks/use-simplified-auth'
 import { useAdminWorkoutSheets } from '@/hooks/use-admin-workout-sheets'
+import { useDisciplines } from '@/hooks/use-disciplines'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -22,17 +23,17 @@ import {
   Eye,
   Edit,
   Trash2,
-  Zap,
   ArrowLeft,
   Home
 } from 'lucide-react'
-import { CreateWorkoutSheetModal } from '@/components/admin/create-workout-sheet-modal'
-import { CreateWODModal } from '@/components/admin/create-wod-modal'
-import { EditWODModal } from '@/components/admin/edit-wod-modal'
 import { AdminStats } from '@/components/admin/admin-stats'
 import { UsersList } from '@/components/admin/users-list'
-import { WODsList } from '@/components/admin/wods-list'
-import { useWODs } from '@/hooks/use-wods'
+import { DisciplineModal } from '@/components/admin/discipline-modal'
+import { DisciplinesList } from '@/components/admin/disciplines-list'
+import { PlanificationModal } from '@/components/admin/planification-modal'
+import { PlanificationCalendar } from '@/components/admin/planification-calendar'
+import { PlanificationDayModal } from '@/components/admin/planification-day-modal'
+import { usePlanifications } from '@/hooks/use-planifications'
 
 export default function AdminDashboardPage() {
   const { user, adminProfile, loading: authLoading, isAdmin } = useSimplifiedAuth()
@@ -40,26 +41,40 @@ export default function AdminDashboardPage() {
     workoutSheets, 
     categories, 
     loading: sheetsLoading, 
-    createWorkoutSheet,
     searchWorkoutSheets 
   } = useAdminWorkoutSheets(adminProfile?.id || null)
 
+
   const {
-    wods,
-    loading: wodsLoading,
-    createWOD,
-    updateWOD,
-    deleteWOD,
-    searchWODs
-  } = useWODs(adminProfile?.id)
+    disciplines,
+    loading: disciplinesLoading,
+    createDiscipline,
+    updateDiscipline,
+    deleteDiscipline,
+    createDisciplineLevel,
+    reorderDisciplines,
+    reorderDisciplineLevels
+  } = useDisciplines(adminProfile?.id || null)
+
+  const {
+    planifications,
+    loading: planificationsLoading,
+    createPlanification,
+    updatePlanification,
+    deletePlanification,
+    searchPlanifications
+  } = usePlanifications(adminProfile?.id)
 
   const [activeTab, setActiveTab] = useState('overview')
   const [searchQuery, setSearchQuery] = useState('')
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [showCreateWODModal, setShowCreateWODModal] = useState(false)
-  const [showEditWODModal, setShowEditWODModal] = useState(false)
-  const [selectedWOD, setSelectedWOD] = useState<any>(null)
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all')
+  const [showDisciplineModal, setShowDisciplineModal] = useState(false)
+  const [selectedDiscipline, setSelectedDiscipline] = useState<any>(null)
+  const [showPlanificationModal, setShowPlanificationModal] = useState(false)
+  const [selectedPlanification, setSelectedPlanification] = useState<any>(null)
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [showDayModal, setShowDayModal] = useState(false)
+  const [dayPlanifications, setDayPlanifications] = useState<any[]>([])
 
   // Filtrar planillas según búsqueda y dificultad
   const filteredSheets = workoutSheets.filter(sheet => {
@@ -73,56 +88,7 @@ export default function AdminDashboardPage() {
     return matchesSearch && matchesDifficulty
   })
 
-  const handleCreateSheet = async (sheetData: any) => {
-    const result = await createWorkoutSheet(sheetData)
-    
-    if (!result.error) {
-      setShowCreateModal(false)
-    }
-    return { error: result.error || undefined }
-  }
 
-  const handleCreateWOD = async (wodData: any) => {
-    if (!adminProfile?.id) {
-      return { error: 'No se encontró el perfil de administrador' }
-    }
-
-    const result = await createWOD({
-      ...wodData,
-      admin_id: adminProfile.id
-    })
-    
-    if (!result.error) {
-      setShowCreateWODModal(false)
-    }
-    return { error: result.error || undefined }
-  }
-
-  const handleEditWOD = async (wod: any) => {
-    setSelectedWOD(wod)
-    setShowEditWODModal(true)
-  }
-
-  const handleUpdateWOD = async (wodId: string, wodData: any) => {
-    const result = await updateWOD(wodId, wodData)
-    
-    if (!result.error) {
-      setShowEditWODModal(false)
-      setSelectedWOD(null)
-    }
-    return { error: result.error || undefined }
-  }
-
-  const handleDeleteWOD = async (wodId: string) => {
-    const result = await deleteWOD(wodId)
-    if (result.error) {
-      console.error('Error deleting WOD:', result.error)
-    }
-  }
-
-  const handleViewWOD = (wod: any) => {
-    // Implementar lógica de visualización
-  }
 
   const handleSearch = (query: string) => {
     setSearchQuery(query)
@@ -133,6 +99,127 @@ export default function AdminDashboardPage() {
       // Esto se manejaría en el hook, pero por simplicidad lo hacemos aquí
     }
   }
+
+  const handleCreateDiscipline = async (data: any) => {
+    const result = await createDiscipline(data) as { error?: string }
+    
+    if (!result.error) {
+      setShowDisciplineModal(false)
+    }
+    return { error: result.error || undefined }
+  }
+
+  const handleEditDiscipline = async (data: any) => {
+    const result = await updateDiscipline(data) as { error?: string }
+    
+    if (!result.error) {
+      setShowDisciplineModal(false)
+      setSelectedDiscipline(null)
+    }
+    return { error: result.error || undefined }
+  }
+
+  const handleDisciplineSubmit = async (data: any) => {
+    if (selectedDiscipline) {
+      return await handleEditDiscipline({ ...data, id: selectedDiscipline.id })
+    } else {
+      return await handleCreateDiscipline(data)
+    }
+  }
+
+  const handleEditDisciplineClick = (discipline: any) => {
+    setSelectedDiscipline(discipline)
+    setShowDisciplineModal(true)
+  }
+
+  const handleDeleteDiscipline = async (disciplineId: string) => {
+    try {
+      const result = await deleteDiscipline(disciplineId)
+      if (result.error) {
+        console.error('Error deleting discipline:', result.error)
+      } else {
+        console.log('Discipline deleted successfully')
+      }
+    } catch (error) {
+      console.error('Error deleting discipline:', error)
+    }
+  }
+
+  // Funciones para planificaciones
+  const handleCreatePlanification = () => {
+    setSelectedPlanification(null)
+    setSelectedDate(null)
+    setShowPlanificationModal(true)
+  }
+
+  const handleDateClick = (date: Date) => {
+    setSelectedDate(date)
+    setSelectedPlanification(null)
+    setShowPlanificationModal(true)
+  }
+
+  const handleEditPlanification = (planification: any) => {
+    setSelectedPlanification(planification)
+    setSelectedDate(null)
+    setShowPlanificationModal(true)
+  }
+
+  const handlePlanificationSubmit = async (data: any) => {
+    if (selectedPlanification) {
+      const result = await updatePlanification(selectedPlanification.id, data)
+      if (result.error) {
+        console.error('Error updating planification:', result.error)
+        return { error: result.error }
+      }
+    } else {
+      const result = await createPlanification({ ...data, admin_id: adminProfile?.id })
+      if (result.error) {
+        console.error('Error creating planification:', result.error)
+        return { error: result.error }
+      }
+    }
+    return { error: undefined }
+  }
+
+  const handleDeletePlanification = async (planificationId: string) => {
+    if (confirm('¿Estás seguro de que quieres eliminar esta planificación?')) {
+      const result = await deletePlanification(planificationId)
+      if (result.error) {
+        console.error('Error deleting planification:', result.error)
+      }
+    }
+  }
+
+  const handleViewDayPlanifications = (date: Date, planifications: any[]) => {
+    setSelectedDate(date)
+    setDayPlanifications(planifications)
+    setShowDayModal(true)
+  }
+
+  const handleCreateFromDay = (date: Date) => {
+    setSelectedDate(date)
+    setSelectedPlanification(null)
+    setShowDayModal(false)
+    setShowPlanificationModal(true)
+  }
+
+  const handleEditFromDay = (planification: any) => {
+    setSelectedPlanification(planification)
+    setSelectedDate(null)
+    setShowDayModal(false)
+    setShowPlanificationModal(true)
+  }
+
+  const handleDeleteFromDay = async (planificationId: string) => {
+    const result = await deletePlanification(planificationId)
+    if (result.error) {
+      console.error('Error deleting planification:', result.error)
+    } else {
+      // Actualizar la lista de planificaciones del día
+      setDayPlanifications(prev => prev.filter(p => p.id !== planificationId))
+    }
+  }
+
 
   if (authLoading) {
     return (
@@ -184,16 +271,6 @@ export default function AdminDashboardPage() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <Button onClick={() => setShowCreateWODModal(true)} variant="outline">
-                <Zap className="w-4 h-4 mr-2" />
-                Nuevo WOD
-              </Button>
-              <Button onClick={() => setShowCreateModal(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Nueva Planilla
-              </Button>
-            </div>
           </div>
         </div>
       </div>
@@ -203,8 +280,8 @@ export default function AdminDashboardPage() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Resumen</TabsTrigger>
-            <TabsTrigger value="wods">WODs</TabsTrigger>
-            <TabsTrigger value="sheets">Planillas</TabsTrigger>
+            <TabsTrigger value="disciplines">Disciplinas</TabsTrigger>
+            <TabsTrigger value="planning">Planificación</TabsTrigger>
             <TabsTrigger value="users">Usuarios</TabsTrigger>
             <TabsTrigger value="settings">Configuración</TabsTrigger>
           </TabsList>
@@ -213,7 +290,6 @@ export default function AdminDashboardPage() {
           <TabsContent value="overview" className="space-y-6">
             <AdminStats 
               totalSheets={workoutSheets.length}
-              totalWODs={wods.length}
               totalUsers={0} // TODO: Implementar contador de usuarios
               completedSheets={0} // TODO: Implementar contador de planillas completadas
             />
@@ -260,142 +336,64 @@ export default function AdminDashboardPage() {
             </div>
           </TabsContent>
 
-          {/* WODs Tab */}
-          <TabsContent value="wods" className="space-y-6">
+          {/* Disciplinas Tab */}
+          <TabsContent value="disciplines" className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold">WODs Creados</h2>
+                <h2 className="text-2xl font-bold">Disciplinas</h2>
                 <p className="text-muted-foreground">
-                  Gestiona todos los Workouts of the Day creados
+                  Gestiona las disciplinas y sus niveles de categorización
                 </p>
               </div>
-              <Button onClick={() => setShowCreateWODModal(true)}>
-                <Zap className="w-4 h-4 mr-2" />
-                Nuevo WOD
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={() => {
+                  setSelectedDiscipline(null)
+                  setShowDisciplineModal(true)
+                }}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nueva Disciplina
+                </Button>
+              </div>
             </div>
 
-            <WODsList
-              wods={wods}
-              loading={wodsLoading}
-              onEdit={handleEditWOD}
-              onDelete={handleDeleteWOD}
-              onView={handleViewWOD}
+            <DisciplinesList
+              disciplines={disciplines}
+              loading={disciplinesLoading}
+              onEdit={handleEditDisciplineClick}
+              onDelete={handleDeleteDiscipline}
+              onReorder={reorderDisciplines}
+              onReorderLevels={reorderDisciplineLevels}
             />
           </TabsContent>
 
-          {/* Planillas Tab */}
-          <TabsContent value="sheets" className="space-y-6">
-            {/* Filtros y búsqueda */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Buscar planillas..."
-                  value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <select
-                value={selectedDifficulty}
-                onChange={(e) => setSelectedDifficulty(e.target.value)}
-                className="px-3 py-2 border border-input bg-background rounded-md text-sm"
-              >
-                <option value="all">Todas las dificultades</option>
-                <option value="beginner">Principiante</option>
-                <option value="intermediate">Intermedio</option>
-                <option value="advanced">Avanzado</option>
-              </select>
-            </div>
-
-            {/* Lista de planillas */}
-            {sheetsLoading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                <p className="text-muted-foreground mt-2">Cargando planillas...</p>
-              </div>
-            ) : filteredSheets.length === 0 ? (
-              <div className="text-center py-12">
-                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No hay planillas</h3>
-                <p className="text-muted-foreground mb-4">
-                  {searchQuery ? 'No se encontraron planillas con ese criterio.' : 'Crea tu primera planilla de entrenamiento.'}
+          {/* Planificación Tab */}
+          <TabsContent value="planning" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Planificaciones</h2>
+                <p className="text-muted-foreground">
+                  Gestiona las planificaciones de entrenamiento por disciplina y nivel
                 </p>
-                <Button onClick={() => setShowCreateModal(true)}>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={() => {
+                  setSelectedPlanification(null)
+                  setShowPlanificationModal(true)
+                }}>
                   <Plus className="w-4 h-4 mr-2" />
-                  Crear Planilla
+                  Nueva Planificación
                 </Button>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredSheets.map((sheet) => (
-                  <Card key={sheet.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <CardTitle className="text-lg">{sheet.title}</CardTitle>
-                          <CardDescription>{sheet.description}</CardDescription>
-                        </div>
-                        <Badge variant={sheet.difficulty === 'beginner' ? 'default' : sheet.difficulty === 'intermediate' ? 'secondary' : 'destructive'}>
-                          {sheet.difficulty}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        {sheet.category && (
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <span className="font-medium">Categoría:</span>
-                            <span className="ml-2">{sheet.category.name}</span>
-                          </div>
-                        )}
-                        {sheet.estimated_duration && (
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <Clock className="h-4 w-4 mr-2" />
-                            <span>{sheet.estimated_duration} min</span>
-                          </div>
-                        )}
-                        {sheet.equipment_needed.length > 0 && (
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <Dumbbell className="h-4 w-4 mr-2" />
-                            <span>{sheet.equipment_needed.join(', ')}</span>
-                          </div>
-                        )}
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {sheet.tags.slice(0, 3).map((tag, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                          {sheet.tags.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{sheet.tags.length - 3} más
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                        <div className="flex space-x-2">
-                          <Button size="sm" variant="outline">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button size="sm" variant="outline">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button size="sm" variant="outline" className="text-destructive hover:text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {new Date(sheet.created_at).toLocaleDateString()}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
+            </div>
+
+            <PlanificationCalendar
+              planifications={planifications}
+              loading={planificationsLoading}
+              onDateClick={handleDateClick}
+              onEditPlanification={handleEditPlanification}
+              onDeletePlanification={handleDeletePlanification}
+              onViewDayPlanifications={handleViewDayPlanifications}
+            />
           </TabsContent>
 
           {/* Usuarios Tab */}
@@ -439,27 +437,51 @@ export default function AdminDashboardPage() {
         </Tabs>
       </div>
 
-      {/* Modal para crear planilla */}
-      <CreateWorkoutSheetModal
-        open={showCreateModal}
-        onOpenChange={setShowCreateModal}
-        categories={categories}
-        onSubmit={handleCreateSheet}
+
+      {/* Modal para crear/editar disciplina */}
+      <DisciplineModal
+        open={showDisciplineModal}
+        onOpenChange={(open: boolean) => {
+          setShowDisciplineModal(open)
+          if (!open) {
+            setSelectedDiscipline(null)
+          }
+        }}
+        discipline={selectedDiscipline}
+        onSubmit={handleDisciplineSubmit}
       />
 
-      {/* Modal para crear WOD */}
-      <CreateWODModal
-        open={showCreateWODModal}
-        onOpenChange={setShowCreateWODModal}
-        onSubmit={handleCreateWOD}
+      {/* Modal para crear/editar planificación */}
+      <PlanificationModal
+        open={showPlanificationModal}
+        onOpenChange={(open: boolean) => {
+          setShowPlanificationModal(open)
+          if (!open) {
+            setSelectedPlanification(null)
+            setSelectedDate(null)
+          }
+        }}
+        planification={selectedPlanification}
+        selectedDate={selectedDate}
+        adminId={adminProfile?.id}
+        onSubmit={handlePlanificationSubmit}
       />
 
-      {/* Modal para editar WOD */}
-      <EditWODModal
-        open={showEditWODModal}
-        onOpenChange={setShowEditWODModal}
-        wod={selectedWOD}
-        onSubmit={handleUpdateWOD}
+      {/* Modal para ver planificaciones del día */}
+      <PlanificationDayModal
+        open={showDayModal}
+        onOpenChange={(open: boolean) => {
+          setShowDayModal(open)
+          if (!open) {
+            setSelectedDate(null)
+            setDayPlanifications([])
+          }
+        }}
+        selectedDate={selectedDate}
+        planifications={dayPlanifications}
+        onEdit={handleEditFromDay}
+        onDelete={handleDeleteFromDay}
+        onCreate={handleCreateFromDay}
       />
     </div>
   )

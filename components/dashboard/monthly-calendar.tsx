@@ -11,8 +11,8 @@ interface MonthlyCalendarProps {
 }
 
 /**
- * Componente MonthlyCalendar - Calendario mensual para ver WODs
- * Permite navegar entre meses y hacer click en días para ver WODs
+ * Componente MonthlyCalendar - Calendario mensual para ver entrenamientos
+ * Permite navegar entre meses y hacer click en días para ver entrenamientos
  */
 export function MonthlyCalendar({ onDateClick }: MonthlyCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -50,11 +50,11 @@ export function MonthlyCalendar({ onDateClick }: MonthlyCalendarProps) {
     setCurrentDate(new Date())
   }
   
-  // Verificar si un día tiene WOD (simulación - en una app real vendría de la API)
-  const hasWOD = (day: number) => {
+  // Verificar si un día tiene entrenamiento (simulación - en una app real vendría de la API)
+  const hasWorkout = (day: number) => {
     const date = new Date(year, month, day)
     const dayOfWeek = date.getDay()
-    // Simular que hay WODs de lunes a viernes (1-5)
+    // Simular que hay entrenamientos de lunes a viernes (1-5)
     return dayOfWeek >= 1 && dayOfWeek <= 5
   }
   
@@ -148,36 +148,34 @@ export function MonthlyCalendar({ onDateClick }: MonthlyCalendarProps) {
               return <div key={index} className="aspect-square"></div>
             }
             
-             const hasWorkout = hasWOD(day)
+             const hasWorkoutValue = hasWorkout(day)
              const isWorkoutDayValue = isWorkoutDay(day)
              const isCurrentDay = isToday(day)
              const isPast = isPastDay(day)
              
              return (
                <div key={day} className="aspect-square">
-                 {hasWorkout ? (
-                   <Link href={`/wod/${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`}>
-                     <Button
-                       variant={isCurrentDay ? "default" : "outline"}
-                       size="sm"
-                       className={`
-                         w-full h-full p-0 text-xs font-medium
-                         ${isCurrentDay 
-                           ? 'bg-primary text-primary-foreground shadow-lg' 
-                           : hasWorkout 
-                             ? 'border-primary/50 text-primary hover:bg-primary/10' 
-                             : 'border-muted text-muted-foreground'
-                         }
-                         ${isPast ? 'opacity-60' : ''}
-                       `}
-                       onClick={() => handleDayClick(day)}
-                     >
-                       <div className="flex flex-col items-center justify-center">
-                         <span>{day}</span>
-                         {hasWorkout}
-                       </div>
-                     </Button>
-                   </Link>
+                 {hasWorkoutValue ? (
+                   <Button
+                     variant={isCurrentDay ? "default" : "outline"}
+                     size="sm"
+                     className={`
+                       w-full h-full p-0 text-xs font-medium
+                       ${isCurrentDay 
+                         ? 'bg-primary text-primary-foreground shadow-lg' 
+                         : hasWorkoutValue 
+                           ? 'border-primary/50 text-primary hover:bg-primary/10' 
+                           : 'border-muted text-muted-foreground'
+                       }
+                       ${isPast ? 'opacity-60' : ''}
+                     `}
+                     onClick={() => handleDayClick(day)}
+                   >
+                     <div className="flex flex-col items-center justify-center">
+                       <span>{day}</span>
+                       <Target className="w-2 h-2" />
+                     </div>
+                   </Button>
                  ) : (
                    <div
                      className={`

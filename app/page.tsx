@@ -17,24 +17,6 @@ export default function CrossFitApp() {
   const { user, userRole, adminProfile, loading: authLoading, isAdmin, isUser, signOut } = useAuthWithRoles()
 
 
-  // Datos de ejemplo para el WOD del día
-  const todaysWOD = {
-    id: "1",
-    name: "Fran",
-    description: "21-15-9 reps de:",
-    type: "metcon" as const,
-    difficulty: "intermediate" as const,
-    duration_minutes: 8,
-    exercises: [
-      { name: "Thrusters", weight: "43kg/30kg" },
-      { name: "Pull-ups" }
-    ]
-  }
-
-  const handleStartWOD = () => {
-    console.log("Iniciando WOD:", todaysWOD.name)
-    // Aquí se implementaría la lógica para iniciar el WOD
-  }
 
   const handleAuthSuccess = () => {
     setShowAuthModal(false)
@@ -114,11 +96,7 @@ export default function CrossFitApp() {
       <Header />
 
                 <main className="p-6 space-y-8 pb-24">
-                  <TodaySection 
-                    todaysWOD={todaysWOD}
-                    onStartWOD={handleStartWOD}
-                  />
-                  
+                  <TodaySection />
                   <TabsSection />
                 </main>
 
