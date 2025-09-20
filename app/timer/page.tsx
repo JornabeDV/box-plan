@@ -326,7 +326,7 @@ export default function TimerPage() {
             {mode === 'normal' && (
               <>
                 <p>• Cronómetro básico para medir tiempo</p>
-                <p>• Ideal para WODs con tiempo límite</p>
+                <p>• Ideal para entrenamientos con tiempo límite</p>
                 <p>• Pausa y reanuda cuando necesites</p>
               </>
             )}
@@ -340,7 +340,7 @@ export default function TimerPage() {
             )}
             {mode === 'fortime' && (
               <>
-                <p>• Completa el WOD en el menor tiempo</p>
+                <p>• Completa el entrenamiento en el menor tiempo</p>
                 <p>• Cronómetro cuenta hacia arriba</p>
                 <p>• Registra tu mejor tiempo</p>
               </>

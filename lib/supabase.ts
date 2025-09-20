@@ -293,67 +293,11 @@ export interface Database {
           updated_at?: string
         }
       }
-      wods: {
-        Row: {
-          id: string
-          name: string
-          description: string
-          type: 'metcon' | 'strength' | 'skill' | 'endurance'
-          difficulty: 'beginner' | 'intermediate' | 'advanced'
-          duration_minutes: number | null
-          exercises: any[]
-          instructions: string | null
-          scaling: string | null
-          tips: any[]
-          is_public: boolean
-          is_template: boolean
-          date: string | null
-          admin_id: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          description: string
-          type: 'metcon' | 'strength' | 'skill' | 'endurance'
-          difficulty: 'beginner' | 'intermediate' | 'advanced'
-          duration_minutes?: number | null
-          exercises: any[]
-          instructions?: string | null
-          scaling?: string | null
-          tips?: any[]
-          is_public?: boolean
-          is_template?: boolean
-          date?: string | null
-          admin_id: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          name?: string
-          description?: string
-          type?: 'metcon' | 'strength' | 'skill' | 'endurance'
-          difficulty?: 'beginner' | 'intermediate' | 'advanced'
-          duration_minutes?: number | null
-          exercises?: any[]
-          instructions?: string | null
-          scaling?: string | null
-          tips?: any[]
-          is_public?: boolean
-          is_template?: boolean
-          date?: string | null
-          admin_id?: string
-          created_at?: string
-          updated_at?: string
-        }
-      }
       workouts: {
         Row: {
           id: string
           user_id: string
-          wod_id: string
+          workout_sheet_id: string
           completed_at: string
           duration_seconds: number | null
           score: string | null
@@ -363,7 +307,7 @@ export interface Database {
         Insert: {
           id?: string
           user_id: string
-          wod_id: string
+          workout_sheet_id: string
           completed_at: string
           duration_seconds?: number | null
           score?: string | null
@@ -373,7 +317,7 @@ export interface Database {
         Update: {
           id?: string
           user_id?: string
-          wod_id?: string
+          workout_sheet_id?: string
           completed_at?: string
           duration_seconds?: number | null
           score?: string | null
@@ -482,6 +426,47 @@ export interface Database {
           status?: 'pending' | 'approved' | 'rejected'
           mercadopago_payment_id?: string | null
           payment_method?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      planifications: {
+        Row: {
+          id: string
+          admin_id: string
+          discipline_id: string
+          discipline_level_id: string
+          date: string
+          estimated_duration: number | null
+          blocks: any[]
+          notes: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          admin_id: string
+          discipline_id: string
+          discipline_level_id: string
+          date: string
+          estimated_duration?: number | null
+          blocks?: any[]
+          notes?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          admin_id?: string
+          discipline_id?: string
+          discipline_level_id?: string
+          date?: string
+          estimated_duration?: number | null
+          blocks?: any[]
+          notes?: string | null
+          is_active?: boolean
           created_at?: string
           updated_at?: string
         }
