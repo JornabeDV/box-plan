@@ -110,7 +110,7 @@ export function usePlanifications(adminId?: string) {
   const updatePlanification = async (id: string, updates: Partial<Planification>) => {
     try {
       setError(null)
-
+      
       const { data, error: updateError } = await supabase
         .from('planifications')
         .update(updates)
@@ -126,6 +126,12 @@ export function usePlanifications(adminId?: string) {
         console.error('Error updating planification:', updateError)
         setError(updateError.message)
         return { error: updateError.message }
+      }
+
+      if (!data) {
+        console.error('No data returned from update')
+        setError('No se pudo actualizar la planificación')
+        return { error: 'No se pudo actualizar la planificación' }
       }
 
       setPlanifications(prev => prev.map(p => p.id === id ? data : p))

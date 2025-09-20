@@ -123,13 +123,7 @@ export function DisciplineModal({
       
       setLoadingStep(discipline ? 'Actualizando disciplina...' : 'Creando disciplina...')
       
-      // Agregar timeout específico para el modal
-      const modalTimeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Timeout: La operación tardó demasiado tiempo')), 60000)
-      })
-      
-      const submitPromise = onSubmit(submitData)
-      const result = await Promise.race([submitPromise, modalTimeoutPromise]) as { error?: string }
+      const result = await onSubmit(submitData) as { error?: string }
 
       if (result.error) {
         setError(result.error)
@@ -138,6 +132,7 @@ export function DisciplineModal({
         onOpenChange(false)
       }
     } catch (err) {
+      console.error('Error in handleSubmit:', err)
       const errorMessage = err instanceof Error ? err.message : 'Error al guardar disciplina'
       setError(errorMessage)
     } finally {

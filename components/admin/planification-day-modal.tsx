@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { 
   Calendar, 
   Clock, 
@@ -38,12 +39,20 @@ export function PlanificationDayModal({
   onCreate
 }: PlanificationDayModalProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [planificationToDelete, setPlanificationToDelete] = useState<Planification | null>(null)
 
-  const handleDelete = async (planificationId: string) => {
-    if (confirm('¿Estás seguro de que quieres eliminar esta planificación?')) {
-      setDeletingId(planificationId)
-      await onDelete(planificationId)
+  const handleDeleteClick = (planification: Planification) => {
+    setPlanificationToDelete(planification)
+    setShowDeleteDialog(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (planificationToDelete) {
+      setDeletingId(planificationToDelete.id)
+      await onDelete(planificationToDelete.id)
       setDeletingId(null)
+      setPlanificationToDelete(null)
     }
   }
 
@@ -68,7 +77,7 @@ export function PlanificationDayModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5" />
@@ -179,7 +188,7 @@ export function PlanificationDayModal({
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleDelete(planification.id)}
+                          onClick={() => handleDeleteClick(planification)}
                           disabled={deletingId === planification.id}
                           className="text-destructive hover:text-destructive"
                         >
@@ -234,6 +243,19 @@ export function PlanificationDayModal({
           )}
         </div>
       </DialogContent>
+
+      {/* Diálogo de confirmación para eliminar */}
+      <ConfirmationDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        onConfirm={handleDeleteConfirm}
+        title="Eliminar Planificación"
+        description={`¿Estás seguro de que quieres eliminar esta planificación? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="destructive"
+        loading={deletingId === planificationToDelete?.id}
+      />
     </Dialog>
   )
 }

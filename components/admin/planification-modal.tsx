@@ -48,7 +48,7 @@ export function PlanificationModal({
   adminId,
   onSubmit 
 }: PlanificationModalProps) {
-  const { disciplines, disciplineLevels, loading: disciplinesLoading } = useDisciplines(adminId)
+  const { disciplines, disciplineLevels, loading: disciplinesLoading } = useDisciplines(adminId || null)
   
   const [formData, setFormData] = useState({
     discipline_id: '',
@@ -93,6 +93,7 @@ export function PlanificationModal({
       setBlockItem('')
       setCurrentBlockId(null)
       setError(null)
+      setLoading(false)
     }
   }, [open, planification])
 
@@ -170,6 +171,13 @@ export function PlanificationModal({
     setLoading(true)
     setError(null)
 
+    // Timeout de seguridad para evitar que se quede tildado
+    const timeoutId = setTimeout(() => {
+      console.warn('Planification submit timeout, resetting loading state')
+      setError('La operación está tardando demasiado. Por favor, inténtalo de nuevo.')
+      setLoading(false)
+    }, 15000) // 15 segundos
+
     try {
       const submitData = {
         discipline_id: formData.discipline_id,
@@ -181,26 +189,28 @@ export function PlanificationModal({
         is_active: true
       }
 
-      console.log('Enviando datos:', submitData)
       const result = await onSubmit(submitData)
-      console.log('Resultado:', result)
+      
+      clearTimeout(timeoutId)
       
       if (result.error) {
         setError(result.error)
         setLoading(false)
       } else {
+        setLoading(false)
         onOpenChange(false)
       }
     } catch (err) {
       console.error('Error en handleSubmit:', err)
-      setError('Error al procesar la solicitud')
+      clearTimeout(timeoutId)
+      setError('Error al procesar la solicitud. Por favor, inténtalo de nuevo.')
       setLoading(false)
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Target className="w-5 h-5" />

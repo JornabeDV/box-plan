@@ -112,54 +112,51 @@ export function useDisciplines(adminId: string | null) {
     }
 
     try {
-      // Timeout para evitar que se cuelgue indefinidamente
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Timeout: La operación tardó demasiado')), 30000)
-      })
-      
-      const createPromise = async () => {
-        // Crear la disciplina
-        const { data: newDiscipline, error: disciplineError } = await supabase
-          .from('disciplines')
-          .insert({
-            name: data.name,
-            description: data.description,
-            color: data.color,
-            admin_id: adminId,
-            order_index: data.order_index ?? disciplines.length
-          })
-          .select()
-          .single()
+      // Crear la disciplina
+      const { data: newDiscipline, error: disciplineError } = await supabase
+        .from('disciplines')
+        .insert({
+          name: data.name,
+          description: data.description,
+          color: data.color || '#3B82F6',
+          admin_id: adminId,
+          order_index: data.order_index ?? disciplines.length
+        })
+        .select()
+        .single()
 
-        if (disciplineError) throw disciplineError
-
-        // Crear los niveles si existen
-        let levels = []
-        if (data.levels && data.levels.length > 0) {
-          const { data: newLevels, error: levelsError } = await supabase
-            .from('discipline_levels')
-            .insert(
-              data.levels.map((level) => ({
-                discipline_id: newDiscipline.id,
-                name: level.name,
-                description: level.description,
-                order_index: level.order_index
-              }))
-            )
-            .select()
-
-          if (levelsError) throw levelsError
-          levels = newLevels || []
-        }
-
-        setDisciplines(prev => [...prev, { ...newDiscipline, levels }])
-        
-        return { data: newDiscipline }
+      if (disciplineError) {
+        console.error('Error creating discipline:', disciplineError)
+        throw disciplineError
       }
+
+      // Crear los niveles si existen
+      let levels = []
+      if (data.levels && data.levels.length > 0) {
+        const { data: newLevels, error: levelsError } = await supabase
+          .from('discipline_levels')
+          .insert(
+            data.levels.map((level) => ({
+              discipline_id: newDiscipline.id,
+              name: level.name,
+              description: level.description,
+              order_index: level.order_index
+            }))
+          )
+          .select()
+
+        if (levelsError) {
+          console.error('Error creating levels:', levelsError)
+          throw levelsError
+        }
+        levels = newLevels || []
+      }
+
+      // Actualizar estado local
+      const disciplineWithLevels = { ...newDiscipline, levels }
+      setDisciplines(prev => [...prev, disciplineWithLevels])
       
-      // Ejecutar con timeout
-      const result = await Promise.race([createPromise(), timeoutPromise])
-      return result
+      return { data: newDiscipline }
     } catch (err) {
       console.error('Error creating discipline:', err)
       return { error: err instanceof Error ? err.message : 'Error al crear disciplina' }
@@ -237,8 +234,8 @@ export function useDisciplines(adminId: string | null) {
               const existingLevelsMap = new Map(existingLevels.map(level => [level.order_index, level]))
               
               // Procesar cada nivel nuevo
-              const levelUpdates = []
-              const levelInserts = []
+              const levelUpdates: any[] = []
+              const levelInserts: any[] = []
               
               validLevels.forEach((newLevel, index) => {
                 const existingLevel = existingLevelsMap.get(index)

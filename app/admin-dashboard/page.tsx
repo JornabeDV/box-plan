@@ -33,6 +33,7 @@ import { DisciplinesList } from '@/components/admin/disciplines-list'
 import { PlanificationModal } from '@/components/admin/planification-modal'
 import { PlanificationCalendar } from '@/components/admin/planification-calendar'
 import { PlanificationDayModal } from '@/components/admin/planification-day-modal'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { usePlanifications } from '@/hooks/use-planifications'
 
 export default function AdminDashboardPage() {
@@ -75,6 +76,8 @@ export default function AdminDashboardPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [showDayModal, setShowDayModal] = useState(false)
   const [dayPlanifications, setDayPlanifications] = useState<any[]>([])
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [planificationToDelete, setPlanificationToDelete] = useState<any>(null)
 
   // Filtrar planillas según búsqueda y dificultad
   const filteredSheets = workoutSheets.filter(sheet => {
@@ -165,28 +168,39 @@ export default function AdminDashboardPage() {
   }
 
   const handlePlanificationSubmit = async (data: any) => {
-    if (selectedPlanification) {
-      const result = await updatePlanification(selectedPlanification.id, data)
-      if (result.error) {
-        console.error('Error updating planification:', result.error)
-        return { error: result.error }
+    try {
+      if (selectedPlanification) {
+        const result = await updatePlanification(selectedPlanification.id, data)
+        if (result.error) {
+          console.error('Error updating planification:', result.error)
+          return { error: result.error }
+        }
+      } else {
+        const result = await createPlanification({ ...data, admin_id: adminProfile?.id })
+        if (result.error) {
+          console.error('Error creating planification:', result.error)
+          return { error: result.error }
+        }
       }
-    } else {
-      const result = await createPlanification({ ...data, admin_id: adminProfile?.id })
-      if (result.error) {
-        console.error('Error creating planification:', result.error)
-        return { error: result.error }
-      }
+      return { error: undefined }
+    } catch (error) {
+      console.error('Unexpected error in handlePlanificationSubmit:', error)
+      return { error: 'Error inesperado al procesar la solicitud' }
     }
-    return { error: undefined }
   }
 
-  const handleDeletePlanification = async (planificationId: string) => {
-    if (confirm('¿Estás seguro de que quieres eliminar esta planificación?')) {
-      const result = await deletePlanification(planificationId)
+  const handleDeletePlanification = (planification: any) => {
+    setPlanificationToDelete(planification)
+    setShowDeleteDialog(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (planificationToDelete) {
+      const result = await deletePlanification(planificationToDelete.id)
       if (result.error) {
         console.error('Error deleting planification:', result.error)
       }
+      setPlanificationToDelete(null)
     }
   }
 
@@ -482,6 +496,18 @@ export default function AdminDashboardPage() {
         onEdit={handleEditFromDay}
         onDelete={handleDeleteFromDay}
         onCreate={handleCreateFromDay}
+      />
+
+      {/* Diálogo de confirmación para eliminar planificación */}
+      <ConfirmationDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        onConfirm={handleDeleteConfirm}
+        title="Eliminar Planificación"
+        description={`¿Estás seguro de que quieres eliminar esta planificación? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="destructive"
       />
     </div>
   )
