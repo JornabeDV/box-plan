@@ -77,8 +77,8 @@ export function PlanificationDayModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl h-screen sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg m-0 sm:m-4">
+        <DialogHeader className="pb-6">
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5" />
             Planificaciones del {formatDate(selectedDate)}
@@ -182,6 +182,7 @@ export function PlanificationDayModal({
                           size="sm"
                           variant="outline"
                           onClick={() => onEdit(planification)}
+                          className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -190,7 +191,7 @@ export function PlanificationDayModal({
                           variant="outline"
                           onClick={() => handleDeleteClick(planification)}
                           disabled={deletingId === planification.id}
-                          className="text-destructive hover:text-destructive"
+                          className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>

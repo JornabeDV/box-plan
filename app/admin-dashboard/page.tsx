@@ -24,7 +24,9 @@ import {
   Edit,
   Trash2,
   ArrowLeft,
-  Home
+  Home,
+  Calendar,
+  Target
 } from 'lucide-react'
 import { AdminStats } from '@/components/admin/admin-stats'
 import { UsersList } from '@/components/admin/users-list'
@@ -270,17 +272,16 @@ export default function AdminDashboardPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button 
-                variant="outline" 
                 size="sm"
                 onClick={() => window.location.href = '/'}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 hover:opacity-80 transition-100"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Volver al Inicio
+                <span className="hidden sm:inline">Volver al Inicio</span>
               </Button>
               <div>
-                <h1 className="text-3xl font-bold">Dashboard Administrador</h1>
-                <p className="text-muted-foreground">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Dashboard Administrador</h1>
+                <p className="text-sm sm:text-base text-muted-foreground">
                   {adminProfile?.organization_name || 'Panel de Control'}
                 </p>
               </div>
@@ -292,12 +293,47 @@ export default function AdminDashboardPage() {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="overview">Resumen</TabsTrigger>
-            <TabsTrigger value="disciplines">Disciplinas</TabsTrigger>
-            <TabsTrigger value="planning">Planificación</TabsTrigger>
-            <TabsTrigger value="users">Usuarios</TabsTrigger>
-            <TabsTrigger value="settings">Configuración</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 gap-1 h-auto p-1">
+            <TabsTrigger 
+              value="overview" 
+              className="text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap"
+            >
+              <div className="flex flex-col items-center gap-1">
+                <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Resumen</span>
+                <span className="sm:hidden text-xs">Resumen</span>
+              </div>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="disciplines" 
+              className="text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap"
+            >
+              <div className="flex flex-col items-center gap-1">
+                <Target className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Disciplinas</span>
+                <span className="sm:hidden text-xs">Disciplinas</span>
+              </div>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="planning" 
+              className="text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap"
+            >
+              <div className="flex flex-col items-center gap-1">
+                <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Planificación</span>
+                <span className="sm:hidden text-xs">Planificación</span>
+              </div>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="users" 
+              className="text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap"
+            >
+              <div className="flex flex-col items-center gap-1">
+                <Users className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Usuarios</span>
+                <span className="sm:hidden text-xs">Usuarios</span>
+              </div>
+            </TabsTrigger>
           </TabsList>
 
           {/* Resumen Tab */}
@@ -352,18 +388,21 @@ export default function AdminDashboardPage() {
 
           {/* Disciplinas Tab */}
           <TabsContent value="disciplines" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-start justify-between max-md:flex-col max-sm:gap-2 gap-4">
+              <div className='flex flex-col gap-2 items-start'>
                 <h2 className="text-2xl font-bold">Disciplinas</h2>
                 <p className="text-muted-foreground">
                   Gestiona las disciplinas y sus niveles de categorización
                 </p>
               </div>
               <div className="flex gap-2">
-                <Button onClick={() => {
-                  setSelectedDiscipline(null)
-                  setShowDisciplineModal(true)
-                }}>
+                <Button 
+                  onClick={() => {
+                    setSelectedDiscipline(null)
+                    setShowDisciplineModal(true)
+                  }}
+                  className='hover:opacity-80 transition-100'
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Nueva Disciplina
                 </Button>
@@ -382,18 +421,21 @@ export default function AdminDashboardPage() {
 
           {/* Planificación Tab */}
           <TabsContent value="planning" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-start justify-between max-md:flex-col max-sm:gap-2 gap-4">
+              <div className='flex flex-col gap-2 items-start'>
                 <h2 className="text-2xl font-bold">Planificaciones</h2>
                 <p className="text-muted-foreground">
                   Gestiona las planificaciones de entrenamiento por disciplina y nivel
                 </p>
               </div>
               <div className="flex gap-2">
-                <Button onClick={() => {
-                  setSelectedPlanification(null)
-                  setShowPlanificationModal(true)
-                }}>
+                <Button 
+                  onClick={() => {
+                    setSelectedPlanification(null)
+                    setShowPlanificationModal(true)
+                  }}
+                  className='hover:opacity-80 transition-100'
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Nueva Planificación
                 </Button>
@@ -415,39 +457,6 @@ export default function AdminDashboardPage() {
             <UsersList adminId={adminProfile?.id || null} />
           </TabsContent>
 
-          {/* Configuración Tab */}
-          <TabsContent value="settings" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Configuración del Perfil</CardTitle>
-                <CardDescription>
-                  Gestiona la información de tu organización
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium">Nombre de la Organización</label>
-                    <p className="text-sm text-muted-foreground">
-                      {adminProfile?.organization_name || 'No configurado'}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Tipo de Organización</label>
-                    <p className="text-sm text-muted-foreground">
-                      {adminProfile?.organization_type || 'No configurado'}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Email de Contacto</label>
-                    <p className="text-sm text-muted-foreground">
-                      {adminProfile?.email || 'No configurado'}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
       </div>
 

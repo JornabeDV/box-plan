@@ -168,26 +168,28 @@ export function DisciplinesList({
             onDrop={(e) => handleDrop(e, discipline.id)}
           >
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="w-4 h-4 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: discipline.color }}
-                  />
-                  <div>
-                    <CardTitle className="text-lg">
-                      {discipline.name}
-                    </CardTitle>
-                    {discipline.description && (
-                      <CardDescription className="mt-1">
-                        {discipline.description}
-                      </CardDescription>
-                    )}
-                  </div>
+              {/* Header con título y color */}
+              <div className="flex items-start gap-3 mb-3">
+                <div 
+                  className="w-5 h-5 rounded-full flex-shrink-0 mt-0.5"
+                  style={{ backgroundColor: discipline.color }}
+                />
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-lg break-words leading-tight">
+                    {discipline.name}
+                  </CardTitle>
+                  {discipline.description && (
+                    <CardDescription className="mt-1 line-clamp-2">
+                      {discipline.description}
+                    </CardDescription>
+                  )}
                 </div>
-                
+              </div>
+              
+              {/* Footer con badges y botones */}
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary">
+                  <Badge variant="secondary" className="text-xs">
                     {discipline.levels?.length || 0} niveles
                   </Badge>
                   
@@ -196,6 +198,7 @@ export function DisciplinesList({
                       variant="ghost"
                       size="sm"
                       onClick={() => toggleDiscipline(discipline.id)}
+                      className="h-8 px-2"
                     >
                       {expandedDisciplines.has(discipline.id) ? (
                         <ChevronDown className="w-4 h-4" />
@@ -204,11 +207,14 @@ export function DisciplinesList({
                       )}
                     </Button>
                   )}
-                  
+                </div>
+                
+                <div className="flex items-center gap-1">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => onEdit(discipline)}
+                    className="h-8 w-8 p-0 text-destructive hover:text-destructive-foreground hover:bg-destructive"
                   >
                     <Edit className="w-4 h-4" />
                   </Button>
@@ -217,7 +223,7 @@ export function DisciplinesList({
                     variant="outline"
                     size="sm"
                     onClick={() => onDelete(discipline.id)}
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    className="h-8 w-8 p-0 text-destructive hover:text-destructive-foreground hover:bg-destructive"
                     title="Eliminar disciplina"
                   >
                     <Trash2 className="w-4 h-4" />

@@ -76,7 +76,7 @@ export function TabsSection() {
                       aspect-square flex items-center justify-center text-sm rounded-lg cursor-pointer
                       ${isToday ? "bg-primary text-primary-foreground font-bold" : ""}
                       ${hasWorkout && !isToday ? "bg-accent/20 text-accent font-semibold" : ""}
-                      ${!hasWorkout && !isToday ? "hover:bg-muted" : ""}
+                      ${!hasWorkout && !isToday ? "hover:bg-muted hover:text-muted-foreground" : ""}
                     `}
                   >
                     {day}

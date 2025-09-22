@@ -204,8 +204,8 @@ export function DisciplineModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl h-screen sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg m-0 sm:m-4">
+        <DialogHeader className="pb-6">
           <DialogTitle className="flex items-center gap-2">
             <Target className="w-5 h-5 text-primary" />
             {discipline ? 'Editar Disciplina' : 'Crear Nueva Disciplina'}
@@ -341,7 +341,7 @@ export function DisciplineModal({
                         variant="outline"
                         size="sm"
                         onClick={() => removeLevel(index)}
-                        className="text-destructive hover:text-destructive"
+                        className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -380,16 +380,20 @@ export function DisciplineModal({
             </div>
           )}
 
-          <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
+          {/* Botones */}
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={loading}
             >
               {loading ? 'Cancelando...' : 'Cancelar'}
             </Button>
-            <Button type="submit" disabled={loading || !formData.name.trim()}>
+            <Button
+              type="submit"
+              disabled={loading || !formData.name.trim()}
+            >
               {loading ? (
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -399,7 +403,7 @@ export function DisciplineModal({
                 discipline ? 'Actualizar' : 'Crear'
               )}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

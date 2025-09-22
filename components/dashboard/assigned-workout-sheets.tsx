@@ -135,7 +135,7 @@ export function AssignedWorkoutSheets({ userId }: AssignedWorkoutSheetsProps) {
         {assignedSheets.map((assignment) => (
           <div
             key={assignment.id}
-            className="border rounded-lg p-4 space-y-3 hover:bg-muted/50 transition-colors"
+            className="border rounded-lg p-4 space-y-3 hover:bg-muted/50 hover:text-muted-foreground transition-colors"
           >
             <div className="flex items-start justify-between">
               <div className="space-y-2">

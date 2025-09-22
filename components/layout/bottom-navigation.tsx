@@ -10,21 +10,21 @@ export function BottomNavigation() {
     <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border/50 shadow-2xl">
       <div className="flex items-center justify-around py-3 px-2">
         <Link href="/profile">
-          <Button variant="ghost" size="sm" className="flex-col gap-1 h-auto py-3 px-4 hover:bg-primary/10">
+          <Button variant="ghost" size="sm" className="flex-col gap-1 h-auto py-3 px-4 hover:bg-primary/10 hover:text-primary">
             <User className="w-5 h-5" />
             <span className="text-xs font-medium">Perfil</span>
           </Button>
         </Link>
         
         <Link href="/timer">
-          <Button variant="ghost" size="sm" className="flex-col gap-1 h-auto py-3 px-4 hover:bg-primary/10">
+          <Button variant="ghost" size="sm" className="flex-col gap-1 h-auto py-3 px-4 hover:bg-primary/10 hover:text-primary">
             <Timer className="w-5 h-5" />
             <span className="text-xs font-medium">Timer</span>
           </Button>
         </Link>
         
         <Link href="/rm-calculator">
-          <Button variant="ghost" size="sm" className="flex-col gap-1 h-auto py-3 px-4 hover:bg-primary/10">
+          <Button variant="ghost" size="sm" className="flex-col gap-1 h-auto py-3 px-4 hover:bg-primary/10 hover:text-primary">
             <Calculator className="w-5 h-5" />
             <span className="text-xs font-medium">RM Calc</span>
           </Button>
@@ -32,7 +32,7 @@ export function BottomNavigation() {
 
         {isAdmin && (
           <Link href="/admin-dashboard">
-            <Button variant="ghost" size="sm" className="flex-col gap-1 h-auto py-3 px-4 hover:bg-primary/10">
+            <Button className="flex-col gap-1 h-auto py-3 px-4 hover:opacity-80 transition-100">
               <Settings className="w-5 h-5" />
               <span className="text-xs font-medium">Admin</span>
             </Button>

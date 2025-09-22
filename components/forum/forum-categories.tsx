@@ -63,7 +63,7 @@ export function ForumCategories({
             className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
               selectedCategory === category.id
                 ? "ring-2 ring-primary bg-primary/5"
-                : "hover:bg-muted/50"
+                : "hover:bg-muted/50 hover:text-muted-foreground"
             }`}
             onMouseEnter={() => setHoveredCategory(category.id)}
             onMouseLeave={() => setHoveredCategory(null)}

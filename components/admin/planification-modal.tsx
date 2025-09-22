@@ -210,8 +210,8 @@ export function PlanificationModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl h-screen sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg">
+        <DialogHeader className="pb-6">
           <DialogTitle className="flex items-center gap-2">
             <Target className="w-5 h-5" />
             {planification ? 'Editar Planificación' : 'Nueva Planificación'}
@@ -231,9 +231,9 @@ export function PlanificationModal({
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Información básica */}
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="discipline">Disciplina *</Label>
                 <Select
                   value={formData.discipline_id}
@@ -259,7 +259,7 @@ export function PlanificationModal({
                 </Select>
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="level">Nivel *</Label>
                 <Select
                   value={formData.discipline_level_id}
@@ -280,7 +280,7 @@ export function PlanificationModal({
               </div>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="duration">Duración estimada (minutos)</Label>
               <div className="relative">
                 <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -297,7 +297,7 @@ export function PlanificationModal({
           </div>
 
           {/* Bloques de contenido */}
-          <div className="space-y-4">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Bloques de contenido</Label>
               <Badge variant="outline">{blocks.length} bloques</Badge>
@@ -323,7 +323,7 @@ export function PlanificationModal({
                         variant="ghost"
                         size="sm"
                         onClick={() => removeBlock(block.id)}
-                        className="text-destructive hover:text-destructive"
+                        className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -340,7 +340,7 @@ export function PlanificationModal({
                             variant="ghost"
                             size="sm"
                             onClick={() => removeItemFromBlock(block.id, itemIndex)}
-                            className="text-destructive hover:text-destructive h-6 w-6 p-0"
+                            className="text-destructive hover:text-destructive-foreground hover:bg-destructive h-6 w-6 p-0"
                           >
                             <X className="w-3 h-3" />
                           </Button>
@@ -400,7 +400,7 @@ export function PlanificationModal({
           </div>
 
           {/* Notas */}
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="notes">Notas adicionales</Label>
             <Textarea
               id="notes"

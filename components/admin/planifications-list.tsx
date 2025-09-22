@@ -217,7 +217,7 @@ export function PlanificationsList({
                     <Button 
                       size="sm" 
                       variant="outline" 
-                      className="text-destructive hover:text-destructive"
+                      className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
                       onClick={() => onDelete?.(planification.id)}
                     >
                       <Trash2 className="h-4 w-4" />

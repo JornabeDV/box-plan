@@ -148,7 +148,7 @@ export function LoginForm({ onSuccess, onSwitchToSignUp, onForgotPassword }: Log
               <Button
                 type="button"
                 variant="link"
-                className="p-0 h-auto text-sm text-blue-600 hover:text-blue-800"
+                className="p-0 h-auto text-sm text-blue-600 hover:text-blue-800 hover:underline"
                 onClick={onForgotPassword}
                 disabled={loading}
               >
