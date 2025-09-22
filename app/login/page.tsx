@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { LoginForm } from "@/components/auth/login-form"
 import { SignUpForm } from "@/components/auth/signup-form"
+import { ConnectionTest } from "@/components/debug/connection-test"
 import { useAuth } from "@/hooks/use-auth"
 import { Target, Loader2 } from "lucide-react"
 
@@ -70,7 +71,7 @@ export default function LoginPage() {
 
       {/* Main Content */}
       <main className="flex items-center justify-center min-h-[calc(100vh-200px)] p-6">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-md space-y-6">
           {mode === 'login' ? (
             <LoginForm 
               onSuccess={handleSuccess}
@@ -82,6 +83,9 @@ export default function LoginPage() {
               onSwitchToLogin={switchToLogin}
             />
           )}
+          
+          {/* Debug component - remove in production */}
+          <ConnectionTest />
         </div>
       </main>
     </div>

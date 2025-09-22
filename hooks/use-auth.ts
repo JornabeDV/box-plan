@@ -76,16 +76,44 @@ export function useAuth() {
   }
 
   const signUp = async (email: string, password: string, fullName?: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
         },
-      },
-    })
-    return { data, error }
+      })
+      
+      if (error) {
+        // Mapear errores de Supabase a mensajes más amigables
+        let errorMessage = error.message
+        
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'Email o contraseña incorrectos'
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Por favor confirma tu email antes de iniciar sesión'
+        } else if (error.message.includes('Too many requests')) {
+          errorMessage = 'Demasiados intentos. Intenta más tarde'
+        } else if (error.message.includes('Failed to fetch')) {
+          errorMessage = 'Error de conexión. Verifica tu conexión a internet o contacta al administrador'
+        }
+        
+        return { data, error: { ...error, message: errorMessage } }
+      }
+      
+      return { data, error: null }
+    } catch (err) {
+      console.error('Error in signUp:', err)
+      return { 
+        data: null, 
+        error: { 
+          message: 'Error de conexión. Verifica tu conexión a internet o contacta al administrador.' 
+        } 
+      }
+    }
   }
 
   const signOut = async () => {
