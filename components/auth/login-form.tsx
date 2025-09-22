@@ -12,9 +12,10 @@ import { Loader2, Eye, EyeOff } from 'lucide-react'
 interface LoginFormProps {
   onSuccess?: () => void
   onSwitchToSignUp?: () => void
+  onForgotPassword?: () => void
 }
 
-export function LoginForm({ onSuccess, onSwitchToSignUp }: LoginFormProps) {
+export function LoginForm({ onSuccess, onSwitchToSignUp, onForgotPassword }: LoginFormProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -129,17 +130,31 @@ export function LoginForm({ onSuccess, onSwitchToSignUp }: LoginFormProps) {
             Iniciar Sesión
           </Button>
 
-          <div className="text-center text-sm">
-            <span className="text-muted-foreground">¿No tienes cuenta? </span>
-            <Button
-              type="button"
-              variant="link"
-              className="p-0 h-auto font-semibold"
-              onClick={onSwitchToSignUp}
-              disabled={loading}
-            >
-              Regístrate aquí
-            </Button>
+          <div className="space-y-3">
+            <div className="text-center text-sm">
+              <span className="text-muted-foreground">¿No tienes cuenta? </span>
+              <Button
+                type="button"
+                variant="link"
+                className="p-0 h-auto font-semibold"
+                onClick={onSwitchToSignUp}
+                disabled={loading}
+              >
+                Regístrate aquí
+              </Button>
+            </div>
+            
+            <div className="text-center">
+              <Button
+                type="button"
+                variant="link"
+                className="p-0 h-auto text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                onClick={onForgotPassword}
+                disabled={loading}
+              >
+                ¿Olvidaste tu contraseña?
+              </Button>
+            </div>
           </div>
         </form>
       </CardContent>

@@ -4,7 +4,7 @@ Una aplicación web progresiva (PWA) para el seguimiento de entrenamientos Cross
 
 ## ✨ Características
 
-- 🎯 **Dashboard principal** con WOD del día
+- 🎯 **Dashboard principal** con planificaciones del día
 - 📊 **Seguimiento de progreso** y estadísticas personales
 - 📅 **Calendario** de entrenamientos
 - 🏆 **Sistema de logros** y records personales

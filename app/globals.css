@@ -4,80 +4,82 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Enhanced color tokens with more sophisticated gradients and better contrast */
-  --background: oklch(0.12 0.02 240); /* Deeper dark background with subtle blue tint */
-  --foreground: oklch(0.98 0.01 240); /* Crisp white with subtle warmth */
-  --card: oklch(0.18 0.02 240); /* Elevated card background */
-  --card-foreground: oklch(0.98 0.01 240);
-  --popover: oklch(0.18 0.02 240);
-  --popover-foreground: oklch(0.98 0.01 240);
-  --primary: oklch(0.65 0.25 162); /* Vibrant emerald green */
-  --primary-foreground: oklch(0.98 0.01 240);
-  --secondary: oklch(0.58 0.28 25); /* Energetic red-orange */
-  --secondary-foreground: oklch(0.98 0.01 240);
-  --muted: oklch(0.35 0.02 240); /* Sophisticated muted gray */
-  --muted-foreground: oklch(0.65 0.02 240);
-  --accent: oklch(0.62 0.3 260); /* Electric blue accent */
-  --accent-foreground: oklch(0.98 0.01 240);
-  --destructive: oklch(0.58 0.28 25);
-  --destructive-foreground: oklch(0.98 0.01 240);
-  --border: oklch(0.25 0.02 240); /* Subtle borders */
-  --input: oklch(0.25 0.02 240);
-  --ring: oklch(0.65 0.25 162);
-  --chart-1: oklch(0.65 0.25 162);
-  --chart-2: oklch(0.58 0.28 25);
-  --chart-3: oklch(0.62 0.3 260);
-  --chart-4: oklch(0.65 0.02 240);
-  --chart-5: oklch(0.35 0.02 240);
+  /* High Contrast Yellow, Orange, Black, and Gray color palette */
+  --background: oklch(0.92 0.01 0); /* Darker gray background for more contrast */
+  --foreground: oklch(0.08 0.01 0); /* Much darker text for strong contrast */
+  --card: oklch(1.0 0.01 0); /* Pure white cards for maximum contrast */
+  --card-foreground: oklch(0.08 0.01 0);
+  --popover: oklch(1.0 0.01 0);
+  --popover-foreground: oklch(0.08 0.01 0);
+  --primary: oklch(0.65 0.25 35); /* Vibrant orange - much more saturated */
+  --primary-foreground: oklch(1.0 0.01 0);
+  --secondary: oklch(0.80 0.20 85); /* Bright vibrant yellow */
+  --secondary-foreground: oklch(0.08 0.01 0);
+  --muted: oklch(0.70 0.01 0); /* Darker gray for more contrast */
+  --muted-foreground: oklch(0.40 0.01 0); /* Darker muted text */
+  --accent: oklch(0.70 0.25 40); /* Bright orange accent */
+  --accent-foreground: oklch(1.0 0.01 0);
+  --destructive: oklch(0.50 0.20 0); /* Dark red for destructive actions */
+  --destructive-foreground: oklch(1.0 0.01 0);
+  --border: oklch(0.75 0.01 0); /* Darker borders for more definition */
+  --input: oklch(0.85 0.01 0); /* Darker input backgrounds */
+  --ring: oklch(0.65 0.25 35);
+  --chart-1: oklch(0.65 0.25 35); /* Vibrant Orange */
+  --chart-2: oklch(0.80 0.20 85); /* Bright Yellow */
+  --chart-3: oklch(0.70 0.25 40); /* Bright Orange */
+  --chart-4: oklch(0.40 0.01 0); /* Darker gray */
+  --chart-5: oklch(0.70 0.01 0); /* Darker medium gray */
   --radius: 0.75rem; /* Slightly larger radius for modern feel */
-  --sidebar: oklch(0.18 0.02 240);
-  --sidebar-foreground: oklch(0.98 0.01 240);
-  --sidebar-primary: oklch(0.65 0.25 162);
-  --sidebar-primary-foreground: oklch(0.98 0.01 240);
-  --sidebar-accent: oklch(0.62 0.3 260);
-  --sidebar-accent-foreground: oklch(0.98 0.01 240);
-  --sidebar-border: oklch(0.25 0.02 240);
-  --sidebar-ring: oklch(0.65 0.25 162);
+  --sidebar: oklch(0.15 0.01 0); /* Much darker sidebar */
+  --sidebar-foreground: oklch(0.95 0.01 0);
+  --sidebar-primary: oklch(0.65 0.25 35);
+  --sidebar-primary-foreground: oklch(1.0 0.01 0);
+  --sidebar-accent: oklch(0.80 0.20 85);
+  --sidebar-accent-foreground: oklch(0.08 0.01 0);
+  --sidebar-border: oklch(0.30 0.01 0);
+  --sidebar-ring: oklch(0.65 0.25 35);
 }
 
 .dark {
-  --background: oklch(0.12 0.02 240);
-  --foreground: oklch(0.98 0.01 240);
-  --card: oklch(0.18 0.02 240);
-  --card-foreground: oklch(0.98 0.01 240);
-  --popover: oklch(0.18 0.02 240);
-  --popover-foreground: oklch(0.98 0.01 240);
-  --primary: oklch(0.65 0.25 162);
-  --primary-foreground: oklch(0.98 0.01 240);
-  --secondary: oklch(0.58 0.28 25);
-  --secondary-foreground: oklch(0.98 0.01 240);
-  --muted: oklch(0.35 0.02 240);
-  --muted-foreground: oklch(0.65 0.02 240);
-  --accent: oklch(0.62 0.3 260);
-  --accent-foreground: oklch(0.98 0.01 240);
-  --destructive: oklch(0.58 0.28 25);
-  --destructive-foreground: oklch(0.98 0.01 240);
-  --border: oklch(0.25 0.02 240);
-  --input: oklch(0.25 0.02 240);
-  --ring: oklch(0.65 0.25 162);
-  --chart-1: oklch(0.65 0.25 162);
-  --chart-2: oklch(0.58 0.28 25);
-  --chart-3: oklch(0.62 0.3 260);
-  --chart-4: oklch(0.65 0.02 240);
-  --chart-5: oklch(0.35 0.02 240);
-  --sidebar: oklch(0.18 0.02 240);
-  --sidebar-foreground: oklch(0.98 0.01 240);
-  --sidebar-primary: oklch(0.65 0.25 162);
-  --sidebar-primary-foreground: oklch(0.98 0.01 240);
-  --sidebar-accent: oklch(0.62 0.3 260);
-  --sidebar-accent-foreground: oklch(0.98 0.01 240);
-  --sidebar-border: oklch(0.25 0.02 240);
-  --sidebar-ring: oklch(0.65 0.25 162);
+  /* High Contrast Dark theme - Maximum contrast */
+  --background: oklch(0.05 0.01 0); /* Ultra dark background for maximum contrast */
+  --foreground: oklch(0.98 0.01 0); /* Pure white text for maximum contrast */
+  --card: oklch(0.12 0.01 0); /* Darker cards for more contrast */
+  --card-foreground: oklch(0.98 0.01 0);
+  --popover: oklch(0.12 0.01 0);
+  --popover-foreground: oklch(0.98 0.01 0);
+  --primary: oklch(0.70 0.25 35); /* Very vibrant orange for dark theme */
+  --primary-foreground: oklch(0.05 0.01 0);
+  --secondary: oklch(0.85 0.20 85); /* Very bright yellow for dark theme */
+  --secondary-foreground: oklch(0.05 0.01 0);
+  --muted: oklch(0.20 0.01 0); /* Darker gray for more contrast */
+  --muted-foreground: oklch(0.65 0.01 0); /* Brighter muted text */
+  --accent: oklch(0.75 0.25 40); /* Bright orange accent */
+  --accent-foreground: oklch(0.05 0.01 0);
+  --destructive: oklch(0.55 0.20 0); /* Dark red for destructive actions */
+  --destructive-foreground: oklch(0.98 0.01 0);
+  --border: oklch(0.25 0.01 0); /* Darker borders for more definition */
+  --input: oklch(0.15 0.01 0); /* Darker input backgrounds */
+  --ring: oklch(0.70 0.25 35);
+  --chart-1: oklch(0.70 0.25 35); /* Vibrant Orange */
+  --chart-2: oklch(0.85 0.20 85); /* Bright Yellow */
+  --chart-3: oklch(0.75 0.25 40); /* Bright Orange */
+  --chart-4: oklch(0.45 0.01 0); /* Darker medium gray */
+  --chart-5: oklch(0.30 0.01 0); /* Darker gray */
+  --sidebar: oklch(0.03 0.01 0); /* Ultra dark sidebar */
+  --sidebar-foreground: oklch(0.95 0.01 0);
+  --sidebar-primary: oklch(0.70 0.25 35);
+  --sidebar-primary-foreground: oklch(0.05 0.01 0);
+  --sidebar-accent: oklch(0.85 0.20 85);
+  --sidebar-accent-foreground: oklch(0.05 0.01 0);
+  --sidebar-border: oklch(0.20 0.01 0);
+  --sidebar-ring: oklch(0.70 0.25 35);
 }
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-oswald);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -124,6 +126,40 @@
     @apply bg-background text-foreground font-sans antialiased;
   }
 
+  /* Typography utilities */
+  .font-heading {
+    font-family: var(--font-oswald), sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+  }
+
+  .font-body {
+    font-family: var(--font-inter), sans-serif;
+  }
+
+  /* Heading styles with CrossFit energy */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-oswald), sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+  }
+
+  h2 {
+    font-size: 2rem;
+    font-weight: 600;
+  }
+
+  h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
   /* Added custom animations and enhanced visual effects */
   @keyframes pulse-glow {
     0%,
@@ -139,21 +175,23 @@
     animation: pulse-glow 2s infinite;
   }
 
-  /* Enhanced scrollbar styling */
+  /* High contrast scrollbar styling */
   ::-webkit-scrollbar {
     width: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    background: oklch(0.18 0.02 240);
+    background: oklch(0.75 0.01 0);
   }
 
   ::-webkit-scrollbar-thumb {
-    background: oklch(0.35 0.02 240);
+    background: oklch(0.65 0.25 35);
     border-radius: 3px;
+    border: 1px solid oklch(0.50 0.01 0);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: oklch(0.45 0.02 240);
+    background: oklch(0.70 0.25 40);
+    border-color: oklch(0.40 0.01 0);
   }
 }

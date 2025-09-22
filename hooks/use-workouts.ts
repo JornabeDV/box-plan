@@ -21,10 +21,9 @@ export function useWorkouts(userId?: string) {
         .from('workouts')
         .select(`
           *,
-          wods (
+          workout_sheets (
             id,
-            name,
-            type,
+            title,
             difficulty
           )
         `)
@@ -53,10 +52,9 @@ export function useWorkouts(userId?: string) {
         })
         .select(`
           *,
-          wods (
+          workout_sheets (
             id,
-            name,
-            type,
+            title,
             difficulty
           )
         `)
@@ -82,10 +80,9 @@ export function useWorkouts(userId?: string) {
         .eq('id', id)
         .select(`
           *,
-          wods (
+          workout_sheets (
             id,
-            name,
-            type,
+            title,
             difficulty
           )
         `)

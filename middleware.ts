@@ -15,8 +15,8 @@ export async function middleware(req: NextRequest) {
   } = await supabase.auth.getSession()
 
   // Rutas que requieren autenticación
-  const protectedRoutes = ['/dashboard', '/profile', '/settings']
-  const authRoutes = ['/login', '/signup']
+  const protectedRoutes = ['/profile', '/subscription', '/workout-sheets']
+  const authRoutes = ['/login', '/signup', '/reset-password']
 
   const isProtectedRoute = protectedRoutes.some(route => 
     req.nextUrl.pathname.startsWith(route)
@@ -27,12 +27,25 @@ export async function middleware(req: NextRequest) {
 
   // Si es una ruta protegida y no hay sesión, redirigir a login
   if (isProtectedRoute && !session) {
-    return NextResponse.redirect(new URL('/login', req.url))
+    const redirectUrl = new URL('/login', req.url)
+    redirectUrl.searchParams.set('redirectTo', req.nextUrl.pathname)
+    return NextResponse.redirect(redirectUrl)
   }
 
-  // Si es una ruta de auth y ya hay sesión, redirigir a dashboard
+  // Si es una ruta de auth y ya hay sesión, redirigir a home
   if (isAuthRoute && session) {
     return NextResponse.redirect(new URL('/', req.url))
+  }
+
+  // Manejar parámetros de confirmación de email
+  if (req.nextUrl.searchParams.get('confirmed') === 'true') {
+    const redirectUrl = new URL('/login', req.url)
+    redirectUrl.searchParams.set('message', 'Email confirmado exitosamente')
+    return NextResponse.redirect(redirectUrl)
+  }
+
+  if (req.nextUrl.searchParams.get('recovery') === 'true') {
+    return NextResponse.redirect(new URL('/reset-password', req.url))
   }
 
   return res

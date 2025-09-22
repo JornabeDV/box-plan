@@ -7,38 +7,16 @@ import { TodaySection } from "@/components/dashboard/today-section"
 import { TabsSection } from "@/components/dashboard/tabs-section"
 import { BottomNavigation } from "@/components/layout/bottom-navigation"
 import { AuthModal } from "@/components/auth/auth-modal"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuthWithRoles } from "@/hooks/use-auth-with-roles"
 import { Loader2, Target, LogIn } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-/**
- * Componente principal de la aplicación CrossFit PWA
- * Orquesta todos los componentes de la interfaz principal
- */
 export default function CrossFitApp() {
-  const [currentStreak, setCurrentStreak] = useState(12)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const router = useRouter()
-  const { user, loading: authLoading, signOut } = useAuth()
+  const { user, userRole, adminProfile, loading: authLoading, isAdmin, isUser, signOut } = useAuthWithRoles()
 
-  // Datos de ejemplo para el WOD del día
-  const todaysWOD = {
-    id: "1",
-    name: "Fran",
-    description: "21-15-9 reps de:",
-    type: "metcon" as const,
-    difficulty: "intermediate" as const,
-    duration_minutes: 8,
-    exercises: [
-      { name: "Thrusters", weight: "43kg/30kg" },
-      { name: "Pull-ups" }
-    ]
-  }
 
-  const handleStartWOD = () => {
-    console.log("Iniciando WOD:", todaysWOD.name)
-    // Aquí se implementaría la lógica para iniciar el WOD
-  }
 
   const handleAuthSuccess = () => {
     setShowAuthModal(false)
@@ -61,7 +39,7 @@ export default function CrossFitApp() {
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground">
-        <Header currentStreak={currentStreak} />
+        <Header />
         
         <main className="flex items-center justify-center min-h-[calc(100vh-200px)] p-6">
           <div className="text-center space-y-6 max-w-md">
@@ -113,19 +91,14 @@ export default function CrossFitApp() {
     )
   }
 
-  // Usuario autenticado - mostrar dashboard
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground">
-      <Header currentStreak={currentStreak} />
+      <Header />
 
-      <main className="p-6 space-y-8 pb-24">
-        <TodaySection 
-          todaysWOD={todaysWOD}
-          onStartWOD={handleStartWOD}
-        />
-        
-        <TabsSection />
-      </main>
+                <main className="p-6 space-y-8 pb-24">
+                  <TodaySection />
+                  <TabsSection />
+                </main>
 
       <BottomNavigation />
 
