@@ -113,6 +113,28 @@ export function useSimplifiedAuth() {
     }
   }
 
+  const createDefaultUserRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles_simple')
+        .insert({
+          user_id: userId,
+          role: 'user'
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error creating default user role:', error)
+        return
+      }
+
+      setUserRole(data)
+    } catch (error) {
+      console.error('Error creating default user role:', error)
+    }
+  }
+
   const loadAdminProfile = async (userId: string) => {
     try {
       
