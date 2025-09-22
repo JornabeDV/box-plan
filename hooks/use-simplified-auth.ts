@@ -34,6 +34,21 @@ export function useSimplifiedAuth() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Verificar si Supabase está configurado
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.warn('Supabase not configured - auth disabled')
+      setLoading(false)
+      return
+    }
+    
+    // Timeout de seguridad para evitar cuelgues
+    const timeoutId = setTimeout(() => {
+      console.warn('Auth initialization timeout - forcing loading to false')
+      setLoading(false)
+    }, 10000) // 10 segundos timeout
     
     // Obtener sesión inicial
     const getInitialSession = async () => {
@@ -41,11 +56,12 @@ export function useSimplifiedAuth() {
         const { data: { session }, error } = await supabase.auth.getSession()
         
         if (error) {
+          console.error('Error getting session:', error)
           setLoading(false)
+          clearTimeout(timeoutId)
           return
         }
         
-       
         if (session?.user) {
           setUser(session.user)
           await loadUserRole(session.user.id)
@@ -53,9 +69,11 @@ export function useSimplifiedAuth() {
           console.log('useSimplifiedAuth: No user found')
         }
         setLoading(false)
+        clearTimeout(timeoutId)
       } catch (err) {
         console.error('useSimplifiedAuth: Error in getInitialSession:', err)
         setLoading(false)
+        clearTimeout(timeoutId)
       }
     }
 
@@ -64,7 +82,6 @@ export function useSimplifiedAuth() {
     // Escuchar cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        
         try {
           if (session?.user) {
             setUser(session.user)
@@ -83,6 +100,7 @@ export function useSimplifiedAuth() {
     )
 
     return () => {
+      clearTimeout(timeoutId)
       subscription.unsubscribe()
     }
   }, [])
