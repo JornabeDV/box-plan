@@ -115,52 +115,69 @@ export function PlanificationCalendar({
   }
 
   return (
-    <Card className="border-primary/20 bg-gradient-to-br from-card to-primary/5 shadow-lg">
-      <CardHeader>
-        <CardTitle className="text-center mb-2 flex items-center justify-center gap-2">
-          <Calendar className="w-5 h-5" />
-          Calendario de Planificaciones
-        </CardTitle>
+    <Card className="bg-card/80 backdrop-blur-sm border-2 border-border shadow-soft">
+      <CardHeader className="pb-4">
+        {/* Título y descripción */}
+        <div className="text-center mb-4">
+          <CardTitle className="text-xl font-heading text-foreground">
+            Calendario de Planificaciones
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">Seguimiento mensual</p>
+        </div>
         
         {/* Navegación del mes */}
         <div className="flex items-center justify-between">
           <Button
-            variant="outline"
-            size="sm"
+            variant="ghost"
+            size="icon"
             onClick={goToPreviousMonth}
+            className="hover:bg-primary/10 hover:text-primary w-12 h-12 md:w-16 md:h-16"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
           </Button>
           
-          <h3 className="text-lg font-semibold">
+          <h3 className="text-2xl font-heading font-bold text-foreground">
             {monthNames[month]} {year}
           </h3>
           
           <Button
+            variant="ghost"
+            size="icon"
+            onClick={goToNextMonth}
+            className="hover:bg-primary/10 hover:text-primary w-12 h-12 md:w-16 md:h-16"
+          >
+            <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
+          </Button>
+        </div>
+        
+        {/* Botón Hoy */}
+        <div className="flex justify-center mt-4">
+          <Button
             variant="outline"
             size="sm"
-            onClick={goToNextMonth}
+            onClick={goToToday}
+            className="text-sm font-semibold hover:bg-primary/10 hover:text-primary"
           >
-            <ChevronRight className="w-4 h-4" />
+            Ir a Hoy
           </Button>
         </div>
       </CardHeader>
       
-      <CardContent>
+      <CardContent className="pt-0">
         {/* Días de la semana */}
-        <div className="grid grid-cols-7 gap-1 mb-2">
+        <div className="grid grid-cols-7 gap-2 mb-4">
           {weekDays.map((day) => (
-            <div key={day} className="text-center text-sm font-semibold text-muted-foreground py-2">
+            <div key={day} className="text-center text-sm md:text-base font-bold text-muted-foreground py-2">
               {day}
             </div>
           ))}
         </div>
         
         {/* Días del mes */}
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-2">
           {days.map((day, index) => {
             if (day === null) {
-              return <div key={index} className="aspect-square"></div>
+              return <div key={`empty-${index}`} className="aspect-square"></div>
             }
             
             const dayPlanifications = getPlanificationsForDay(day)
@@ -168,59 +185,40 @@ export function PlanificationCalendar({
             const isPast = isPastDay(day)
             
             return (
-              <div key={day} className="aspect-square">
-                <Button
-                  variant={isCurrentDay ? "default" : "outline"}
-                  size="sm"
+              <div key={`day-${day}-${month}-${year}`} className="aspect-square">
+                <div
                   className={`
-                    w-full h-full p-1 text-xs font-medium flex flex-col items-center justify-center
+                    w-full h-full flex flex-col items-center justify-center text-sm md:text-lg font-semibold rounded-xl cursor-pointer transition-all duration-200 relative
                     ${isCurrentDay 
-                      ? 'bg-primary text-primary-foreground shadow-lg' 
+                      ? 'bg-primary text-primary-foreground shadow-accent animate-pulse-glow' 
                       : dayPlanifications.length > 0
-                        ? 'border-primary/50 text-primary hover:bg-primary/10' 
-                        : 'border-muted text-muted-foreground hover:bg-muted/50'
+                        ? 'bg-accent/20 hover:bg-accent/30 hover:scale-105 border-2 border-accent/30' 
+                        : 'hover:bg-muted/50'
                     }
-                    ${isPast ? 'opacity-60' : ''}
+                    ${isPast ? 'opacity-50' : ''}
                   `}
                   onClick={() => handleDayClick(day)}
                 >
-                  <span className="text-xs font-bold">{day}</span>
-                  {dayPlanifications.length > 0 && (
-                    <div className="flex flex-wrap gap-0.5 justify-center mt-0.5">
-                      {dayPlanifications.slice(0, 2).map((planification, idx) => (
-                        <div
-                          key={planification.id}
-                          className="w-1.5 h-1.5 rounded-full"
-                          style={{ backgroundColor: planification.discipline?.color || '#3B82F6' }}
-                          title={planification.discipline?.name}
-                        />
-                      ))}
-                      {dayPlanifications.length > 2 && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
-                      )}
-                    </div>
-                  )}
-                </Button>
+                  <span className="text-sm md:text-lg font-bold">{day}</span>
+                </div>
               </div>
             )
           })}
         </div>
         
         {/* Leyenda */}
-        <div className="mt-4 pt-4 border-t">
-          <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-primary"></div>
-              <span>Hoy</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-primary/50"></div>
-              <span>Con planificaciones</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-muted"></div>
-              <span>Sin planificaciones</span>
-            </div>
+        <div className="flex items-center justify-center gap-6 mt-6 pt-4 border-t border-border">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-primary rounded-full"></div>
+            <span className="text-xs text-muted-foreground">Hoy</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-accent/20 border-2 border-accent/30 rounded-full"></div>
+            <span className="text-xs text-muted-foreground">Con planificaciones</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-muted/50 rounded-full"></div>
+            <span className="text-xs text-muted-foreground">Sin planificaciones</span>
           </div>
         </div>
       </CardContent>

@@ -69,10 +69,18 @@ export function PlanificationModal({
     level.discipline_id === formData.discipline_id
   )
 
+  // Verificar si hay disciplinas disponibles
+  const hasDisciplines = disciplines.length > 0
+
   // Resetear formulario cuando se abre/cierra el modal
   useEffect(() => {
     if (open) {
       if (planification) {
+        // Verificar que el objeto tiene la estructura correcta
+        if (!planification.id) {
+          setError('Error: La planificación no tiene un ID válido')
+          return
+        }
         setFormData({
           discipline_id: planification.discipline_id,
           discipline_level_id: planification.discipline_level_id,
@@ -92,6 +100,10 @@ export function PlanificationModal({
       setBlockTitle('')
       setBlockItem('')
       setCurrentBlockId(null)
+      setError(null)
+      setLoading(false)
+    } else {
+      // Limpiar error cuando se cierra el modal
       setError(null)
       setLoading(false)
     }
@@ -168,6 +180,11 @@ export function PlanificationModal({
       return
     }
 
+    if (blocks.length === 0) {
+      setError('Debe agregar al menos un bloque de contenido')
+      return
+    }
+
     setLoading(true)
     setError(null)
 
@@ -176,7 +193,7 @@ export function PlanificationModal({
       console.warn('Planification submit timeout, resetting loading state')
       setError('La operación está tardando demasiado. Por favor, inténtalo de nuevo.')
       setLoading(false)
-    }, 15000) // 15 segundos
+    }, 8000) // Reducido a 8 segundos
 
     try {
       const submitData = {
@@ -189,11 +206,21 @@ export function PlanificationModal({
         is_active: true
       }
 
+
+      // Verificar que si es una edición, el ID existe
+      if (planification && !planification.id) {
+        setError('ID de planificación no válido para la edición')
+        setLoading(false)
+        clearTimeout(timeoutId)
+        return
+      }
+
       const result = await onSubmit(submitData)
       
       clearTimeout(timeoutId)
       
       if (result.error) {
+        console.error('Planification creation error:', result.error)
         setError(result.error)
         setLoading(false)
       } else {
@@ -230,78 +257,94 @@ export function PlanificationModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Verificar si hay disciplinas disponibles */}
+          {!hasDisciplines && !disciplinesLoading && (
+            <div className="text-center py-8">
+              <div className="text-destructive mb-2">
+                <Target className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <h3 className="text-lg font-semibold">No hay disciplinas disponibles</h3>
+                <p className="text-sm text-muted-foreground">
+                  Debe crear al menos una disciplina antes de crear planificaciones.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Información básica */}
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="discipline">Disciplina *</Label>
-                <Select
-                  value={formData.discipline_id}
-                  onValueChange={(value) => handleInputChange('discipline_id', value)}
-                  disabled={disciplinesLoading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar disciplina" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {disciplines.map((discipline) => (
-                      <SelectItem key={discipline.id} value={discipline.id}>
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: discipline.color }}
-                          />
-                          {discipline.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          {hasDisciplines && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="discipline">Disciplina *</Label>
+                  <Select
+                    value={formData.discipline_id}
+                    onValueChange={(value) => handleInputChange('discipline_id', value)}
+                    disabled={disciplinesLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar disciplina" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {disciplines.map((discipline) => (
+                        <SelectItem key={discipline.id} value={discipline.id}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: discipline.color }}
+                            />
+                            {discipline.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="level">Nivel *</Label>
+                  <Select
+                    value={formData.discipline_level_id}
+                    onValueChange={(value) => handleInputChange('discipline_level_id', value)}
+                    disabled={!formData.discipline_id || disciplinesLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar nivel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableLevels.map((level) => (
+                        <SelectItem key={level.id} value={level.id}>
+                          {level.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="level">Nivel *</Label>
-                <Select
-                  value={formData.discipline_level_id}
-                  onValueChange={(value) => handleInputChange('discipline_level_id', value)}
-                  disabled={!formData.discipline_id || disciplinesLoading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar nivel" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableLevels.map((level) => (
-                      <SelectItem key={level.id} value={level.id}>
-                        {level.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="duration">Duración estimada (minutos)</Label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    id="duration"
+                    type="number"
+                    value={formData.estimated_duration}
+                    onChange={(e) => handleInputChange('estimated_duration', e.target.value)}
+                    placeholder="60"
+                    className="pl-10"
+                  />
+                </div>
               </div>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="duration">Duración estimada (minutos)</Label>
-              <div className="relative">
-                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  id="duration"
-                  type="number"
-                  value={formData.estimated_duration}
-                  onChange={(e) => handleInputChange('estimated_duration', e.target.value)}
-                  placeholder="60"
-                  className="pl-10"
-                />
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Bloques de contenido */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Bloques de contenido</Label>
-              <Badge variant="outline">{blocks.length} bloques</Badge>
-            </div>
+          {hasDisciplines && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Bloques de contenido</Label>
+                <Badge variant="outline">{blocks.length} bloques</Badge>
+              </div>
 
             <div className="space-y-4">
               {blocks.map((block, index) => (
@@ -396,20 +439,23 @@ export function PlanificationModal({
               >
                 <Plus className="w-4 h-4" />
               </Button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Notas */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notas adicionales</Label>
-            <Textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => handleInputChange('notes', e.target.value)}
-              placeholder="Notas importantes, consideraciones especiales, etc..."
-              rows={3}
-            />
-          </div>
+          {hasDisciplines && (
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notas adicionales</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => handleInputChange('notes', e.target.value)}
+                placeholder="Notas importantes, consideraciones especiales, etc..."
+                rows={3}
+              />
+            </div>
+          )}
 
           {/* Error message */}
           {error && (
@@ -430,7 +476,7 @@ export function PlanificationModal({
             </Button>
             <Button
               type="submit"
-              disabled={loading || !formData.discipline_id || !formData.discipline_level_id}
+              disabled={loading || !hasDisciplines || !formData.discipline_id || !formData.discipline_level_id}
             >
               {loading ? 'Guardando...' : (planification ? 'Actualizar' : 'Crear')}
             </Button>

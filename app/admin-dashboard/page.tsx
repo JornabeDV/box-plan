@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useSimplifiedAuth } from '@/hooks/use-simplified-auth'
 import { useAdminWorkoutSheets } from '@/hooks/use-admin-workout-sheets'
 import { useDisciplines } from '@/hooks/use-disciplines'
+import { usePlanifications } from '@/hooks/use-planifications'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -36,10 +37,10 @@ import { PlanificationModal } from '@/components/admin/planification-modal'
 import { PlanificationCalendar } from '@/components/admin/planification-calendar'
 import { PlanificationDayModal } from '@/components/admin/planification-day-modal'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
-import { usePlanifications } from '@/hooks/use-planifications'
 
 export default function AdminDashboardPage() {
-  const { user, adminProfile, loading: authLoading, isAdmin } = useSimplifiedAuth()
+  const { user, adminProfile, loading: authLoading, isAdmin, userRole } = useSimplifiedAuth()
+
   const { 
     workoutSheets, 
     categories, 
@@ -143,7 +144,6 @@ export default function AdminDashboardPage() {
       if (result.error) {
         console.error('Error deleting discipline:', result.error)
       } else {
-        console.log('Discipline deleted successfully')
       }
     } catch (error) {
       console.error('Error deleting discipline:', error)
@@ -174,19 +174,17 @@ export default function AdminDashboardPage() {
       if (selectedPlanification) {
         const result = await updatePlanification(selectedPlanification.id, data)
         if (result.error) {
-          console.error('Error updating planification:', result.error)
           return { error: result.error }
         }
       } else {
         const result = await createPlanification({ ...data, admin_id: adminProfile?.id })
+        
         if (result.error) {
-          console.error('Error creating planification:', result.error)
           return { error: result.error }
         }
       }
       return { error: undefined }
     } catch (error) {
-      console.error('Unexpected error in handlePlanificationSubmit:', error)
       return { error: 'Error inesperado al procesar la solicitud' }
     }
   }
@@ -259,6 +257,15 @@ export default function AdminDashboardPage() {
           <p className="text-muted-foreground">
             Solo los administradores pueden acceder a este dashboard.
           </p>
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-4 p-4 bg-muted/50 rounded-lg text-left text-sm">
+              <p><strong>Debug Info:</strong></p>
+              <p>Usuario: {user?.email || 'No autenticado'}</p>
+              <p>Rol: {userRole?.role || 'No asignado'}</p>
+              <p>Admin Profile: {adminProfile?.name || 'No encontrado'}</p>
+              <p>Loading: {authLoading ? 'Sí' : 'No'}</p>
+            </div>
+          )}
         </div>
       </div>
     )
