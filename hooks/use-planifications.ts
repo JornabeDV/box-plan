@@ -80,27 +80,96 @@ export function usePlanifications(adminId?: string) {
     try {
       setError(null)
 
-      const { data, error: createError } = await supabase
-        .from('planifications')
-        .insert(planificationData)
-        .select(`
-          *,
-          discipline:disciplines(id, name, color, icon),
-          discipline_level:discipline_levels(id, name, description)
-        `)
-        .single()
-
-      if (createError) {
-        console.error('Error creating planification:', createError)
-        setError(createError.message)
-        return { error: createError.message }
+      // Validar que los datos requeridos estén presentes
+      if (!planificationData.admin_id) {
+        const errorMessage = 'ID de administrador requerido'
+        setError(errorMessage)
+        return { error: errorMessage }
       }
 
-      setPlanifications(prev => [data, ...prev])
-      return { data, error: null }
+      if (!planificationData.discipline_id) {
+        const errorMessage = 'ID de disciplina requerido'
+        setError(errorMessage)
+        return { error: errorMessage }
+      }
+
+      if (!planificationData.discipline_level_id) {
+        const errorMessage = 'ID de nivel de disciplina requerido'
+        setError(errorMessage)
+        return { error: errorMessage }
+      }
+
+      if (!planificationData.date) {
+        const errorMessage = 'Fecha requerida'
+        setError(errorMessage)
+        return { error: errorMessage }
+      }
+
+      // Insertar con timeout más corto y sin .single() inicialmente
+      const insertPromise = supabase
+        .from('planifications')
+        .insert(planificationData)
+        .select('*')
+      
+      const insertTimeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Insert timeout'))
+        }, 5000)
+      })
+      
+      let insertData, insertError
+      try {
+        const result = await Promise.race([
+          insertPromise,
+          insertTimeoutPromise
+        ]) as any
+        insertData = result.data
+        insertError = result.error
+      } catch (raceError) {
+        insertData = null
+        insertError = raceError
+      }
+
+      if (insertError) {
+        let errorMessage = insertError.message
+        
+        // Proporcionar mensajes de error más específicos
+        if (insertError.code === '23503') {
+          if (insertError.message.includes('discipline_id')) {
+            errorMessage = 'La disciplina seleccionada no existe'
+          } else if (insertError.message.includes('discipline_level_id')) {
+            errorMessage = 'El nivel de disciplina seleccionado no existe'
+          } else if (insertError.message.includes('admin_id')) {
+            errorMessage = 'El administrador no existe'
+          }
+        } else if (insertError.code === '23505') {
+          errorMessage = 'Ya existe una planificación para esta fecha y disciplina'
+        }
+        
+        setError(errorMessage)
+        return { error: errorMessage }
+      }
+
+      if (!insertData || (Array.isArray(insertData) && insertData.length === 0)) {
+        const errorMessage = 'No se pudo crear la planificación'
+        setError(errorMessage)
+        return { error: errorMessage }
+      }
+
+      // Manejar tanto array como objeto único
+      const createdPlanification = Array.isArray(insertData) ? insertData[0] : insertData
+      
+      // Por ahora, usar solo los datos básicos sin relaciones para evitar timeout
+      const basicData = {
+        ...createdPlanification,
+        discipline: null,
+        discipline_level: null
+      }
+      
+      setPlanifications(prev => [basicData, ...prev])
+      return { data: basicData, error: null }
     } catch (err) {
-      console.error('Error in createPlanification:', err)
-      const errorMessage = 'Error al crear planificación'
+      const errorMessage = 'Error inesperado al crear planificación'
       setError(errorMessage)
       return { error: errorMessage }
     }
@@ -110,7 +179,38 @@ export function usePlanifications(adminId?: string) {
   const updatePlanification = async (id: string, updates: Partial<Planification>) => {
     try {
       setError(null)
-      
+
+      // Validar que el ID existe
+      if (!id) {
+        const errorMessage = 'ID de planificación requerido'
+        setError(errorMessage)
+        return { error: errorMessage }
+      }
+
+      // Verificar que la planificación existe antes de actualizar
+      const { data: existingPlanification, error: fetchError } = await supabase
+        .from('planifications')
+        .select('id, admin_id')
+        .eq('id', id)
+        .single()
+
+      if (fetchError) {
+        setError('Planificación no encontrada')
+        return { error: 'Planificación no encontrada' }
+      }
+
+      if (!existingPlanification) {
+        setError('Planificación no encontrada')
+        return { error: 'Planificación no encontrada' }
+      }
+
+      // Validar que los datos requeridos estén presentes si se están actualizando
+      if (updates.discipline_id && !updates.discipline_level_id) {
+        const errorMessage = 'Debe seleccionar un nivel de disciplina'
+        setError(errorMessage)
+        return { error: errorMessage }
+      }
+
       const { data, error: updateError } = await supabase
         .from('planifications')
         .update(updates)
@@ -123,13 +223,24 @@ export function usePlanifications(adminId?: string) {
         .single()
 
       if (updateError) {
-        console.error('Error updating planification:', updateError)
-        setError(updateError.message)
-        return { error: updateError.message }
+        let errorMessage = updateError.message
+        
+        // Proporcionar mensajes de error más específicos
+        if (updateError.code === '23503') {
+          if (updateError.message.includes('discipline_id')) {
+            errorMessage = 'La disciplina seleccionada no existe'
+          } else if (updateError.message.includes('discipline_level_id')) {
+            errorMessage = 'El nivel de disciplina seleccionado no existe'
+          }
+        } else if (updateError.code === '23505') {
+          errorMessage = 'Ya existe una planificación para esta fecha y disciplina'
+        }
+        
+        setError(errorMessage)
+        return { error: errorMessage }
       }
 
       if (!data) {
-        console.error('No data returned from update')
         setError('No se pudo actualizar la planificación')
         return { error: 'No se pudo actualizar la planificación' }
       }
@@ -137,8 +248,7 @@ export function usePlanifications(adminId?: string) {
       setPlanifications(prev => prev.map(p => p.id === id ? data : p))
       return { data, error: null }
     } catch (err) {
-      console.error('Error in updatePlanification:', err)
-      const errorMessage = 'Error al actualizar planificación'
+      const errorMessage = 'Error inesperado al actualizar planificación'
       setError(errorMessage)
       return { error: errorMessage }
     }
@@ -155,7 +265,6 @@ export function usePlanifications(adminId?: string) {
         .eq('id', id)
 
       if (deleteError) {
-        console.error('Error deleting planification:', deleteError)
         setError(deleteError.message)
         return { error: deleteError.message }
       }
@@ -163,7 +272,6 @@ export function usePlanifications(adminId?: string) {
       setPlanifications(prev => prev.filter(p => p.id !== id))
       return { error: null }
     } catch (err) {
-      console.error('Error in deletePlanification:', err)
       const errorMessage = 'Error al eliminar planificación'
       setError(errorMessage)
       return { error: errorMessage }

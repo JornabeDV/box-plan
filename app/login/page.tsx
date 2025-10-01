@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation"
 import { LoginForm } from "@/components/auth/login-form"
 import { SignUpForm } from "@/components/auth/signup-form"
 import { ConnectionTest } from "@/components/debug/connection-test"
+import { AdminLogin } from "@/components/debug/admin-login"
+import { PlanificationTest } from "@/components/debug/planification-test"
 import { useAuth } from "@/hooks/use-auth"
 import { Target, Loader2 } from "lucide-react"
 
@@ -83,6 +85,12 @@ export default function LoginPage() {
               onSwitchToLogin={switchToLogin}
             />
           )}
+          
+          {/* Admin Login */}
+          <AdminLogin />
+          
+          {/* Planification Test */}
+          <PlanificationTest />
           
           {/* Debug component - remove in production */}
           <ConnectionTest />

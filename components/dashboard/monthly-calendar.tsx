@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Calendar, Target } from "lucide-react"
+import { ChevronLeft, ChevronRight, Target } from "lucide-react"
 import Link from "next/link"
 
 interface MonthlyCalendarProps {
@@ -54,15 +54,8 @@ export function MonthlyCalendar({ onDateClick }: MonthlyCalendarProps) {
   const hasWorkout = (day: number) => {
     const date = new Date(year, month, day)
     const dayOfWeek = date.getDay()
-    // Simular que hay entrenamientos de lunes a viernes (1-5)
-    return dayOfWeek >= 1 && dayOfWeek <= 5
-  }
-  
-  // Verificar si es un día de entrenamiento (lunes a sábado)
-  const isWorkoutDay = (day: number) => {
-    const date = new Date(year, month, day)
-    const dayOfWeek = date.getDay()
-    // Lunes a sábado (1-6), donde 0=domingo, 1=lunes, ..., 6=sábado
+    // Simular que hay entrenamientos de lunes a sábado (1-6)
+    // donde 0=domingo, 1=lunes, ..., 6=sábado
     return dayOfWeek >= 1 && dayOfWeek <= 6
   }
   
@@ -100,101 +93,111 @@ export function MonthlyCalendar({ onDateClick }: MonthlyCalendarProps) {
   }
   
   return (
-    <Card className="border-primary/20 bg-gradient-to-br from-card to-primary/5 shadow-lg">
-      <CardHeader>
-        <CardTitle className="text-center mb-2">
-        Calendario de Entrenamientos
-        </CardTitle>
-
+    <Card className="bg-card/80 backdrop-blur-sm border-2 border-border shadow-soft">
+      <CardHeader className="pb-4">
+        {/* Título y descripción */}
+        <div className="text-center mb-4">
+          <CardTitle className="text-xl font-heading text-foreground">
+            Calendario de Entrenamientos
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">Seguimiento mensual</p>
+        </div>
         
         {/* Navegación del mes */}
         <div className="flex items-center justify-between">
           <Button
-            variant="outline"
-            size="sm"
+            variant="ghost"
+            size="icon-sm"
             onClick={goToPreviousMonth}
+            className="hover:bg-primary/10 hover:text-primary"
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
           
-          <h3 className="text-lg font-semibold">
+          <h3 className="text-2xl font-heading font-bold text-foreground">
             {monthNames[month]} {year}
           </h3>
           
           <Button
-            variant="outline"
-            size="sm"
+            variant="ghost"
+            size="icon-sm"
             onClick={goToNextMonth}
+            className="hover:bg-primary/10 hover:text-primary"
           >
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
+        
+        {/* Botón Hoy */}
+        <div className="flex justify-center mt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={goToToday}
+            className="text-sm font-semibold hover:bg-primary/10 hover:text-primary"
+          >
+            Ir a Hoy
+          </Button>
+        </div>
       </CardHeader>
       
-      <CardContent>
+      <CardContent className="pt-0">
         {/* Días de la semana */}
-        <div className="grid grid-cols-7 gap-1 mb-2">
+        <div className="grid grid-cols-7 gap-2 mb-4">
           {weekDays.map((day) => (
-            <div key={day} className="text-center text-sm font-semibold text-muted-foreground py-2">
+            <div key={day} className="text-center text-sm font-bold text-muted-foreground py-2">
               {day}
             </div>
           ))}
         </div>
         
         {/* Días del mes */}
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-2">
           {days.map((day, index) => {
             if (day === null) {
-              return <div key={index} className="aspect-square"></div>
+              return <div key={`empty-${index}`} className="aspect-square"></div>
             }
             
-             const hasWorkoutValue = hasWorkout(day)
-             const isWorkoutDayValue = isWorkoutDay(day)
-             const isCurrentDay = isToday(day)
-             const isPast = isPastDay(day)
-             
-             return (
-               <div key={day} className="aspect-square">
-                 {hasWorkoutValue ? (
-                   <Button
-                     variant={isCurrentDay ? "default" : "outline"}
-                     size="sm"
-                     className={`
-                       w-full h-full p-0 text-xs font-medium
-                       ${isCurrentDay 
-                         ? 'bg-primary text-primary-foreground shadow-lg' 
-                         : hasWorkoutValue 
-                           ? 'border-primary/50 text-primary hover:bg-primary/10' 
-                           : 'border-muted text-muted-foreground'
-                       }
-                       ${isPast ? 'opacity-60' : ''}
-                     `}
-                     onClick={() => handleDayClick(day)}
-                   >
-                     <div className="flex flex-col items-center justify-center">
-                       <span>{day}</span>
-                       <Target className="w-2 h-2" />
-                     </div>
-                   </Button>
-                 ) : (
-                   <div
-                     className={`
-                       w-full h-full flex items-center justify-center text-xs font-medium
-                       ${isCurrentDay 
-                         ? 'bg-primary/20 text-primary font-bold rounded-md' 
-                         : isWorkoutDayValue
-                           ? 'text-orange-500 font-semibold'
-                           : 'text-muted-foreground'
-                       }
-                       ${isPast ? 'opacity-40' : ''}
-                     `}
-                   >
-                     {day}
-                   </div>
-                 )}
-               </div>
-             )
+            const hasWorkoutValue = hasWorkout(day)
+            const isCurrentDay = isToday(day)
+            const isPast = isPastDay(day)
+            
+            return (
+              <div key={`day-${day}-${month}-${year}`} className="aspect-square">
+                <div
+                  className={`
+                    w-full h-full flex items-center justify-center text-sm font-semibold rounded-xl cursor-pointer transition-all duration-200
+                    ${isCurrentDay 
+                      ? 'bg-primary text-primary-foreground shadow-accent animate-pulse-glow' 
+                      : hasWorkoutValue 
+                        ? 'bg-accent/20 text-accent hover:bg-accent/30 hover:scale-105 border-2 border-accent/30' 
+                        : 'text-muted-foreground hover:bg-muted/50'
+                    }
+                    ${isPast ? 'opacity-50' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                >
+                  <span className="text-sm">{day}</span>
+                </div>
+              </div>
+            )
           })}
+        </div>
+        
+        {/* Leyenda */}
+        <div className="flex items-center justify-center gap-6 mt-6 pt-4 border-t border-border">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-primary rounded-full"></div>
+            <span className="text-xs text-muted-foreground">Hoy</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-accent/20 border-2 border-accent/30 rounded-full"></div>
+            <span className="text-xs text-muted-foreground">Días de entrenamiento</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-muted/50 rounded-full"></div>
+            <span className="text-xs text-muted-foreground">Día libre</span>
+          </div>
         </div>
       </CardContent>
     </Card>

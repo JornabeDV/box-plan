@@ -471,6 +471,125 @@ export interface Database {
           updated_at?: string
         }
       }
+      user_preferences: {
+        Row: {
+          id: string
+          user_id: string
+          preferred_discipline_id: string | null
+          preferred_level_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          preferred_discipline_id?: string | null
+          preferred_level_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          preferred_discipline_id?: string | null
+          preferred_level_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      planification_assignments: {
+        Row: {
+          id: string
+          planification_id: string
+          user_id: string
+          assigned_at: string
+          status: 'assigned' | 'confirmed' | 'cancelled'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          planification_id: string
+          user_id: string
+          assigned_at?: string
+          status?: 'assigned' | 'confirmed' | 'cancelled'
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          planification_id?: string
+          user_id?: string
+          assigned_at?: string
+          status?: 'assigned' | 'confirmed' | 'cancelled'
+          created_at?: string
+        }
+      }
+      disciplines: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          color: string
+          order_index: number
+          is_active: boolean
+          admin_id: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          color?: string
+          order_index?: number
+          is_active?: boolean
+          admin_id: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          color?: string
+          order_index?: number
+          is_active?: boolean
+          admin_id?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      discipline_levels: {
+        Row: {
+          id: string
+          discipline_id: string
+          name: string
+          description: string | null
+          order_index: number
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          discipline_id: string
+          name: string
+          description?: string | null
+          order_index?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          discipline_id?: string
+          name?: string
+          description?: string | null
+          order_index?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
