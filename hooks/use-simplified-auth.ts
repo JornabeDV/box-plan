@@ -39,14 +39,12 @@ export function useSimplifiedAuth() {
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     
     if (!supabaseUrl || !supabaseKey) {
-      console.warn('Supabase not configured - auth disabled')
       setLoading(false)
       return
     }
     
     // Timeout de seguridad para evitar cuelgues
     const timeoutId = setTimeout(() => {
-      console.warn('Auth initialization timeout - forcing loading to false')
       setLoading(false)
     }, 10000) // 10 segundos timeout
     
@@ -56,7 +54,6 @@ export function useSimplifiedAuth() {
         const { data: { session }, error } = await supabase.auth.getSession()
         
         if (error) {
-          console.error('Error getting session:', error)
           setLoading(false)
           clearTimeout(timeoutId)
           return
@@ -66,12 +63,10 @@ export function useSimplifiedAuth() {
           setUser(session.user)
           await loadUserRole(session.user.id)
         } else {
-          console.log('useSimplifiedAuth: No user found')
         }
         setLoading(false)
         clearTimeout(timeoutId)
       } catch (err) {
-        console.error('useSimplifiedAuth: Error in getInitialSession:', err)
         setLoading(false)
         clearTimeout(timeoutId)
       }
@@ -93,7 +88,6 @@ export function useSimplifiedAuth() {
           }
           setLoading(false)
         } catch (err) {
-          console.error('useSimplifiedAuth: Error in auth state change:', err)
           setLoading(false)
         }
       }
@@ -116,7 +110,6 @@ export function useSimplifiedAuth() {
         .single()
 
       if (roleError) {
-        console.error('loadUserRole: Error loading user role:', roleError)
         return
       }
 
@@ -127,7 +120,6 @@ export function useSimplifiedAuth() {
         await loadAdminProfile(userId)
       }
     } catch (error) {
-      console.error('loadUserRole: Error loading user role:', error)
     }
   }
 
@@ -143,13 +135,11 @@ export function useSimplifiedAuth() {
         .single()
 
       if (error) {
-        console.error('Error creating default user role:', error)
         return
       }
 
       setUserRole(data)
     } catch (error) {
-      console.error('Error creating default user role:', error)
     }
   }
 
@@ -168,14 +158,12 @@ export function useSimplifiedAuth() {
 
       setAdminProfile(data)
     } catch (error) {
-      console.error('Error loading admin profile:', error)
     }
   }
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
     if (error) {
-      console.error('Error signing out:', error)
     }
   }
 
