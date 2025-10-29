@@ -25,14 +25,14 @@ interface PlanSwitcherProps {
 }
 
 const planIcons = {
-  'Basic': Zap,
-  'Pro': Star,
-  'Elite': Crown
+  'Básico': Zap,
+  'Intermedio': Star,
+  'Pro': Crown
 }
 
 const getColorClasses = (planName: string) => {
   switch (planName) {
-    case 'Basic':
+    case 'Básico':
       return {
         gradient: 'from-blue-500 to-blue-600',
         bg: 'bg-blue-50',
@@ -40,7 +40,7 @@ const getColorClasses = (planName: string) => {
         text: 'text-blue-700',
         button: 'bg-blue-600 hover:bg-blue-700'
       }
-    case 'Pro':
+    case 'Intermedio':
       return {
         gradient: 'from-purple-500 to-purple-600',
         bg: 'bg-purple-50',
@@ -48,7 +48,7 @@ const getColorClasses = (planName: string) => {
         text: 'text-purple-700',
         button: 'bg-purple-600 hover:bg-purple-700'
       }
-    case 'Elite':
+    case 'Pro':
       return {
         gradient: 'from-yellow-500 to-yellow-600',
         bg: 'bg-yellow-50',
