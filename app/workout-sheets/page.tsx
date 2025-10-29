@@ -38,7 +38,7 @@ export default function WorkoutSheetsPage() {
   const { subscription } = useProfile()
 
   // Obtener plan del usuario
-  const userPlan = subscription?.subscription_plans?.name?.toLowerCase() as 'basic' | 'pro' | 'elite' | null
+  const userPlan = subscription?.subscription_plans?.name?.toLowerCase() as 'basic' | 'intermediate' | 'pro' | null
 
   // Filtrar planillas por plan
   const availableSheets = getSheetsByPlan(userPlan)

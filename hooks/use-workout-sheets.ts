@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
 import { toast } from '@/hooks/use-toast'
 
 interface WorkoutSheetCategory {
@@ -59,13 +58,11 @@ export function useWorkoutSheets() {
   // Cargar categorías
   const loadCategories = async () => {
     try {
-      const { data, error } = await supabase
-        .from('workout_sheet_categories')
-        .select('*')
-        .eq('is_active', true)
-        .order('order_index', { ascending: true })
-
-      if (error) throw error
+      const response = await fetch('/api/workout-sheet-categories')
+      
+      if (!response.ok) throw new Error('Error loading categories')
+      
+      const data = await response.json()
       setState(prev => ({ ...prev, categories: data || [] }))
     } catch (error) {
       console.error('Error loading categories:', error)
@@ -79,22 +76,11 @@ export function useWorkoutSheets() {
   // Cargar planillas disponibles
   const loadSheets = async () => {
     try {
-      const { data, error } = await supabase
-        .from('workout_sheets')
-        .select(`
-          *,
-          workout_sheet_categories (
-            id,
-            name,
-            description,
-            icon,
-            color
-          )
-        `)
-        .eq('is_active', true)
-        .order('title', { ascending: true })
-
-      if (error) throw error
+      const response = await fetch('/api/workout-sheets/public')
+      
+      if (!response.ok) throw new Error('Error loading sheets')
+      
+      const data = await response.json()
       setState(prev => ({ ...prev, sheets: data || [] }))
     } catch (error) {
       console.error('Error loading sheets:', error)
@@ -108,30 +94,11 @@ export function useWorkoutSheets() {
   // Cargar planillas del usuario
   const loadUserSheets = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data, error } = await supabase
-        .from('user_workout_sheets')
-        .select(`
-          *,
-          workout_sheets (
-            id,
-            title,
-            description,
-            plan_required,
-            template_data,
-            workout_sheet_categories (
-              name,
-              icon,
-              color
-            )
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
+      const response = await fetch('/api/user-workout-sheets')
+      
+      if (!response.ok) throw new Error('Error loading user sheets')
+      
+      const data = await response.json()
       setState(prev => ({ ...prev, userSheets: data || [] }))
     } catch (error) {
       console.error('Error loading user sheets:', error)
@@ -145,34 +112,18 @@ export function useWorkoutSheets() {
   // Crear nueva planilla del usuario
   const createUserSheet = async (sheetId: string, initialData: any = {}) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Usuario no autenticado')
-
-      const { data, error } = await supabase
-        .from('user_workout_sheets')
-        .insert({
-          user_id: user.id,
+      const response = await fetch('/api/user-workout-sheets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           sheet_id: sheetId,
           data: initialData
         })
-        .select(`
-          *,
-          workout_sheets (
-            id,
-            title,
-            description,
-            plan_required,
-            template_data,
-            workout_sheet_categories (
-              name,
-              icon,
-              color
-            )
-          )
-        `)
-        .single()
+      })
 
-      if (error) throw error
+      if (!response.ok) throw new Error('Error creating user sheet')
+
+      const data = await response.json()
 
       setState(prev => ({
         ...prev,
@@ -199,15 +150,13 @@ export function useWorkoutSheets() {
   // Actualizar planilla del usuario
   const updateUserSheet = async (userSheetId: string, data: any) => {
     try {
-      const { error } = await supabase
-        .from('user_workout_sheets')
-        .update({ 
-          data,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userSheetId)
+      const response = await fetch(`/api/user-workout-sheets/${userSheetId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data })
+      })
 
-      if (error) throw error
+      if (!response.ok) throw new Error('Error updating user sheet')
 
       setState(prev => ({
         ...prev,
@@ -236,15 +185,11 @@ export function useWorkoutSheets() {
   // Marcar planilla como completada
   const completeUserSheet = async (userSheetId: string) => {
     try {
-      const { error } = await supabase
-        .from('user_workout_sheets')
-        .update({ 
-          completed_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userSheetId)
+      const response = await fetch(`/api/user-workout-sheets/${userSheetId}/complete`, {
+        method: 'PATCH'
+      })
 
-      if (error) throw error
+      if (!response.ok) throw new Error('Error completing user sheet')
 
       setState(prev => ({
         ...prev,
@@ -277,12 +222,11 @@ export function useWorkoutSheets() {
   // Eliminar planilla del usuario
   const deleteUserSheet = async (userSheetId: string) => {
     try {
-      const { error } = await supabase
-        .from('user_workout_sheets')
-        .delete()
-        .eq('id', userSheetId)
+      const response = await fetch(`/api/user-workout-sheets/${userSheetId}`, {
+        method: 'DELETE'
+      })
 
-      if (error) throw error
+      if (!response.ok) throw new Error('Error deleting user sheet')
 
       setState(prev => ({
         ...prev,

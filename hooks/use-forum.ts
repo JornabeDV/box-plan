@@ -1,5 +1,7 @@
+'use client'
+
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useSession } from 'next-auth/react'
 
 export interface ForumCategory {
   id: string
@@ -54,6 +56,7 @@ interface ForumState {
 }
 
 export function useForum() {
+  const { data: session } = useSession()
   const [state, setState] = useState<ForumState>({
     categories: [],
     posts: [],
@@ -67,14 +70,13 @@ export function useForum() {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }))
       
-      const { data, error } = await supabase
-        .from('forum_categories')
-        .select('*')
-        .eq('is_active', true)
-        .order('order_index', { ascending: true })
+      const response = await fetch('/api/forum/categories')
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar categorías')
+      }
 
-      if (error) throw error
-
+      const data = await response.json()
       setState(prev => ({ ...prev, categories: data || [], loading: false }))
     } catch (error) {
       console.error('Error loading categories:', error)
@@ -91,25 +93,22 @@ export function useForum() {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }))
       
-      let query = supabase
-        .from('forum_posts')
-        .select(`
-          *,
-          category:forum_categories(*)
-        `)
-        .eq('is_approved', true)
-        .order('is_pinned', { ascending: false })
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1)
-
+      const params = new URLSearchParams({
+        limit: limit.toString(),
+        offset: offset.toString()
+      })
+      
       if (categoryId) {
-        query = query.eq('category_id', categoryId)
+        params.append('categoryId', categoryId)
       }
 
-      const { data, error } = await query
+      const response = await fetch(`/api/forum/posts?${params}`)
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar posts')
+      }
 
-      if (error) throw error
-
+      const data = await response.json()
       setState(prev => ({ ...prev, posts: data || [], loading: false }))
     } catch (error) {
       console.error('Error loading posts:', error)
@@ -126,16 +125,13 @@ export function useForum() {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }))
       
-      const { data, error } = await supabase
-        .from('forum_comments')
-        .select('*')
-        .eq('post_id', postId)
-        .eq('is_approved', true)
-        .is('parent_id', null) // Solo comentarios principales
-        .order('created_at', { ascending: true })
+      const response = await fetch(`/api/forum/comments?postId=${postId}`)
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar comentarios')
+      }
 
-      if (error) throw error
-
+      const data = await response.json()
       setState(prev => ({ ...prev, comments: data || [], loading: false }))
     } catch (error) {
       console.error('Error loading comments:', error)
@@ -152,25 +148,17 @@ export function useForum() {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }))
       
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Usuario no autenticado')
+      const response = await fetch('/api/forum/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content, category_id: categoryId })
+      })
 
-      const { data, error } = await supabase
-        .from('forum_posts')
-        .insert({
-          title,
-          content,
-          author_id: user.id,
-          category_id: categoryId
-        })
-        .select(`
-          *,
-          category:forum_categories(*)
-        `)
-        .single()
+      if (!response.ok) {
+        throw new Error('Error al crear el post')
+      }
 
-      if (error) throw error
-
+      const data = await response.json()
       setState(prev => ({ 
         ...prev, 
         posts: [data, ...prev.posts], 
@@ -191,22 +179,17 @@ export function useForum() {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }))
       
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Usuario no autenticado')
+      const response = await fetch('/api/forum/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ post_id: postId, content, parent_id: parentId })
+      })
 
-      const { data, error } = await supabase
-        .from('forum_comments')
-        .insert({
-          post_id: postId,
-          author_id: user.id,
-          content,
-          parent_id: parentId
-        })
-        .select('*')
-        .single()
+      if (!response.ok) {
+        throw new Error('Error al crear el comentario')
+      }
 
-      if (error) throw error
-
+      const data = await response.json()
       setState(prev => ({ 
         ...prev, 
         comments: [...prev.comments, data], 
@@ -225,46 +208,27 @@ export function useForum() {
   // Dar like a post o comentario
   const toggleLike = async (postId?: string, commentId?: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Usuario no autenticado')
-
-      const { data: existingLike, error: fetchError } = await supabase
-        .from('forum_likes')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq(postId ? 'post_id' : 'comment_id', postId || commentId)
-        .single()
-
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        throw fetchError
+      if (!session?.user?.id) {
+        throw new Error('Usuario no autenticado')
       }
 
-      if (existingLike) {
-        // Quitar like
-        const { error } = await supabase
-          .from('forum_likes')
-          .delete()
-          .eq('id', existingLike.id)
+      const response = await fetch('/api/forum/likes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ post_id: postId, comment_id: commentId })
+      })
 
-        if (error) throw error
-      } else {
-        // Dar like
-        const { error } = await supabase
-          .from('forum_likes')
-          .insert({
-            user_id: user.id,
-            post_id: postId,
-            comment_id: commentId
-          })
-
-        if (error) throw error
+      if (!response.ok) {
+        throw new Error('Error al dar like')
       }
+
+      const result = await response.json()
 
       // Recargar posts o comentarios
       if (postId) {
         loadPosts()
-      } else if (commentId) {
-        loadComments(postId!)
+      } else if (commentId && postId) {
+        loadComments(postId)
       }
 
       return { error: null }
@@ -277,26 +241,25 @@ export function useForum() {
 
   // Reportar post o comentario
   const reportContent = async (
+    reason: string,
     postId?: string, 
     commentId?: string, 
-    reason: string, 
     description?: string
   ) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Usuario no autenticado')
+      if (!session?.user?.id) {
+        throw new Error('Usuario no autenticado')
+      }
 
-      const { error } = await supabase
-        .from('forum_reports')
-        .insert({
-          reporter_id: user.id,
-          post_id: postId,
-          comment_id: commentId,
-          reason,
-          description
-        })
+      const response = await fetch('/api/forum/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ post_id: postId, comment_id: commentId, reason, description })
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        throw new Error('Error al reportar contenido')
+      }
 
       return { error: null }
     } catch (error) {

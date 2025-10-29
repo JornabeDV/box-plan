@@ -48,9 +48,9 @@ interface SubscriptionManagementProps {
 }
 
 const planIcons = {
-  'Basic': Zap,
-  'Pro': Star,
-  'Elite': Crown
+  'Básico': Zap,
+  'Intermedio': Star,
+  'Pro': Crown
 }
 
 const statusColors = {

@@ -1,14 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error('Missing Supabase environment variables')
-}
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+import { sql } from '@/lib/neon'
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,16 +48,15 @@ async function handlePaymentNotification(paymentId: string) {
     const payment = await response.json()
 
     // Update payment history
-    const { error: updateError } = await supabase
-      .from('payment_history')
-      .update({
-        status: payment.status === 'approved' ? 'approved' : 'rejected',
-        mercadopago_payment_id: paymentId,
-        updated_at: new Date().toISOString()
-      })
-      .eq('mercadopago_preference_id', payment.preference_id)
-
-    if (updateError) {
+    try {
+      await sql`
+        UPDATE payment_history 
+        SET status = ${payment.status === 'approved' ? 'approved' : 'rejected'}, 
+            mercadopago_payment_id = ${paymentId}, 
+            updated_at = NOW()
+        WHERE mercadopago_preference_id = ${payment.preference_id}
+      `
+    } catch (updateError) {
       console.error('Error updating payment history:', updateError)
       return
     }
@@ -96,44 +86,33 @@ async function createOrUpdateSubscription(payment: any) {
     periodEnd.setMonth(periodEnd.getMonth() + 1) // Default to monthly
 
     // Check if user already has an active subscription
-    const { data: existingSubscription } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('user_id', user_id)
-      .eq('status', 'active')
-      .single()
+    const existing = await sql`
+      SELECT * FROM subscriptions WHERE user_id = ${user_id} AND status = 'active'
+    `
 
-    if (existingSubscription) {
+    if (existing.length > 0) {
       // Update existing subscription
-      const { error } = await supabase
-        .from('subscriptions')
-        .update({
-          plan_id,
-          current_period_start: now.toISOString(),
-          current_period_end: periodEnd.toISOString(),
-          mercadopago_payment_id: payment.id,
-          updated_at: now.toISOString()
-        })
-        .eq('id', existingSubscription.id)
-
-      if (error) {
+      try {
+        await sql`
+          UPDATE subscriptions
+          SET plan_id = ${plan_id}, 
+              current_period_start = ${now.toISOString()}, 
+              current_period_end = ${periodEnd.toISOString()}, 
+              mercadopago_payment_id = ${payment.id}, 
+              updated_at = NOW()
+          WHERE id = ${existing[0].id}
+        `
+      } catch (error) {
         console.error('Error updating subscription:', error)
       }
     } else {
       // Create new subscription
-      const { error } = await supabase
-        .from('subscriptions')
-        .insert({
-          user_id,
-          plan_id,
-          status: 'active',
-          current_period_start: now.toISOString(),
-          current_period_end: periodEnd.toISOString(),
-          mercadopago_payment_id: payment.id,
-          cancel_at_period_end: false
-        })
-
-      if (error) {
+      try {
+        await sql`
+          INSERT INTO subscriptions (user_id, plan_id, status, current_period_start, current_period_end, mercadopago_payment_id, cancel_at_period_end)
+          VALUES (${user_id}, ${plan_id}, 'active', ${now.toISOString()}, ${periodEnd.toISOString()}, ${payment.id}, false)
+        `
+      } catch (error) {
         console.error('Error creating subscription:', error)
       }
     }

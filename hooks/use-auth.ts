@@ -1,135 +1,143 @@
-import { useState, useEffect } from 'react'
-import { User, Session } from '@supabase/supabase-js'
-import { supabase } from '@/lib/supabase'
+'use client'
+
+import { useSession, signIn as nextAuthSignIn, signOut as nextAuthSignOut } from 'next-auth/react'
+import { useCallback } from 'react'
+
+// Re-export for NextAuth session usage
+export { useSession } from 'next-auth/react'
 
 export interface AuthState {
-  user: User | null
-  session: Session | null
+  user: any | null
+  session: any | null
   loading: boolean
 }
 
 export function useAuth() {
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    session: null,
-    loading: true,
-  })
+  const { data: session, status } = useSession()
 
-  useEffect(() => {
-    // Obtener sesión inicial
-    const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setAuthState({
-        user: session?.user ?? null,
-        session,
-        loading: false,
+  const signIn = useCallback(async (email: string, password: string) => {
+    try {
+      const result = await nextAuthSignIn('credentials', {
+        email,
+        password,
+        redirect: false,
       })
-    }
 
-    getInitialSession()
-
-    // Escuchar cambios en la autenticación
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setAuthState({
-          user: session?.user ?? null,
-          session,
-          loading: false,
-        })
+      if (result?.error) {
+        let errorMessage = result.error
+        
+        // Mapear errores comunes de NextAuth a mensajes en español
+        if (result.error.includes('CredentialsSignin') || result.error.includes('Invalid')) {
+          errorMessage = 'Email o contraseña incorrectos'
+        } else if (result.error.includes('Email o contraseña incorrectos')) {
+          errorMessage = 'Email o contraseña incorrectos'
+        } else if (result.error.includes('Too many') || result.error.includes('rate limit')) {
+          errorMessage = 'Demasiados intentos. Por favor espera unos minutos'
+        } else if (result.error.includes('Email y contraseña son requeridos')) {
+          errorMessage = 'Por favor completa todos los campos'
+        } else {
+          errorMessage = 'Email o contraseña incorrectos'
+        }
+        
+        return { 
+          data: null, 
+          error: { message: errorMessage } 
+        }
       }
-    )
-
-    return () => subscription.unsubscribe()
+      
+      if (!result?.ok) {
+        return {
+          data: null,
+          error: { message: 'Email o contraseña incorrectos' }
+        }
+      }
+      
+      return { data: result, error: null }
+    } catch (err) {
+      console.error('SignIn error:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Error inesperado. Intenta nuevamente.'
+      return { 
+        data: null, 
+        error: { message: errorMessage === 'Email o contraseña incorrectos' ? errorMessage : 'Error inesperado. Intenta nuevamente.' } 
+      }
+    }
   }, [])
 
-  const signIn = async (email: string, password: string) => {
+  const signUp = useCallback(async (email: string, password: string, fullName?: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-      
-      if (error) {
-        // Mapear errores de Supabase a mensajes más amigables
-        let errorMessage = error.message
-        
-        if (error.message.includes('Invalid login credentials')) {
-          errorMessage = 'Email o contraseña incorrectos'
-        } else if (error.message.includes('Email not confirmed')) {
-          errorMessage = 'Por favor confirma tu email antes de iniciar sesión'
-        } else if (error.message.includes('Too many requests')) {
-          errorMessage = 'Demasiados intentos. Intenta más tarde'
-        }
-        
-        return { data, error: { ...error, message: errorMessage } }
-      }
-      
-      return { data, error: null }
-    } catch (err) {
-      return { 
-        data: null, 
-        error: { 
-          message: 'Error inesperado. Intenta nuevamente.' 
-        } 
-      }
-    }
-  }
-
-  const signUp = async (email: string, password: string, fullName?: string) => {
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          },
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          email,
+          password,
+          name: fullName || email.split('@')[0],
+        })
       })
-      
-      if (error) {
-        // Mapear errores de Supabase a mensajes más amigables
-        let errorMessage = error.message
-        
-        if (error.message.includes('Invalid login credentials')) {
-          errorMessage = 'Email o contraseña incorrectos'
-        } else if (error.message.includes('Email not confirmed')) {
-          errorMessage = 'Por favor confirma tu email antes de iniciar sesión'
-        } else if (error.message.includes('Too many requests')) {
-          errorMessage = 'Demasiados intentos. Intenta más tarde'
-        } else if (error.message.includes('Failed to fetch')) {
-          errorMessage = 'Error de conexión. Verifica tu conexión a internet o contacta al administrador'
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        return { 
+          data: null, 
+          error: { message: data.error || 'Error al crear la cuenta' } 
         }
-        
-        return { data, error: { ...error, message: errorMessage } }
       }
-      
-      return { data, error: null }
+
+      // Registro exitoso - no hacer login automático, el usuario debe iniciar sesión manualmente
+      return { 
+        data: { success: true }, 
+        error: null 
+      }
     } catch (err) {
-      console.error('Error in signUp:', err)
+      console.error('Signup error:', err)
       return { 
         data: null, 
-        error: { 
-          message: 'Error de conexión. Verifica tu conexión a internet o contacta al administrador.' 
-        } 
+        error: { message: 'Error inesperado al crear la cuenta' } 
       }
     }
-  }
+  }, [])
 
-  const signOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    return { error }
-  }
+  const signOut = useCallback(async () => {
+    await nextAuthSignOut({ redirect: false })
+    return { error: null }
+  }, [])
 
-  const resetPassword = async (email: string) => {
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    })
-    return { data, error }
-  }
+  const resetPassword = useCallback(async (email: string) => {
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        return {
+          data: null,
+          error: { message: data.error || 'Error al enviar el email de restablecimiento' }
+        }
+      }
+
+      return { data: { success: true }, error: null }
+    } catch (err) {
+      console.error('Reset password error:', err)
+      return {
+        data: null,
+        error: { message: 'Error inesperado al solicitar restablecimiento' }
+      }
+    }
+  }, [])
 
   return {
-    ...authState,
+    user: session?.user || null,
+    session,
+    loading: status === 'loading',
     signIn,
     signUp,
     signOut,

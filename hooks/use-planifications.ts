@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
 
 export interface Planification {
   id: string
@@ -50,22 +49,13 @@ export function usePlanifications(adminId?: string) {
       setLoading(true)
       setError(null)
 
-      const { data, error: fetchError } = await supabase
-        .from('planifications')
-        .select(`
-          *,
-          discipline:disciplines(id, name, color, icon),
-          discipline_level:discipline_levels(id, name, description)
-        `)
-        .eq('admin_id', adminId)
-        .order('date', { ascending: true })
-
-      if (fetchError) {
-        console.error('Error loading planifications:', fetchError)
-        setError(fetchError.message)
-        return
+      const response = await fetch(`/api/planifications?adminId=${adminId}`)
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar planificaciones')
       }
 
+      const data = await response.json()
       setPlanifications(data || [])
     } catch (err) {
       console.error('Error in loadPlanifications:', err)
@@ -80,27 +70,56 @@ export function usePlanifications(adminId?: string) {
     try {
       setError(null)
 
-      const { data, error: createError } = await supabase
-        .from('planifications')
-        .insert(planificationData)
-        .select(`
-          *,
-          discipline:disciplines(id, name, color, icon),
-          discipline_level:discipline_levels(id, name, description)
-        `)
-        .single()
-
-      if (createError) {
-        console.error('Error creating planification:', createError)
-        setError(createError.message)
-        return { error: createError.message }
+      // Validar que los datos requeridos estén presentes
+      if (!planificationData.admin_id) {
+        const errorMessage = 'ID de administrador requerido'
+        setError(errorMessage)
+        return { error: errorMessage }
       }
 
-      setPlanifications(prev => [data, ...prev])
-      return { data, error: null }
+      if (!planificationData.discipline_id) {
+        const errorMessage = 'ID de disciplina requerido'
+        setError(errorMessage)
+        return { error: errorMessage }
+      }
+
+      if (!planificationData.discipline_level_id) {
+        const errorMessage = 'ID de nivel de disciplina requerido'
+        setError(errorMessage)
+        return { error: errorMessage }
+      }
+
+      if (!planificationData.date) {
+        const errorMessage = 'Fecha requerida'
+        setError(errorMessage)
+        return { error: errorMessage }
+      }
+
+      const response = await fetch('/api/planifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(planificationData)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Error al crear planificación' }))
+        setError(errorData.error || 'Error al crear planificación')
+        return { error: errorData.error || 'Error al crear planificación' }
+      }
+
+      const data = await response.json()
+      
+      // Obtener con relaciones
+      const withRelations = {
+        ...data,
+        discipline: data.discipline,
+        discipline_level: data.discipline_level
+      }
+      
+      setPlanifications(prev => [withRelations, ...prev])
+      return { data: withRelations, error: null }
     } catch (err) {
-      console.error('Error in createPlanification:', err)
-      const errorMessage = 'Error al crear planificación'
+      const errorMessage = 'Error inesperado al crear planificación'
       setError(errorMessage)
       return { error: errorMessage }
     }
@@ -110,26 +129,36 @@ export function usePlanifications(adminId?: string) {
   const updatePlanification = async (id: string, updates: Partial<Planification>) => {
     try {
       setError(null)
-      
-      const { data, error: updateError } = await supabase
-        .from('planifications')
-        .update(updates)
-        .eq('id', id)
-        .select(`
-          *,
-          discipline:disciplines(id, name, color, icon),
-          discipline_level:discipline_levels(id, name, description)
-        `)
-        .single()
 
-      if (updateError) {
-        console.error('Error updating planification:', updateError)
-        setError(updateError.message)
-        return { error: updateError.message }
+      // Validar que el ID existe
+      if (!id) {
+        const errorMessage = 'ID de planificación requerido'
+        setError(errorMessage)
+        return { error: errorMessage }
       }
 
+      // Validar que los datos requeridos estén presentes si se están actualizando
+      if (updates.discipline_id && !updates.discipline_level_id) {
+        const errorMessage = 'Debe seleccionar un nivel de disciplina'
+        setError(errorMessage)
+        return { error: errorMessage }
+      }
+
+      const response = await fetch(`/api/planifications/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Error al actualizar planificación' }))
+        setError(errorData.error || 'Error al actualizar planificación')
+        return { error: errorData.error || 'Error al actualizar planificación' }
+      }
+
+      const data = await response.json()
+      
       if (!data) {
-        console.error('No data returned from update')
         setError('No se pudo actualizar la planificación')
         return { error: 'No se pudo actualizar la planificación' }
       }
@@ -137,8 +166,7 @@ export function usePlanifications(adminId?: string) {
       setPlanifications(prev => prev.map(p => p.id === id ? data : p))
       return { data, error: null }
     } catch (err) {
-      console.error('Error in updatePlanification:', err)
-      const errorMessage = 'Error al actualizar planificación'
+      const errorMessage = 'Error inesperado al actualizar planificación'
       setError(errorMessage)
       return { error: errorMessage }
     }
@@ -149,21 +177,19 @@ export function usePlanifications(adminId?: string) {
     try {
       setError(null)
 
-      const { error: deleteError } = await supabase
-        .from('planifications')
-        .delete()
-        .eq('id', id)
+      const response = await fetch(`/api/planifications/${id}`, {
+        method: 'DELETE'
+      })
 
-      if (deleteError) {
-        console.error('Error deleting planification:', deleteError)
-        setError(deleteError.message)
-        return { error: deleteError.message }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Error al eliminar planificación' }))
+        setError(errorData.error || 'Error al eliminar planificación')
+        return { error: errorData.error || 'Error al eliminar planificación' }
       }
 
       setPlanifications(prev => prev.filter(p => p.id !== id))
       return { error: null }
     } catch (err) {
-      console.error('Error in deletePlanification:', err)
       const errorMessage = 'Error al eliminar planificación'
       setError(errorMessage)
       return { error: errorMessage }
@@ -178,24 +204,21 @@ export function usePlanifications(adminId?: string) {
       setLoading(true)
       setError(null)
 
-      const { data, error: searchError } = await supabase
-        .from('planifications')
-        .select(`
-          *,
-          discipline:disciplines(id, name, color, icon),
-          discipline_level:discipline_levels(id, name, description)
-        `)
-        .eq('admin_id', adminId)
-        .or(`notes.ilike.%${query}%`)
-        .order('date', { ascending: true })
-
-      if (searchError) {
-        console.error('Error searching planifications:', searchError)
-        setError(searchError.message)
-        return
+      // Obtener todas las planificaciones y filtrar por notas
+      const response = await fetch(`/api/planifications?adminId=${adminId}`)
+      
+      if (!response.ok) {
+        throw new Error('Error al buscar planificaciones')
       }
 
-      setPlanifications(data || [])
+      const data = await response.json()
+      
+      // Filtrar en el cliente por notas
+      const filtered = data.filter((p: Planification) => 
+        p.notes?.toLowerCase().includes(query.toLowerCase())
+      )
+      
+      setPlanifications(filtered)
     } catch (err) {
       console.error('Error in searchPlanifications:', err)
       setError('Error al buscar planificaciones')

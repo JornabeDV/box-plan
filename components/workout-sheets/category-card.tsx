@@ -30,7 +30,7 @@ interface CategoryCardProps {
   category: WorkoutSheetCategory
   sheetCount: number
   userSheetCount: number
-  userPlan: 'basic' | 'pro' | 'elite' | null
+  userPlan: 'basic' | 'intermediate' | 'pro' | null
   onViewSheets?: (categoryId: string) => void
 }
 
@@ -57,14 +57,14 @@ export function CategoryCard({
     
     const planColors = {
       'basic': 'bg-blue-100 text-blue-800',
-      'pro': 'bg-purple-100 text-purple-800',
-      'elite': 'bg-yellow-100 text-yellow-800'
+      'intermediate': 'bg-purple-100 text-purple-800',
+      'pro': 'bg-yellow-100 text-yellow-800'
     }
     
     const planLabels = {
       'basic': 'Plan Básico',
-      'pro': 'Plan Pro',
-      'elite': 'Plan Elite'
+      'intermediate': 'Plan Intermedio',
+      'pro': 'Plan Pro'
     }
     
     return (

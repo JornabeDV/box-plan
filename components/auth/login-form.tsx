@@ -49,14 +49,18 @@ export function LoginForm({ onSuccess, onSwitchToSignUp, onForgotPassword }: Log
     }
 
     try {
-      const { error } = await signIn(email, password)
+      const { error, data } = await signIn(email, password)
       
       if (error) {
-        setError(error.message)
-      } else {
+        setError(error.message || 'Email o contraseña incorrectos')
+      } else if (data) {
         onSuccess?.()
+      } else {
+        // Si no hay error pero tampoco data, algo salió mal
+        setError('No se pudo iniciar sesión. Verifica tus credenciales.')
       }
     } catch (err) {
+      console.error('Login error:', err)
       setError('Error inesperado. Intenta nuevamente.')
     } finally {
       setLoading(false)
@@ -66,21 +70,21 @@ export function LoginForm({ onSuccess, onSwitchToSignUp, onForgotPassword }: Log
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold">Iniciar Sesión</CardTitle>
-        <CardDescription>
-          Ingresa a tu cuenta de CrossFit Pro
+        <CardTitle className="text-2xl font-bold text-white">Iniciar Sesión</CardTitle>
+        <CardDescription className="text-gray-400">
+          Ingresa a tu cuenta de Box Plan
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <Alert variant="destructive">
+            <Alert variant="destructive" className="bg-red-900 border-red-700 text-red-100">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className="text-white">Email</Label>
             <Input
               id="email"
               type="email"
@@ -93,7 +97,7 @@ export function LoginForm({ onSuccess, onSwitchToSignUp, onForgotPassword }: Log
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Contraseña</Label>
+            <Label htmlFor="password" className="text-white">Contraseña</Label>
             <div className="relative">
               <Input
                 id="password"
@@ -108,7 +112,7 @@ export function LoginForm({ onSuccess, onSwitchToSignUp, onForgotPassword }: Log
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-gray-400"
                 onClick={() => setShowPassword(!showPassword)}
                 disabled={loading}
               >
@@ -123,7 +127,7 @@ export function LoginForm({ onSuccess, onSwitchToSignUp, onForgotPassword }: Log
 
           <Button
             type="submit"
-            className="w-full"
+            className="w-full neon-button"
             disabled={loading}
           >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -132,11 +136,11 @@ export function LoginForm({ onSuccess, onSwitchToSignUp, onForgotPassword }: Log
 
           <div className="space-y-3">
             <div className="text-center text-sm">
-              <span className="text-muted-foreground">¿No tienes cuenta? </span>
+              <span className="text-gray-400">¿No tienes cuenta? </span>
               <Button
                 type="button"
                 variant="link"
-                className="p-0 h-auto font-semibold"
+                className="p-0 h-auto font-semibold text-lime-400 hover:text-lime-300"
                 onClick={onSwitchToSignUp}
                 disabled={loading}
               >
@@ -148,7 +152,7 @@ export function LoginForm({ onSuccess, onSwitchToSignUp, onForgotPassword }: Log
               <Button
                 type="button"
                 variant="link"
-                className="p-0 h-auto text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                className="p-0 h-auto text-sm text-lime-400 hover:text-lime-300 hover:underline"
                 onClick={onForgotPassword}
                 disabled={loading}
               >
