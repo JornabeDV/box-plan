@@ -4,17 +4,16 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { LoginForm } from "@/components/auth/login-form"
 import { SignUpForm } from "@/components/auth/signup-form"
-import { ConnectionTest } from "@/components/debug/connection-test"
-import { AdminLogin } from "@/components/debug/admin-login"
+import { ForgotPasswordForm } from "@/components/auth/forgot-password-form"
 import { useAuth } from "@/hooks/use-auth"
-import { Target, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 
 /**
  * Página de Login/Registro
- * Maneja la autenticación de usuarios con Supabase
+ * Maneja la autenticación de usuarios con NextAuth y Neon PostgreSQL
  */
 export default function LoginPage() {
-  const [mode, setMode] = useState<'login' | 'signup'>('login')
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot-password'>('login')
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const { user, loading: authLoading } = useAuth()
@@ -33,6 +32,7 @@ export default function LoginPage() {
 
   const switchToSignUp = () => setMode('signup')
   const switchToLogin = () => setMode('login')
+  const switchToForgotPassword = () => setMode('forgot-password')
 
   if (loading || authLoading) {
     return (
@@ -52,20 +52,9 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5"></div>
         <div className="relative flex items-center justify-center p-6">
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/25">
-                <Target className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-accent rounded-full animate-pulse"></div>
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
-                CrossFit Pro
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {mode === 'login' ? 'Inicia sesión en tu cuenta' : 'Crea tu cuenta'}
-              </p>
-            </div>
+            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
+              Box Plan
+            </h1>
           </div>
         </div>
       </header>
@@ -77,19 +66,18 @@ export default function LoginPage() {
             <LoginForm 
               onSuccess={handleSuccess}
               onSwitchToSignUp={switchToSignUp}
+              onForgotPassword={switchToForgotPassword}
             />
-          ) : (
+          ) : mode === 'signup' ? (
             <SignUpForm 
               onSuccess={handleSuccess}
               onSwitchToLogin={switchToLogin}
             />
+          ) : (
+            <ForgotPasswordForm 
+              onBack={switchToLogin}
+            />
           )}
-          
-          {/* Admin Login */}
-          <AdminLogin />
-          
-          {/* Debug component - remove in production */}
-          <ConnectionTest />
         </div>
       </main>
     </div>
