@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       items: [
         {
           id: plan_id,
-          title: `CrossFit Pro - ${plan.name}`,
+          title: `Box Plan - ${plan.name}`,
           description: `Suscripción ${plan.interval === 'month' ? 'mensual' : 'anual'} al plan ${plan.name}`,
           quantity: 1,
           unit_price: plan.price,
