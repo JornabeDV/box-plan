@@ -79,7 +79,9 @@
 @theme inline {
   --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-oswald);
+  --font-heading: var(--font-space);
+  --font-display: var(--font-bebas);
+  --font-condensed: var(--font-oswald);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -127,21 +129,36 @@
     background-color: #000000; /* Pure black background like reference images */
   }
 
-  /* Modern Typography - Clean sans-serif like reference images */
+  /* Modern Typography - Optimized for fitness/CrossFit aesthetic */
   .font-heading {
-    font-family: var(--font-inter), sans-serif;
+    font-family: var(--font-space), sans-serif;
     font-weight: 700;
     letter-spacing: -0.02em;
+  }
+
+  .font-display {
+    font-family: var(--font-bebas), sans-serif;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .font-condensed {
+    font-family: var(--font-oswald), sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
   }
 
   .font-body {
     font-family: var(--font-inter), sans-serif;
     font-weight: 400;
+    letter-spacing: -0.01em;
   }
 
   /* Heading styles with modern fitness app aesthetic */
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-inter), sans-serif;
+    font-family: var(--font-space), sans-serif;
     font-weight: 700;
     letter-spacing: -0.02em;
     line-height: 1.1;
@@ -151,16 +168,19 @@
   h1 {
     font-size: 2.5rem;
     font-weight: 700;
+    letter-spacing: -0.03em;
   }
 
   h2 {
     font-size: 2rem;
     font-weight: 700;
+    letter-spacing: -0.02em;
   }
 
   h3 {
     font-size: 1.5rem;
     font-weight: 600;
+    letter-spacing: -0.01em;
   }
 
   /* Custom animations inspired by reference images */
@@ -211,17 +231,37 @@
     box-shadow: 0 0 10px rgba(204, 255, 0, 0.2);
   }
 
-  .neon-button {
-    background-color: #CCFF00;
-    color: #000000;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    transition: all 0.2s ease;
+  /* Button styles are now handled by the Button component variants */
+
+  /* PWA Optimizations */
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  .neon-button:hover {
-    background-color: #B8E600;
-    box-shadow: 0 0 20px rgba(204, 255, 0, 0.4);
+  /* Improved tap targets for mobile */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Prevent text selection on buttons for better mobile UX */
+  button, [role="button"] {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Smooth scrolling for better mobile experience */
+  html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Safe area insets for notched devices */
+  @supports (padding: max(0px)) {
+    body {
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
   }
 }
