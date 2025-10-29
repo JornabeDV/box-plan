@@ -22,7 +22,7 @@ interface WorkoutSheet {
   title: string
   description: string | null
   category_id: string
-  plan_required: 'basic' | 'pro' | 'elite'
+  plan_required: 'basic' | 'intermediate' | 'pro'
   template_data: any
   is_active: boolean
   created_by: string | null
@@ -50,7 +50,7 @@ interface UserWorkoutSheet {
 interface SheetCardProps {
   sheet: WorkoutSheet
   userSheet?: UserWorkoutSheet
-  userPlan: 'basic' | 'pro' | 'elite' | null
+  userPlan: 'basic' | 'intermediate' | 'pro' | null
   onStart: (sheetId: string) => void
   onContinue: (userSheetId: string) => void
   onComplete: (userSheetId: string) => void
@@ -59,8 +59,8 @@ interface SheetCardProps {
 
 const planIcons = {
   'basic': Zap,
-  'pro': Star,
-  'elite': Crown
+  'intermediate': Star,
+  'pro': Crown
 }
 
 const planColors = {
@@ -70,13 +70,13 @@ const planColors = {
     text: 'text-blue-700',
     badge: 'bg-blue-100 text-blue-800'
   },
-  'pro': {
+  'intermediate': {
     bg: 'bg-purple-50',
     border: 'border-purple-200',
     text: 'text-purple-700',
     badge: 'bg-purple-100 text-purple-800'
   },
-  'elite': {
+  'pro': {
     bg: 'bg-yellow-50',
     border: 'border-yellow-200',
     text: 'text-yellow-700',
@@ -86,8 +86,8 @@ const planColors = {
 
 const planLabels = {
   'basic': 'Básico',
-  'pro': 'Pro',
-  'elite': 'Elite'
+  'intermediate': 'Intermedio',
+  'pro': 'Pro'
 }
 
 export function SheetCard({ 
@@ -105,8 +105,8 @@ export function SheetCard({
   const colors = planColors[sheet.plan_required]
   const isAccessible = userPlan && (
     (sheet.plan_required === 'basic') ||
-    (sheet.plan_required === 'pro' && (userPlan === 'pro' || userPlan === 'elite')) ||
-    (sheet.plan_required === 'elite' && userPlan === 'elite')
+    (sheet.plan_required === 'intermediate' && (userPlan === 'intermediate' || userPlan === 'pro')) ||
+    (sheet.plan_required === 'pro' && userPlan === 'pro')
   )
 
   const getStatus = () => {
