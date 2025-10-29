@@ -1,12 +1,16 @@
 {
-  "name": "CrossFit Pro",
-  "short_name": "CrossFit Pro",
+  "name": "Box Plan - Planificación y Seguimiento",
+  "short_name": "Box Plan",
   "description": "App PWA para planificación y seguimiento de entrenamientos CrossFit",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#1f2937",
+  "background_color": "#000000",
   "theme_color": "#059669",
-  "orientation": "portrait",
+  "orientation": "any",
+  "dir": "ltr",
+  "lang": "es",
+  "categories": ["fitness", "health", "sports"],
   "icons": [
     {
       "src": "/icon-192.jpg",
@@ -20,5 +24,7 @@
       "type": "image/png",
       "purpose": "maskable any"
     }
-  ]
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
 }
