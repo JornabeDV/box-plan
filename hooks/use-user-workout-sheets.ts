@@ -22,6 +22,8 @@ interface WorkoutSheet {
   created_by: string | null
   created_at: string
   updated_at: string
+  difficulty?: 'beginner' | 'intermediate' | 'advanced' | null
+  estimated_duration?: number | null
   category?: WorkoutSheetCategory | null
 }
 
@@ -41,6 +43,8 @@ interface WorkoutSheetAssignment {
   completed_at: string | null
   is_completed: boolean
   user_notes: string | null
+  due_date?: string | null
+  admin_feedback?: string | null
   created_at: string
   updated_at: string
   workout_sheet: WorkoutSheet
@@ -60,10 +64,14 @@ export function useUserWorkoutSheets(userId: string | null) {
     }
 
     loadUserWorkoutSheets()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
 
   const loadUserWorkoutSheets = async () => {
-    if (!userId) return
+    if (!userId) {
+      setLoading(false)
+      return
+    }
 
     try {
       setLoading(true)
@@ -75,23 +83,73 @@ export function useUserWorkoutSheets(userId: string | null) {
         fetch('/api/workout-sheets/public')
       ])
 
+      // Si assignedResponse falla, intentar parsear el error
       if (!assignedResponse.ok) {
-        throw new Error('Error loading assigned workout sheets')
+        let errorMessage = 'Error loading assigned workout sheets'
+        try {
+          const errorData = await assignedResponse.json()
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          // Si no se puede parsear, usar el mensaje por defecto
+        }
+        // No lanzar error si es 404 (no hay planillas asignadas)
+        if (assignedResponse.status !== 404) {
+          throw new Error(errorMessage)
+        }
       }
 
       if (!publicResponse.ok) {
-        throw new Error('Error loading public workout sheets')
+        let errorMessage = 'Error loading public workout sheets'
+        try {
+          const errorData = await publicResponse.json()
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          // Si no se puede parsear, usar el mensaje por defecto
+        }
+        // No lanzar error si es 404 (no hay planillas públicas)
+        if (publicResponse.status !== 404) {
+          throw new Error(errorMessage)
+        }
       }
 
-      const assignedData = await assignedResponse.json()
-      const publicData = await publicResponse.json()
+      // Parsear respuestas
+      let assignedData: any = []
+      let publicData: any = []
 
-      setAssignedSheets(assignedData || [])
-      setPublicSheets(publicData || [])
+      if (assignedResponse.ok) {
+        try {
+          assignedData = await assignedResponse.json()
+        } catch (parseError) {
+          console.warn('Error parsing assigned response:', parseError)
+          assignedData = []
+        }
+      }
+
+      if (publicResponse.ok) {
+        try {
+          publicData = await publicResponse.json()
+        } catch (parseError) {
+          console.warn('Error parsing public response:', parseError)
+          publicData = []
+        }
+      }
+
+      setAssignedSheets(Array.isArray(assignedData) ? assignedData : [])
+      setPublicSheets(Array.isArray(publicData) ? publicData : [])
 
     } catch (err) {
+      // Solo loguear errores reales, pero no bloquear la UI
       console.error('Error loading user workout sheets:', err)
-      setError('Error loading workout sheets')
+      
+      // Si es un error de red o conexión, establecer error
+      // Si es un error de datos faltantes, solo usar arrays vacíos
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+        setError('Error de conexión. Verifica tu internet.')
+      } else {
+        // Para otros errores, solo loguear pero no establecer error crítico
+        // Dejar arrays vacíos para que la UI funcione
+        setError(null)
+      }
     } finally {
       setLoading(false)
     }

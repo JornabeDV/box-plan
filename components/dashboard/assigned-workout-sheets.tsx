@@ -16,14 +16,6 @@ import {
   Building
 } from "lucide-react"
 import { useUserWorkoutSheets } from "@/hooks/use-user-workout-sheets"
-import { Database } from "@/lib/supabase"
-
-type WorkoutSheetAssignment = Database['public']['Tables']['workout_sheet_assignments']['Row'] & {
-  workout_sheet: Database['public']['Tables']['workout_sheets']['Row'] & {
-    category: Database['public']['Tables']['workout_sheet_categories']['Row'] | null
-  }
-  admin: Database['public']['Tables']['admin_profiles']['Row']
-}
 
 interface AssignedWorkoutSheetsProps {
   userId: string
