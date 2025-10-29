@@ -61,6 +61,11 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
         setError(error.message)
       } else {
         setSuccess(true)
+        // Marcar que el usuario tiene cuenta creada
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('hasAccount', 'true')
+          localStorage.setItem('hasVisitedLogin', 'true')
+        }
         // No redirigir automáticamente, dejar que el usuario haga login
       }
     } catch (err) {
@@ -99,7 +104,7 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
       <CardHeader className="text-center">
         <CardTitle className="text-2xl font-bold">Crear Cuenta</CardTitle>
         <CardDescription>
-          Únete a la comunidad CrossFit Pro
+          Únete a la comunidad Box Plan
         </CardDescription>
       </CardHeader>
       <CardContent>

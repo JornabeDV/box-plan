@@ -26,10 +26,17 @@ export function useAuth() {
       if (result?.error) {
         let errorMessage = result.error
         
-        if (result.error.includes('Invalid')) {
+        // Mapear errores comunes de NextAuth a mensajes en español
+        if (result.error.includes('CredentialsSignin') || result.error.includes('Invalid')) {
           errorMessage = 'Email o contraseña incorrectos'
-        } else if (result.error.includes('Too many')) {
-          errorMessage = 'Demasiados intentos. Intenta más tarde'
+        } else if (result.error.includes('Email o contraseña incorrectos')) {
+          errorMessage = 'Email o contraseña incorrectos'
+        } else if (result.error.includes('Too many') || result.error.includes('rate limit')) {
+          errorMessage = 'Demasiados intentos. Por favor espera unos minutos'
+        } else if (result.error.includes('Email y contraseña son requeridos')) {
+          errorMessage = 'Por favor completa todos los campos'
+        } else {
+          errorMessage = 'Email o contraseña incorrectos'
         }
         
         return { 
@@ -38,11 +45,20 @@ export function useAuth() {
         }
       }
       
+      if (!result?.ok) {
+        return {
+          data: null,
+          error: { message: 'Email o contraseña incorrectos' }
+        }
+      }
+      
       return { data: result, error: null }
     } catch (err) {
+      console.error('SignIn error:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Error inesperado. Intenta nuevamente.'
       return { 
         data: null, 
-        error: { message: 'Error inesperado. Intenta nuevamente.' } 
+        error: { message: errorMessage === 'Email o contraseña incorrectos' ? errorMessage : 'Error inesperado. Intenta nuevamente.' } 
       }
     }
   }, [])
@@ -90,10 +106,31 @@ export function useAuth() {
   }, [])
 
   const resetPassword = useCallback(async (email: string) => {
-    // TODO: Implementar reset de contraseña
-    return { 
-      data: null, 
-      error: { message: 'Reset de contraseña temporalmente no disponible' } 
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        return {
+          data: null,
+          error: { message: data.error || 'Error al enviar el email de restablecimiento' }
+        }
+      }
+
+      return { data: { success: true }, error: null }
+    } catch (err) {
+      console.error('Reset password error:', err)
+      return {
+        data: null,
+        error: { message: 'Error inesperado al solicitar restablecimiento' }
+      }
     }
   }, [])
 

@@ -49,14 +49,18 @@ export function LoginForm({ onSuccess, onSwitchToSignUp, onForgotPassword }: Log
     }
 
     try {
-      const { error } = await signIn(email, password)
+      const { error, data } = await signIn(email, password)
       
       if (error) {
-        setError(error.message)
-      } else {
+        setError(error.message || 'Email o contraseña incorrectos')
+      } else if (data) {
         onSuccess?.()
+      } else {
+        // Si no hay error pero tampoco data, algo salió mal
+        setError('No se pudo iniciar sesión. Verifica tus credenciales.')
       }
     } catch (err) {
+      console.error('Login error:', err)
       setError('Error inesperado. Intenta nuevamente.')
     } finally {
       setLoading(false)
@@ -68,7 +72,7 @@ export function LoginForm({ onSuccess, onSwitchToSignUp, onForgotPassword }: Log
       <CardHeader className="text-center">
         <CardTitle className="text-2xl font-bold text-white">Iniciar Sesión</CardTitle>
         <CardDescription className="text-gray-400">
-          Ingresa a tu cuenta de CrossFit Pro
+          Ingresa a tu cuenta de Box Plan
         </CardDescription>
       </CardHeader>
       <CardContent>

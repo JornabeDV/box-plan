@@ -34,7 +34,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          return null
+          throw new Error('Email y contraseña son requeridos')
         }
 
         try {
@@ -43,7 +43,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           const foundUser = userResult && userResult.length > 0 ? userResult[0] : null
 
           if (!foundUser) {
-            return null
+            throw new Error('Email o contraseña incorrectos')
           }
 
           // Verificar contraseña
@@ -53,7 +53,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           )
 
           if (!isValid) {
-            return null
+            throw new Error('Email o contraseña incorrectos')
           }
 
           // Obtener rol del usuario
@@ -69,7 +69,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
         } catch (error) {
           console.error('Auth error:', error)
-          return null
+          // Si ya es un Error con mensaje, lanzarlo de nuevo
+          if (error instanceof Error) {
+            throw error
+          }
+          throw new Error('Error al iniciar sesión. Intenta nuevamente.')
         }
       }
     })
