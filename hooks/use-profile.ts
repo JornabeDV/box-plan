@@ -77,15 +77,30 @@ export function useProfile() {
 
       // Llamar a API route
       const response = await fetch('/api/profile')
-      const data = await response.json()
-
+      
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to load profile')
+        // Si es 401, el usuario no está autenticado, esto es esperado
+        if (response.status === 401) {
+          setState(prev => ({ ...prev, loading: false, profile: null }))
+          return
+        }
+        // Si hay otro error, crear perfil básico
+        const basicProfile: Profile = {
+          id: userId,
+          email: session.user?.email || '',
+          full_name: session.user?.name || null,
+          avatar_url: session.user?.image || null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+        setState(prev => ({ ...prev, profile: basicProfile, loading: false }))
+        return
       }
+
+      const data = await response.json()
 
       // Si no hay perfil, crear uno básico con la información del usuario
       if (!data) {
-        console.log('No profile found for user, creating basic profile')
         const basicProfile: Profile = {
           id: userId,
           email: session.user?.email || '',
@@ -115,19 +130,23 @@ export function useProfile() {
       if (!userId) return
 
       const response = await fetch('/api/subscription')
-      if (!response.ok) return
+      if (!response.ok) {
+        // Si no hay suscripción, está bien, no es un error
+        if (response.status === 401 || response.status === 404) {
+          return
+        }
+        throw new Error('Error al cargar suscripción')
+      }
 
       const data = await response.json()
       
-      if (data && data.subscription) {
-        setState(prev => ({ ...prev, subscription: data.subscription }))
+      // El endpoint devuelve directamente el objeto de suscripción o null
+      if (data) {
+        setState(prev => ({ ...prev, subscription: data }))
       }
     } catch (error) {
       console.error('Error loading subscription:', error)
-      setState(prev => ({ 
-        ...prev, 
-        error: error instanceof Error ? error.message : 'Error al cargar la suscripción' 
-      }))
+      // No actualizar el estado de error para suscripciones, es opcional
     }
   }
 
@@ -197,8 +216,14 @@ export function useProfile() {
 
   // Cargar datos iniciales
   useEffect(() => {
-    loadAllData()
-  }, [])
+    if (session?.user?.id) {
+      loadAllData()
+    } else if (session !== undefined) {
+      // Si la sesión está definitivamente cargada pero no hay usuario, detener loading
+      setState(prev => ({ ...prev, loading: false }))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id])
 
   return {
     ...state,

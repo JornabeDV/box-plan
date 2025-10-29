@@ -10,16 +10,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const profiles = await sql`
-      SELECT * FROM profiles WHERE id = ${session.user.id}
-    `
+    try {
+      const profiles = await sql`
+        SELECT * FROM profiles WHERE id = ${session.user.id}
+      `
 
-    const profile = profiles.length > 0 ? profiles[0] : null
+      const profile = profiles.length > 0 ? profiles[0] : null
 
-    return NextResponse.json(profile)
-  } catch (error) {
-    console.error('Error fetching profile:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+      // Si no hay perfil, devolver null (no es un error)
+      return NextResponse.json(profile)
+    } catch (dbError: any) {
+      // Si la tabla no existe o hay error de DB, loguear y devolver null
+      console.error('Database error fetching profile:', dbError?.message || dbError)
+      
+      // Si es error de tabla no existe, devolver null en lugar de error
+      if (dbError?.message?.includes('does not exist') || dbError?.code === '42P01') {
+        return NextResponse.json(null)
+      }
+      
+      throw dbError
+    }
+  } catch (error: any) {
+    console.error('Error fetching profile:', error?.message || error)
+    // En caso de error desconocido, devolver null en lugar de error 500
+    // para permitir que la app funcione
+    return NextResponse.json(null)
   }
 }
 

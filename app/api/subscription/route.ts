@@ -18,7 +18,9 @@ export async function GET(request: NextRequest) {
       LIMIT 1
     `
 
-    return NextResponse.json(subscriptions[0] || null)
+    const subscription = subscriptions.length > 0 ? subscriptions[0] : null
+    
+    return NextResponse.json(subscription)
   } catch (error) {
     console.error('Error fetching subscription:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
