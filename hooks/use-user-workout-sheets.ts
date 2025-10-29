@@ -1,16 +1,50 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
-import { Database } from '@/lib/supabase'
 
-type WorkoutSheet = Database['public']['Tables']['workout_sheets']['Row'] & {
-  category: Database['public']['Tables']['workout_sheet_categories']['Row'] | null
+interface WorkoutSheetCategory {
+  id: string
+  name: string
+  description: string | null
+  icon: string | null
+  color: string
 }
 
-type WorkoutSheetAssignment = Database['public']['Tables']['workout_sheet_assignments']['Row'] & {
+interface WorkoutSheet {
+  id: string
+  title: string
+  description: string | null
+  category_id: string
+  plan_required: string
+  template_data: any
+  is_active: boolean
+  is_public: boolean
+  created_by: string | null
+  created_at: string
+  updated_at: string
+  category?: WorkoutSheetCategory | null
+}
+
+interface AdminProfile {
+  id: string
+  name: string
+  organization_name: string | null
+  organization_type: string | null
+}
+
+interface WorkoutSheetAssignment {
+  id: string
+  user_id: string
+  sheet_id: string
+  admin_id: string
+  assigned_at: string
+  completed_at: string | null
+  is_completed: boolean
+  user_notes: string | null
+  created_at: string
+  updated_at: string
   workout_sheet: WorkoutSheet
-  admin: Database['public']['Tables']['admin_profiles']['Row']
+  admin: AdminProfile
 }
 
 export function useUserWorkoutSheets(userId: string | null) {
@@ -35,62 +69,24 @@ export function useUserWorkoutSheets(userId: string | null) {
       setLoading(true)
       setError(null)
 
-      // Cargar planillas asignadas
-      const { data: assignedData, error: assignedError } = await supabase
-        .from('workout_sheet_assignments')
-        .select(`
-          *,
-          workout_sheet:workout_sheets(
-            *,
-            category:workout_sheet_categories(
-              id,
-              name,
-              description,
-              icon,
-              color
-            )
-          ),
-          admin:admin_profiles(
-            id,
-            name,
-            organization_name,
-            organization_type
-          )
-        `)
-        .eq('user_id', userId)
-        .order('assigned_at', { ascending: false })
+      // Cargar planillas asignadas y públicas en paralelo
+      const [assignedResponse, publicResponse] = await Promise.all([
+        fetch(`/api/workout-sheets/assigned?userId=${userId}`),
+        fetch('/api/workout-sheets/public')
+      ])
 
-      if (assignedError) {
-        console.error('Error loading assigned workout sheets:', assignedError)
-        setError(assignedError.message)
-        return
+      if (!assignedResponse.ok) {
+        throw new Error('Error loading assigned workout sheets')
       }
+
+      if (!publicResponse.ok) {
+        throw new Error('Error loading public workout sheets')
+      }
+
+      const assignedData = await assignedResponse.json()
+      const publicData = await publicResponse.json()
 
       setAssignedSheets(assignedData || [])
-
-      // Cargar planillas públicas
-      const { data: publicData, error: publicError } = await supabase
-        .from('workout_sheets')
-        .select(`
-          *,
-          category:workout_sheet_categories(
-            id,
-            name,
-            description,
-            icon,
-            color
-          )
-        `)
-        .eq('is_public', true)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-
-      if (publicError) {
-        console.error('Error loading public workout sheets:', publicError)
-        setError(publicError.message)
-        return
-      }
-
       setPublicSheets(publicData || [])
 
     } catch (err) {
@@ -103,19 +99,20 @@ export function useUserWorkoutSheets(userId: string | null) {
 
   const markAsCompleted = async (assignmentId: string, userNotes?: string) => {
     try {
-      const { error } = await supabase
-        .from('workout_sheet_assignments')
-        .update({
+      const response = await fetch(`/api/workout-sheets/assignments/${assignmentId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           is_completed: true,
           completed_at: new Date().toISOString(),
-          user_notes: userNotes,
-          updated_at: new Date().toISOString()
+          user_notes: userNotes
         })
-        .eq('id', assignmentId)
+      })
 
-      if (error) {
-        console.error('Error marking as completed:', error)
-        return { error: error.message }
+      if (!response.ok) {
+        throw new Error('Error marking as completed')
       }
 
       // Recargar las planillas
@@ -129,21 +126,28 @@ export function useUserWorkoutSheets(userId: string | null) {
 
   const updateProgress = async (assignmentId: string, progressData: any, notes?: string) => {
     try {
-      // Crear o actualizar el progreso del usuario
-      const { error: progressError } = await supabase
-        .from('user_progress')
-        .upsert({
-          user_id: userId!,
-          workout_sheet_id: assignedSheets.find(a => a.id === assignmentId)?.workout_sheet_id,
-          admin_id: assignedSheets.find(a => a.id === assignmentId)?.admin_id,
+      const assignment = assignedSheets.find(a => a.id === assignmentId)
+      if (!assignment) {
+        return { error: 'Assignment not found' }
+      }
+
+      const response = await fetch('/api/user-progress', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          workout_sheet_id: assignment.sheet_id,
+          admin_id: assignment.admin_id,
           progress_data: progressData,
           notes: notes,
           completed_at: new Date().toISOString()
         })
+      })
 
-      if (progressError) {
-        console.error('Error updating progress:', progressError)
-        return { error: progressError.message }
+      if (!response.ok) {
+        throw new Error('Error updating progress')
       }
 
       return { error: null }

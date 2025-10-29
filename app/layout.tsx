@@ -5,6 +5,7 @@ import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import { Oswald, Inter } from "next/font/google"
+import { SessionProvider } from "next-auth/react"
 import "./globals.css"
 
 const oswald = Oswald({
@@ -36,8 +37,10 @@ export default function RootLayout({
   return (
     <html lang="es" className="dark">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} ${oswald.variable} ${inter.variable} antialiased`}>
-        <Suspense fallback={null}>{children}</Suspense>
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+        <SessionProvider>
+          <Suspense fallback={null}>{children}</Suspense>
+          {process.env.NODE_ENV === 'production' && <Analytics />}
+        </SessionProvider>
       </body>
     </html>
   )

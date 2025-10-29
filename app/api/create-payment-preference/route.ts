@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { sql } from '@/lib/neon'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -35,11 +35,6 @@ export async function POST(request: NextRequest) {
         { status: 400, headers: corsHeaders }
       )
     }
-
-    // Initialize Supabase client
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // Get MercadoPago credentials
     const mercadopagoAccessToken = process.env.MERCADOPAGO_ACCESS_TOKEN
@@ -79,21 +74,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get user info from Supabase
-    const { data: userData, error: userError } = await supabase
-      .from('profiles')
-      .select('email, full_name')
-      .eq('id', user_id)
-      .single()
+    // Get user info from database
+    const profiles = await sql`
+      SELECT email, full_name FROM profiles WHERE id = ${user_id}
+    `
 
-    if (userError) {
-      throw new Error(`Error fetching user data: ${userError.message}`)
-    }
-
-    if (userData) {
+    if (profiles.length > 0) {
       preferenceData.payer = {
-        email: userData.email,
-        name: userData.full_name || userData.email
+        email: profiles[0].email,
+        name: profiles[0].full_name || profiles[0].email
       }
     }
 
@@ -115,18 +104,12 @@ export async function POST(request: NextRequest) {
     const preference = await mpResponse.json()
 
     // Store the preference in our database for tracking
-    const { error: dbError } = await supabase
-      .from('payment_history')
-      .insert({
-        user_id,
-        amount: plan.price,
-        currency: plan.currency,
-        status: 'pending',
-        mercadopago_preference_id: preference.id,
-        payment_method: 'mercadopago'
-      })
-
-    if (dbError) {
+    try {
+      await sql`
+        INSERT INTO payment_history (user_id, amount, currency, status, mercadopago_preference_id, payment_method)
+        VALUES (${user_id}, ${plan.price}, ${plan.currency}, 'pending', ${preference.id}, 'mercadopago')
+      `
+    } catch (dbError) {
       console.error('Error storing payment history:', dbError)
       // Don't fail the request, just log the error
     }

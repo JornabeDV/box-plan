@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useSimplifiedAuth } from '@/hooks/use-simplified-auth'
+import { useAuthWithRoles as useSimplifiedAuth } from '@/hooks/use-auth-with-roles'
 import { useAdminWorkoutSheets } from '@/hooks/use-admin-workout-sheets'
 import { useDisciplines } from '@/hooks/use-disciplines'
 import { usePlanifications } from '@/hooks/use-planifications'

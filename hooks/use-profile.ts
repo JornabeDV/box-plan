@@ -1,5 +1,7 @@
+'use client'
+
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useSession } from 'next-auth/react'
 
 interface Profile {
   id: string
@@ -60,26 +62,42 @@ export function useProfile() {
     error: null
   })
 
+  const { data: session } = useSession()
+
   // Cargar perfil del usuario
   const loadProfile = async () => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }))
       
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
+      const userId = session?.user?.id
+      if (!userId) {
         setState(prev => ({ ...prev, loading: false, profile: null }))
         return
       }
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
+      // Llamar a API route
+      const response = await fetch('/api/profile')
+      const data = await response.json()
 
-      if (error) throw error
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load profile')
+      }
 
-      setState(prev => ({ ...prev, profile: data, loading: false }))
+      // Si no hay perfil, crear uno básico con la información del usuario
+      if (!data) {
+        console.log('No profile found for user, creating basic profile')
+        const basicProfile: Profile = {
+          id: userId,
+          email: session.user?.email || '',
+          full_name: session.user?.name || null,
+          avatar_url: session.user?.image || null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+        setState(prev => ({ ...prev, profile: basicProfile, loading: false }))
+      } else {
+        setState(prev => ({ ...prev, profile: data, loading: false }))
+      }
     } catch (error) {
       console.error('Error loading profile:', error)
       setState(prev => ({ 
@@ -93,32 +111,16 @@ export function useProfile() {
   // Cargar suscripción actual
   const loadSubscription = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      const userId = session?.user?.id
+      if (!userId) return
 
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select(`
-          *,
-          subscription_plans (
-            name,
-            price,
-            features
-          )
-        `)
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
+      const response = await fetch('/api/subscription')
+      if (!response.ok) return
 
-      if (error && error.code !== 'PGRST116') {
-        throw error
-      }
-
-      // Usar datos reales de la base de datos
-      if (data) {
-        setState(prev => ({ ...prev, subscription: data }))
+      const data = await response.json()
+      
+      if (data && data.subscription) {
+        setState(prev => ({ ...prev, subscription: data.subscription }))
       }
     } catch (error) {
       console.error('Error loading subscription:', error)
@@ -132,21 +134,16 @@ export function useProfile() {
   // Cargar historial de pagos
   const loadPaymentHistory = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      const userId = session?.user?.id
+      if (!userId) return
 
-      const { data, error } = await supabase
-        .from('payment_history')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10)
+      const response = await fetch('/api/payment-history')
+      if (!response.ok) return
 
-      if (error) throw error
-
-      // Usar datos reales de la base de datos
-      if (data) {
-        setState(prev => ({ ...prev, paymentHistory: data }))
+      const data = await response.json()
+      
+      if (data && data.paymentHistory) {
+        setState(prev => ({ ...prev, paymentHistory: data.paymentHistory }))
       }
     } catch (error) {
       console.error('Error loading payment history:', error)
@@ -173,17 +170,20 @@ export function useProfile() {
   // Actualizar perfil
   const updateProfile = async (updates: Partial<Profile>) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Usuario no autenticado')
+      const userId = session?.user?.id
+      if (!userId) throw new Error('Usuario no autenticado')
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.id)
-        .select()
-        .single()
+      const response = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        throw new Error('Error al actualizar el perfil')
+      }
+
+      const data = await response.json()
 
       setState(prev => ({ ...prev, profile: data }))
       return { data, error: null }

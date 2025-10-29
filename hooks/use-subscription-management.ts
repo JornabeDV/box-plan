@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
 import { toast } from '@/hooks/use-toast'
 
 interface Plan {
@@ -42,26 +41,14 @@ export function useSubscriptionManagement() {
   // Cargar planes disponibles
   const loadPlans = async () => {
     try {
-      const { data, error } = await supabase
-        .from('subscription_plans')
-        .select('*')
-        .eq('is_active', true)
-        .order('price', { ascending: true })
+      const response = await fetch('/api/subscription-plans')
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar planes')
+      }
 
-      if (error) throw error
-
-      const formattedPlans = data?.map(plan => ({
-        id: plan.id,
-        name: plan.name,
-        description: plan.description || '',
-        price: parseFloat(plan.price),
-        currency: plan.currency,
-        interval: plan.interval,
-        features: plan.features || [],
-        is_popular: plan.name === 'Pro' // Marcar Pro como popular
-      })) || []
-
-      setPlans(formattedPlans)
+      const data = await response.json()
+      setPlans(data)
     } catch (error) {
       console.error('Error loading plans:', error)
       setError('Error al cargar los planes')
@@ -71,29 +58,13 @@ export function useSubscriptionManagement() {
   // Cargar suscripción actual
   const loadCurrentSubscription = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select(`
-          *,
-          subscription_plans (
-            name,
-            price,
-            features
-          )
-        `)
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
-
-      if (error && error.code !== 'PGRST116') {
-        throw error
+      const response = await fetch('/api/subscriptions/current')
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar suscripción')
       }
 
+      const { data } = await response.json()
       setCurrentSubscription(data)
     } catch (error) {
       console.error('Error loading subscription:', error)
@@ -107,71 +78,25 @@ export function useSubscriptionManagement() {
 
     setActionLoading(true)
     try {
-      // 1. Crear nueva suscripción con el nuevo plan
-      const { data: newPlan } = await supabase
-        .from('subscription_plans')
-        .select('*')
-        .eq('id', newPlanId)
-        .single()
+      const response = await fetch('/api/subscriptions/change-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          newPlanId,
+          currentSubscriptionId: currentSubscription.id
+        })
+      })
 
-      if (!newPlan) {
-        throw new Error('Plan no encontrado')
+      if (!response.ok) {
+        throw new Error('Error al cambiar plan')
       }
 
-      // 2. Cancelar suscripción actual al final del período
-      const { error: cancelError } = await supabase
-        .from('subscriptions')
-        .update({ 
-          cancel_at_period_end: true,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', currentSubscription.id)
-
-      if (cancelError) throw cancelError
-
-      // 3. Crear nueva suscripción
-      const { data: newSubscription, error: createError } = await supabase
-        .from('subscriptions')
-        .insert({
-          user_id: currentSubscription.user_id,
-          plan_id: newPlanId,
-          status: 'active',
-          current_period_start: new Date().toISOString(),
-          current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          cancel_at_period_end: false,
-          mercadopago_payment_id: `change_${Date.now()}`
-        })
-        .select(`
-          *,
-          subscription_plans (
-            name,
-            price,
-            features
-          )
-        `)
-        .single()
-
-      if (createError) throw createError
-
-      // 4. Crear registro de pago
-      const { error: paymentError } = await supabase
-        .from('payment_history')
-        .insert({
-          user_id: currentSubscription.user_id,
-          subscription_id: newSubscription.id,
-          amount: newPlan.price,
-          currency: newPlan.currency,
-          status: 'approved',
-          mercadopago_payment_id: `change_${Date.now()}`,
-          payment_method: 'plan_change'
-        })
-
-      if (paymentError) throw paymentError
-
-      setCurrentSubscription(newSubscription)
+      const { data } = await response.json()
+      setCurrentSubscription(data)
+      
       toast({
         title: "Plan cambiado exitosamente",
-        description: `Tu suscripción ha sido actualizada al plan ${newPlan.name}`,
+        description: `Tu suscripción ha sido actualizada exitosamente`,
       })
 
     } catch (error) {
@@ -192,15 +117,13 @@ export function useSubscriptionManagement() {
 
     setActionLoading(true)
     try {
-      const { error } = await supabase
-        .from('subscriptions')
-        .update({ 
-          cancel_at_period_end: true,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', currentSubscription.id)
+      const response = await fetch(`/api/subscriptions/${currentSubscription.id}/cancel`, {
+        method: 'PATCH'
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        throw new Error('Error al cancelar suscripción')
+      }
 
       setCurrentSubscription(prev => prev ? {
         ...prev,
@@ -230,15 +153,13 @@ export function useSubscriptionManagement() {
 
     setActionLoading(true)
     try {
-      const { error } = await supabase
-        .from('subscriptions')
-        .update({ 
-          cancel_at_period_end: false,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', currentSubscription.id)
+      const response = await fetch(`/api/subscriptions/${currentSubscription.id}/reactivate`, {
+        method: 'PATCH'
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        throw new Error('Error al reactivar suscripción')
+      }
 
       setCurrentSubscription(prev => prev ? {
         ...prev,
@@ -268,34 +189,16 @@ export function useSubscriptionManagement() {
 
     setActionLoading(true)
     try {
-      // Extender el período actual
-      const newEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-      
-      const { error } = await supabase
-        .from('subscriptions')
-        .update({ 
-          current_period_end: newEndDate.toISOString(),
-          status: 'active',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', currentSubscription.id)
+      const response = await fetch(`/api/subscriptions/${currentSubscription.id}/renew`, {
+        method: 'PATCH'
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        throw new Error('Error al renovar suscripción')
+      }
 
-      // Crear registro de pago
-      const { error: paymentError } = await supabase
-        .from('payment_history')
-        .insert({
-          user_id: currentSubscription.user_id,
-          subscription_id: currentSubscription.id,
-          amount: currentSubscription.subscription_plans?.price || 0,
-          currency: 'ARS',
-          status: 'approved',
-          mercadopago_payment_id: `renewal_${Date.now()}`,
-          payment_method: 'mercadopago'
-        })
-
-      if (paymentError) throw paymentError
+      const newEndDate = new Date()
+      newEndDate.setDate(newEndDate.getDate() + 30)
 
       setCurrentSubscription(prev => prev ? {
         ...prev,

@@ -1,36 +1,61 @@
-import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
-import type { Database } from '@/lib/supabase'
+'use client'
 
-type Workout = Database['public']['Tables']['workouts']['Row']
-type WorkoutInsert = Database['public']['Tables']['workouts']['Insert']
-type WorkoutUpdate = Database['public']['Tables']['workouts']['Update']
+import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+
+// Definir tipos manualmente ya que no usamos Database de Supabase
+interface WorkoutSheetBasic {
+  id: string
+  title: string
+  difficulty: string
+}
+
+interface Workout {
+  id: string
+  user_id: string
+  sheet_id: string
+  data: any
+  completed_at: string
+  duration_seconds: number | null
+  created_at: string
+  updated_at: string
+  workout_sheets?: WorkoutSheetBasic | null
+}
+
+interface WorkoutInsert {
+  sheet_id: string
+  data: any
+  completed_at: string
+  duration_seconds?: number | null
+}
+
+interface WorkoutUpdate {
+  data?: any
+  completed_at?: string
+  duration_seconds?: number | null
+}
 
 export function useWorkouts(userId?: string) {
+  const { data: session } = useSession()
   const [workouts, setWorkouts] = useState<Workout[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const actualUserId = userId || session?.user?.id
+
   // Cargar entrenamientos del usuario
   const fetchWorkouts = async () => {
-    if (!userId) return
+    if (!actualUserId) return
 
     try {
       setLoading(true)
-      const { data, error } = await supabase
-        .from('workouts')
-        .select(`
-          *,
-          workout_sheets (
-            id,
-            title,
-            difficulty
-          )
-        `)
-        .eq('user_id', userId)
-        .order('completed_at', { ascending: false })
+      const response = await fetch(`/api/workouts?userId=${actualUserId}`)
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar entrenamientos')
+      }
 
-      if (error) throw error
+      const data = await response.json()
       setWorkouts(data || [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar entrenamientos')
@@ -40,27 +65,26 @@ export function useWorkouts(userId?: string) {
   }
 
   // Registrar nuevo entrenamiento
-  const logWorkout = async (workout: Omit<WorkoutInsert, 'user_id'>): Promise<Workout | null> => {
-    if (!userId) return null
+  const logWorkout = async (workout: WorkoutInsert): Promise<Workout | null> => {
+    if (!actualUserId) return null
 
     try {
-      const { data, error } = await supabase
-        .from('workouts')
-        .insert({
+      const response = await fetch('/api/workouts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           ...workout,
-          user_id: userId,
+          user_id: actualUserId,
         })
-        .select(`
-          *,
-          workout_sheets (
-            id,
-            title,
-            difficulty
-          )
-        `)
-        .single()
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        throw new Error('Error al registrar entrenamiento')
+      }
+
+      const data = await response.json()
       
       // Actualizar la lista local
       setWorkouts(prev => [data, ...prev])
@@ -74,21 +98,19 @@ export function useWorkouts(userId?: string) {
   // Actualizar entrenamiento
   const updateWorkout = async (id: string, updates: WorkoutUpdate): Promise<Workout | null> => {
     try {
-      const { data, error } = await supabase
-        .from('workouts')
-        .update(updates)
-        .eq('id', id)
-        .select(`
-          *,
-          workout_sheets (
-            id,
-            title,
-            difficulty
-          )
-        `)
-        .single()
+      const response = await fetch(`/api/workouts/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updates)
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        throw new Error('Error al actualizar entrenamiento')
+      }
+
+      const data = await response.json()
       
       // Actualizar la lista local
       setWorkouts(prev => prev.map(workout => workout.id === id ? data : workout))
@@ -102,12 +124,13 @@ export function useWorkouts(userId?: string) {
   // Eliminar entrenamiento
   const deleteWorkout = async (id: string): Promise<boolean> => {
     try {
-      const { error } = await supabase
-        .from('workouts')
-        .delete()
-        .eq('id', id)
+      const response = await fetch(`/api/workouts/${id}`, {
+        method: 'DELETE',
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        throw new Error('Error al eliminar entrenamiento')
+      }
       
       // Actualizar la lista local
       setWorkouts(prev => prev.filter(workout => workout.id !== id))
@@ -120,33 +143,16 @@ export function useWorkouts(userId?: string) {
 
   // Obtener estadísticas del usuario
   const getUserStats = async () => {
-    if (!userId) return null
+    if (!actualUserId) return null
 
     try {
-      const { data, error } = await supabase
-        .from('workouts')
-        .select('completed_at, duration_seconds')
-        .eq('user_id', userId)
-
-      if (error) throw error
-
-      const stats = {
-        totalWorkouts: data?.length || 0,
-        thisWeek: data?.filter(w => {
-          const workoutDate = new Date(w.completed_at)
-          const weekAgo = new Date()
-          weekAgo.setDate(weekAgo.getDate() - 7)
-          return workoutDate >= weekAgo
-        }).length || 0,
-        thisMonth: data?.filter(w => {
-          const workoutDate = new Date(w.completed_at)
-          const monthAgo = new Date()
-          monthAgo.setDate(monthAgo.getDate() - 30)
-          return workoutDate >= monthAgo
-        }).length || 0,
-        averageDuration: data?.reduce((acc, w) => acc + (w.duration_seconds || 0), 0) / (data?.length || 1) || 0,
+      const response = await fetch(`/api/workouts/stats?userId=${actualUserId}`)
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar estadísticas')
       }
 
+      const stats = await response.json()
       return stats
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar estadísticas')
@@ -156,40 +162,11 @@ export function useWorkouts(userId?: string) {
 
   // Obtener racha actual
   const getCurrentStreak = async (): Promise<number> => {
-    if (!userId) return 0
+    if (!actualUserId) return 0
 
     try {
-      const { data, error } = await supabase
-        .from('workouts')
-        .select('completed_at')
-        .eq('user_id', userId)
-        .order('completed_at', { ascending: false })
-
-      if (error) throw error
-
-      if (!data || data.length === 0) return 0
-
-      let streak = 0
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-
-      for (const workout of data) {
-        const workoutDate = new Date(workout.completed_at)
-        workoutDate.setHours(0, 0, 0, 0)
-        
-        const daysDiff = Math.floor((today.getTime() - workoutDate.getTime()) / (1000 * 60 * 60 * 24))
-        
-        if (daysDiff === streak) {
-          streak++
-        } else if (daysDiff === streak + 1) {
-          // Permitir un día de diferencia (fin de semana, etc.)
-          streak++
-        } else {
-          break
-        }
-      }
-
-      return streak
+      const stats = await getUserStats()
+      return stats?.streak || 0
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al calcular racha')
       return 0
@@ -197,10 +174,10 @@ export function useWorkouts(userId?: string) {
   }
 
   useEffect(() => {
-    if (userId) {
+    if (actualUserId) {
       fetchWorkouts()
     }
-  }, [userId])
+  }, [actualUserId])
 
   return {
     workouts,

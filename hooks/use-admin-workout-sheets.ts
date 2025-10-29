@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
 
 export interface WorkoutSheet {
   id: string
@@ -52,27 +51,13 @@ export function useAdminWorkoutSheets(adminId: string | null) {
 
     try {
       setLoading(true)
-      const { data, error } = await supabase
-        .from('workout_sheets')
-        .select(`
-          *,
-          category:workout_sheet_categories(
-            id,
-            name,
-            description,
-            icon
-          )
-        `)
-        .eq('admin_id', adminId)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('Error loading workout sheets:', error)
-        setError('Error loading workout sheets')
-        return
+      const response = await fetch(`/api/admin/workout-sheets?adminId=${adminId}`)
+      
+      if (!response.ok) {
+        throw new Error('Error loading workout sheets')
       }
 
+      const data = await response.json()
       setWorkoutSheets(data || [])
     } catch (err) {
       console.error('Error loading workout sheets:', err)
@@ -84,17 +69,14 @@ export function useAdminWorkoutSheets(adminId: string | null) {
 
   const loadCategories = async () => {
     try {
-      const { data, error } = await supabase
-        .from('workout_sheet_categories')
-        .select('*')
-        .eq('is_active', true)
-        .order('name')
-
-      if (error) {
-        console.error('Error loading categories:', error)
+      const response = await fetch('/api/workout-sheet-categories')
+      
+      if (!response.ok) {
+        console.error('Error loading categories')
         return
       }
 
+      const data = await response.json()
       setCategories(data || [])
     } catch (err) {
       console.error('Error loading categories:', err)
@@ -113,56 +95,28 @@ export function useAdminWorkoutSheets(adminId: string | null) {
     is_template?: boolean
     is_public?: boolean
   }) => {
-    console.log('createWorkoutSheet: Starting with adminId:', adminId)
-    console.log('createWorkoutSheet: Sheet data:', sheetData)
-    
     if (!adminId) {
-      console.error('createWorkoutSheet: No admin ID provided')
       return { error: 'No admin ID provided' }
     }
 
     try {
-      console.log('createWorkoutSheet: Inserting into database...')
-      
-      const { data, error } = await supabase
-        .from('workout_sheets')
-        .insert({
-          admin_id: adminId,
-          category_id: sheetData.category_id,
-          title: sheetData.title,
-          description: sheetData.description,
-          content: sheetData.content,
-          difficulty: sheetData.difficulty,
-          estimated_duration: sheetData.estimated_duration,
-          equipment_needed: sheetData.equipment_needed || [],
-          tags: sheetData.tags || [],
-          is_template: sheetData.is_template || false,
-          is_public: sheetData.is_public || false,
-          plan_required: null,
-          template_data: {},
-          is_active: true
-        })
-        .select(`
-          *,
-          category:workout_sheet_categories(
-            id,
-            name,
-            description,
-            icon
-          )
-        `)
-        .single()
+      const response = await fetch('/api/admin/workout-sheets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sheetData)
+      })
 
-      console.log('createWorkoutSheet: Database response:', { data, error })
-
-      if (error) {
-        console.error('createWorkoutSheet: Database error:', error)
-        return { error: error.message }
+      if (!response.ok) {
+        throw new Error('Error creating workout sheet')
       }
 
-      console.log('createWorkoutSheet: Success! Updating state...')
+      const { data, error } = await response.json()
+
+      if (error) {
+        return { error }
+      }
+
       setWorkoutSheets(prev => [data, ...prev])
-      console.log('createWorkoutSheet: State updated, returning success')
       return { data, error: null }
     } catch (err) {
       console.error('createWorkoutSheet: Exception:', err)
@@ -172,24 +126,20 @@ export function useAdminWorkoutSheets(adminId: string | null) {
 
   const updateWorkoutSheet = async (id: string, updates: Partial<WorkoutSheet>) => {
     try {
-      const { data, error } = await supabase
-        .from('workout_sheets')
-        .update(updates)
-        .eq('id', id)
-        .select(`
-          *,
-          category:workout_sheet_categories(
-            id,
-            name,
-            description,
-            icon
-          )
-        `)
-        .single()
+      const response = await fetch(`/api/admin/workout-sheets/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      })
+
+      if (!response.ok) {
+        throw new Error('Error updating workout sheet')
+      }
+
+      const { data, error } = await response.json()
 
       if (error) {
-        console.error('Error updating workout sheet:', error)
-        return { error: error.message }
+        return { error }
       }
 
       setWorkoutSheets(prev => 
@@ -204,14 +154,12 @@ export function useAdminWorkoutSheets(adminId: string | null) {
 
   const deleteWorkoutSheet = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('workout_sheets')
-        .update({ is_active: false })
-        .eq('id', id)
+      const response = await fetch(`/api/admin/workout-sheets/${id}`, {
+        method: 'DELETE'
+      })
 
-      if (error) {
-        console.error('Error deleting workout sheet:', error)
-        return { error: error.message }
+      if (!response.ok) {
+        throw new Error('Error deleting workout sheet')
       }
 
       setWorkoutSheets(prev => prev.filter(sheet => sheet.id !== id))
@@ -226,27 +174,14 @@ export function useAdminWorkoutSheets(adminId: string | null) {
     if (!adminId) return
 
     try {
-      const { data, error } = await supabase
-        .from('workout_sheets')
-        .select(`
-          *,
-          category:workout_sheet_categories(
-            id,
-            name,
-            description,
-            icon
-          )
-        `)
-        .eq('admin_id', adminId)
-        .eq('is_active', true)
-        .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('Error searching workout sheets:', error)
+      const response = await fetch(`/api/admin/workout-sheets?adminId=${adminId}&q=${encodeURIComponent(query)}`)
+      
+      if (!response.ok) {
+        console.error('Error searching workout sheets')
         return
       }
 
+      const data = await response.json()
       setWorkoutSheets(data || [])
     } catch (err) {
       console.error('Error searching workout sheets:', err)

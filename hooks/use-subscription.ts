@@ -1,5 +1,7 @@
+'use client'
+
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useSession } from 'next-auth/react'
 import { Plan, getPlanById } from '@/lib/plans'
 
 export interface UserSubscription {
@@ -21,6 +23,7 @@ export interface SubscriptionState {
 }
 
 export function useSubscription() {
+  const { data: session } = useSession()
   const [state, setState] = useState<SubscriptionState>({
     subscription: null,
     loading: true,
@@ -28,29 +31,27 @@ export function useSubscription() {
   })
 
   useEffect(() => {
-    fetchSubscription()
-  }, [])
+    if (session?.user) {
+      fetchSubscription()
+    } else {
+      setState(prev => ({ ...prev, loading: false, subscription: null }))
+    }
+  }, [session])
 
   const fetchSubscription = async () => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }))
 
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) {
+      if (!session?.user?.id) {
         setState(prev => ({ ...prev, loading: false, subscription: null }))
         return
       }
 
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .single()
+      const response = await fetch('/api/subscription')
+      const data = await response.json()
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        throw error
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al cargar la suscripción')
       }
 
       setState(prev => ({ 
@@ -72,9 +73,7 @@ export function useSubscription() {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }))
 
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) {
+      if (!session?.user?.id) {
         throw new Error('Usuario no autenticado')
       }
 
@@ -91,7 +90,7 @@ export function useSubscription() {
         },
         body: JSON.stringify({
           plan_id: planId,
-          user_id: user.id,
+          user_id: session.user.id,
           plan: {
             id: plan.id,
             name: plan.name,
@@ -125,22 +124,23 @@ export function useSubscription() {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }))
 
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user || !state.subscription) {
+      if (!session?.user || !state.subscription) {
         throw new Error('No hay suscripción activa')
       }
 
-      const { error } = await supabase
-        .from('subscriptions')
-        .update({ 
-          cancel_at_period_end: true,
-          updated_at: new Date().toISOString()
+      const response = await fetch(`/api/subscription/${state.subscription.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          cancel_at_period_end: true
         })
-        .eq('id', state.subscription.id)
+      })
 
-      if (error) {
-        throw error
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Error al cancelar la suscripción')
       }
 
       // Recargar la suscripción

@@ -1,6 +1,7 @@
+'use client'
+
 import { useState, useEffect } from 'react'
-import { User } from '@supabase/supabase-js'
-import { supabase } from '@/lib/supabase'
+import { useSession, signOut as nextAuthSignOut } from 'next-auth/react'
 
 export interface UserRole {
   id: string
@@ -28,126 +29,77 @@ export interface AdminProfile {
 }
 
 export function useAuthWithRoles() {
-  const [user, setUser] = useState<User | null>(null)
+  const { data: session, status } = useSession()
   const [userRole, setUserRole] = useState<UserRole | null>(null)
   const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [roleOverride, setRoleOverride] = useState<'admin' | 'user' | null>(null)
 
-  useEffect(() => {
-    // Obtener sesión inicial
-    const getInitialSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession()
-        
-        if (error) {
-          console.error('useAuthWithRoles: Session error:', error)
-          setLoading(false)
-          return
-        }
-        
-        if (session?.user) {
-          setUser(session.user)
-          await loadUserRole(session.user.id)
-        } else {
-          setUser(null)
-          setLoading(false)
-        }
-      } catch (err) {
-        console.error('useAuthWithRoles: Error:', err)
-        setLoading(false)
-      }
-    }
-
-    getInitialSession()
-
-    // Escuchar cambios de autenticación
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user || null)
-        
-        if (session?.user) {
-          await loadUserRole(session.user.id)
-        } else {
-          setUserRole(null)
-          setAdminProfile(null)
-          setLoading(false)
-        }
-      }
-    )
-
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [])
-
   const loadUserRole = async (userId: string) => {
     try {
-      // Cargar rol del usuario
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles_simple')
-        .select('*')
-        .eq('user_id', userId)
-        .single()
-
-      if (roleError) {
-        console.error('loadUserRole: Error loading user role:', roleError)
-        setUserRole(null)
-        setLoading(false)
-        return
+      setLoading(true)
+      
+      // Llamar a API route en el servidor
+      const response = await fetch('/api/user-role')
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch user role')
       }
-
-      setUserRole(roleData)
-
-      // Si es admin, cargar perfil de admin
-      if (roleData.role === 'admin') {
-        await loadAdminProfile(userId)
+      
+      const data = await response.json()
+      
+      if (data.role) {
+        setUserRole(data.role)
+        
+        if (data.role.role === 'admin' && data.adminProfile) {
+          setAdminProfile(data.adminProfile)
+        }
       } else {
-        setLoading(false)
+        setUserRole(null)
+        setAdminProfile(null)
       }
+      
+      setLoading(false)
       
     } catch (error) {
       console.error('loadUserRole: Error loading user role:', error)
+      setUserRole(null)
+      setAdminProfile(null)
       setLoading(false)
     }
   }
 
-  const loadAdminProfile = async (userId: string) => {
-    try {
-      
-      const { data, error } = await supabase
-        .from('admin_profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .single()
-
-      if (error) {
-        setLoading(false)
-        return
-      }
-
-      setAdminProfile(data)
-      setLoading(false)
-    } catch (error) {
+  useEffect(() => {
+    if (status === 'loading') {
+      setLoading(true)
+      return
+    }
+    
+    const userId = session?.user?.id
+    if (userId) {
+      loadUserRole(userId)
+    } else {
+      setUserRole(null)
+      setAdminProfile(null)
       setLoading(false)
     }
-  }
+  }, [session, status])
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      console.error('Error signing out:', error)
-    }
+    await nextAuthSignOut({ redirect: false })
   }
 
   const isAdmin = roleOverride ? roleOverride === 'admin' : userRole?.role === 'admin'
   const isUser = roleOverride ? roleOverride === 'user' : userRole?.role === 'user'
 
+  // Construir objeto user compatible con el tipo esperado
+  const user = session?.user ? session.user as any : null
+
   return {
     user,
     userRole,
     adminProfile,
-    loading,
+    loading: status === 'loading' || loading,
     isAdmin,
     isUser,
     signOut
