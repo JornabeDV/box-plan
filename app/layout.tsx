@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import { Oswald, Inter, Bebas_Neue, Space_Grotesk } from "next/font/google"
 import { SessionProvider } from "next-auth/react"
+import { Toaster } from "@/components/ui/toaster"
 import "./globals.css"
 
 // Tipografía para títulos impactantes - estilo deportivo/fitness
@@ -68,6 +69,7 @@ export default function RootLayout({
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} ${bebasNeue.variable} ${spaceGrotesk.variable} ${oswald.variable} ${inter.variable} antialiased`}>
         <SessionProvider>
           <Suspense fallback={null}>{children}</Suspense>
+          <Toaster />
           {process.env.NODE_ENV === 'production' && <Analytics />}
         </SessionProvider>
       </body>

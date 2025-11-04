@@ -4,7 +4,8 @@ import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Check, Crown, Star, Zap } from "lucide-react"
+import { Check, Star, Zap } from "lucide-react"
+import { formatPrice } from "@/lib/plans"
 
 interface Plan {
   id: string
@@ -13,6 +14,7 @@ interface Plan {
   price: number
   currency: string
   interval: string
+  monthlyPersonalizedClasses?: number
   features: string[]
   is_popular?: boolean
 }
@@ -22,12 +24,6 @@ interface PlanSwitcherProps {
   plans: Plan[]
   onPlanSelect: (planId: string) => void
   loading?: boolean
-}
-
-const planIcons = {
-  'Básico': Zap,
-  'Intermedio': Star,
-  'Pro': Crown
 }
 
 const getColorClasses = (planName: string) => {
@@ -91,20 +87,28 @@ export function PlanSwitcher({
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {plans.map((plan) => {
-          const PlanIcon = planIcons[plan.name as keyof typeof planIcons] || Zap
           const isCurrentPlan = plan.id === currentPlanId
           const isSelected = selectedPlan === plan.id
           const isPopular = plan.is_popular
           const colors = getColorClasses(plan.name)
 
+          const handleCardClick = () => {
+            if (!loading && !isCurrentPlan) {
+              handlePlanSelect(plan.id)
+            }
+          }
+
           return (
             <Card 
               key={plan.id}
-              className={`relative transition-all duration-300 ${
+              onClick={handleCardClick}
+              className={`relative flex flex-col transition-all duration-300 ${
                 isPopular 
                   ? 'ring-2 ring-purple-500 shadow-lg scale-105' 
                   : 'hover:shadow-lg hover:scale-105'
-              } ${isCurrentPlan ? 'ring-2 ring-green-500' : ''}`}
+              } ${isCurrentPlan ? 'ring-2 ring-green-500' : ''} ${
+                !loading && !isCurrentPlan ? 'cursor-pointer' : 'cursor-default'
+              }`}
             >
               {isPopular && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
@@ -125,41 +129,62 @@ export function PlanSwitcher({
               )}
 
               <CardHeader className="text-center pb-4">
-                <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl ${colors.bg} flex items-center justify-center text-3xl`}>
-                  <PlanIcon className="w-8 h-8" />
-                </div>
-                
                 <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
                 <CardDescription className="text-base">{plan.description}</CardDescription>
                 
+                {/* Clases mensuales personalizadas destacadas */}
+                {plan.monthlyPersonalizedClasses && (
+                  <div className="mt-6 mb-4">
+                    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg ${colors.bg} border-2 ${colors.border}`}>
+                      <span className={`text-3xl font-bold ${colors.text}`}>{plan.monthlyPersonalizedClasses}</span>
+                      <div className="text-left">
+                        <span className={`block text-sm font-semibold ${colors.text}`}>
+                          {plan.monthlyPersonalizedClasses === 1 ? 'Clase personalizada' : 'Clases personalizadas'}
+                        </span>
+                        <span className={`block text-xs ${colors.text} opacity-70`}>por mes</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="mt-4">
                   <div className="flex items-baseline justify-center">
-                    <span className="text-4xl font-bold">${plan.price.toLocaleString()}</span>
+                    <span className="text-4xl font-bold">{formatPrice(plan.price, plan.currency)}</span>
                     <span className="text-gray-500 ml-1">/{plan.interval}</span>
                   </div>
                 </div>
               </CardHeader>
 
-              <CardContent className="pt-0">
-                <ul className="space-y-3 mb-6">
+              <CardContent className="pt-0 flex flex-col flex-1">
+                <ul className="space-y-3 mb-6 flex-1">
                   {plan.features.map((feature, index) => (
                     <li key={index} className="flex items-start">
                       <Check className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm text-gray-700">{feature}</span>
+                      <span className="text-sm text-gray-400">{feature}</span>
                     </li>
                   ))}
                 </ul>
 
                 <Button
-                  onClick={() => handlePlanSelect(plan.id)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handlePlanSelect(plan.id)
+                  }}
                   disabled={loading || isCurrentPlan}
-                  className={`w-full ${colors.button} text-white ${
-                    isCurrentPlan ? 'opacity-50 cursor-not-allowed' : ''
+                  className={`w-full mt-auto ${
+                    isCurrentPlan 
+                      ? 'bg-muted text-muted-foreground cursor-not-allowed' 
+                      : isSelected
+                      ? 'bg-primary hover:bg-primary/90 text-primary-foreground ring-2 ring-primary cursor-pointer'
+                      : 'bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer'
                   }`}
                   size="lg"
                 >
                   {loading ? (
-                    <Zap className="w-4 h-4 mr-2 animate-spin" />
+                    <>
+                      <Zap className="w-4 h-4 mr-2 animate-spin" />
+                      Procesando...
+                    </>
                   ) : isCurrentPlan ? (
                     <>
                       <Check className="w-4 h-4 mr-2" />

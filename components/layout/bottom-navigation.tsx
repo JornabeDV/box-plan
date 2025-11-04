@@ -9,6 +9,14 @@ export function BottomNavigation() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border">
       <div className="flex items-center justify-around py-3 px-2">
+
+        <Link href="/">
+          <Button variant="ghost" size="sm" className="flex-col gap-1 h-auto py-3 px-4 hover:bg-accent text-foreground">
+            <Calculator className="w-5 h-5" />
+            <span className="text-xs font-medium">Home</span>
+          </Button>
+        </Link>
+
         <Link href="/profile" className="flex flex-col items-center gap-1 py-3 px-4 hover:bg-accent rounded-lg transition-colors">
           <User className="w-5 h-5 text-foreground" />
           <span className="text-xs font-medium text-foreground">Perfil</span>
@@ -24,7 +32,7 @@ export function BottomNavigation() {
         <Link href="/rm-calculator">
           <Button variant="ghost" size="sm" className="flex-col gap-1 h-auto py-3 px-4 hover:bg-accent text-foreground">
             <Calculator className="w-5 h-5" />
-            <span className="text-xs font-medium">RM Calc</span>
+            <span className="text-xs font-medium">RM</span>
           </Button>
         </Link>
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
 import { sql } from '@/lib/neon'
 
 const corsHeaders = {
@@ -27,6 +28,16 @@ export async function OPTIONS() {
 
 export async function POST(request: NextRequest) {
   try {
+    // Verificar autenticación primero
+    const session = await auth()
+    
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Usuario no autenticado' },
+        { status: 401, headers: corsHeaders }
+      )
+    }
+
     const { plan_id, user_id, plan }: CreatePreferenceRequest = await request.json()
 
     if (!plan_id || !user_id || !plan) {
@@ -36,12 +47,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Verificar que el user_id de la request coincida con el usuario autenticado
+    if (session.user.id !== user_id) {
+      return NextResponse.json(
+        { error: 'Usuario no autorizado' },
+        { status: 403, headers: corsHeaders }
+      )
+    }
+
     // Get MercadoPago credentials
     const mercadopagoAccessToken = process.env.MERCADOPAGO_ACCESS_TOKEN
     
     if (!mercadopagoAccessToken) {
       throw new Error('MercadoPago access token not configured')
     }
+
+    // Obtener email y nombre de la sesión (más confiable que consultar DB)
+    const userEmail = session.user.email || ''
+    const userName = session.user.name || userEmail
 
     // Create preference in MercadoPago
     const preferenceData = {
@@ -56,33 +79,22 @@ export async function POST(request: NextRequest) {
         }
       ],
       payer: {
-        // We'll get user info from Supabase
+        email: userEmail,
+        name: userName
       },
       // back_urls: {
-      //   success: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/pricing?success=true`,
-      //   failure: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/pricing?failure=true`,
-      //   pending: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/pricing?pending=true`
+      //   success: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/pricing?success=true`,
+      //   failure: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/pricing?failure=true`,
+      //   pending: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/pricing?pending=true`
       // },
       // auto_return: 'all',
-      notification_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/webhooks/mercadopago`,
+      notification_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/webhooks/mercadopago`,
       external_reference: `subscription_${user_id}_${plan_id}_${Date.now()}`,
       metadata: {
         user_id,
         plan_id,
         plan_name: plan.name,
         interval: plan.interval
-      }
-    }
-
-    // Get user info from database
-    const profiles = await sql`
-      SELECT email, full_name FROM profiles WHERE id = ${user_id}
-    `
-
-    if (profiles.length > 0) {
-      preferenceData.payer = {
-        email: profiles[0].email,
-        name: profiles[0].full_name || profiles[0].email
       }
     }
 

@@ -1,22 +1,28 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
-import { Badge } from '@/components/ui/badge'
+import { useRouter } from 'next/navigation'
 import { PlanCard } from '@/components/pricing/plan-card'
-import { PLANS, formatPrice } from '@/lib/plans'
+import { PLANS } from '@/lib/plans'
 import { useSubscription } from '@/hooks/use-subscription'
-import { Loader2, CreditCard, Shield, Zap } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { CreditCard, Shield, Zap } from 'lucide-react'
 
 export default function PricingPage() {
-  const [isYearly, setIsYearly] = useState(false)
+  const router = useRouter()
+  const { data: session } = useSession()
   const [loading, setLoading] = useState<string | null>(null)
   const { subscription, createSubscription, getCurrentPlan } = useSubscription()
 
   const currentPlan = getCurrentPlan()
 
   const handleSelectPlan = async (planId: string) => {
+    // Verificar autenticación antes de proceder
+    if (!session?.user) {
+      router.push('/login?redirect=/pricing')
+      return
+    }
+
     setLoading(planId)
     
     try {
@@ -24,6 +30,10 @@ export default function PricingPage() {
       
       if (error) {
         console.error('Error creating subscription:', error)
+        // Si el error es de autenticación, redirigir a login
+        if (error.includes('no autenticado') || error.includes('autenticado')) {
+          router.push('/login?redirect=/pricing')
+        }
         return
       }
 
@@ -41,34 +51,14 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary/5 to-accent/5 py-16">
+      <div className="bg-gradient-to-r from-primary/5 to-accent/5 py-6">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Elige tu Plan de Entrenamiento
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">
+            Elige tu Plan de Entrenamiento Personalizado
           </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Maximiza tu rendimiento CrossFit con planes diseñados para cada nivel de atleta
+          <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto">
+            Clases personalizadas mensuales adaptadas a tu nivel y objetivos. Elige la cantidad de clases que necesitas.
           </p>
-
-          {/* Toggle Anual/Mensual */}
-          <div className="flex items-center justify-center gap-4 mb-8">
-            <span className={`text-lg ${!isYearly ? 'font-semibold' : 'text-muted-foreground'}`}>
-              Mensual
-            </span>
-            <Switch
-              checked={isYearly}
-              onCheckedChange={setIsYearly}
-              className="data-[state=checked]:bg-primary"
-            />
-            <span className={`text-lg ${isYearly ? 'font-semibold' : 'text-muted-foreground'}`}>
-              Anual
-            </span>
-            {isYearly && (
-              <Badge className="bg-green-100 text-green-800 ml-2">
-                Ahorra 20%
-              </Badge>
-            )}
-          </div>
         </div>
       </div>
 
@@ -79,7 +69,7 @@ export default function PricingPage() {
             <PlanCard
               key={plan.id}
               plan={plan}
-              isYearly={isYearly}
+              isYearly={false}
               onSelect={handleSelectPlan}
               loading={loading === plan.id}
               currentPlan={currentPlan?.id === plan.id}

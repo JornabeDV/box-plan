@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation"
 import { Header } from "@/components/layout/header"
 import { BottomNavigation } from "@/components/layout/bottom-navigation"
 import { useAuthWithRoles } from "@/hooks/use-auth-with-roles"
+import { useProfile } from "@/hooks/use-profile"
 import { TodaySection } from "@/components/dashboard/today-section"
 import { StatsCards } from "@/components/dashboard/stats-cards"
 import { SubscriptionStatus } from "@/components/dashboard/subscription-status"
 import { AssignedWorkoutSheets } from "@/components/dashboard/assigned-workout-sheets"
+import { ReviewsSection } from "@/components/home/reviews-section"
 import { 
   Loader2, 
   Target, 
@@ -35,11 +37,56 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { useToast } from "@/hooks/use-toast"
 
 export default function BoxPlanApp() {
   const [shouldRedirect, setShouldRedirect] = useState(false)
+  const [paymentStatusHandled, setPaymentStatusHandled] = useState(false)
   const router = useRouter()
+  const { toast } = useToast()
   const { user, userRole, adminProfile, loading: authLoading, isAdmin, isUser, signOut } = useAuthWithRoles()
+  const { subscription, loading: profileLoading } = useProfile()
+  
+  // Verificar si el usuario tiene suscripción activa
+  const hasActiveSubscription = subscription?.status === 'active'
+
+  // Manejar parámetros de pago después de redirección desde MercadoPago
+  useEffect(() => {
+    if (paymentStatusHandled || typeof window === 'undefined') return
+
+    const urlParams = new URLSearchParams(window.location.search)
+    const paymentStatus = urlParams.get('payment')
+    
+    if (paymentStatus && !paymentStatusHandled) {
+      setPaymentStatusHandled(true)
+      
+      if (paymentStatus === 'success') {
+        toast({
+          title: '¡Pago exitoso! 🎉',
+          description: 'Tu suscripción ha sido activada correctamente. Ya puedes disfrutar de todos los beneficios.',
+          variant: 'default',
+        })
+        // Limpiar el parámetro de la URL
+        router.replace('/', { scroll: false })
+      } else if (paymentStatus === 'failure') {
+        toast({
+          title: 'Pago fallido',
+          description: 'No se pudo procesar el pago. Por favor, intenta nuevamente o contacta con soporte.',
+          variant: 'destructive',
+        })
+        // Limpiar el parámetro de la URL
+        router.replace('/', { scroll: false })
+      } else if (paymentStatus === 'pending') {
+        toast({
+          title: 'Pago pendiente',
+          description: 'Tu pago está siendo procesado. Te notificaremos cuando se complete.',
+          variant: 'default',
+        })
+        // Limpiar el parámetro de la URL
+        router.replace('/', { scroll: false })
+      }
+    }
+  }, [paymentStatusHandled, toast, router])
 
   // Verificar si debe redirigir a login (después del mount)
   useEffect(() => {
@@ -265,105 +312,17 @@ export default function BoxPlanApp() {
             </div>
           </section>
 
-          {/* Testimonials Section */}
-          <section className="py-16 md:py-24 bg-gradient-to-br from-gray-900/50 to-gray-800/50">
+          {/* Reviews Section */}
+          <ReviewsSection className="bg-gradient-to-br from-gray-900/50 to-gray-800/50" />
+          
+          {/* Stats Section */}
+          <section className="py-12 bg-card/50">
             <div className="container mx-auto px-6">
-              <div className="text-center mb-12">
-                <h2 className="text-3xl md:text-5xl font-display mb-4 tracking-wide">
-                  Lo que dicen nuestros atletas
-                </h2>
-                <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                  Miles de atletas mejoran su rendimiento con Box Plan
-                </p>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-                {[
-                  {
-                    name: "María González",
-                    role: "Atleta Pro",
-                    avatar: "MG",
-                    rating: 5,
-                    text: "Increíble cómo he mejorado mi rendimiento con las planillas personalizadas. El análisis de progreso me ayuda a ajustar mi entrenamiento constantemente.",
-                    plan: "Pro"
-                  },
-                  {
-                    name: "Carlos Rodríguez",
-                    role: "Box Owner",
-                    avatar: "CR",
-                    rating: 5,
-                    text: "Como coach, uso la app para gestionar múltiples atletas. El plan Pro es perfecto para mi box. Los atletas aman el timer y las planillas.",
-                    plan: "Pro"
-                  },
-                  {
-                    name: "Ana Martínez",
-                    role: "Principiante",
-                    avatar: "AM",
-                    rating: 5,
-                    text: "Recién empiezo en CrossFit y el plan Básico me ha ayudado muchísimo. Las planillas son claras y fáciles de seguir. ¡Recomendado 100%!",
-                    plan: "Básico"
-                  },
-                  {
-                    name: "Diego Fernández",
-                    role: "Atleta Competitivo",
-                    avatar: "DF",
-                    rating: 5,
-                    text: "El timer profesional y la calculadora 1RM son herramientas que uso todos los días. La comunidad del foro es súper motivadora.",
-                    plan: "Pro"
-                  },
-                  {
-                    name: "Laura Sánchez",
-                    role: "Coach Personal",
-                    avatar: "LS",
-                    rating: 5,
-                    text: "Excelente plataforma para mis clientes. La integración con wearables y el análisis avanzado hacen la diferencia en mi trabajo.",
-                    plan: "Pro"
-                  },
-                  {
-                    name: "Pablo Torres",
-                    role: "Atleta Avanzado",
-                    avatar: "PT",
-                    rating: 5,
-                    text: "He probado varias apps y esta es la mejor para CrossFit. El seguimiento de PRs y la planificación mensual son increíbles. Vale cada dólar.",
-                    plan: "Pro"
-                  }
-                ].map((testimonial, index) => (
-                  <Card key={index} className="bg-card/80 backdrop-blur-sm hover:shadow-xl transition-all duration-300">
-                    <CardHeader>
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-lime-400 to-green-500 flex items-center justify-center text-white font-bold text-lg">
-                            {testimonial.avatar}
-                          </div>
-                          <div>
-                            <CardTitle className="text-base font-heading">{testimonial.name}</CardTitle>
-                            <CardDescription className="text-xs">
-                              {testimonial.role} • Plan {testimonial.plan}
-                            </CardDescription>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-1 mb-2">
-                        {[...Array(testimonial.rating)].map((_, i) => (
-                          <Star key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                        ))}
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        "{testimonial.text}"
-                      </p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-              
-              {/* Stats */}
-              <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto text-center">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto text-center">
                 {[
                   { number: "5,000+", label: "Atletas Activos" },
                   { number: "10,000+", label: "Entrenamientos Registrados" },
-                  { number: "4.8/5", label: "Valoración Promedio" },
+                  { number: "4.9/5", label: "Valoración Promedio" },
                   { number: "50+", label: "Planillas Disponibles" }
                 ].map((stat, index) => (
                   <div key={index} className="space-y-2">
@@ -578,22 +537,22 @@ export default function BoxPlanApp() {
           </section>
         )}
 
-        {/* Estadísticas rápidas */}
-        {user?.id && (
+        {/* Estadísticas rápidas - Solo para usuarios con suscripción activa */}
+        {user?.id && hasActiveSubscription && (
           <section>
             <StatsCards />
           </section>
         )}
 
-        {/* Sección del día */}
-        {user?.id && (
+        {/* Sección del día - Solo para usuarios con suscripción activa */}
+        {user?.id && hasActiveSubscription && (
           <section>
             <TodaySection />
           </section>
         )}
 
-        {/* Planillas asignadas */}
-        {user?.id && (
+        {/* Planillas asignadas - Solo para usuarios con suscripción activa */}
+        {user?.id && hasActiveSubscription && (
           <section>
             <AssignedWorkoutSheets userId={user.id} />
           </section>
@@ -612,7 +571,7 @@ export default function BoxPlanApp() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Button
                   variant="outline"
-                  className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-accent"
+                  className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
                   onClick={() => router.push('/workout-sheets')}
                 >
                   <FileText className="w-6 h-6" />
@@ -620,7 +579,7 @@ export default function BoxPlanApp() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-accent"
+                  className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors hover:scale-100"
                   onClick={() => router.push('/timer')}
                 >
                   <Timer className="w-6 h-6" />
@@ -628,15 +587,15 @@ export default function BoxPlanApp() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-accent"
+                  className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors hover:scale-100"
                   onClick={() => router.push('/rm-calculator')}
                 >
                   <Calculator className="w-6 h-6" />
-                  <span>1RM Calc</span>
+                  <span>RM</span>
                 </Button>
                 <Button
                   variant="outline"
-                  className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-accent"
+                  className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
                   onClick={() => router.push('/forum')}
                 >
                   <Users className="w-6 h-6" />
@@ -646,6 +605,15 @@ export default function BoxPlanApp() {
             </CardContent>
           </Card>
         </section>
+
+        {/* Reviews Section - Al final del dashboard */}
+        {user?.id && (
+          <section>
+            <ReviewsSection 
+              variant="default" 
+            />
+          </section>
+        )}
       </main>
 
       <BottomNavigation />
