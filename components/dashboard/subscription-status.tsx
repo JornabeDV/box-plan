@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useProfile } from "@/hooks/use-profile"
-import { Crown, CheckCircle, XCircle, Clock, AlertTriangle } from "lucide-react"
+import { Crown, CheckCircle, XCircle, Clock, AlertTriangle, Zap, Star, Sparkles, ArrowRight } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 import Link from "next/link"
@@ -27,27 +27,84 @@ export function SubscriptionStatus() {
 
   if (!subscription) {
     return (
-      <Card className="border-dashed">
-        <CardHeader>
+      <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-background to-accent/5 overflow-hidden relative">
+        {/* Decorative gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10 pointer-events-none" />
+        
+        <CardHeader className="relative">
           <CardTitle className="flex items-center gap-2">
-            <Crown className="h-5 w-5 text-muted-foreground" />
-            Estado de Suscripción
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Crown className="h-5 w-5 text-primary" />
+            </div>
+            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              Desbloquea tu Potencial
+            </span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="text-center py-4">
-            <XCircle className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <h3 className="text-lg font-semibold mb-2">Sin Suscripción Activa</h3>
-            <p className="text-muted-foreground mb-4">
-              No tienes una suscripción activa en este momento
+        
+        <CardContent className="relative space-y-6">
+          {/* Hero section */}
+          <div className="text-center space-y-3">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Sparkles className="h-6 w-6 text-primary animate-pulse" />
+              <h3 className="text-2xl font-bold">
+                ¡Eleva tu Entrenamiento!
+              </h3>
+              <Sparkles className="h-6 w-6 text-accent animate-pulse" />
+            </div>
+            <p className="text-lg text-muted-foreground max-w-md mx-auto">
+              Accede a planes personalizados, seguimiento completo y herramientas profesionales
             </p>
-            <Link href="/pricing">
-              <Button className="w-full">
-                <Crown className="h-4 w-4 mr-2" />
-                Ver Planes Disponibles
-              </Button>
-            </Link>
           </div>
+
+          {/* Benefits list */}
+          <div className="grid grid-cols-1 gap-3 bg-card/50 rounded-lg p-4 border border-primary/10">
+            <div className="flex items-start gap-3">
+              <div className="p-1.5 bg-green-100 dark:bg-green-900/30 rounded-full mt-0.5">
+                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-sm">Planes de entrenamiento personalizados</p>
+                <p className="text-xs text-muted-foreground">Adaptados a tu nivel y objetivos</p>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3">
+              <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-full mt-0.5">
+                <Zap className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-sm">Seguimiento completo de progreso</p>
+                <p className="text-xs text-muted-foreground">Métricas y estadísticas detalladas</p>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3">
+              <div className="p-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-full mt-0.5">
+                <Star className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-sm">Acceso a toda la plataforma</p>
+                <p className="text-xs text-muted-foreground">Sin limitaciones, todo incluido</p>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA Button */}
+          <Link href="/pricing" className="block">
+            <Button 
+              size="lg" 
+              className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-primary-foreground font-semibold shadow-lg hover:shadow-xl transition-all duration-300 group"
+            >
+              <span>Ver Planes y Precios</span>
+              <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </Link>
+
+          {/* Trust indicator */}
+          <p className="text-center text-xs text-muted-foreground">
+            ✓ Pago seguro • ✓ Cancela cuando quieras • ✓ Soporte 24/7
+          </p>
         </CardContent>
       </Card>
     )

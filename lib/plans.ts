@@ -5,6 +5,7 @@ export interface Plan {
   price: number
   currency: string
   interval: 'month' | 'year'
+  monthlyPersonalizedClasses: number
   features: string[]
   popular?: boolean
   color: string
@@ -15,16 +16,17 @@ export const PLANS: Plan[] = [
   {
     id: 'basic',
     name: 'Básico',
-    description: 'Perfecto para comenzar tu journey CrossFit',
-    price: 9.99,
-    currency: 'USD',
+    description: 'Plan ideal para comenzar tu entrenamiento personalizado',
+    price: 25000,
+    currency: 'ARS',
     interval: 'month',
+    monthlyPersonalizedClasses: 8,
     features: [
+      '8 clases personalizadas por mes',
       'Acceso a entrenamientos diarios',
       'Registro de entrenamientos',
       'Estadísticas básicas',
-      'Soporte por email',
-      '1 perfil de usuario'
+      'Soporte por email'
     ],
     color: 'blue',
     icon: '🏃‍♂️'
@@ -32,19 +34,18 @@ export const PLANS: Plan[] = [
   {
     id: 'intermediate',
     name: 'Intermedio',
-    description: 'Para atletas que quieren llevar su entrenamiento al siguiente nivel',
-    price: 14.99,
-    currency: 'USD',
+    description: 'Para atletas que buscan un entrenamiento más intensivo',
+    price: 30000,
+    currency: 'ARS',
     interval: 'month',
+    monthlyPersonalizedClasses: 12,
     features: [
-      'Todo lo del plan Básico',
+      '12 clases personalizadas por mes',
       'Planillas de entrenamiento avanzadas',
       'Análisis de progreso detallado',
       'Records personales ilimitados',
       'Planificación mensual',
-      'Soporte prioritario',
-      'Hasta 2 perfiles de usuario',
-      'Exportar datos'
+      'Soporte prioritario'
     ],
     color: 'purple',
     icon: '💪'
@@ -52,21 +53,18 @@ export const PLANS: Plan[] = [
   {
     id: 'pro',
     name: 'Pro',
-    description: 'Para atletas serios y coaches que quieren maximizar su rendimiento',
-    price: 29.99,
-    currency: 'USD',
+    description: 'Para atletas serios que buscan máximo rendimiento',
+    price: 40000,
+    currency: 'ARS',
     interval: 'month',
+    monthlyPersonalizedClasses: 20,
     features: [
-      'Todo lo del plan Intermedio',
+      '20 clases personalizadas por mes',
       'Entrenamientos completamente personalizados',
       'Análisis avanzado con gráficos detallados',
       'Coaching personalizado',
       'Planificación ilimitada',
       'Soporte 24/7',
-      'Hasta 5 perfiles de usuario',
-      'Integración con wearables',
-      'Analytics avanzados',
-      'API personalizada'
     ],
     popular: true,
     color: 'gold',

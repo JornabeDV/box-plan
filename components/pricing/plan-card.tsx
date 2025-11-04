@@ -61,13 +61,22 @@ export function PlanCard({ plan, isYearly, onSelect, loading = false, currentPla
 
   const colors = getColorClasses()
 
+  const handleCardClick = () => {
+    if (!loading && !currentPlan) {
+      onSelect(plan.id)
+    }
+  }
+
   return (
     <Card 
-      className={`relative transition-all duration-300 ${
+      onClick={handleCardClick}
+      className={`relative flex flex-col transition-all duration-300 ${
         plan.popular 
           ? 'ring-2 ring-purple-500 shadow-lg scale-105' 
           : 'hover:shadow-lg hover:scale-105'
-      } ${currentPlan ? 'ring-2 ring-green-500' : ''}`}
+      } ${currentPlan ? 'ring-2 ring-green-500' : ''} ${
+        !loading && !currentPlan ? 'cursor-pointer' : 'cursor-default'
+      }`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -90,55 +99,72 @@ export function PlanCard({ plan, isYearly, onSelect, loading = false, currentPla
       )}
 
       <CardHeader className="text-center pb-4">
-        <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl ${colors.bg} flex items-center justify-center text-3xl`}>
-          {plan.icon}
-        </div>
-        
         <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
         <CardDescription className="text-base">{plan.description}</CardDescription>
         
+        {/* Clases mensuales personalizadas destacadas */}
+        <div className="mt-6 mb-4">
+          <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg ${colors.bg} border-2 ${colors.border}`}>
+            <span className={`text-3xl font-bold ${colors.text}`}>{plan.monthlyPersonalizedClasses}</span>
+            <div className="text-left">
+              <span className={`block text-sm font-semibold ${colors.text}`}>
+                {plan.monthlyPersonalizedClasses === 1 ? 'Clase personalizada' : 'Clases personalizadas'}
+              </span>
+              <span className={`block text-xs ${colors.text} opacity-70`}>por mes</span>
+            </div>
+          </div>
+        </div>
+        
         <div className="mt-4">
           <div className="flex items-baseline justify-center">
-            <span className="text-4xl font-bold">{formatPrice(displayPrice)}</span>
+            <span className="text-4xl font-bold">{formatPrice(displayPrice, plan.currency)}</span>
             <span className="text-gray-500 ml-1">/mes</span>
           </div>
           
           {isYearly && savings > 0 && (
             <div className="mt-2">
               <Badge variant="secondary" className="text-green-700 bg-green-100">
-                Ahorras {formatPrice(savings)}/año
+                Ahorras {formatPrice(savings, plan.currency)}/año
               </Badge>
             </div>
           )}
           
           {isYearly && (
             <p className="text-sm text-gray-500 mt-1">
-              Facturado anualmente ({formatPrice(price)}/año)
+              Facturado anualmente ({formatPrice(price, plan.currency)}/año)
             </p>
           )}
         </div>
       </CardHeader>
 
-      <CardContent className="pt-0">
-        <ul className="space-y-3 mb-6">
+      <CardContent className="pt-0 flex flex-col flex-1">
+        <ul className="space-y-3 mb-6 flex-1">
           {plan.features.map((feature, index) => (
             <li key={index} className="flex items-start">
               <Check className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
-              <span className="text-sm text-gray-700">{feature}</span>
+              <span className="text-sm text-gray-400">{feature}</span>
             </li>
           ))}
         </ul>
 
         <Button
-          onClick={() => onSelect(plan.id)}
+          onClick={(e) => {
+            e.stopPropagation()
+            onSelect(plan.id)
+          }}
           disabled={loading || currentPlan}
-          className={`w-full ${colors.button} text-white ${
-            currentPlan ? 'opacity-50 cursor-not-allowed' : ''
+          className={`w-full mt-auto ${
+            currentPlan 
+              ? 'bg-muted text-muted-foreground cursor-not-allowed' 
+              : 'bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer'
           }`}
           size="lg"
         >
           {loading ? (
-            <Zap className="w-4 h-4 mr-2 animate-spin" />
+            <>
+              <Zap className="w-4 h-4 mr-2 animate-spin" />
+              Procesando...
+            </>
           ) : currentPlan ? (
             <>
               <Check className="w-4 h-4 mr-2" />
