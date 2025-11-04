@@ -59,11 +59,27 @@ export function PlanificationCalendar({
     setCurrentDate(new Date())
   }
   
+  // Normalizar fecha a formato YYYY-MM-DD sin considerar timezone
+  const normalizeDate = (date: Date | string) => {
+    if (typeof date === 'string') {
+      // Si ya es string, tomar solo la parte de la fecha
+      return date.split('T')[0]
+    }
+    // Crear fecha local sin timezone
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   // Verificar si un día tiene planificaciones
   const getPlanificationsForDay = (day: number) => {
     const date = new Date(year, month, day)
-    const dateString = date.toISOString().split('T')[0]
-    return planifications.filter(p => p.date === dateString)
+    const dateString = normalizeDate(date)
+    return planifications.filter(p => {
+      const planDate = normalizeDate(p.date)
+      return planDate === dateString
+    })
   }
   
   // Verificar si es hoy
@@ -192,7 +208,7 @@ export function PlanificationCalendar({
                     ${isCurrentDay 
                       ? 'bg-primary text-primary-foreground shadow-accent animate-pulse-glow' 
                       : dayPlanifications.length > 0
-                        ? 'bg-accent/20 hover:bg-accent/30 hover:scale-105 border-2 border-accent/30' 
+                        ? 'bg-lime-400/20 hover:bg-lime-400/30 hover:scale-105 border-2 border-lime-400/50' 
                         : 'hover:bg-muted/50'
                     }
                     ${isPast ? 'opacity-50' : ''}
@@ -200,6 +216,11 @@ export function PlanificationCalendar({
                   onClick={() => handleDayClick(day)}
                 >
                   <span className="text-sm md:text-lg font-bold">{day}</span>
+                  {dayPlanifications.length > 0 && (
+                    <span className="absolute top-1 right-1 bg-lime-400 text-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                      {dayPlanifications.length}
+                    </span>
+                  )}
                 </div>
               </div>
             )
@@ -213,7 +234,7 @@ export function PlanificationCalendar({
             <span className="text-xs text-muted-foreground">Hoy</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-accent/20 border-2 border-accent/30 rounded-full"></div>
+            <div className="w-3 h-3 bg-lime-400/20 border-2 border-lime-400/50 rounded-full"></div>
             <span className="text-xs text-muted-foreground">Con planificaciones</span>
           </div>
           <div className="flex items-center gap-2">

@@ -107,6 +107,7 @@ export default function AdminDashboardPage() {
   }
 
   const handleCreateDiscipline = async (data: any) => {
+    
     const result = await createDiscipline(data) as { error?: string }
     
     if (!result.error) {
@@ -279,9 +280,10 @@ export default function AdminDashboardPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button 
+                variant="outline"
                 size="sm"
                 onClick={() => window.location.href = '/'}
-                className="flex items-center gap-2 hover:opacity-80 transition-100"
+                className="flex items-center gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span className="hidden sm:inline">Volver al Inicio</span>
@@ -408,7 +410,7 @@ export default function AdminDashboardPage() {
                     setSelectedDiscipline(null)
                     setShowDisciplineModal(true)
                   }}
-                  className='hover:opacity-80 transition-100'
+                  disabled={!adminProfile?.id}
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Nueva Disciplina
@@ -441,7 +443,6 @@ export default function AdminDashboardPage() {
                     setSelectedPlanification(null)
                     setShowPlanificationModal(true)
                   }}
-                  className='hover:opacity-80 transition-100'
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Nueva Planificación

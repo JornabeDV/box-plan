@@ -99,7 +99,41 @@ export async function POST(request: NextRequest) {
       RETURNING *
     `
 
-    return NextResponse.json(result[0])
+    const newPlanification = result[0]
+
+    // Obtener las relaciones (discipline y discipline_level)
+    const withRelations = await sql`
+      SELECT 
+        p.*,
+        jsonb_build_object(
+          'id', d.id,
+          'name', d.name,
+          'color', d.color,
+          'icon', d.icon
+        ) as discipline,
+        jsonb_build_object(
+          'id', dl.id,
+          'name', dl.name,
+          'description', dl.description
+        ) as discipline_level
+      FROM planifications p
+      LEFT JOIN disciplines d ON p.discipline_id = d.id
+      LEFT JOIN discipline_levels dl ON p.discipline_level_id = dl.id
+      WHERE p.id = ${newPlanification.id}
+    `
+
+    // Transformar los campos JSONB
+    const transformed = {
+      ...withRelations[0],
+      discipline: typeof withRelations[0].discipline === 'string' 
+        ? JSON.parse(withRelations[0].discipline) 
+        : withRelations[0].discipline,
+      discipline_level: typeof withRelations[0].discipline_level === 'string' 
+        ? JSON.parse(withRelations[0].discipline_level) 
+        : withRelations[0].discipline_level
+    }
+
+    return NextResponse.json(transformed)
   } catch (error) {
     console.error('Error creating planification:', error)
     return NextResponse.json(
