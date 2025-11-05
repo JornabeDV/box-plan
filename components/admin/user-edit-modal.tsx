@@ -80,6 +80,22 @@ export function UserEditModal({ open, onOpenChange, user, adminId, onUserUpdated
 
     setLoading(true)
     try {
+      // Actualizar perfil del usuario (full_name)
+      const profileUpdateResponse = await fetch(`/api/admin/users/${user.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          full_name: formData.full_name || null
+        })
+      })
+
+      if (!profileUpdateResponse.ok) {
+        const errorData = await profileUpdateResponse.json()
+        throw new Error(errorData.error || 'Error al actualizar perfil')
+      }
+
       // Actualizar preferencias de usuario
       const result = await updateUserPreferences(user.id, {
         preferred_discipline_id: formData.preferred_discipline_id === 'none' ? null : formData.preferred_discipline_id || null,
@@ -95,7 +111,7 @@ export function UserEditModal({ open, onOpenChange, user, adminId, onUserUpdated
         }
       }
     } catch (error) {
-      console.error('Error updating user preferences:', error)
+      console.error('Error updating user:', error)
     } finally {
       setLoading(false)
     }

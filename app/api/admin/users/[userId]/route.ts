@@ -1,0 +1,200 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
+import { sql } from '@/lib/neon'
+
+// PATCH /api/admin/users/[userId]
+export async function PATCH(
+	request: NextRequest,
+	{ params }: { params: { userId: string } }
+) {
+	try {
+		const session = await auth()
+		
+		if (!session?.user?.id) {
+			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+		}
+
+		const body = await request.json()
+		const { full_name, avatar_url } = body
+
+		// Verificar que el usuario existe y está asignado al admin
+		// Primero obtenemos el admin_id del usuario actual
+		const adminProfile = await sql`
+			SELECT id FROM admin_profiles WHERE user_id = ${session.user.id}
+		`
+
+		if (adminProfile.length === 0) {
+			return NextResponse.json({ error: 'Admin profile not found' }, { status: 403 })
+		}
+
+		const adminId = adminProfile[0].id
+
+		// MVP - Modelo B2C: Permitir a cualquier admin gestionar cualquier usuario
+		// TODO: Cuando migren a modelo con coaches/gimnasios, descomentar la validación:
+		// Verificar que el usuario está asignado al admin
+		// const assignment = await sql`
+		//   SELECT user_id FROM admin_user_assignments 
+		//   WHERE admin_id = ${adminId} AND user_id = ${params.userId} AND is_active = true
+		// `
+		// if (assignment.length === 0) {
+		//   return NextResponse.json({ error: 'User not assigned to this admin' }, { status: 403 })
+		// }
+
+		// Validar que hay campos para actualizar
+		if (full_name === undefined && avatar_url === undefined) {
+			return NextResponse.json({ error: 'No hay campos para actualizar' }, { status: 400 })
+		}
+
+		// Actualizar perfil
+		// Nota: Usamos la tabla 'users' directamente ya que 'profiles' puede no existir
+		// Cuando se implemente la tabla profiles, cambiar a: UPDATE profiles
+		// Por ahora solo actualizamos el campo 'name' que mapeamos a 'full_name'
+		
+		// Construir query dinámicamente de forma segura
+		let updated
+		if (full_name !== undefined) {
+			updated = await sql`
+				UPDATE users 
+				SET name = ${full_name}, updated_at = NOW()
+				WHERE id = ${params.userId}
+				RETURNING id, email, name as full_name, created_at, updated_at
+			`
+		} else {
+			// Si solo se actualiza avatar_url (aunque no se esté usando actualmente)
+			updated = await sql`
+				UPDATE users 
+				SET updated_at = NOW()
+				WHERE id = ${params.userId}
+				RETURNING id, email, name as full_name, created_at, updated_at
+			`
+		}
+
+		if (updated.length === 0) {
+			return NextResponse.json({ error: 'User not found' }, { status: 404 })
+		}
+
+		return NextResponse.json(updated[0])
+	} catch (error) {
+		console.error('Error updating user profile:', error)
+		return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+	}
+}
+
+// DELETE /api/admin/users/[userId]
+export async function DELETE(
+	request: NextRequest,
+	{ params }: { params: { userId: string } }
+) {
+	try {
+		const session = await auth()
+		
+		if (!session?.user?.id) {
+			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+		}
+
+		// Verificar que el usuario es admin
+		const adminProfile = await sql`
+			SELECT id FROM admin_profiles WHERE user_id = ${session.user.id}
+		`
+
+		if (adminProfile.length === 0) {
+			return NextResponse.json({ error: 'Admin profile not found' }, { status: 403 })
+		}
+
+		const adminId = adminProfile[0].id
+
+		// MVP - Modelo B2C: Permitir a cualquier admin eliminar cualquier usuario
+		// TODO: Cuando migren a modelo con coaches/gimnasios, descomentar la validación:
+		// Verificar que el usuario está asignado al admin
+		// const assignment = await sql`
+		//   SELECT user_id FROM admin_user_assignments 
+		//   WHERE admin_id = ${adminId} AND user_id = ${params.userId} AND is_active = true
+		// `
+		// if (assignment.length === 0) {
+		//   return NextResponse.json({ error: 'User not assigned to this admin' }, { status: 403 })
+		// }
+
+		// Verificar que el usuario existe
+		const userExists = await sql`
+			SELECT id FROM users WHERE id = ${params.userId}
+		`
+
+		if (userExists.length === 0) {
+			return NextResponse.json({ error: 'User not found' }, { status: 404 })
+		}
+
+		// Eliminar datos relacionados en cascada (en orden de dependencias)
+		// 1. Preferencias de usuario
+		try {
+			await sql`DELETE FROM user_preferences WHERE user_id = ${params.userId}`
+		} catch (err) {
+			// Ignorar si la tabla no existe o no hay datos
+		}
+
+		// 2. Asignaciones de planillas de entrenamiento
+		try {
+			await sql`DELETE FROM workout_sheet_assignments WHERE user_id = ${params.userId}`
+		} catch (err) {
+			// Ignorar si la tabla no existe o no hay datos
+		}
+
+		// 3. Planillas de usuario
+		try {
+			await sql`DELETE FROM user_workout_sheets WHERE user_id = ${params.userId}`
+		} catch (err) {
+			// Ignorar si la tabla no existe o no hay datos
+		}
+
+		// 4. Historial de pagos
+		try {
+			await sql`DELETE FROM payment_history WHERE user_id = ${params.userId}`
+		} catch (err) {
+			// Ignorar si la tabla no existe o no hay datos
+		}
+
+		// 5. Suscripciones
+		try {
+			await sql`DELETE FROM subscriptions WHERE user_id = ${params.userId}`
+		} catch (err) {
+			// Ignorar si la tabla no existe o no hay datos
+		}
+
+		// 6. Progreso de usuario
+		try {
+			await sql`DELETE FROM user_progress WHERE user_id = ${params.userId}`
+		} catch (err) {
+			// Ignorar si la tabla no existe o no hay datos
+		}
+
+		// 7. Asignaciones admin-user (si existen)
+		try {
+			await sql`DELETE FROM admin_user_assignments WHERE user_id = ${params.userId}`
+		} catch (err) {
+			// Ignorar si la tabla no existe o no hay datos
+		}
+
+		// 8. Roles de usuario
+		try {
+			await sql`DELETE FROM user_roles_simple WHERE user_id = ${params.userId}`
+		} catch (err) {
+			// Ignorar si la tabla no existe o no hay datos
+		}
+
+		// 9. Finalmente, eliminar el usuario
+		await sql`DELETE FROM users WHERE id = ${params.userId}`
+
+		return NextResponse.json({ success: true, message: 'Usuario eliminado exitosamente' })
+	} catch (error: any) {
+		console.error('Error deleting user:', error)
+		
+		// Si hay error de foreign key constraint, informar mejor
+		if (error?.code === '23503' || error?.message?.includes('foreign key')) {
+			return NextResponse.json(
+				{ error: 'No se puede eliminar el usuario porque tiene datos relacionados. Por favor, elimina primero las suscripciones y asignaciones.' },
+				{ status: 400 }
+			)
+		}
+
+		return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+	}
+}

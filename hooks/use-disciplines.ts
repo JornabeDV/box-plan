@@ -108,8 +108,8 @@ export function useDisciplines(adminId: string | null) {
 
       const newDiscipline = await response.json()
 
-      // Actualizar estado local
-      setDisciplines(prev => [...prev, newDiscipline])
+      // Recargar todas las disciplinas para asegurar sincronización
+      await fetchDisciplines()
       
       return { data: newDiscipline }
     } catch (err) {
@@ -135,16 +135,17 @@ export function useDisciplines(adminId: string | null) {
         })
       })
 
+      const responseData = await response.json()
+
       if (!response.ok) {
-        throw new Error('Error al actualizar disciplina')
+        const errorMessage = responseData.error || 'Error al actualizar disciplina'
+        throw new Error(errorMessage)
       }
 
-      const updatedDiscipline = await response.json()
+      const updatedDiscipline = responseData
 
-      // Actualizar estado local
-      setDisciplines(prev => 
-        prev.map(d => d.id === data.id ? updatedDiscipline : d)
-      )
+      // Recargar todas las disciplinas para asegurar sincronización (especialmente niveles)
+      await fetchDisciplines()
       
       return { data: updatedDiscipline }
     } catch (err) {

@@ -1,17 +1,21 @@
 'use client'
 
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
+import { AssignWorkoutSheetModal } from './assign-workout-sheet-modal'
+import { useToast } from '@/hooks/use-toast'
 import { 
   User, 
   Mail, 
   Calendar, 
-  MoreHorizontal, 
   Settings, 
   CreditCard, 
-  FileText 
+  FileText,
+  Trash2
 } from 'lucide-react'
 
 interface UserWithSubscription {
@@ -72,19 +76,31 @@ interface SubscriptionPlan {
 interface UserCardProps {
   user: UserWithSubscription
   plans: SubscriptionPlan[]
+  adminId: string | null
   onAssignSubscription: (userId: string, planId: string) => void
   onCancelSubscription: (subscriptionId: string) => void
   onEditUser: (user: UserWithSubscription) => void
+  onDeleteUser: (userId: string) => Promise<{ error: string | null }>
+  onAssignmentComplete?: () => void
 }
 
 export function UserCard({ 
   user, 
   plans, 
+  adminId,
   onAssignSubscription, 
   onCancelSubscription, 
-  onEditUser 
+  onEditUser,
+  onDeleteUser,
+  onAssignmentComplete
 }: UserCardProps) {
+  const [showAssignModal, setShowAssignModal] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const { toast } = useToast()
+
   return (
+    <>
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader>
         <div className="flex items-start justify-between">
@@ -157,21 +173,36 @@ export function UserCard({
         <div className="flex items-center justify-between mt-4 pt-4 border-t">
           <div className="flex gap-2">
             {!user.has_subscription ? (
-              <Select onValueChange={(planId) => onAssignSubscription(user.id, planId)}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Asignar plan" />
-                </SelectTrigger>
-                <SelectContent>
-                  {plans.map((plan) => (
-                    <SelectItem key={plan.id} value={plan.id}>
-                      {plan.name} - ${plan.price}/{plan.interval}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              plans.length > 0 ? (
+                <Select onValueChange={(planId) => onAssignSubscription(user.id, planId)}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Asignar plan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {plans.map((plan) => (
+                      <SelectItem key={plan.id} value={plan.id}>
+                        {plan.name} - ${plan.price}/{plan.interval}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled
+                  title="No hay planes disponibles. Crea planes en la base de datos."
+                >
+                  Sin planes disponibles
+                </Button>
+              )
             ) : (
               <>
-                <Button size="sm" variant="outline">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => setShowAssignModal(true)}
+                >
                   <FileText className="h-4 w-4 mr-2" />
                   Asignar Planillas
                 </Button>
@@ -193,12 +224,68 @@ export function UserCard({
               <Settings className="h-4 w-4 mr-2" />
               Preferencias
             </Button>
+            <Button 
+              size="sm" 
+              variant="destructive"
+              onClick={() => setShowDeleteDialog(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Eliminar
+            </Button>
           </div>
-          <Button size="sm" variant="outline">
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
         </div>
       </CardContent>
     </Card>
+
+    {/* Modal para asignar planillas */}
+    <AssignWorkoutSheetModal
+      open={showAssignModal}
+      onOpenChange={setShowAssignModal}
+      userId={user.id}
+      userName={user.full_name || user.email}
+      adminId={adminId}
+      onAssignmentComplete={() => {
+        if (onAssignmentComplete) {
+          onAssignmentComplete()
+        }
+      }}
+    />
+
+    {/* Diálogo de confirmación para eliminar usuario */}
+    <ConfirmationDialog
+      open={showDeleteDialog}
+      onOpenChange={(open) => {
+        if (!deleting) {
+          setShowDeleteDialog(open)
+        }
+      }}
+      onConfirm={async () => {
+        setDeleting(true)
+        const result = await onDeleteUser(user.id)
+        setDeleting(false)
+        
+        if (result.error) {
+          toast({
+            title: 'Error al eliminar usuario',
+            description: result.error,
+            variant: 'destructive'
+          })
+        } else {
+          toast({
+            title: 'Usuario eliminado',
+            description: `El usuario ${user.full_name || user.email} ha sido eliminado exitosamente.`,
+            variant: 'default'
+          })
+          setShowDeleteDialog(false)
+        }
+      }}
+      title="Eliminar Usuario"
+      description={`¿Estás seguro de que quieres eliminar al usuario ${user.full_name || user.email}? Esta acción eliminará todos sus datos (suscripciones, preferencias, planillas asignadas, etc.) y no se puede deshacer.`}
+      confirmText="Eliminar"
+      cancelText="Cancelar"
+      variant="destructive"
+      loading={deleting}
+    />
+    </>
   )
 }

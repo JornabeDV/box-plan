@@ -48,7 +48,7 @@ export function PlanificationModal({
   adminId,
   onSubmit 
 }: PlanificationModalProps) {
-  const { disciplines, disciplineLevels, loading: disciplinesLoading } = useDisciplines(adminId || null)
+  const { disciplines, disciplineLevels, loading: disciplinesLoading, fetchDisciplines } = useDisciplines(adminId || null)
   
   const [formData, setFormData] = useState({
     discipline_id: '',
@@ -71,6 +71,14 @@ export function PlanificationModal({
 
   // Verificar si hay disciplinas disponibles
   const hasDisciplines = disciplines.length > 0
+
+  // Recargar disciplinas cuando se abre el modal
+  useEffect(() => {
+    if (open && adminId) {
+      fetchDisciplines()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, adminId])
 
   // Resetear formulario cuando se abre/cierra el modal
   useEffect(() => {
