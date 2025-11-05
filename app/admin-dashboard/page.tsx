@@ -27,7 +27,8 @@ import {
   ArrowLeft,
   Home,
   Calendar,
-  Target
+  Target,
+  DollarSign
 } from 'lucide-react'
 import { AdminStats } from '@/components/admin/admin-stats'
 import { UsersList } from '@/components/admin/users-list'
@@ -36,6 +37,7 @@ import { DisciplinesList } from '@/components/admin/disciplines-list'
 import { PlanificationModal } from '@/components/admin/planification-modal'
 import { PlanificationCalendar } from '@/components/admin/planification-calendar'
 import { PlanificationDayModal } from '@/components/admin/planification-day-modal'
+import { SubscriptionPlansList } from '@/components/admin/subscription-plans-list'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 export default function AdminDashboardPage() {
@@ -302,7 +304,7 @@ export default function AdminDashboardPage() {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 gap-1 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 gap-1 h-auto p-1">
             <TabsTrigger 
               value="overview" 
               className="text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap"
@@ -341,6 +343,16 @@ export default function AdminDashboardPage() {
                 <Users className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">Usuarios</span>
                 <span className="sm:hidden text-xs">Usuarios</span>
+              </div>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="plans" 
+              className="text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap"
+            >
+              <div className="flex flex-col items-center gap-1">
+                <DollarSign className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Planes</span>
+                <span className="sm:hidden text-xs">Planes</span>
               </div>
             </TabsTrigger>
           </TabsList>
@@ -463,6 +475,11 @@ export default function AdminDashboardPage() {
           {/* Usuarios Tab */}
           <TabsContent value="users" className="space-y-6">
             <UsersList adminId={adminProfile?.id || null} />
+          </TabsContent>
+
+          {/* Planes Tab */}
+          <TabsContent value="plans" className="space-y-6">
+            <SubscriptionPlansList />
           </TabsContent>
 
         </Tabs>
