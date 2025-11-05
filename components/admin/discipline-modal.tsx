@@ -74,7 +74,7 @@ export function DisciplineModal({
     color: '#3B82F6',
     order_index: 0
   })
-  const [levels, setLevels] = useState<Omit<DisciplineLevel, 'id' | 'discipline_id' | 'created_at' | 'updated_at'>[]>([])
+  const [levels, setLevels] = useState<Omit<DisciplineLevel, 'discipline_id' | 'created_at' | 'updated_at'>[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingStep, setLoadingStep] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
@@ -90,6 +90,7 @@ export function DisciplineModal({
         order_index: discipline.order_index
       })
       setLevels(discipline.levels?.map(level => ({
+        id: level.id,
         name: level.name,
         description: level.description || '',
         order_index: level.order_index,
