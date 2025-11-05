@@ -72,7 +72,9 @@ export function useUsersManagement(adminId: string | null) {
       const response = await fetch(`/api/admin/users?adminId=${adminId}`)
       
       if (!response.ok) {
-        console.error('Error loading users')
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('Error loading users:', errorData.error || 'Unknown error')
+        setUsers([])
         return
       }
 
@@ -91,14 +93,21 @@ export function useUsersManagement(adminId: string | null) {
       const response = await fetch('/api/subscription-plans')
       
       if (!response.ok) {
-        console.error('Error loading plans')
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('Error loading plans:', errorData.error || 'Unknown error')
+        setPlans([])
         return
       }
 
       const data = await response.json()
       setPlans(data || [])
+      
+      if (!data || data.length === 0) {
+        console.warn('No hay planes de suscripción disponibles en la base de datos')
+      }
     } catch (err) {
       console.error('Error loading plans:', err)
+      setPlans([])
     }
   }
 
@@ -149,6 +158,28 @@ export function useUsersManagement(adminId: string | null) {
     }
   }
 
+  // Eliminar usuario
+  const deleteUser = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(errorData.error || 'Error al eliminar usuario')
+      }
+
+      // Recargar usuarios
+      await loadUsers()
+      return { error: null }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al eliminar usuario'
+      console.error('Error deleting user:', err)
+      return { error: errorMessage }
+    }
+  }
+
   // Cargar datos al montar
   useEffect(() => {
     if (adminId) {
@@ -163,6 +194,7 @@ export function useUsersManagement(adminId: string | null) {
     loading,
     loadUsers,
     assignSubscription,
-    cancelSubscription
+    cancelSubscription,
+    deleteUser
   }
 }

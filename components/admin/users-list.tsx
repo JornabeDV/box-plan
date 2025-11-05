@@ -12,7 +12,7 @@ interface UsersListProps {
 }
 
 export function UsersList({ adminId }: UsersListProps) {
-  const { users, plans, loading, assignSubscription, cancelSubscription, loadUsers } = useUsersManagement(adminId)
+  const { users, plans, loading, assignSubscription, cancelSubscription, deleteUser, loadUsers } = useUsersManagement(adminId)
   
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPlan, setSelectedPlan] = useState<string>('all')
@@ -88,9 +88,12 @@ export function UsersList({ adminId }: UsersListProps) {
               key={user.id}
               user={user}
               plans={plans}
+              adminId={adminId}
               onAssignSubscription={assignSubscription}
               onCancelSubscription={cancelSubscription}
               onEditUser={handleEditUser}
+              onDeleteUser={deleteUser}
+              onAssignmentComplete={handleUserUpdated}
             />
           ))}
         </div>

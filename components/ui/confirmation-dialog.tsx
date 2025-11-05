@@ -16,7 +16,7 @@ import { AlertTriangle, Trash2, Loader2 } from 'lucide-react'
 interface ConfirmationDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onConfirm: () => void
+  onConfirm: () => void | Promise<void>
   title: string
   description: string
   confirmText?: string
@@ -36,9 +36,13 @@ export function ConfirmationDialog({
   variant = 'destructive',
   loading = false
 }: ConfirmationDialogProps) {
-  const handleConfirm = () => {
-    onConfirm()
-    onOpenChange(false)
+  const handleConfirm = async () => {
+    const result = onConfirm()
+    // Si onConfirm retorna una Promise, esperarla
+    if (result instanceof Promise) {
+      await result
+    }
+    // El diálogo se cierra desde el componente padre si es necesario
   }
 
   return (
