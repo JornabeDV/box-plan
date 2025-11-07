@@ -46,9 +46,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             throw new Error('Email o contraseña incorrectos')
           }
 
+          // Limpiar la contraseña de espacios en blanco
+          const cleanPassword = (credentials.password as string)?.trim()
+
           // Verificar contraseña
           const isValid = await bcrypt.compare(
-            credentials.password as string,
+            cleanPassword,
             foundUser.password
           )
 
