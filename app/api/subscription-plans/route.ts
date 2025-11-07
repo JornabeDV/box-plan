@@ -3,22 +3,48 @@ import { auth } from '@/lib/auth'
 import { sql } from '@/lib/neon'
 
 // GET /api/subscription-plans
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const plans = await sql`
-      SELECT 
-        id,
-        name,
-        description,
-        price,
-        currency,
-        interval,
-        features,
-        is_active
-      FROM subscription_plans
-      WHERE is_active = true
-      ORDER BY price ASC
-    `
+    // Verificar si el usuario es admin para devolver todos los planes
+    const session = await auth()
+    let isAdmin = false
+    
+    if (session?.user?.id) {
+      const adminProfile = await sql`
+        SELECT id FROM admin_profiles WHERE user_id = ${session.user.id}
+      `
+      isAdmin = adminProfile.length > 0
+    }
+
+    // Si es admin, devolver todos los planes; si no, solo los activos
+    const plans = isAdmin
+      ? await sql`
+          SELECT 
+            id,
+            name,
+            description,
+            price,
+            currency,
+            interval,
+            features,
+            is_active
+          FROM subscription_plans
+          ORDER BY price ASC
+        `
+      : await sql`
+          SELECT 
+            id,
+            name,
+            description,
+            price,
+            currency,
+            interval,
+            features,
+            is_active
+          FROM subscription_plans
+          WHERE is_active = true
+          ORDER BY price ASC
+        `
 
     // Transformar features de JSONB a array si es necesario
     const formattedPlans = plans.map(plan => ({
@@ -27,7 +53,12 @@ export async function GET() {
       is_popular: plan.name === 'Pro'
     }))
 
-    return NextResponse.json(formattedPlans)
+    const response = NextResponse.json(formattedPlans)
+    // Deshabilitar caché para asegurar datos frescos
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
+    return response
   } catch (error: any) {
     console.error('Error fetching subscription plans:', error)
     

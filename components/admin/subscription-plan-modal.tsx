@@ -18,7 +18,7 @@ interface SubscriptionPlanModalProps {
 }
 
 export function SubscriptionPlanModal({ open, onOpenChange, plan }: SubscriptionPlanModalProps) {
-  const { createPlan, updatePlan, loadPlans } = useSubscriptionPlans()
+  const { createPlan, updatePlan } = useSubscriptionPlans()
   const [loading, setLoading] = useState(false)
   
   const [formData, setFormData] = useState({
@@ -59,7 +59,7 @@ export function SubscriptionPlanModal({ open, onOpenChange, plan }: Subscription
       }
       setNewFeature('')
     }
-  }, [open, plan])
+  }, [open, plan?.id, plan?.price, plan?.name, plan?.description, plan?.currency, plan?.interval, plan?.is_active])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -89,7 +89,7 @@ export function SubscriptionPlanModal({ open, onOpenChange, plan }: Subscription
       }
 
       if (result.success) {
-        await loadPlans()
+        // El estado ya se actualizó en updatePlan, solo cerrar el modal
         onOpenChange(false)
       }
     } catch (error) {

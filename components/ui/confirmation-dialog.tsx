@@ -11,7 +11,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { AlertTriangle, Trash2, Loader2 } from 'lucide-react'
+import { AlertTriangle, CreditCard, Loader2 } from 'lucide-react'
 
 interface ConfirmationDialogProps {
   open: boolean
@@ -58,7 +58,7 @@ export function ConfirmationDialog({
               {variant === 'destructive' ? (
                 <AlertTriangle className="w-5 h-5" />
               ) : (
-                <Trash2 className="w-5 h-5" />
+                <CreditCard className="w-5 h-5" />
               )}
             </div>
             <AlertDialogTitle className="text-left">{title}</AlertDialogTitle>
