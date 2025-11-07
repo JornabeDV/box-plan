@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -10,12 +10,48 @@ import { useSubscriptionPlans, SubscriptionPlan as PlanType } from '@/hooks/use-
 import { Plus, Edit, Trash2, DollarSign, Calendar } from 'lucide-react'
 
 export function SubscriptionPlansList() {
-  const { plans, loading, deletePlan } = useSubscriptionPlans()
+  const { plans, loading, deletePlan, updateTrigger } = useSubscriptionPlans()
   const [showModal, setShowModal] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [planToDelete, setPlanToDelete] = useState<PlanType | null>(null)
   const [deleting, setDeleting] = useState(false)
+
+  // Estado local para forzar re-render cuando cambian los planes
+  const [displayPlans, setDisplayPlans] = useState<PlanType[]>([])
+
+  // Actualizar planes de visualización cuando cambian los planes o el trigger
+  useEffect(() => {
+    const updatedPlans = plans.map(plan => ({
+      ...plan,
+      price: Number(plan.price)
+    }))
+    console.log('🔄 Actualizando displayPlans:', updatedPlans.map(p => `${p.name}: $${p.price}`))
+    setDisplayPlans(updatedPlans)
+  }, [plans, updateTrigger])
+
+  // Memoizar planes con dependencia en updateTrigger para forzar re-render
+  const memoizedPlans = useMemo(() => {
+    return displayPlans
+  }, [displayPlans])
+
+  // Actualizar el plan seleccionado cuando los planes cambian
+  useEffect(() => {
+    if (selectedPlan) {
+      const updatedPlan = memoizedPlans.find(p => p.id === selectedPlan.id)
+      if (updatedPlan && (
+        updatedPlan.price !== selectedPlan.price ||
+        updatedPlan.name !== selectedPlan.name ||
+        updatedPlan.description !== selectedPlan.description ||
+        updatedPlan.currency !== selectedPlan.currency ||
+        updatedPlan.interval !== selectedPlan.interval ||
+        updatedPlan.is_active !== selectedPlan.is_active
+      )) {
+        setSelectedPlan(updatedPlan)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [memoizedPlans, updateTrigger])
 
   const handleCreatePlan = () => {
     setSelectedPlan(null)
@@ -79,7 +115,7 @@ export function SubscriptionPlansList() {
         </div>
 
         {/* Lista de planes */}
-        {plans.length === 0 ? (
+        {memoizedPlans.length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
               <p className="text-muted-foreground mb-4">No hay planes de suscripción creados</p>
@@ -91,8 +127,8 @@ export function SubscriptionPlansList() {
           </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {plans.map((plan) => (
-              <Card key={plan.id} className="relative">
+            {memoizedPlans.map((plan) => (
+              <Card key={`${plan.id}-${plan.price}-${plan.updated_at || plan.created_at}-${updateTrigger}`} className="relative">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -111,9 +147,9 @@ export function SubscriptionPlansList() {
                 <CardContent>
                   <div className="space-y-4">
                     {/* Precio */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2" key={`price-${plan.id}-${plan.price}-${updateTrigger}`}>
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-2xl font-bold">
+                      <span className="text-2xl font-bold" key={`price-value-${plan.id}-${plan.price}-${updateTrigger}`}>
                         {formatPrice(plan.price, plan.currency)}
                       </span>
                       <span className="text-muted-foreground">/</span>
@@ -177,7 +213,13 @@ export function SubscriptionPlansList() {
       {/* Modal de crear/editar plan */}
       <SubscriptionPlanModal
         open={showModal}
-        onOpenChange={setShowModal}
+        onOpenChange={(open) => {
+          setShowModal(open)
+          if (!open) {
+            // Limpiar el plan seleccionado cuando se cierra el modal
+            setSelectedPlan(null)
+          }
+        }}
         plan={selectedPlan}
       />
 

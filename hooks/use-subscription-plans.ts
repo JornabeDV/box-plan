@@ -19,20 +19,41 @@ export interface SubscriptionPlan {
 export function useSubscriptionPlans() {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([])
   const [loading, setLoading] = useState(true)
+  const [updateTrigger, setUpdateTrigger] = useState(0)
   const { toast } = useToast()
 
   // Cargar planes
-  const loadPlans = async () => {
+  const loadPlans = async (showLoading = true) => {
     try {
-      setLoading(true)
-      const response = await fetch('/api/subscription-plans')
+      if (showLoading) {
+        setLoading(true)
+      }
+      // Agregar timestamp para evitar caché del navegador
+      const timestamp = new Date().getTime()
+      const response = await fetch(`/api/subscription-plans?t=${timestamp}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      })
       
       if (!response.ok) {
         throw new Error('Error al cargar planes')
       }
 
       const data = await response.json()
-      setPlans(data || [])
+      // Crear un nuevo array con nuevos objetos para forzar re-render
+      const newPlans = Array.isArray(data) 
+        ? data.map(plan => ({
+            ...plan,
+            price: Number(plan.price),
+            features: Array.isArray(plan.features) ? [...plan.features] : plan.features
+          }))
+        : []
+      setPlans(newPlans)
+      // Incrementar trigger para forzar re-render
+      setUpdateTrigger(prev => prev + 1)
     } catch (err) {
       console.error('Error loading plans:', err)
       toast({
@@ -41,7 +62,9 @@ export function useSubscriptionPlans() {
         variant: 'destructive'
       })
     } finally {
-      setLoading(false)
+      if (showLoading) {
+        setLoading(false)
+      }
     }
   }
 
@@ -86,7 +109,8 @@ export function useSubscriptionPlans() {
       const response = await fetch(`/api/subscription-plans/${planId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(planData)
+        body: JSON.stringify(planData),
+        cache: 'no-store'
       })
 
       if (!response.ok) {
@@ -94,7 +118,66 @@ export function useSubscriptionPlans() {
         throw new Error(errorData.error || 'Error al actualizar el plan')
       }
 
-      await loadPlans()
+      const updatedPlan = await response.json()
+      
+      // Normalizar el plan actualizado - crear un objeto completamente nuevo
+      const normalizedPlan: SubscriptionPlan = {
+        id: updatedPlan.id,
+        name: updatedPlan.name,
+        description: updatedPlan.description ?? null,
+        price: Number(updatedPlan.price),
+        currency: updatedPlan.currency,
+        interval: updatedPlan.interval,
+        features: Array.isArray(updatedPlan.features) 
+          ? [...updatedPlan.features] 
+          : (typeof updatedPlan.features === 'string' 
+              ? JSON.parse(updatedPlan.features) 
+              : []),
+        is_active: updatedPlan.is_active ?? true,
+        created_at: updatedPlan.created_at,
+        updated_at: updatedPlan.updated_at
+      }
+      
+      // Actualizar estado de forma síncrona y forzar re-render
+      setPlans(prevPlans => {
+        // Crear un nuevo array completamente nuevo
+        const newPlans = prevPlans.map(plan => {
+          if (plan.id === planId) {
+            // Retornar un objeto completamente nuevo
+            const updated = {
+              id: normalizedPlan.id,
+              name: normalizedPlan.name,
+              description: normalizedPlan.description,
+              price: normalizedPlan.price,
+              currency: normalizedPlan.currency,
+              interval: normalizedPlan.interval,
+              features: normalizedPlan.features,
+              is_active: normalizedPlan.is_active,
+              created_at: normalizedPlan.created_at,
+              updated_at: normalizedPlan.updated_at
+            }
+            console.log('✅ Hook - Plan actualizado en estado:', updated.name, 'Precio:', updated.price)
+            return updated
+          }
+          // Retornar copia del plan existente
+          return {
+            ...plan,
+            features: Array.isArray(plan.features) ? [...plan.features] : plan.features
+          }
+        })
+        console.log('✅ Hook - Nuevos planes:', newPlans.map(p => `${p.name}: $${p.price}`))
+        return newPlans
+      })
+      
+      // Incrementar trigger para forzar re-render en componentes
+      setUpdateTrigger(prev => {
+        const newTrigger = prev + 1
+        console.log('✅ Hook - UpdateTrigger incrementado a:', newTrigger)
+        return newTrigger
+      })
+      
+      // Recargar planes desde el servidor sin mostrar loading para sincronizar
+      await loadPlans(false)
       
       toast({
         title: 'Plan actualizado',
@@ -102,7 +185,7 @@ export function useSubscriptionPlans() {
         variant: 'default'
       })
 
-      return { success: true }
+      return { success: true, plan: normalizedPlan }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al actualizar el plan'
       toast({
@@ -157,6 +240,7 @@ export function useSubscriptionPlans() {
     loadPlans,
     createPlan,
     updatePlan,
-    deletePlan
+    deletePlan,
+    updateTrigger // Exportar el trigger para que los componentes puedan usarlo
   }
 }

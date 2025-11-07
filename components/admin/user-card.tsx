@@ -11,11 +11,7 @@ import { useToast } from '@/hooks/use-toast'
 import { 
   User, 
   Mail, 
-  Calendar, 
-  Settings, 
-  CreditCard, 
-  FileText,
-  Trash2
+  Calendar
 } from 'lucide-react'
 
 interface UserWithSubscription {
@@ -96,38 +92,48 @@ export function UserCard({
 }: UserCardProps) {
   const [showAssignModal, setShowAssignModal] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showAssignSubscriptionDialog, setShowAssignSubscriptionDialog] = useState(false)
+  const [showCancelSubscriptionDialog, setShowCancelSubscriptionDialog] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null)
+  const [selectedPlanId, setSelectedPlanId] = useState<string>('')
+  const [assigning, setAssigning] = useState(false)
+  const [canceling, setCanceling] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const { toast } = useToast()
 
   return (
     <>
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className="overflow-hidden">
       <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="flex items-center space-x-3 min-w-0 flex-1">
+            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
               <User className="h-5 w-5 text-primary" />
             </div>
-            <div>
-              <CardTitle className="text-lg">
+            <div className="min-w-0 flex-1">
+              <CardTitle className="text-lg truncate">
                 {user.full_name || 'Sin nombre'}
               </CardTitle>
-              <CardDescription className="flex items-center">
-                <Mail className="h-4 w-4 mr-2" />
-                {user.email}
+              <CardDescription className="flex items-center min-w-0">
+                <Mail className="h-4 w-4 mr-2 shrink-0" />
+                <span className="truncate">{user.email}</span>
               </CardDescription>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant={user.has_subscription ? 'default' : 'outline'}>
-              {user.has_subscription ? user.subscription?.plan.name : 'Sin plan'}
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            <Badge variant={user.has_subscription ? 'default' : 'outline'} className="text-xs sm:text-base px-2 sm:px-4 py-1 sm:py-1.5 whitespace-nowrap">
+              {user.has_subscription 
+                ? user.subscription?.plan.name 
+                : user.subscription_status === 'canceled' 
+                  ? 'Cancelado' 
+                  : 'Sin plan'}
             </Badge>
             <Badge variant={
               user.subscription_status === 'active' ? 'default' :
               user.subscription_status === 'canceled' ? 'destructive' :
               user.subscription_status === 'past_due' ? 'destructive' :
               'secondary'
-            }>
+            } className="text-xs sm:text-base px-2 sm:px-4 py-1 sm:py-1.5 whitespace-nowrap">
               {user.subscription_status === 'active' ? 'Activo' :
                user.subscription_status === 'canceled' ? 'Cancelado' :
                user.subscription_status === 'past_due' ? 'Vencido' :
@@ -135,16 +141,16 @@ export function UserCard({
                'Sin suscripción'}
             </Badge>
             {user.preferences?.discipline && (
-              <Badge variant="outline" className="flex items-center gap-1">
+              <Badge variant="outline" className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-base px-2 sm:px-4 py-1 sm:py-1.5 whitespace-nowrap">
                 <div 
-                  className="w-2 h-2 rounded-full" 
+                  className="w-2 sm:w-3 h-2 sm:h-3 rounded-full shrink-0" 
                   style={{ backgroundColor: user.preferences.discipline.color }}
                 />
-                {user.preferences.discipline.name}
+                <span className="truncate">{user.preferences.discipline.name}</span>
               </Badge>
             )}
             {user.preferences?.level && (
-              <Badge variant="secondary">
+              <Badge variant="secondary" className="text-xs sm:text-base px-2 sm:px-4 py-1 sm:py-1.5 whitespace-nowrap">
                 {user.preferences.level.name}
               </Badge>
             )}
@@ -157,7 +163,7 @@ export function UserCard({
             <Calendar className="h-4 w-4 mr-2" />
             <span>Registrado: {new Date(user.created_at).toLocaleDateString()}</span>
           </div>
-          {user.subscription && (
+          {user.subscription && user.subscription_status === 'active' && (
             <div className="text-sm">
               <span className="font-medium">Suscripción:</span>
               <p className="text-muted-foreground">
@@ -169,13 +175,31 @@ export function UserCard({
               </p>
             </div>
           )}
+          {user.subscription && user.subscription_status === 'canceled' && (
+            <div className="text-sm">
+              <span className="font-medium text-muted-foreground">Última suscripción (cancelada):</span>
+              <p className="text-muted-foreground text-xs">
+                {user.subscription.plan.name} - Cancelada
+              </p>
+            </div>
+          )}
         </div>
-        <div className="flex items-center justify-between mt-4 pt-4 border-t">
-          <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-4 pt-4 border-t">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             {!user.has_subscription ? (
               plans.length > 0 ? (
-                <Select onValueChange={(planId) => onAssignSubscription(user.id, planId)}>
-                  <SelectTrigger className="w-48">
+                <Select 
+                  value={selectedPlanId}
+                  onValueChange={(planId) => {
+                    const plan = plans.find(p => p.id === planId)
+                    if (plan) {
+                      setSelectedPlan(plan)
+                      setSelectedPlanId(planId)
+                      setShowAssignSubscriptionDialog(true)
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:w-48">
                     <SelectValue placeholder="Asignar plan" />
                   </SelectTrigger>
                   <SelectContent>
@@ -202,34 +226,36 @@ export function UserCard({
                   size="sm" 
                   variant="outline"
                   onClick={() => setShowAssignModal(true)}
+                  className="hover:scale-100 active:scale-100"
                 >
-                  <FileText className="h-4 w-4 mr-2" />
                   Asignar Planillas
                 </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => user.subscription && onCancelSubscription(user.subscription.id)}
-                >
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  Cancelar Suscripción
-                </Button>
+                {user.subscription_status !== 'canceled' && (
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => user.subscription && setShowCancelSubscriptionDialog(true)}
+                    className="hover:scale-100 active:scale-100"
+                  >
+                    Cancelar Suscripción
+                  </Button>
+                )}
               </>
             )}
             <Button 
               size="sm" 
               variant="outline"
               onClick={() => onEditUser(user)}
+              className="hover:scale-100 active:scale-100"
             >
-              <Settings className="h-4 w-4 mr-2" />
               Preferencias
             </Button>
             <Button 
               size="sm" 
               variant="destructive"
               onClick={() => setShowDeleteDialog(true)}
+              className="hover:scale-100 active:scale-100"
             >
-              <Trash2 className="h-4 w-4 mr-2" />
               Eliminar
             </Button>
           </div>
@@ -249,6 +275,99 @@ export function UserCard({
           onAssignmentComplete()
         }
       }}
+    />
+
+    {/* Diálogo de confirmación para asignar suscripción */}
+    <ConfirmationDialog
+      open={showAssignSubscriptionDialog}
+      onOpenChange={(open) => {
+        if (!assigning) {
+          setShowAssignSubscriptionDialog(open)
+          if (!open) {
+            setSelectedPlan(null)
+            setSelectedPlanId('')
+          }
+        }
+      }}
+      onConfirm={async () => {
+        if (!selectedPlan) return
+        
+        setAssigning(true)
+        try {
+          await onAssignSubscription(user.id, selectedPlan.id)
+          toast({
+            title: 'Suscripción asignada',
+            description: `El plan "${selectedPlan.name}" ha sido asignado exitosamente a ${user.full_name || user.email}.`,
+            variant: 'default'
+          })
+          setShowAssignSubscriptionDialog(false)
+          setSelectedPlan(null)
+          setSelectedPlanId('')
+        } catch (error) {
+          toast({
+            title: 'Error al asignar suscripción',
+            description: 'Ocurrió un error al asignar el plan. Por favor, intenta nuevamente.',
+            variant: 'destructive'
+          })
+        } finally {
+          setAssigning(false)
+        }
+      }}
+      title="Confirmar Asignación de Plan"
+      description={
+        selectedPlan
+          ? `¿Estás seguro de que quieres asignar el plan "${selectedPlan.name}" (${new Intl.NumberFormat('es-AR', {
+              style: 'currency',
+              currency: selectedPlan.currency,
+            }).format(selectedPlan.price)}/${selectedPlan.interval === 'month' ? 'mes' : 'año'}) al usuario ${user.full_name || user.email}? La suscripción se activará inmediatamente y tendrá una duración de 30 días.`
+          : ''
+      }
+      confirmText="Asignar Plan"
+      cancelText="Cancelar"
+      variant="default"
+      loading={assigning}
+    />
+
+    {/* Diálogo de confirmación para cancelar suscripción */}
+    <ConfirmationDialog
+      open={showCancelSubscriptionDialog}
+      onOpenChange={(open) => {
+        if (!canceling) {
+          setShowCancelSubscriptionDialog(open)
+        }
+      }}
+      onConfirm={async () => {
+        if (!user.subscription) return
+        
+        setCanceling(true)
+        try {
+          await onCancelSubscription(user.subscription.id)
+          toast({
+            title: 'Suscripción cancelada',
+            description: `La suscripción del plan "${user.subscription.plan.name}" ha sido cancelada inmediatamente para ${user.full_name || user.email}.`,
+            variant: 'default'
+          })
+          setShowCancelSubscriptionDialog(false)
+        } catch (error) {
+          toast({
+            title: 'Error al cancelar suscripción',
+            description: error instanceof Error ? error.message : 'Ocurrió un error al cancelar la suscripción. Por favor, intenta nuevamente.',
+            variant: 'destructive'
+          })
+        } finally {
+          setCanceling(false)
+        }
+      }}
+      title="Confirmar Cancelación de Suscripción"
+      description={
+        user.subscription
+          ? `¿Estás seguro de que quieres cancelar la suscripción del plan "${user.subscription.plan.name}" para ${user.full_name || user.email}? La suscripción se cancelará inmediatamente y el usuario perderá el acceso a las funcionalidades premium.`
+          : ''
+      }
+      confirmText="Cancelar Suscripción"
+      cancelText="No Cancelar"
+      variant="destructive"
+      loading={canceling}
     />
 
     {/* Diálogo de confirmación para eliminar usuario */}

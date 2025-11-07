@@ -128,14 +128,15 @@ export function useUsersManagement(adminId: string | null) {
       })
 
       if (!response.ok) {
-        console.error('Error assigning subscription')
-        return
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }))
+        throw new Error(errorData.error || 'Error al asignar suscripción')
       }
 
       // Recargar usuarios
       await loadUsers()
     } catch (err) {
       console.error('Error assigning subscription:', err)
+      throw err
     }
   }
 
@@ -147,14 +148,15 @@ export function useUsersManagement(adminId: string | null) {
       })
 
       if (!response.ok) {
-        console.error('Error canceling subscription')
-        return
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }))
+        throw new Error(errorData.error || 'Error al cancelar suscripción')
       }
 
       // Recargar usuarios
       await loadUsers()
     } catch (err) {
       console.error('Error canceling subscription:', err)
+      throw err
     }
   }
 

@@ -26,68 +26,51 @@ export async function PATCH(
     const body = await request.json()
     const { name, description, price, currency, interval, features, is_active } = body
 
-    console.log('Update request body:', body)
-    console.log('Plan ID:', params.id)
+    // Verificar que hay al menos un campo para actualizar
+    const hasUpdates = name !== undefined || 
+                      description !== undefined || 
+                      (price !== undefined && price !== null) || 
+                      currency !== undefined || 
+                      interval !== undefined || 
+                      features !== undefined || 
+                      is_active !== undefined
 
-    // Construir update dinámicamente
-    const conditions: string[] = []
-    
-    if (name !== undefined) {
-      conditions.push(`name = '${name.replace(/'/g, "''")}'`)
-    }
-    if (description !== undefined) {
-      conditions.push(`description = ${description === null ? 'NULL' : `'${(description || '').replace(/'/g, "''")}'`}`)
-    }
-    if (price !== undefined && price !== null) {
-      conditions.push(`price = ${price}`)
-    }
-    if (currency !== undefined) {
-      conditions.push(`currency = '${currency.replace(/'/g, "''")}'`)
-    }
-    if (interval !== undefined) {
-      conditions.push(`interval = '${interval.replace(/'/g, "''")}'`)
-    }
-    if (features !== undefined) {
-      conditions.push(`features = '${JSON.stringify(features).replace(/'/g, "''")}'::jsonb`)
-    }
-    if (is_active !== undefined) {
-      conditions.push(`is_active = ${is_active}`)
-    }
-    
-    if (conditions.length === 0) {
+    if (!hasUpdates) {
       return NextResponse.json({ error: 'No hay campos para actualizar' }, { status: 400 })
     }
-    
-    conditions.push('updated_at = NOW()')
-    const setClause = conditions.join(', ')
 
-    // Ejecutar UPDATE - usar sql template literal con interpolación para campos dinámicos
-    // Primero actualizar los campos dinámicamente
-    if (name !== undefined) {
-      await sql`UPDATE subscription_plans SET name = ${name}, updated_at = NOW() WHERE id = ${params.id}`
-    }
-    if (description !== undefined) {
-      await sql`UPDATE subscription_plans SET description = ${description}, updated_at = NOW() WHERE id = ${params.id}`
-    }
-    if (price !== undefined && price !== null) {
-      await sql`UPDATE subscription_plans SET price = ${price}, updated_at = NOW() WHERE id = ${params.id}`
-    }
-    if (currency !== undefined) {
-      await sql`UPDATE subscription_plans SET currency = ${currency}, updated_at = NOW() WHERE id = ${params.id}`
-    }
-    if (interval !== undefined) {
-      await sql`UPDATE subscription_plans SET interval = ${interval}, updated_at = NOW() WHERE id = ${params.id}`
-    }
-    if (features !== undefined) {
-      await sql`UPDATE subscription_plans SET features = ${JSON.stringify(features)}::jsonb, updated_at = NOW() WHERE id = ${params.id}`
-    }
-    if (is_active !== undefined) {
-      await sql`UPDATE subscription_plans SET is_active = ${is_active}, updated_at = NOW() WHERE id = ${params.id}`
-    }
-
-    // Obtener el plan actualizado
-    const result = await sql`
+    // Obtener el plan actual primero
+    const currentPlan = await sql`
       SELECT * FROM subscription_plans WHERE id = ${params.id}
+    `
+
+    if (!currentPlan || currentPlan.length === 0) {
+      return NextResponse.json({ error: 'Plan no encontrado' }, { status: 404 })
+    }
+
+    // Usar valores actuales si no se proporcionan nuevos
+    const finalName = name !== undefined ? name : currentPlan[0].name
+    const finalDescription = description !== undefined ? description : currentPlan[0].description
+    const finalPrice = (price !== undefined && price !== null) ? price : currentPlan[0].price
+    const finalCurrency = currency !== undefined ? currency : currentPlan[0].currency
+    const finalInterval = interval !== undefined ? interval : currentPlan[0].interval
+    const finalFeatures = features !== undefined ? features : (typeof currentPlan[0].features === 'string' ? JSON.parse(currentPlan[0].features) : currentPlan[0].features)
+    const finalIsActive = is_active !== undefined ? is_active : currentPlan[0].is_active
+
+    // Ejecutar UPDATE en una sola operación con todos los campos
+    const result = await sql`
+      UPDATE subscription_plans 
+      SET 
+        name = ${finalName},
+        description = ${finalDescription},
+        price = ${finalPrice},
+        currency = ${finalCurrency},
+        interval = ${finalInterval},
+        features = ${JSON.stringify(finalFeatures)}::jsonb,
+        is_active = ${finalIsActive},
+        updated_at = NOW()
+      WHERE id = ${params.id}
+      RETURNING *
     `
 
     if (!result || result.length === 0 || !result[0]) {
