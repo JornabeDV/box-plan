@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
+import { AssignPlanModal } from './assign-plan-modal'
 import { useToast } from '@/hooks/use-toast'
 import { 
   User, 
@@ -72,7 +72,7 @@ interface UserCardProps {
   user: UserWithSubscription
   plans: SubscriptionPlan[]
   adminId: string | null
-  onAssignSubscription: (userId: string, planId: string) => void
+  onAssignSubscription: (userId: string, planId: string, paymentMethod: string) => Promise<void>
   onCancelSubscription: (subscriptionId: string) => void
   onEditUser: (user: UserWithSubscription) => void
   onDeleteUser: (userId: string) => Promise<{ error: string | null }>
@@ -90,11 +90,8 @@ export function UserCard({
   onAssignmentComplete
 }: UserCardProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [showAssignSubscriptionDialog, setShowAssignSubscriptionDialog] = useState(false)
+  const [showAssignPlanModal, setShowAssignPlanModal] = useState(false)
   const [showCancelSubscriptionDialog, setShowCancelSubscriptionDialog] = useState(false)
-  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null)
-  const [selectedPlanId, setSelectedPlanId] = useState<string>('')
-  const [assigning, setAssigning] = useState(false)
   const [canceling, setCanceling] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const { toast } = useToast()
@@ -186,28 +183,14 @@ export function UserCard({
           <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             {!user.has_subscription ? (
               plans.length > 0 ? (
-                <Select 
-                  value={selectedPlanId}
-                  onValueChange={(planId) => {
-                    const plan = plans.find(p => p.id === planId)
-                    if (plan) {
-                      setSelectedPlan(plan)
-                      setSelectedPlanId(planId)
-                      setShowAssignSubscriptionDialog(true)
-                    }
-                  }}
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => setShowAssignPlanModal(true)}
+                  className="hover:scale-100 active:scale-100"
                 >
-                  <SelectTrigger className="w-full sm:w-48">
-                    <SelectValue placeholder="Asignar plan" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {plans.map((plan) => (
-                      <SelectItem key={plan.id} value={plan.id}>
-                        {plan.name} - ${plan.price}/{plan.interval}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  Asignar Plan
+                </Button>
               ) : (
                 <Button
                   size="sm"
@@ -253,55 +236,23 @@ export function UserCard({
       </CardContent>
     </Card>
 
-    {/* Diálogo de confirmación para asignar suscripción */}
-    <ConfirmationDialog
-      open={showAssignSubscriptionDialog}
+    {/* Modal para asignar plan */}
+    <AssignPlanModal
+      open={showAssignPlanModal}
       onOpenChange={(open) => {
-        if (!assigning) {
-          setShowAssignSubscriptionDialog(open)
-          if (!open) {
-            setSelectedPlan(null)
-            setSelectedPlanId('')
-          }
+        setShowAssignPlanModal(open)
+        if (!open && onAssignmentComplete) {
+          onAssignmentComplete()
         }
       }}
-      onConfirm={async () => {
-        if (!selectedPlan) return
-        
-        setAssigning(true)
-        try {
-          await onAssignSubscription(user.id, selectedPlan.id)
-          toast({
-            title: 'Suscripción asignada',
-            description: `El plan "${selectedPlan.name}" ha sido asignado exitosamente a ${user.full_name || user.email}.`,
-            variant: 'default'
-          })
-          setShowAssignSubscriptionDialog(false)
-          setSelectedPlan(null)
-          setSelectedPlanId('')
-        } catch (error) {
-          toast({
-            title: 'Error al asignar suscripción',
-            description: 'Ocurrió un error al asignar el plan. Por favor, intenta nuevamente.',
-            variant: 'destructive'
-          })
-        } finally {
-          setAssigning(false)
+      user={user}
+      plans={plans}
+      onAssign={async (userId, planId, paymentMethod) => {
+        await onAssignSubscription(userId, planId, paymentMethod)
+        if (onAssignmentComplete) {
+          onAssignmentComplete()
         }
       }}
-      title="Confirmar Asignación de Plan"
-      description={
-        selectedPlan
-          ? `¿Estás seguro de que quieres asignar el plan "${selectedPlan.name}" (${new Intl.NumberFormat('es-AR', {
-              style: 'currency',
-              currency: selectedPlan.currency,
-            }).format(selectedPlan.price)}/${selectedPlan.interval === 'month' ? 'mes' : 'año'}) al usuario ${user.full_name || user.email}? La suscripción se activará inmediatamente y tendrá una duración de 30 días.`
-          : ''
-      }
-      confirmText="Asignar Plan"
-      cancelText="Cancelar"
-      variant="default"
-      loading={assigning}
     />
 
     {/* Diálogo de confirmación para cancelar suscripción */}
