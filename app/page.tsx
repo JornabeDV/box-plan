@@ -8,8 +8,6 @@ import { useAuthWithRoles } from "@/hooks/use-auth-with-roles"
 import { useProfile } from "@/hooks/use-profile"
 import { TodaySection } from "@/components/dashboard/today-section"
 import { StatsCards } from "@/components/dashboard/stats-cards"
-import { SubscriptionStatus } from "@/components/dashboard/subscription-status"
-import { AssignedWorkoutSheets } from "@/components/dashboard/assigned-workout-sheets"
 import { ReviewsSection } from "@/components/home/reviews-section"
 import { 
   Loader2, 
@@ -39,7 +37,7 @@ import { Badge } from "@/components/ui/badge"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { useToast } from "@/hooks/use-toast"
 
-export default function BoxPlanApp() {
+export default function BoxPlanApp() {  
   const [shouldRedirect, setShouldRedirect] = useState(false)
   const [paymentStatusHandled, setPaymentStatusHandled] = useState(false)
   const router = useRouter()
@@ -49,6 +47,29 @@ export default function BoxPlanApp() {
   
   // Verificar si el usuario tiene suscripción activa
   const hasActiveSubscription = subscription?.status === 'active'
+  
+  // Frases motivacionales para usuarios con suscripción activa
+  const motivationalQuotes = [
+    "El único entrenamiento malo es el que no haces. ¡Vamos! 💪",
+    "Cada repetición te acerca más a tu mejor versión. 🔥",
+    "La disciplina es el puente entre tus metas y tus logros. ⚡",
+    "Hoy no es el día para rendirse. ¡Sigue adelante! 🚀",
+    "Tu cuerpo puede hacerlo. Es tu mente la que necesitas convencer. 🧠",
+    "El dolor es temporal, pero el orgullo es para siempre. 💎",
+    "No esperes la motivación, crea la disciplina. 🎯",
+    "Cada día es una nueva oportunidad de superarte. 🌟",
+    "La fuerza no viene de lo que puedes hacer, viene de superar lo que pensabas que no podías. 💪",
+    "El éxito es la suma de pequeños esfuerzos repetidos día tras día. 📈",
+    "No te detengas cuando estés cansado, detente cuando hayas terminado. 🏋️",
+    "Tu competencia más grande eres tú mismo. ¡Vence a tu yo de ayer! 🥇"
+  ]
+
+  // Obtener una frase motivacional basada en el día del año para que cambie diariamente
+  const getDailyMotivationalQuote = () => {
+    const today = new Date()
+    const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000)
+    return motivationalQuotes[dayOfYear % motivationalQuotes.length]
+  }
 
   // Manejar parámetros de pago después de redirección desde MercadoPago
   useEffect(() => {
@@ -516,26 +537,27 @@ export default function BoxPlanApp() {
       <main className="p-6 space-y-8 pb-32 max-w-6xl mx-auto">
         {/* Saludo personalizado */}
         <section>
-          <div className="space-y-2">
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-              ¡Hola{user?.name ? `, ${user.name.split(' ')[0]}` : ''}! 👋
-            </h1>
-            <p className="text-muted-foreground text-lg">
-              {new Date().toLocaleDateString('es-ES', { 
-                weekday: 'long', 
-                day: 'numeric', 
-                month: 'long' 
-              })}
-            </p>
+          <div className="space-y-3">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-4">
+              <h1 className="text-3xl md:text-4xl font-bold text-foreground">
+                ¡Hola{user?.name ? `, ${user.name.split(' ')[0]}` : ''}! 👋
+              </h1>
+              <p className="text-muted-foreground text-base md:text-lg md:whitespace-nowrap">
+                {new Date().toLocaleDateString('es-ES', { 
+                  weekday: 'long', 
+                  day: 'numeric', 
+                  month: 'long' 
+                })}
+              </p>
+            </div>
+            {/* Frase motivacional - Solo para usuarios con suscripción activa */}
+            {!profileLoading && subscription?.status === 'active' && (
+              <p className="text-lime-400 text-base md:text-lg font-medium italic">
+                {getDailyMotivationalQuote()}
+              </p>
+            )}
           </div>
         </section>
-
-        {/* Estado de Suscripción */}
-        {user?.id && (
-          <section>
-            <SubscriptionStatus />
-          </section>
-        )}
 
         {/* Estadísticas rápidas - Solo para usuarios con suscripción activa */}
         {user?.id && hasActiveSubscription && (
@@ -548,13 +570,6 @@ export default function BoxPlanApp() {
         {user?.id && hasActiveSubscription && (
           <section>
             <TodaySection />
-          </section>
-        )}
-
-        {/* Planillas asignadas - Solo para usuarios con suscripción activa */}
-        {user?.id && hasActiveSubscription && (
-          <section>
-            <AssignedWorkoutSheets userId={user.id} />
           </section>
         )}
 

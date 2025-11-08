@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Target } from "lucide-react"
-import Link from "next/link"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+import { useAuth } from "@/hooks/use-auth"
 
 interface MonthlyCalendarProps {
   onDateClick?: (date: Date) => void
@@ -15,7 +15,10 @@ interface MonthlyCalendarProps {
  * Permite navegar entre meses y hacer click en días para ver entrenamientos
  */
 export function MonthlyCalendar({ onDateClick }: MonthlyCalendarProps) {
+  const { user } = useAuth()
   const [currentDate, setCurrentDate] = useState(new Date())
+  const [datesWithPlanification, setDatesWithPlanification] = useState<number[]>([])
+  const [loading, setLoading] = useState(false)
   
   const today = new Date()
   const year = currentDate.getFullYear()
@@ -50,13 +53,44 @@ export function MonthlyCalendar({ onDateClick }: MonthlyCalendarProps) {
     setCurrentDate(new Date())
   }
   
-  // Verificar si un día tiene entrenamiento (simulación - en una app real vendría de la API)
+  // Cargar planificaciones del mes
+  useEffect(() => {
+    const fetchMonthPlanifications = async () => {
+      if (!user?.id) {
+        setDatesWithPlanification([])
+        return
+      }
+
+      try {
+        setLoading(true)
+        const response = await fetch(`/api/planifications/month?year=${year}&month=${month + 1}`)
+        
+        if (!response.ok) {
+          console.error('Error fetching month planifications')
+          return
+        }
+
+        const data = await response.json()
+        
+        if (data.data && Array.isArray(data.data)) {
+          setDatesWithPlanification(data.data)
+        } else {
+          setDatesWithPlanification([])
+        }
+      } catch (err) {
+        console.error('Error fetching month planifications:', err)
+        setDatesWithPlanification([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchMonthPlanifications()
+  }, [user?.id, year, month])
+
+  // Verificar si un día tiene planificación
   const hasWorkout = (day: number) => {
-    const date = new Date(year, month, day)
-    const dayOfWeek = date.getDay()
-    // Simular que hay entrenamientos de lunes a sábado (1-6)
-    // donde 0=domingo, 1=lunes, ..., 6=sábado
-    return dayOfWeek >= 1 && dayOfWeek <= 6
+    return datesWithPlanification.includes(day)
   }
   
   // Verificar si es hoy
@@ -71,8 +105,12 @@ export function MonthlyCalendar({ onDateClick }: MonthlyCalendarProps) {
     return date < today && !isToday(day)
   }
   
-  // Manejar click en un día
+  // Manejar click en un día - Solo si tiene planificación
   const handleDayClick = (day: number) => {
+    // Solo permitir click si el día tiene planificación
+    if (!hasWorkout(day)) {
+      return
+    }
     const date = new Date(year, month, day)
     if (onDateClick) {
       onDateClick(date)
@@ -107,7 +145,7 @@ export function MonthlyCalendar({ onDateClick }: MonthlyCalendarProps) {
         <div className="flex items-center justify-between">
           <Button
             variant="ghost"
-            size="icon-sm"
+            size="icon"
             onClick={goToPreviousMonth}
             className="hover:bg-primary/10 hover:text-primary"
           >
@@ -120,7 +158,7 @@ export function MonthlyCalendar({ onDateClick }: MonthlyCalendarProps) {
           
           <Button
             variant="ghost"
-            size="icon-sm"
+            size="icon"
             onClick={goToNextMonth}
             className="hover:bg-primary/10 hover:text-primary"
           >
@@ -161,18 +199,20 @@ export function MonthlyCalendar({ onDateClick }: MonthlyCalendarProps) {
             const hasWorkoutValue = hasWorkout(day)
             const isCurrentDay = isToday(day)
             const isPast = isPastDay(day)
+            const isClickable = hasWorkoutValue
             
             return (
               <div key={`day-${day}-${month}-${year}`} className="aspect-square">
                 <div
                   className={`
-                    w-full h-full flex items-center justify-center text-sm font-semibold rounded-xl cursor-pointer transition-all duration-200
+                    w-full h-full flex items-center justify-center text-sm font-semibold rounded-xl transition-all duration-200
                     ${isCurrentDay 
                       ? 'bg-primary text-primary-foreground shadow-accent animate-pulse-glow' 
                       : hasWorkoutValue 
                         ? 'bg-accent/20 text-accent hover:bg-accent/30 hover:scale-105 border-2 border-accent/30' 
-                        : 'text-muted-foreground hover:bg-muted/50'
+                        : 'text-muted-foreground'
                     }
+                    ${isClickable ? 'cursor-pointer' : 'cursor-default'}
                     ${isPast ? 'opacity-50' : ''}
                   `}
                   onClick={() => handleDayClick(day)}
