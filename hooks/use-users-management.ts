@@ -112,7 +112,7 @@ export function useUsersManagement(adminId: string | null) {
   }
 
   // Asignar suscripción
-  const assignSubscription = async (userId: string, planId: string) => {
+  const assignSubscription = async (userId: string, planId: string, paymentMethod: string = 'admin_assignment'): Promise<void> => {
     try {
       const response = await fetch('/api/subscriptions', {
         method: 'POST',
@@ -123,7 +123,8 @@ export function useUsersManagement(adminId: string | null) {
           status: 'active',
           current_period_start: new Date().toISOString(),
           current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          cancel_at_period_end: false
+          cancel_at_period_end: false,
+          payment_method: paymentMethod
         })
       })
 
