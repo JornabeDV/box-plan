@@ -148,7 +148,7 @@ export default function CargaScorePage() {
 				const durationSeconds = minutes * 60 + seconds
 
 				const workoutData = {
-					sheet_id: planification?.id || 'manual', // Si no hay planificación, usar 'manual'
+					planification_id: planification?.id || null, // Si no hay planificación, usar null
 					data: {
 						wod_name: wod.wodName,
 						notes: wod.notes || '',

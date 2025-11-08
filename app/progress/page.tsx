@@ -224,7 +224,7 @@ export default function ProgresoPage() {
 									>
 										<div className="flex-1">
 											<div className="font-semibold">
-												{workout.title || workout.workout_sheets?.title || 'Entrenamiento'}
+												{workout.title || 'Entrenamiento'}
 											</div>
 											<div className="text-sm text-muted-foreground">
 												{workout.completed_at

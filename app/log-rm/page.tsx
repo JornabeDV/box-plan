@@ -122,7 +122,7 @@ export default function CargaRMPage() {
 				const calculatedRM = calculateOneRM(weight, reps)
 
 				const workoutData = {
-					sheet_id: 'rm_record', // Identificador especial para RMs
+					planification_id: null, // Los RMs no están asociados a planificaciones
 					data: {
 						exercise: rm.exercise,
 						weight: weight,

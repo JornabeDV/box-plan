@@ -2,33 +2,20 @@
 
 import { useState } from 'react'
 import { useAuthWithRoles as useSimplifiedAuth } from '@/hooks/use-auth-with-roles'
-import { useAdminWorkoutSheets } from '@/hooks/use-admin-workout-sheets'
 import { useDisciplines } from '@/hooks/use-disciplines'
 import { usePlanifications } from '@/hooks/use-planifications'
+import { useUsersManagement } from '@/hooks/use-users-management'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
   Plus, 
-  Search, 
-  Filter, 
   Users, 
-  FileText, 
   BarChart3, 
   Settings,
-  Clock,
-  Dumbbell,
-  Star,
-  Eye,
-  Edit,
-  Trash2,
-  ArrowLeft,
-  Home,
   Calendar,
   Target,
-  DollarSign
+  DollarSign,
+  ArrowLeft
 } from 'lucide-react'
 import { AdminStats } from '@/components/admin/admin-stats'
 import { UsersList } from '@/components/admin/users-list'
@@ -42,14 +29,6 @@ import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 export default function AdminDashboardPage() {
   const { user, adminProfile, loading: authLoading, isAdmin, userRole } = useSimplifiedAuth()
-
-  const { 
-    workoutSheets, 
-    categories, 
-    loading: sheetsLoading, 
-    searchWorkoutSheets 
-  } = useAdminWorkoutSheets(adminProfile?.id || null)
-
 
   const {
     disciplines,
@@ -71,9 +50,9 @@ export default function AdminDashboardPage() {
     searchPlanifications
   } = usePlanifications(adminProfile?.id)
 
+  const { users } = useUsersManagement(adminProfile?.id || null)
+
   const [activeTab, setActiveTab] = useState('overview')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all')
   const [showDisciplineModal, setShowDisciplineModal] = useState(false)
   const [selectedDiscipline, setSelectedDiscipline] = useState<any>(null)
   const [showPlanificationModal, setShowPlanificationModal] = useState(false)
@@ -83,30 +62,6 @@ export default function AdminDashboardPage() {
   const [dayPlanifications, setDayPlanifications] = useState<any[]>([])
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [planificationToDelete, setPlanificationToDelete] = useState<any>(null)
-
-  // Filtrar planillas según búsqueda y dificultad
-  const filteredSheets = workoutSheets.filter(sheet => {
-    const matchesSearch = searchQuery === '' || 
-      sheet.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sheet.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sheet.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-    
-    const matchesDifficulty = selectedDifficulty === 'all' || sheet.difficulty === selectedDifficulty
-    
-    return matchesSearch && matchesDifficulty
-  })
-
-
-
-  const handleSearch = (query: string) => {
-    setSearchQuery(query)
-    if (query.trim()) {
-      searchWorkoutSheets(query)
-    } else {
-      // Recargar todas las planillas si la búsqueda está vacía
-      // Esto se manejaría en el hook, pero por simplicidad lo hacemos aquí
-    }
-  }
 
   const handleCreateDiscipline = async (data: any) => {
     
@@ -360,51 +315,9 @@ export default function AdminDashboardPage() {
           {/* Resumen Tab */}
           <TabsContent value="overview" className="space-y-6">
             <AdminStats 
-              totalSheets={workoutSheets.length}
-              totalUsers={0} // TODO: Implementar contador de usuarios
-              completedSheets={0} // TODO: Implementar contador de planillas completadas
+              totalSheets={planifications.length}
+              totalUsers={users.length}
             />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Planillas Recientes</CardTitle>
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{workoutSheets.length}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Total de planillas creadas
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Usuarios Activos</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">0</div>
-                  <p className="text-xs text-muted-foreground">
-                    Usuarios asignados
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Progreso</CardTitle>
-                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">0%</div>
-                  <p className="text-xs text-muted-foreground">
-                    Planillas completadas
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
           </TabsContent>
 
           {/* Disciplinas Tab */}

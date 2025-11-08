@@ -12,20 +12,13 @@ import { ReviewsSection } from "@/components/home/reviews-section"
 import { 
   Loader2, 
   Target, 
-  LogIn, 
-  Play, 
-  Heart, 
-  Share2, 
-  Download, 
   Calendar, 
   Star, 
-  Hash, 
   TrendingUp,
   Timer,
   Users,
   Calculator,
   FileText,
-  Check,
   Zap,
   ArrowRight,
   ChevronDown,
@@ -46,7 +39,7 @@ export default function BoxPlanApp() {
   const [paymentStatusHandled, setPaymentStatusHandled] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
-  const { user, userRole, adminProfile, loading: authLoading, isAdmin, isUser, signOut } = useAuthWithRoles()
+  const { user, loading: authLoading } = useAuthWithRoles()
   const { subscription, loading: profileLoading } = useProfile()
   
   // Verificar si el usuario tiene suscripción activa

@@ -316,21 +316,7 @@ export async function DELETE(
 			// Ignorar si la tabla no existe o no hay datos
 		}
 
-		// 2. Asignaciones de planillas de entrenamiento
-		try {
-			await sql`DELETE FROM workout_sheet_assignments WHERE user_id = ${params.userId}`
-		} catch (err) {
-			// Ignorar si la tabla no existe o no hay datos
-		}
-
-		// 3. Planillas de usuario
-		try {
-			await sql`DELETE FROM user_workout_sheets WHERE user_id = ${params.userId}`
-		} catch (err) {
-			// Ignorar si la tabla no existe o no hay datos
-		}
-
-		// 4. Historial de pagos
+		// 2. Historial de pagos
 		try {
 			await sql`DELETE FROM payment_history WHERE user_id = ${params.userId}`
 		} catch (err) {
