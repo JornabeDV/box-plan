@@ -29,7 +29,11 @@ import {
   Zap,
   ArrowRight,
   ChevronDown,
-  Shield
+  Shield,
+  BarChart3,
+  Clock,
+  Weight,
+  Trophy
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -573,53 +577,55 @@ export default function BoxPlanApp() {
           </section>
         )}
 
-        {/* Accesos rápidos */}
-        <section>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="w-5 h-5" />
-                Accesos Rápidos
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Button
-                  variant="outline"
-                  className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
-                  onClick={() => router.push('/workout-sheets')}
-                >
-                  <FileText className="w-6 h-6" />
-                  <span>Planillas</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors hover:scale-100"
-                  onClick={() => router.push('/timer')}
-                >
-                  <Timer className="w-6 h-6" />
-                  <span>Timer</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors hover:scale-100"
-                  onClick={() => router.push('/rm-calculator')}
-                >
-                  <Calculator className="w-6 h-6" />
-                  <span>RM</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
-                  onClick={() => router.push('/forum')}
-                >
-                  <Users className="w-6 h-6" />
-                  <span>Foro</span>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
+        {/* Accesos rápidos - Solo para usuarios con suscripción activa */}
+        {user?.id && hasActiveSubscription && (
+          <section>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="w-5 h-5" />
+                  Accesos Rápidos
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <Button
+                    variant="outline"
+                    className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
+                    onClick={() => router.push('/progress')}
+                  >
+                    <BarChart3 className="w-6 h-6" />
+                    <span>Progreso</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
+                    onClick={() => router.push('/log-score')}
+                  >
+                    <Clock className="w-6 h-6" />
+                    <span>Carga de Score</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
+                    onClick={() => router.push('/log-rm')}
+                  >
+                    <Weight className="w-6 h-6" />
+                    <span>Carga RM</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
+                    onClick={() => router.push('/ranking')}
+                  >
+                    <Trophy className="w-6 h-6" />
+                    <span>Ranking</span>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </section>
+        )}
 
         {/* Reviews Section - Al final del dashboard */}
         {user?.id && (
