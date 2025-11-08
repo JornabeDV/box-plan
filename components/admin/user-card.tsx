@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
-import { AssignWorkoutSheetModal } from './assign-workout-sheet-modal'
 import { useToast } from '@/hooks/use-toast'
 import { 
   User, 
@@ -90,7 +89,6 @@ export function UserCard({
   onDeleteUser,
   onAssignmentComplete
 }: UserCardProps) {
-  const [showAssignModal, setShowAssignModal] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showAssignSubscriptionDialog, setShowAssignSubscriptionDialog] = useState(false)
   const [showCancelSubscriptionDialog, setShowCancelSubscriptionDialog] = useState(false)
@@ -222,14 +220,6 @@ export function UserCard({
               )
             ) : (
               <>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => setShowAssignModal(true)}
-                  className="hover:scale-100 active:scale-100"
-                >
-                  Asignar Planillas
-                </Button>
                 {user.subscription_status !== 'canceled' && (
                   <Button 
                     size="sm" 
@@ -262,20 +252,6 @@ export function UserCard({
         </div>
       </CardContent>
     </Card>
-
-    {/* Modal para asignar planillas */}
-    <AssignWorkoutSheetModal
-      open={showAssignModal}
-      onOpenChange={setShowAssignModal}
-      userId={user.id}
-      userName={user.full_name || user.email}
-      adminId={adminId}
-      onAssignmentComplete={() => {
-        if (onAssignmentComplete) {
-          onAssignmentComplete()
-        }
-      }}
-    />
 
     {/* Diálogo de confirmación para asignar suscripción */}
     <ConfirmationDialog

@@ -18,11 +18,10 @@ export async function GET(request: NextRequest) {
     const workouts = await sql`
       SELECT 
         w.*,
-        ws.id as sheet_id,
-        ws.title,
-        ws.difficulty
+        p.title,
+        p.description
       FROM workouts w
-      LEFT JOIN workout_sheets ws ON w.sheet_id = ws.id
+      LEFT JOIN planifications p ON w.planification_id = p.id
       WHERE w.user_id = ${targetUserId}
       ORDER BY w.completed_at DESC
     `
@@ -44,11 +43,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { sheet_id, data, completed_at, duration_seconds } = body
+    const { planification_id, data, completed_at, duration_seconds } = body
 
     const result = await sql`
-      INSERT INTO workouts (user_id, sheet_id, data, completed_at, duration_seconds)
-      VALUES (${session.user.id}, ${sheet_id}, ${JSON.stringify(data)}::jsonb, ${completed_at}, ${duration_seconds})
+      INSERT INTO workouts (user_id, planification_id, data, completed_at, duration_seconds)
+      VALUES (${session.user.id}, ${planification_id}, ${JSON.stringify(data)}::jsonb, ${completed_at}, ${duration_seconds})
       RETURNING *
     `
 

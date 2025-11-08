@@ -4,26 +4,27 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 
 // Definir tipos manualmente ya que no usamos Database de Supabase
-interface WorkoutSheetBasic {
+interface PlanificationBasic {
   id: string
   title: string
-  difficulty: string
+  description: string | null
 }
 
 interface Workout {
   id: string
   user_id: string
-  sheet_id: string
+  planification_id: string | null
   data: any
   completed_at: string
   duration_seconds: number | null
   created_at: string
   updated_at: string
-  workout_sheets?: WorkoutSheetBasic | null
+  title?: string | null
+  description?: string | null
 }
 
 interface WorkoutInsert {
-  sheet_id: string
+  planification_id: string | null
   data: any
   completed_at: string
   duration_seconds?: number | null

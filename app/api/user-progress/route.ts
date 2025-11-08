@@ -5,12 +5,12 @@ import { sql } from '@/lib/neon'
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const { user_id, workout_sheet_id, admin_id, progress_data, notes, completed_at } = body
+    const { user_id, planification_id, admin_id, progress_data, notes, completed_at } = body
 
     // Verificar si ya existe
     const existing = await sql`
       SELECT id FROM user_progress 
-      WHERE user_id = ${user_id} AND workout_sheet_id = ${workout_sheet_id}
+      WHERE user_id = ${user_id} AND planification_id = ${planification_id}
     `
 
     let result
@@ -29,8 +29,8 @@ export async function PUT(request: NextRequest) {
     } else {
       // Crear
       const inserted = await sql`
-        INSERT INTO user_progress (user_id, workout_sheet_id, admin_id, progress_data, notes, completed_at)
-        VALUES (${user_id}, ${workout_sheet_id}, ${admin_id}, ${JSON.stringify(progress_data)}::jsonb, ${notes}, ${completed_at})
+        INSERT INTO user_progress (user_id, planification_id, admin_id, progress_data, notes, completed_at)
+        VALUES (${user_id}, ${planification_id}, ${admin_id}, ${JSON.stringify(progress_data)}::jsonb, ${notes}, ${completed_at})
         RETURNING *
       `
       result = inserted[0]
