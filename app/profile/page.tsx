@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/hooks/use-auth"
+import { useProfile } from "@/hooks/use-profile"
+import { SubscriptionStatus } from "@/components/dashboard/subscription-status"
 import { 
   User, 
   Mail, 
@@ -18,13 +20,7 @@ import { es } from "date-fns/locale"
 export default function ProfilePage() {
   const router = useRouter()
   const { user, signOut, loading: authLoading } = useAuth()
-
-  // Debug: Mostrar información del usuario
-  console.log('Profile Page Debug:', {
-    user: user?.email,
-    authLoading,
-    userData: user
-  })
+  const { profile } = useProfile()
 
   // Si está cargando la autenticación, mostrar loading
   if (authLoading) {
@@ -82,14 +78,14 @@ export default function ProfilePage() {
             <CardContent className="space-y-4">
               <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16">
-                  <AvatarImage src={user?.user_metadata?.avatar_url || ''} />
+                  <AvatarImage src={profile?.avatar_url || ''} />
                   <AvatarFallback className="text-lg bg-secondary text-foreground">
-                    {user?.user_metadata?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                    {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <h3 className="text-xl font-semibold text-foreground">
-                    {user?.user_metadata?.full_name || 'Usuario'}
+                    {profile?.full_name || user?.name || 'Usuario'}
                   </h3>
                   <p className="text-muted-foreground">{user?.email}</p>
                 </div>
@@ -105,39 +101,58 @@ export default function ProfilePage() {
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">Miembro desde:</span>
                   <span className="text-sm font-medium text-foreground">
-                    {user?.created_at ? formatDistanceToNow(new Date(user.created_at), { 
+                    {profile?.created_at ? formatDistanceToNow(new Date(profile.created_at), { 
                       addSuffix: true, 
                       locale: es 
                     }) : 'N/A'}
                   </span>
                 </div>
               </div>
+            </CardContent>
+          </Card>
 
-              {/* Información de Debug */}
-              <div className="mt-6 p-4 bg-secondary rounded-lg">
+          {/* Estado de Suscripción */}
+          <div className="mt-6">
+            <SubscriptionStatus />
+          </div>
+
+          {/* Información de Debug */}
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="text-foreground">Información de Debug</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="p-4 bg-secondary rounded-lg">
                 <h4 className="text-sm font-medium text-foreground mb-2">Información de Debug:</h4>
                 <pre className="text-xs text-muted-foreground overflow-auto">
                   {JSON.stringify({
                     userId: user?.id,
                     email: user?.email,
-                    emailConfirmed: user?.email_confirmed_at,
-                    createdAt: user?.created_at,
-                    metadata: user?.user_metadata
+                    name: user?.name,
+                    role: user?.role,
+                    profile: profile ? {
+                      id: profile.id,
+                      full_name: profile.full_name,
+                      avatar_url: profile.avatar_url,
+                      created_at: profile.created_at
+                    } : null
                   }, null, 2)}
                 </pre>
               </div>
+            </CardContent>
+          </Card>
 
-              {/* Botón de Cerrar Sesión */}
-              <div className="pt-4">
-                <Button 
-                  variant="destructive" 
-                  className="w-full justify-start"
-                  onClick={signOut}
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Cerrar Sesión
-                </Button>
-              </div>
+          {/* Botón de Cerrar Sesión */}
+          <Card className="mt-6">
+            <CardContent className="pt-6">
+              <Button 
+                variant="destructive" 
+                className="w-full justify-start"
+                onClick={signOut}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Cerrar Sesión
+              </Button>
             </CardContent>
           </Card>
         </div>
