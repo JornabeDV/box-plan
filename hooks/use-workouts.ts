@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 
 // Definir tipos manualmente ya que no usamos Database de Supabase
@@ -142,7 +142,7 @@ export function useWorkouts(userId?: string) {
   }
 
   // Obtener estadísticas del usuario
-  const getUserStats = async () => {
+  const getUserStats = useCallback(async () => {
     if (!actualUserId) return null
 
     try {
@@ -158,7 +158,7 @@ export function useWorkouts(userId?: string) {
       setError(err instanceof Error ? err.message : 'Error al cargar estadísticas')
       return null
     }
-  }
+  }, [actualUserId])
 
   // Obtener racha actual
   const getCurrentStreak = async (): Promise<number> => {
@@ -177,7 +177,7 @@ export function useWorkouts(userId?: string) {
     if (actualUserId) {
       fetchWorkouts()
     }
-  }, [actualUserId])
+  }, [actualUserId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     workouts,

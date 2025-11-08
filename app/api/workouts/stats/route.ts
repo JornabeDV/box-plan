@@ -52,20 +52,27 @@ export async function GET(request: NextRequest) {
 function calculateStreak(workouts: any[]): number {
   if (workouts.length === 0) return 0
 
-  let streak = 0
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
+  // Obtener fechas únicas de entrenamientos
+  const workoutDates = new Set<string>()
   for (const workout of workouts) {
+    if (!workout.completed_at) continue
     const workoutDate = new Date(workout.completed_at)
     workoutDate.setHours(0, 0, 0, 0)
-    
-    const daysDiff = Math.floor((today.getTime() - workoutDate.getTime()) / (1000 * 60 * 60 * 24))
-    
-    if (daysDiff === streak) {
+    workoutDates.add(workoutDate.toISOString().split('T')[0])
+  }
+
+  // Calcular racha desde hoy hacia atrás
+  let streak = 0
+  let currentDate = new Date(today)
+  
+  while (true) {
+    const dateStr = currentDate.toISOString().split('T')[0]
+    if (workoutDates.has(dateStr)) {
       streak++
-    } else if (daysDiff === streak + 1) {
-      streak++
+      currentDate.setDate(currentDate.getDate() - 1)
     } else {
       break
     }
