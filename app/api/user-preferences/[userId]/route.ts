@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { sql } from '@/lib/neon'
+import { prisma } from '@/lib/prisma'
 
 // GET /api/user-preferences/[userId]
 export async function GET(request: NextRequest, { params }: { params: { userId: string } }) {
@@ -11,24 +11,44 @@ export async function GET(request: NextRequest, { params }: { params: { userId: 
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const preferences = await sql`
-      SELECT 
-        up.*,
-        d.id as discipline_id,
-        d.name as discipline_name,
-        d.color as discipline_color,
-        dl.id as level_id,
-        dl.name as level_name,
-        dl.description as level_description
-      FROM user_preferences up
-      LEFT JOIN disciplines d ON up.preferred_discipline_id = d.id
-      LEFT JOIN discipline_levels dl ON up.preferred_level_id = dl.id
-      WHERE up.user_id = ${params.userId}
-    `
+    const preference = await prisma.userPreference.findUnique({
+      where: { userId: parseInt(params.userId) },
+      include: {
+        // Nota: Como no hay foreign keys, necesitamos cargar manualmente
+      }
+    })
 
-    const preference = preferences.length > 0 ? preferences[0] : null
+    if (!preference) {
+      return NextResponse.json(null)
+    }
 
-    return NextResponse.json(preference)
+    // Cargar disciplina y nivel si existen
+    const discipline = preference.preferredDisciplineId 
+      ? await prisma.discipline.findUnique({
+          where: { id: preference.preferredDisciplineId },
+          select: { id: true, name: true, color: true }
+        })
+      : null
+
+    const level = preference.preferredLevelId
+      ? await prisma.disciplineLevel.findUnique({
+          where: { id: preference.preferredLevelId },
+          select: { id: true, name: true, description: true }
+        })
+      : null
+
+    // Transformar para respuesta
+    const result = {
+      ...preference,
+      discipline_id: discipline?.id || null,
+      discipline_name: discipline?.name || null,
+      discipline_color: discipline?.color || null,
+      level_id: level?.id || null,
+      level_name: level?.name || null,
+      level_description: level?.description || null
+    }
+
+    return NextResponse.json(result)
   } catch (error) {
     console.error('Error fetching user preferences:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -46,33 +66,21 @@ export async function PUT(request: NextRequest, { params }: { params: { userId: 
 
     const body = await request.json()
     const { preferred_discipline_id, preferred_level_id } = body
+    const userId = parseInt(params.userId)
 
-    // Verificar si ya existen preferencias
-    const existing = await sql`
-      SELECT id FROM user_preferences WHERE user_id = ${params.userId}
-    `
-
-    let result
-    if (existing.length > 0) {
-      // Actualizar
-      const updated = await sql`
-        UPDATE user_preferences 
-        SET preferred_discipline_id = ${preferred_discipline_id}, 
-            preferred_level_id = ${preferred_level_id}, 
-            updated_at = NOW()
-        WHERE user_id = ${params.userId}
-        RETURNING *
-      `
-      result = updated[0]
-    } else {
-      // Crear
-      const inserted = await sql`
-        INSERT INTO user_preferences (user_id, preferred_discipline_id, preferred_level_id)
-        VALUES (${params.userId}, ${preferred_discipline_id}, ${preferred_level_id})
-        RETURNING *
-      `
-      result = inserted[0]
-    }
+    // Usar upsert para crear o actualizar
+    const result = await prisma.userPreference.upsert({
+      where: { userId },
+      update: {
+        preferredDisciplineId: preferred_discipline_id || null,
+        preferredLevelId: preferred_level_id || null
+      },
+      create: {
+        userId,
+        preferredDisciplineId: preferred_discipline_id || null,
+        preferredLevelId: preferred_level_id || null
+      }
+    })
 
     return NextResponse.json(result)
   } catch (error) {
@@ -90,9 +98,11 @@ export async function DELETE(request: NextRequest, { params }: { params: { userI
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    await sql`
-      DELETE FROM user_preferences WHERE user_id = ${params.userId}
-    `
+    await prisma.userPreference.delete({
+      where: { userId: parseInt(params.userId) }
+    }).catch(() => {
+      // Si no existe, no es un error
+    })
 
     return NextResponse.json({ success: true })
   } catch (error) {

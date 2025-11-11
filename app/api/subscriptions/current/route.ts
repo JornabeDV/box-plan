@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { sql } from '@/lib/neon'
+import { prisma } from '@/lib/prisma'
 
 // GET /api/subscriptions/current
 export async function GET(request: NextRequest) {
@@ -15,42 +15,44 @@ export async function GET(request: NextRequest) {
     }
 
     // Buscar suscripción activa del usuario
-    const subscription = await sql`
-      SELECT 
-        s.id,
-        s.user_id,
-        s.plan_id,
-        s.status,
-        s.current_period_start,
-        s.current_period_end,
-        s.cancel_at_period_end,
-        s.mercadopago_subscription_id,
-        s.mercadopago_payment_id,
-        s.created_at,
-        s.updated_at,
-        jsonb_build_object(
-          'name', sp.name,
-          'price', sp.price,
-          'features', sp.features
-        ) as subscription_plans
-      FROM subscriptions s
-      LEFT JOIN subscription_plans sp ON s.plan_id = sp.id
-      WHERE s.user_id = ${session.user.id}
-        AND s.status = 'active'
-      ORDER BY s.created_at DESC
-      LIMIT 1
-    `
+    const subscription = await prisma.subscription.findFirst({
+      where: {
+        userId: session.user.id,
+        status: 'active'
+      },
+      include: {
+        plan: {
+          select: {
+            name: true,
+            price: true,
+            features: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    })
 
-    if (!subscription || subscription.length === 0) {
+    if (!subscription) {
       return NextResponse.json({ data: null })
     }
 
-    // Transformar el objeto subscription_plans
+    // Transformar para respuesta
     const result = {
-      ...subscription[0],
-      subscription_plans: typeof subscription[0].subscription_plans === 'string' 
-        ? JSON.parse(subscription[0].subscription_plans) 
-        : subscription[0].subscription_plans
+      id: subscription.id,
+      user_id: subscription.userId,
+      plan_id: subscription.planId,
+      status: subscription.status,
+      current_period_start: subscription.currentPeriodStart.toISOString(),
+      current_period_end: subscription.currentPeriodEnd.toISOString(),
+      cancel_at_period_end: subscription.cancelAtPeriodEnd,
+      mercadopago_payment_id: subscription.mercadopagoPaymentId,
+      created_at: subscription.createdAt.toISOString(),
+      updated_at: subscription.updatedAt.toISOString(),
+      subscription_plans: {
+        name: subscription.plan.name,
+        price: Number(subscription.plan.price),
+        features: subscription.plan.features
+      }
     }
 
     return NextResponse.json({ data: result })

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { sql } from '@/lib/neon'
+import { prisma } from '@/lib/prisma'
 
 // GET /api/planifications/today?date=YYYY-MM-DD
-// Obtiene la planificación de una fecha específica (o hoy si no se proporciona) según las preferencias del usuario (discipline y level)
+// Obtiene la planificación de una fecha específica (o hoy si no se proporciona) del coach del estudiante según sus preferencias (discipline y level)
 export async function GET(request: NextRequest) {
   try {
     const session = await auth()
@@ -12,23 +12,49 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    const userId = session.user.id
+    const userId = typeof session.user.id === 'string' ? parseInt(session.user.id) : session.user.id
+
+    // Obtener el coach del estudiante
+    const relationship = await prisma.coachStudentRelationship.findFirst({
+      where: {
+        studentId: userId,
+        status: 'active'
+      },
+      include: {
+        coach: {
+          select: {
+            id: true
+          }
+        }
+      }
+    })
+
+    if (!relationship) {
+      return NextResponse.json({ 
+        data: null,
+        message: 'El usuario no está asociado a ningún coach activo'
+      })
+    }
+
+    const coachId = relationship.coach.id
 
     // Obtener las preferencias del usuario
-    const preferences = await sql`
-      SELECT preferred_discipline_id, preferred_level_id
-      FROM user_preferences
-      WHERE user_id = ${userId}
-    `
+    const preference = await prisma.userPreference.findUnique({
+      where: { userId },
+      select: {
+        preferredDisciplineId: true,
+        preferredLevelId: true
+      }
+    })
 
-    if (!preferences || preferences.length === 0 || !preferences[0].preferred_discipline_id || !preferences[0].preferred_level_id) {
+    if (!preference || !preference.preferredDisciplineId || !preference.preferredLevelId) {
       return NextResponse.json({ 
         data: null,
         message: 'El usuario no tiene preferencias configuradas (discipline y level)'
       })
     }
 
-    const { preferred_discipline_id, preferred_level_id } = preferences[0]
+    const { preferredDisciplineId, preferredLevelId } = preference
 
     // Obtener la fecha del query param o usar hoy
     const { searchParams } = new URL(request.url)
@@ -57,52 +83,64 @@ export async function GET(request: NextRequest) {
       dateStr = `${year}-${month}-${day}`
     }
     
-    // Buscar planificaciones activas para la fecha especificada que coincidan con la disciplina y nivel del usuario
-    // Comparar directamente la fecha usando el formato YYYY-MM-DD
-    const planifications = await sql`
-      SELECT 
-        p.*,
-        jsonb_build_object(
-          'id', d.id,
-          'name', d.name,
-          'color', d.color,
-          'icon', d.icon
-        ) as discipline,
-        jsonb_build_object(
-          'id', dl.id,
-          'name', dl.name,
-          'description', dl.description
-        ) as discipline_level
-      FROM planifications p
-      LEFT JOIN disciplines d ON p.discipline_id = d.id
-      LEFT JOIN discipline_levels dl ON p.discipline_level_id = dl.id
-      WHERE p.discipline_id = ${preferred_discipline_id}
-        AND p.discipline_level_id = ${preferred_level_id}
-        AND p.date::date = ${dateStr}::date
-        AND p.is_active = true
-      ORDER BY p.date ASC
-      LIMIT 1
-    `
+    // Buscar planificaciones activas para la fecha especificada
+    const targetDate = new Date(dateStr)
+    targetDate.setHours(0, 0, 0, 0)
+    const nextDay = new Date(targetDate)
+    nextDay.setDate(nextDay.getDate() + 1)
 
-    if (!planifications || planifications.length === 0) {
+    const planification = await prisma.planification.findFirst({
+      where: {
+        coachId: coachId, // Solo planificaciones del coach del estudiante
+        disciplineId: preferredDisciplineId,
+        disciplineLevelId: preferredLevelId,
+        date: {
+          gte: targetDate,
+          lt: nextDay
+        }
+      },
+      include: {
+        discipline: {
+          select: {
+            id: true,
+            name: true,
+            color: true
+          }
+        },
+        disciplineLevel: {
+          select: {
+            id: true,
+            name: true,
+            description: true
+          }
+        }
+      },
+      orderBy: { date: 'asc' }
+    })
+
+    if (!planification) {
       return NextResponse.json({ 
         data: null,
         message: `No hay planificación para ${dateParam ? 'esa fecha' : 'hoy'} con tu disciplina y nivel`
       })
     }
 
-    // Transformar los campos JSONB
-    const planification = {
-      ...planifications[0],
-      discipline: typeof planifications[0].discipline === 'string' 
-        ? JSON.parse(planifications[0].discipline) 
-        : planifications[0].discipline,
-      discipline_level: typeof planifications[0].discipline_level === 'string' 
-        ? JSON.parse(planifications[0].discipline_level) 
-        : planifications[0].discipline_level
+    // Transformar para respuesta
+    const transformed = {
+      ...planification,
+      discipline: planification.discipline ? {
+        id: planification.discipline.id,
+        name: planification.discipline.name,
+        color: planification.discipline.color
+      } : null,
+      discipline_level: planification.disciplineLevel ? {
+        id: planification.disciplineLevel.id,
+        name: planification.disciplineLevel.name,
+        description: planification.disciplineLevel.description
+      } : null
     }
 
-    return NextResponse.json({ data: planification })
+    return NextResponse.json({ data: transformed })
   } catch (error) {
     console.error('Error fetching today planification:', error)
     return NextResponse.json(

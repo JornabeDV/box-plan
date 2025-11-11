@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { sql } from '@/lib/neon'
+import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,11 +10,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const userRoles = await sql`
-      SELECT * FROM user_roles_simple WHERE user_id = ${session.user.id}
-    `
+    const userId = typeof session.user.id === 'string' ? parseInt(session.user.id) : session.user.id
 
-    const userRole = userRoles && userRoles.length > 0 ? userRoles[0] : null
+    const userRole = await prisma.userRole.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' }
+    })
 
     if (!userRole) {
       return NextResponse.json({ role: null })
@@ -23,15 +24,23 @@ export async function GET(request: NextRequest) {
     // Si es admin, cargar perfil también
     let adminProfile = null
     if (userRole.role === 'admin') {
-      const adminProfiles = await sql`
-        SELECT * FROM admin_profiles WHERE user_id = ${session.user.id}
-      `
-      adminProfile = adminProfiles && adminProfiles.length > 0 ? adminProfiles[0] : null
+      adminProfile = await prisma.adminProfile.findUnique({
+        where: { userId }
+      })
+    }
+
+    // Si es coach, cargar perfil también
+    let coachProfile = null
+    if (userRole.role === 'coach') {
+      coachProfile = await prisma.coachProfile.findUnique({
+        where: { userId }
+      })
     }
 
     return NextResponse.json({
       role: userRole,
-      adminProfile
+      adminProfile,
+      coachProfile
     })
   } catch (error) {
     console.error('Error fetching user role:', error)

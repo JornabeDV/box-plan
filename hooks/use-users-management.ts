@@ -57,19 +57,19 @@ interface SubscriptionPlan {
   is_active: boolean
 }
 
-export function useUsersManagement(adminId: string | null) {
+export function useUsersManagement(coachId: string | null) {
   const [users, setUsers] = useState<UserWithSubscription[]>([])
   const [plans, setPlans] = useState<SubscriptionPlan[]>([])
   const [loading, setLoading] = useState(true)
 
   // Cargar usuarios
   const loadUsers = async () => {
-    if (!adminId) return
+    if (!coachId) return
 
     try {
       setLoading(true)
       
-      const response = await fetch(`/api/admin/users?adminId=${adminId}`)
+      const response = await fetch(`/api/admin/users?coachId=${coachId}`)
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
@@ -185,11 +185,11 @@ export function useUsersManagement(adminId: string | null) {
 
   // Cargar datos al montar
   useEffect(() => {
-    if (adminId) {
+    if (coachId) {
       loadUsers()
       loadPlans()
     }
-  }, [adminId])
+  }, [coachId])
 
   return {
     users,

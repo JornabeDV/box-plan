@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { sql } from '@/lib/neon'
+import { prisma } from '@/lib/prisma'
 
 // GET /api/workouts?userId=xxx
 export async function GET(request: NextRequest) {
@@ -13,18 +13,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const targetUserId = userId || session?.user?.id
+    const targetUserId = userId ? parseInt(userId) : session?.user?.id
 
-    const workouts = await sql`
-      SELECT 
-        w.*,
-        p.title,
-        p.description
-      FROM workouts w
-      LEFT JOIN planifications p ON w.planification_id = p.id
-      WHERE w.user_id = ${targetUserId}
-      ORDER BY w.completed_at DESC
-    `
+    if (!targetUserId) {
+      return NextResponse.json({ error: 'User ID required' }, { status: 400 })
+    }
+
+    const workouts = await prisma.workout.findMany({
+      where: { userId: targetUserId },
+      include: {
+        planification: {
+          select: {
+            title: true,
+            description: true
+          }
+        }
+      },
+      orderBy: { completedAt: 'desc' }
+    })
 
     return NextResponse.json(workouts)
   } catch (error) {
@@ -45,11 +51,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { planification_id, data, completed_at, duration_seconds } = body
 
-    const result = await sql`
-      INSERT INTO workouts (user_id, planification_id, data, completed_at, duration_seconds)
-      VALUES (${session.user.id}, ${planification_id}, ${JSON.stringify(data)}::jsonb, ${completed_at}, ${duration_seconds})
-      RETURNING *
-    `
+    const result = await prisma.workout.create({
+      data: {
+        userId: session.user.id,
+        planificationId: planification_id || null,
+        data: data || {},
+        completedAt: completed_at ? new Date(completed_at) : null,
+        durationSeconds: duration_seconds || null
+      }
+    })
 
     return NextResponse.json(result)
   } catch (error) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { sql } from '@/lib/neon'
+import { prisma } from '@/lib/prisma'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -48,7 +48,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar que el user_id de la request coincida con el usuario autenticado
-    if (session.user.id !== user_id) {
+    const sessionUserId = typeof session.user.id === 'string' ? session.user.id : String(session.user.id)
+    if (sessionUserId !== user_id) {
       return NextResponse.json(
         { error: 'Usuario no autorizado' },
         { status: 403, headers: corsHeaders }
@@ -117,10 +118,16 @@ export async function POST(request: NextRequest) {
 
     // Store the preference in our database for tracking
     try {
-      await sql`
-        INSERT INTO payment_history (user_id, amount, currency, status, mercadopago_preference_id, payment_method)
-        VALUES (${user_id}, ${plan.price}, ${plan.currency}, 'pending', ${preference.id}, 'mercadopago')
-      `
+      await prisma.paymentHistory.create({
+        data: {
+          userId: parseInt(user_id),
+          amount: plan.price,
+          currency: plan.currency,
+          status: 'pending',
+          mercadopagoPreferenceId: preference.id,
+          paymentMethod: 'mercadopago'
+        }
+      })
     } catch (dbError) {
       console.error('Error storing payment history:', dbError)
       // Don't fail the request, just log the error

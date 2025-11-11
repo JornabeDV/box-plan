@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { sql } from '@/lib/neon'
+import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,24 +11,33 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      const profiles = await sql`
-        SELECT * FROM profiles WHERE id = ${session.user.id}
-      `
+      // Nota: La tabla profiles no existe en el schema, usar User directamente
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          image: true,
+          createdAt: true,
+          updatedAt: true
+        }
+      })
 
-      const profile = profiles.length > 0 ? profiles[0] : null
+      // Transformar a formato de profile
+      const profile = user ? {
+        id: user.id,
+        full_name: user.name || user.email,
+        avatar_url: user.image,
+        created_at: user.createdAt,
+        updated_at: user.updatedAt
+      } : null
 
-      // Si no hay perfil, devolver null (no es un error)
       return NextResponse.json(profile)
     } catch (dbError: any) {
-      // Si la tabla no existe o hay error de DB, loguear y devolver null
+      // Si hay error de DB, loguear y devolver null
       console.error('Database error fetching profile:', dbError?.message || dbError)
-      
-      // Si es error de tabla no existe, devolver null en lugar de error
-      if (dbError?.message?.includes('does not exist') || dbError?.code === '42P01') {
-        return NextResponse.json(null)
-      }
-      
-      throw dbError
+      return NextResponse.json(null)
     }
   } catch (error: any) {
     console.error('Error fetching profile:', error?.message || error)
@@ -49,29 +58,31 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json()
     const { full_name, avatar_url } = body
 
-    // Construir update
-    const fields: string[] = []
-    if (full_name !== undefined) fields.push(`full_name = '${full_name}'`)
-    if (avatar_url !== undefined) fields.push(`avatar_url = '${avatar_url}'`)
+    // Preparar datos de actualización
+    const updateData: any = {}
+    if (full_name !== undefined) updateData.name = full_name
+    if (avatar_url !== undefined) updateData.image = avatar_url
     
-    if (fields.length === 0) {
+    if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'No hay campos para actualizar' }, { status: 400 })
     }
 
-    fields.push('updated_at = NOW()')
+    // Actualizar usuario
+    const user = await prisma.user.update({
+      where: { id: session.user.id },
+      data: updateData
+    })
 
-    await sql.unsafe(`
-      UPDATE profiles 
-      SET ${fields.join(', ')}
-      WHERE id = '${session.user.id}'
-      RETURNING *
-    `)
+    // Transformar a formato de profile
+    const profile = {
+      id: user.id,
+      full_name: user.name || user.email,
+      avatar_url: user.image,
+      created_at: user.createdAt,
+      updated_at: user.updatedAt
+    }
 
-    const profiles = await sql`
-      SELECT * FROM profiles WHERE id = ${session.user.id}
-    `
-
-    return NextResponse.json(profiles[0])
+    return NextResponse.json(profile)
   } catch (error) {
     console.error('Error updating profile:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

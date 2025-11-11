@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { sql } from '@/lib/neon'
+import { prisma } from '@/lib/prisma'
 
 // POST /api/subscriptions
 export async function POST(request: NextRequest) {
@@ -33,63 +33,50 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener información del plan para el registro de pago
-    const plan = await sql`
-      SELECT * FROM subscription_plans WHERE id = ${plan_id}
-    `
+    const plan = await prisma.subscriptionPlan.findUnique({
+      where: { id: plan_id }
+    })
 
-    if (!plan || plan.length === 0) {
+    if (!plan) {
       return NextResponse.json(
         { error: 'Plan no encontrado' },
         { status: 404 }
       )
     }
 
-    // Crear la suscripción
-    const newSubscription = await sql`
-      INSERT INTO subscriptions (
-        user_id,
-        plan_id,
-        status,
-        current_period_start,
-        current_period_end,
-        cancel_at_period_end
-      )
-      VALUES (
-        ${user_id},
-        ${plan_id},
-        ${status},
-        ${current_period_start},
-        ${current_period_end},
-        ${cancel_at_period_end}
-      )
-      RETURNING *
-    `
-
-    // Crear registro de pago en payment_history
-    try {
-      await sql`
-        INSERT INTO payment_history (
-          user_id,
-          subscription_id,
-          amount,
-          currency,
+    // Crear la suscripción y el registro de pago en una transacción
+    const result = await prisma.$transaction(async (tx) => {
+      const newSubscription = await tx.subscription.create({
+        data: {
+          userId: user_id,
+          planId: plan_id,
           status,
-          payment_method
-        )
-        VALUES (
-          ${user_id},
-          ${newSubscription[0].id},
-          ${plan[0].price},
-          ${plan[0].currency},
-          'approved',
-          ${payment_method}
-        )
-      `
-    } catch (paymentError) {
-      console.error('Error creating payment history:', paymentError)
-    }
+          currentPeriodStart: new Date(current_period_start),
+          currentPeriodEnd: new Date(current_period_end),
+          cancelAtPeriodEnd: cancel_at_period_end
+        }
+      })
 
-    return NextResponse.json(newSubscription[0])
+      // Crear registro de pago en payment_history
+      try {
+        await tx.paymentHistory.create({
+          data: {
+            userId: user_id,
+            subscriptionId: newSubscription.id,
+            amount: plan.price,
+            currency: plan.currency,
+            status: 'approved',
+            paymentMethod: payment_method
+          }
+        })
+      } catch (paymentError) {
+        console.error('Error creating payment history:', paymentError)
+      }
+
+      return newSubscription
+    })
+
+    return NextResponse.json(result)
   } catch (error) {
     console.error('Error creating subscription:', error)
     return NextResponse.json(

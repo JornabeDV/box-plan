@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { sql } from '@/lib/neon'
+import { prisma } from '@/lib/prisma'
 
-// GET /api/admin/users?adminId=xxx
+// GET /api/admin/users?coachId=xxx
 export async function GET(request: NextRequest) {
   try {
     const session = await auth()
     const { searchParams } = new URL(request.url)
-    const adminId = searchParams.get('adminId')
+    const coachId = searchParams.get('coachId')
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!adminId) {
-      return NextResponse.json({ error: 'Admin ID required' }, { status: 400 })
+    if (!coachId) {
+      return NextResponse.json({ error: 'Coach ID required' }, { status: 400 })
     }
 
     // MVP - Modelo B2C: Mostrar TODOS los usuarios (sin filtro por asignación)
@@ -22,41 +22,18 @@ export async function GET(request: NextRequest) {
     // y usar la lógica de admin_user_assignments
     
     // Obtener datos de TODOS los usuarios (MVP)
-    // Nota: Usamos la tabla 'users' directamente ya que 'profiles' puede no existir
-    // Cuando se implemente la tabla profiles, cambiar a: SELECT * FROM profiles
     try {
-      // Intentar obtener usuarios con created_at si existe, sino usar valores por defecto
-      let users
-      try {
-        users = await sql`
-          SELECT 
-            id,
-            email,
-            COALESCE(name, email) as full_name,
-            NULL::text as avatar_url,
-            created_at,
-            updated_at
-          FROM users 
-          ORDER BY created_at DESC NULLS LAST
-        `
-      } catch (err: any) {
-        // Si created_at no existe, hacer query sin ese campo
-        if (err?.code === '42703' || err?.message?.includes('does not exist')) {
-          users = await sql`
-            SELECT 
-              id,
-              email,
-              COALESCE(name, email) as full_name,
-              NULL::text as avatar_url,
-              NOW() as created_at,
-              NOW() as updated_at
-            FROM users 
-            ORDER BY id DESC
-          `
-        } else {
-          throw err
-        }
-      }
+      const users = await prisma.user.findMany({
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          image: true,
+          createdAt: true,
+          updatedAt: true
+        },
+        orderBy: { createdAt: 'desc' }
+      })
 
       // Si no hay usuarios, retornar array vacío
       if (users.length === 0) {
@@ -64,118 +41,129 @@ export async function GET(request: NextRequest) {
       }
 
       // Obtener IDs de usuarios
-      const userIds = users.map((u: any) => u.id)
-
-    // CÓDIGO PARA FUTURA MIGRACIÓN (comentado):
-    // Obtener IDs de usuarios asignados al admin
-    // const assignments = await sql`
-    //   SELECT user_id FROM admin_user_assignments 
-    //   WHERE admin_id = ${adminId} AND is_active = true
-    // `
-    // if (assignments.length === 0) {
-    //   return NextResponse.json([])
-    // }
-    // const userIds: string[] = (assignments as any[]).map((a: any) => a.user_id)
-    // const users = await sql`
-    //   SELECT * FROM profiles 
-    //   WHERE id = ANY(${userIds}::uuid[]) 
-    //   ORDER BY created_at DESC
-    // `
+      const userIds = users.map(u => u.id)
 
       // Obtener suscripciones de usuarios
-    const subscriptions = await sql`
-      SELECT 
-        s.*,
-        sp.id as plan_id,
-        sp.name as plan_name,
-        sp.description as plan_description,
-        sp.price as plan_price,
-        sp.currency as plan_currency,
-        sp.interval as plan_interval,
-        sp.features as plan_features,
-        sp.is_active as plan_is_active
-      FROM subscriptions s
-      LEFT JOIN subscription_plans sp ON s.plan_id = sp.id
-      WHERE s.user_id = ANY(${userIds}::uuid[]) AND s.status = 'active'
-    `
+      const subscriptions = await prisma.subscription.findMany({
+        where: {
+          userId: { in: userIds },
+          status: 'active'
+        },
+        include: {
+          plan: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              price: true,
+              currency: true,
+              interval: true,
+              features: true,
+              isActive: true
+            }
+          }
+        }
+      })
 
       // Obtener preferencias de usuarios
-      const preferences = await sql`
-        SELECT 
-          up.*,
-          d.id as discipline_id,
-          d.name as discipline_name,
-          d.color as discipline_color,
-          dl.id as level_id,
-          dl.name as level_name,
-          dl.description as level_description
-        FROM user_preferences up
-        LEFT JOIN disciplines d ON up.preferred_discipline_id = d.id
-        LEFT JOIN discipline_levels dl ON up.preferred_level_id = dl.id
-        WHERE up.user_id = ANY(${userIds}::uuid[])
-      `
+      const preferences = await prisma.userPreference.findMany({
+        where: { userId: { in: userIds } },
+        include: {
+          // Nota: Como no hay foreign keys, cargamos manualmente
+        }
+      })
 
-      // Asegurar que subscriptions y preferences sean arrays
-      const subscriptionsArray = Array.isArray(subscriptions) ? subscriptions : []
-      const preferencesArray = Array.isArray(preferences) ? preferences : []
+      // Cargar disciplinas y niveles para las preferencias
+      const disciplineIds = preferences
+        .map(p => p.preferredDisciplineId)
+        .filter((id): id is number => id !== null)
+      const levelIds = preferences
+        .map(p => p.preferredLevelId)
+        .filter((id): id is number => id !== null)
+
+      const disciplines = disciplineIds.length > 0
+        ? await prisma.discipline.findMany({
+            where: { id: { in: disciplineIds } },
+            select: { id: true, name: true, color: true }
+          })
+        : []
+
+      const levels = levelIds.length > 0
+        ? await prisma.disciplineLevel.findMany({
+            where: { id: { in: levelIds } },
+            select: { id: true, name: true, description: true }
+          })
+        : []
+
+      // Crear mapas para acceso rápido
+      const disciplineMap = new Map(disciplines.map(d => [d.id, d]))
+      const levelMap = new Map(levels.map(l => [l.id, l]))
 
       // Combinar usuarios con sus preferencias y suscripciones
-      const usersWithPreferences = users.map((user: any) => {
-      const userPreference = preferencesArray.find((p: any) => p.user_id === user.id)
-      const userSubscription = subscriptionsArray.find((s: any) => s.user_id === user.id)
-      
-      return {
-        ...user,
-        has_subscription: !!userSubscription,
-        subscription_status: userSubscription?.status || null,
-        subscription: userSubscription ? {
-          id: userSubscription.id,
-          user_id: userSubscription.user_id,
-          plan_id: userSubscription.plan_id,
-          status: userSubscription.status,
-          current_period_start: userSubscription.current_period_start,
-          current_period_end: userSubscription.current_period_end,
-          cancel_at_period_end: userSubscription.cancel_at_period_end,
-          plan: {
-            id: userSubscription.plan_id,
-            name: userSubscription.plan_name,
-            description: userSubscription.plan_description,
-            price: userSubscription.plan_price,
-            currency: userSubscription.plan_currency,
-            interval: userSubscription.plan_interval,
-            features: userSubscription.plan_features,
-            is_active: userSubscription.plan_is_active
-          }
-        } : null,
-        preferences: userPreference ? {
-          id: userPreference.id,
-          user_id: userPreference.user_id,
-          preferred_discipline_id: userPreference.preferred_discipline_id,
-          preferred_level_id: userPreference.preferred_level_id,
-          created_at: userPreference.created_at,
-          updated_at: userPreference.updated_at,
-          discipline: userPreference.discipline_name ? {
-            id: userPreference.discipline_id,
-            name: userPreference.discipline_name,
-            color: userPreference.discipline_color
-          } : undefined,
-          level: userPreference.level_name ? {
-            id: userPreference.level_id,
-            name: userPreference.level_name,
-            description: userPreference.level_description
+      const usersWithPreferences = users.map(user => {
+        const userPreference = preferences.find(p => p.userId === user.id)
+        const userSubscription = subscriptions.find(s => s.userId === user.id)
+
+        const discipline = userPreference?.preferredDisciplineId
+          ? disciplineMap.get(userPreference.preferredDisciplineId)
+          : null
+        const level = userPreference?.preferredLevelId
+          ? levelMap.get(userPreference.preferredLevelId)
+          : null
+
+        return {
+          id: user.id,
+          email: user.email,
+          full_name: user.name || user.email,
+          avatar_url: user.image,
+          created_at: user.createdAt,
+          updated_at: user.updatedAt,
+          has_subscription: !!userSubscription,
+          subscription_status: userSubscription?.status || null,
+          subscription: userSubscription ? {
+            id: userSubscription.id,
+            user_id: userSubscription.userId,
+            plan_id: userSubscription.planId,
+            status: userSubscription.status,
+            current_period_start: userSubscription.currentPeriodStart,
+            current_period_end: userSubscription.currentPeriodEnd,
+            cancel_at_period_end: userSubscription.cancelAtPeriodEnd,
+            plan: {
+              id: userSubscription.plan.id,
+              name: userSubscription.plan.name,
+              description: userSubscription.plan.description,
+              price: Number(userSubscription.plan.price),
+              currency: userSubscription.plan.currency,
+              interval: userSubscription.plan.interval,
+              features: userSubscription.plan.features,
+              is_active: userSubscription.plan.isActive
+            }
+          } : null,
+          preferences: userPreference ? {
+            id: userPreference.id,
+            user_id: userPreference.userId,
+            preferred_discipline_id: userPreference.preferredDisciplineId,
+            preferred_level_id: userPreference.preferredLevelId,
+            created_at: userPreference.createdAt,
+            updated_at: userPreference.updatedAt,
+            discipline: discipline ? {
+              id: discipline.id,
+              name: discipline.name,
+              color: discipline.color
+            } : undefined,
+            level: level ? {
+              id: level.id,
+              name: level.name,
+              description: level.description
+            } : undefined
           } : undefined
-        } : undefined
-      }
-    })
+        }
+      })
 
       return NextResponse.json(usersWithPreferences)
     } catch (dbError: any) {
-      // Si la tabla users no existe o hay error, devolver array vacío
-      if (dbError?.code === '42P01' || dbError?.message?.includes('does not exist')) {
-        console.error('Database table does not exist:', dbError?.message)
-        return NextResponse.json([])
-      }
-      throw dbError
+      console.error('Database error:', dbError?.message)
+      return NextResponse.json([])
     }
   } catch (error) {
     console.error('Error fetching admin users:', error)

@@ -21,7 +21,7 @@ interface Block {
 
 interface Planification {
   id?: string
-  admin_id: string
+  coach_id: string
   discipline_id: string
   discipline_level_id: string
   date: string
@@ -36,8 +36,8 @@ interface PlanificationModalProps {
   onOpenChange: (open: boolean) => void
   planification?: Planification | null
   selectedDate?: Date | null
-  adminId?: string | null
-  onSubmit: (data: Omit<Planification, 'id' | 'admin_id'>) => Promise<{ error?: string }>
+  coachId?: string | null
+  onSubmit: (data: Omit<Planification, 'id' | 'coach_id'>) => Promise<{ error?: string }>
 }
 
 export function PlanificationModal({ 
@@ -45,10 +45,10 @@ export function PlanificationModal({
   onOpenChange, 
   planification, 
   selectedDate,
-  adminId,
+  coachId,
   onSubmit 
 }: PlanificationModalProps) {
-  const { disciplines, disciplineLevels, loading: disciplinesLoading, fetchDisciplines } = useDisciplines(adminId || null)
+  const { disciplines, disciplineLevels, loading: disciplinesLoading, fetchDisciplines } = useDisciplines(coachId || null)
   
   const [formData, setFormData] = useState({
     discipline_id: '',
@@ -74,11 +74,11 @@ export function PlanificationModal({
 
   // Recargar disciplinas cuando se abre el modal
   useEffect(() => {
-    if (open && adminId) {
+    if (open && coachId) {
       fetchDisciplines()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, adminId])
+  }, [open, coachId])
 
   // Resetear formulario cuando se abre/cierra el modal
   useEffect(() => {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { sql } from '@/lib/neon'
+import { prisma } from '@/lib/prisma'
+import { isCoach } from '@/lib/auth-helpers'
 
 // PATCH /api/subscription-plans/[id]
 export async function PATCH(
@@ -14,15 +15,15 @@ export async function PATCH(
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    // Verificar que el usuario es admin
-    const adminProfile = await sql`
-      SELECT id FROM admin_profiles WHERE user_id = ${session.user.id}
-    `
+    // Verificar que el usuario es coach
+    const authCheck = await isCoach(session.user.id)
 
-    if (adminProfile.length === 0) {
+    if (!authCheck.isAuthorized || !authCheck.profile) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
 
+    const coachId = authCheck.profile.id
+    const planId = parseInt(params.id)
     const body = await request.json()
     const { name, description, price, currency, interval, features, is_active } = body
 
@@ -39,56 +40,48 @@ export async function PATCH(
       return NextResponse.json({ error: 'No hay campos para actualizar' }, { status: 400 })
     }
 
-    // Obtener el plan actual primero
-    const currentPlan = await sql`
-      SELECT * FROM subscription_plans WHERE id = ${params.id}
-    `
+    // Obtener el plan actual primero y verificar que pertenece al coach
+    const currentPlan = await prisma.subscriptionPlan.findUnique({
+      where: { id: planId },
+      select: { id: true, coachId: true }
+    })
 
-    if (!currentPlan || currentPlan.length === 0) {
+    if (!currentPlan) {
       return NextResponse.json({ error: 'Plan no encontrado' }, { status: 404 })
     }
 
-    // Usar valores actuales si no se proporcionan nuevos
-    const finalName = name !== undefined ? name : currentPlan[0].name
-    const finalDescription = description !== undefined ? description : currentPlan[0].description
-    const finalPrice = (price !== undefined && price !== null) ? price : currentPlan[0].price
-    const finalCurrency = currency !== undefined ? currency : currentPlan[0].currency
-    const finalInterval = interval !== undefined ? interval : currentPlan[0].interval
-    const finalFeatures = features !== undefined ? features : (typeof currentPlan[0].features === 'string' ? JSON.parse(currentPlan[0].features) : currentPlan[0].features)
-    const finalIsActive = is_active !== undefined ? is_active : currentPlan[0].is_active
-
-    // Ejecutar UPDATE en una sola operación con todos los campos
-    const result = await sql`
-      UPDATE subscription_plans 
-      SET 
-        name = ${finalName},
-        description = ${finalDescription},
-        price = ${finalPrice},
-        currency = ${finalCurrency},
-        interval = ${finalInterval},
-        features = ${JSON.stringify(finalFeatures)}::jsonb,
-        is_active = ${finalIsActive},
-        updated_at = NOW()
-      WHERE id = ${params.id}
-      RETURNING *
-    `
-
-    if (!result || result.length === 0 || !result[0]) {
-      return NextResponse.json({ error: 'Plan no encontrado' }, { status: 404 })
+    // Verificar que el plan pertenece al coach
+    if (currentPlan.coachId !== coachId) {
+      return NextResponse.json({ error: 'No autorizado. Este plan no pertenece a tu cuenta.' }, { status: 403 })
     }
 
-    const plan = result[0]
+    // Preparar datos de actualización
+    const updateData: any = {}
+    if (name !== undefined) updateData.name = name
+    if (description !== undefined) updateData.description = description
+    if (price !== undefined && price !== null) updateData.price = price
+    if (currency !== undefined) updateData.currency = currency
+    if (interval !== undefined) updateData.interval = interval
+    if (features !== undefined) updateData.features = features
+    if (is_active !== undefined) updateData.isActive = is_active
+
+    // Actualizar plan
+    const plan = await prisma.subscriptionPlan.update({
+      where: { id: planId },
+      data: updateData
+    })
+
     const serializedPlan = {
       id: plan.id,
       name: plan.name,
       description: plan.description,
-      price: typeof plan.price === 'object' && plan.price !== null ? Number(plan.price) : Number(plan.price),
+      price: Number(plan.price),
       currency: plan.currency,
       interval: plan.interval,
-      features: typeof plan.features === 'string' ? JSON.parse(plan.features) : plan.features,
-      is_active: plan.is_active,
-      created_at: plan.created_at ? new Date(plan.created_at).toISOString() : null,
-      updated_at: plan.updated_at ? new Date(plan.updated_at).toISOString() : null
+      features: plan.features,
+      is_active: plan.isActive,
+      created_at: plan.createdAt.toISOString(),
+      updated_at: plan.updatedAt.toISOString()
     }
 
     return NextResponse.json(serializedPlan)
@@ -113,46 +106,48 @@ export async function DELETE(
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    // Verificar que el usuario es admin
-    const adminProfile = await sql`
-      SELECT id FROM admin_profiles WHERE user_id = ${session.user.id}
-    `
+    // Verificar que el usuario es coach
+    const authCheck = await isCoach(session.user.id)
 
-    if (adminProfile.length === 0) {
+    if (!authCheck.isAuthorized || !authCheck.profile) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
 
-    // Verificar que el plan existe
-    const planExists = await sql`
-      SELECT id FROM subscription_plans WHERE id = ${params.id}
-    `
+    const coachId = authCheck.profile.id
+    const planId = parseInt(params.id)
 
-    if (planExists.length === 0) {
+    // Verificar que el plan existe y pertenece al coach
+    const currentPlan = await prisma.subscriptionPlan.findUnique({
+      where: { id: planId },
+      select: { id: true, coachId: true }
+    })
+
+    if (!currentPlan) {
       return NextResponse.json({ error: 'Plan no encontrado' }, { status: 404 })
     }
 
-    // Soft delete: desactivar el plan en lugar de eliminarlo
-    // Esto permite mantener el historial de suscripciones
-    const result = await sql`
-      UPDATE subscription_plans
-      SET is_active = false, updated_at = NOW()
-      WHERE id = ${params.id}
-      RETURNING *
-    `
+    // Verificar que el plan pertenece al coach
+    if (currentPlan.coachId !== coachId) {
+      return NextResponse.json({ error: 'No autorizado. Este plan no pertenece a tu cuenta.' }, { status: 403 })
+    }
 
-    // Convertir valores de PostgreSQL a tipos JavaScript serializables
-    const plan = result[0]
+    // Desactivar el plan
+    const plan = await prisma.subscriptionPlan.update({
+      where: { id: planId },
+      data: { isActive: false }
+    })
+
     const serializedPlan = {
       id: plan.id,
       name: plan.name,
       description: plan.description,
-      price: typeof plan.price === 'object' && plan.price !== null ? Number(plan.price) : Number(plan.price),
+      price: Number(plan.price),
       currency: plan.currency,
       interval: plan.interval,
-      features: typeof plan.features === 'string' ? JSON.parse(plan.features) : plan.features,
-      is_active: plan.is_active,
-      created_at: plan.created_at ? new Date(plan.created_at).toISOString() : null,
-      updated_at: plan.updated_at ? new Date(plan.updated_at).toISOString() : null
+      features: plan.features,
+      is_active: plan.isActive,
+      created_at: plan.createdAt.toISOString(),
+      updated_at: plan.updatedAt.toISOString()
     }
 
     return NextResponse.json({ 

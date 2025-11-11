@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { sql } from '@/lib/neon'
+import { prisma } from '@/lib/prisma'
 
 // PATCH /api/subscriptions/[id]/reactivate
 export async function PATCH(
@@ -17,15 +17,17 @@ export async function PATCH(
       )
     }
 
-    const { id } = params
+    const subscriptionId = parseInt(params.id)
 
-    await sql`
-      UPDATE subscriptions
-      SET 
-        cancel_at_period_end = false,
-        updated_at = NOW()
-      WHERE id = ${id} AND user_id = ${session.user.id}
-    `
+    await prisma.subscription.updateMany({
+      where: {
+        id: subscriptionId,
+        userId: session.user.id
+      },
+      data: {
+        cancelAtPeriodEnd: false
+      }
+    })
 
     return NextResponse.json({ success: true })
   } catch (error) {

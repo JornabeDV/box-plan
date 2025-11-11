@@ -9,7 +9,7 @@ export interface Discipline {
   color: string
   order_index: number
   is_active: boolean
-  admin_id: string
+  coach_id: string
   created_at: string
   updated_at: string
   levels?: DisciplineLevel[]
@@ -48,7 +48,7 @@ export interface UpdateDisciplineLevelData extends Partial<CreateDisciplineLevel
   id: string
 }
 
-export function useDisciplines(adminId: string | null) {
+export function useDisciplines(coachId: string | null) {
   const [disciplines, setDisciplines] = useState<Discipline[]>([])
   const [disciplineLevels, setDisciplineLevels] = useState<DisciplineLevel[]>([])
   const [loading, setLoading] = useState(false)
@@ -56,13 +56,13 @@ export function useDisciplines(adminId: string | null) {
 
   // Cargar disciplinas con sus niveles
   const fetchDisciplines = async () => {
-    if (!adminId) return
+    if (!coachId) return
 
     setLoading(true)
     setError(null)
 
     try {
-      const response = await fetch(`/api/disciplines?adminId=${adminId}`)
+      const response = await fetch(`/api/disciplines?coachId=${coachId}`)
       
       if (!response.ok) {
         throw new Error('Error al cargar disciplinas')
@@ -82,8 +82,8 @@ export function useDisciplines(adminId: string | null) {
 
   // Crear nueva disciplina
   const createDiscipline = async (data: CreateDisciplineData & { levels?: any[] }) => {
-    if (!adminId) {
-      return { error: 'Admin ID requerido' }
+    if (!coachId) {
+      return { error: 'Coach ID requerido' }
     }
 
     try {
@@ -96,7 +96,7 @@ export function useDisciplines(adminId: string | null) {
           name: data.name,
           description: data.description,
           color: data.color || '#3B82F6',
-          admin_id: adminId,
+          coach_id: coachId,
           order_index: data.order_index ?? disciplines.length,
           levels: data.levels || []
         })
@@ -304,7 +304,7 @@ export function useDisciplines(adminId: string | null) {
 
   useEffect(() => {
     fetchDisciplines()
-  }, [adminId])
+  }, [coachId])
 
   return {
     disciplines,

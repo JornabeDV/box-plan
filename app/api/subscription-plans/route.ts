@@ -1,54 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { sql } from '@/lib/neon'
+import { prisma } from '@/lib/prisma'
+import { isCoach } from '@/lib/auth-helpers'
 
 // GET /api/subscription-plans
 export async function GET(request: NextRequest) {
   try {
-    // Verificar si el usuario es admin para devolver todos los planes
     const session = await auth()
-    let isAdmin = false
+    let coachId: number | null = null
     
+    // Verificar si el usuario es coach y obtener su coachId
     if (session?.user?.id) {
-      const adminProfile = await sql`
-        SELECT id FROM admin_profiles WHERE user_id = ${session.user.id}
-      `
-      isAdmin = adminProfile.length > 0
+      const authCheck = await isCoach(session.user.id)
+      if (authCheck.isAuthorized && authCheck.profile) {
+        coachId = authCheck.profile.id
+      }
     }
 
-    // Si es admin, devolver todos los planes; si no, solo los activos
-    const plans = isAdmin
-      ? await sql`
-          SELECT 
-            id,
-            name,
-            description,
-            price,
-            currency,
-            interval,
-            features,
-            is_active
-          FROM subscription_plans
-          ORDER BY price ASC
-        `
-      : await sql`
-          SELECT 
-            id,
-            name,
-            description,
-            price,
-            currency,
-            interval,
-            features,
-            is_active
-          FROM subscription_plans
-          WHERE is_active = true
-          ORDER BY price ASC
-        `
+    // Construir el filtro: si es coach, solo sus planes; si no, solo planes activos sin coachId (globales)
+    const whereClause = coachId 
+      ? { coachId } // Coach ve solo sus planes
+      : { isActive: true, coachId: null } // Usuarios normales ven solo planes globales activos
+
+    const plans = await prisma.subscriptionPlan.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        price: true,
+        currency: true,
+        interval: true,
+        features: true,
+        isActive: true,
+        coachId: true
+      },
+      orderBy: { price: 'asc' }
+    })
 
     // Transformar features de JSONB a array si es necesario
     const formattedPlans = plans.map(plan => ({
       ...plan,
+      is_active: plan.isActive,
       features: typeof plan.features === 'string' ? JSON.parse(plan.features) : plan.features,
       is_popular: plan.name === 'Pro'
     }))
@@ -84,14 +77,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    // Verificar que el usuario es admin
-    const adminProfile = await sql`
-      SELECT id FROM admin_profiles WHERE user_id = ${session.user.id}
-    `
+    // Verificar que el usuario es coach
+    const authCheck = await isCoach(session.user.id)
 
-    if (adminProfile.length === 0) {
+    if (!authCheck.isAuthorized || !authCheck.profile) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
+
+    const coachId = authCheck.profile.id
 
     const body = await request.json()
     const { name, description, price, currency, interval, features, is_active = true } = body
@@ -103,25 +96,31 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const result = await sql`
-      INSERT INTO subscription_plans (name, description, price, currency, interval, features, is_active)
-      VALUES (${name}, ${description || null}, ${price}, ${currency}, ${interval}, ${JSON.stringify(features || [])}::jsonb, ${is_active})
-      RETURNING *
-    `
+    const plan = await prisma.subscriptionPlan.create({
+      data: {
+        name,
+        description: description || null,
+        price,
+        currency,
+        interval,
+        features: features || [],
+        isActive: is_active,
+        coachId: coachId // Asociar el plan al coach
+      }
+    })
 
-    // Convertir valores de PostgreSQL a tipos JavaScript serializables
-    const plan = result[0]
+    // Serializar para respuesta
     const serializedPlan = {
       id: plan.id,
       name: plan.name,
       description: plan.description,
-      price: typeof plan.price === 'object' && plan.price !== null ? Number(plan.price) : Number(plan.price),
+      price: Number(plan.price),
       currency: plan.currency,
       interval: plan.interval,
-      features: typeof plan.features === 'string' ? JSON.parse(plan.features) : plan.features,
-      is_active: plan.is_active,
-      created_at: plan.created_at ? new Date(plan.created_at).toISOString() : null,
-      updated_at: plan.updated_at ? new Date(plan.updated_at).toISOString() : null
+      features: plan.features,
+      is_active: plan.isActive,
+      created_at: plan.createdAt.toISOString(),
+      updated_at: plan.updatedAt.toISOString()
     }
 
     return NextResponse.json(serializedPlan)

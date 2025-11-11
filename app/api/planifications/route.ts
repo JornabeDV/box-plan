@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { sql } from '@/lib/neon'
+import { prisma } from '@/lib/prisma'
+import { isCoach } from '@/lib/auth-helpers'
 
-// GET /api/planifications?adminId=xxx
+// GET /api/planifications
 export async function GET(request: NextRequest) {
   try {
     const session = await auth()
@@ -11,39 +12,48 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const adminId = searchParams.get('adminId')
-
-    if (!adminId) {
-      return NextResponse.json({ error: 'adminId requerido' }, { status: 400 })
+    // Verificar que el usuario es coach y obtener su coachId
+    const authCheck = await isCoach(session.user.id)
+    if (!authCheck.isAuthorized || !authCheck.profile) {
+      return NextResponse.json({ error: 'No autorizado. Solo coaches pueden ver planificaciones.' }, { status: 403 })
     }
 
-    const planifications = await sql`
-      SELECT 
-        p.*,
-        jsonb_build_object(
-          'id', d.id,
-          'name', d.name,
-          'color', d.color,
-          'icon', d.icon
-        ) as discipline,
-        jsonb_build_object(
-          'id', dl.id,
-          'name', dl.name,
-          'description', dl.description
-        ) as discipline_level
-      FROM planifications p
-      LEFT JOIN disciplines d ON p.discipline_id = d.id
-      LEFT JOIN discipline_levels dl ON p.discipline_level_id = dl.id
-      WHERE p.admin_id = ${adminId}
-      ORDER BY p.date ASC
-    `
+    const coachId = authCheck.profile.id
 
-    // Transformar los campos JSONB
-    const transformed = planifications.map((p: any) => ({
+    const planifications = await prisma.planification.findMany({
+      where: { coachId: coachId },
+      include: {
+        discipline: {
+          select: {
+            id: true,
+            name: true,
+            color: true
+          }
+        },
+        disciplineLevel: {
+          select: {
+            id: true,
+            name: true,
+            description: true
+          }
+        }
+      },
+      orderBy: { date: 'asc' }
+    })
+
+    // Transformar para respuesta
+    const transformed = planifications.map(p => ({
       ...p,
-      discipline: typeof p.discipline === 'string' ? JSON.parse(p.discipline) : p.discipline,
-      discipline_level: typeof p.discipline_level === 'string' ? JSON.parse(p.discipline_level) : p.discipline_level
+      discipline: p.discipline ? {
+        id: p.discipline.id,
+        name: p.discipline.name,
+        color: p.discipline.color
+      } : null,
+      discipline_level: p.disciplineLevel ? {
+        id: p.disciplineLevel.id,
+        name: p.disciplineLevel.name,
+        description: p.disciplineLevel.description
+      } : null
     }))
 
     return NextResponse.json(transformed)
@@ -65,72 +75,68 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    const body = await request.json()
-    const { admin_id, discipline_id, discipline_level_id, date, estimated_duration, blocks, notes, is_active } = body
+    // Verificar que el usuario es coach
+    const authCheck = await isCoach(session.user.id)
+    if (!authCheck.isAuthorized || !authCheck.profile) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+    }
 
-    if (!admin_id || !discipline_id || !discipline_level_id || !date) {
+    const coachId = authCheck.profile.id
+
+    const body = await request.json()
+    const { discipline_id, discipline_level_id, date, title, description, exercises, notes, is_completed } = body
+
+    if (!discipline_id || !discipline_level_id || !date) {
       return NextResponse.json(
-        { error: 'Campos requeridos: admin_id, discipline_id, discipline_level_id, date' },
+        { error: 'Campos requeridos: discipline_id, discipline_level_id, date' },
         { status: 400 }
       )
     }
 
-    const result = await sql`
-      INSERT INTO planifications (
-        admin_id,
-        discipline_id,
-        discipline_level_id,
-        date,
-        estimated_duration,
-        blocks,
-        notes,
-        is_active
-      )
-      VALUES (
-        ${admin_id},
-        ${discipline_id},
-        ${discipline_level_id},
-        ${date},
-        ${estimated_duration || null},
-        ${JSON.stringify(blocks || [])}::jsonb,
-        ${notes || null},
-        ${is_active !== undefined ? is_active : true}
-      )
-      RETURNING *
-    `
+    const newPlanification = await prisma.planification.create({
+      data: {
+        coachId: coachId, // ID del perfil del coach (consistente con otras tablas)
+        // userId no se incluye - las planificaciones son libres del coach
+        disciplineId: discipline_id || null,
+        disciplineLevelId: discipline_level_id || null,
+        date: new Date(date),
+        title: title || null,
+        description: description || null,
+        exercises: exercises || null,
+        notes: notes || null,
+        isCompleted: is_completed !== undefined ? is_completed : false
+      } as any,
+      include: {
+        discipline: {
+          select: {
+            id: true,
+            name: true,
+            color: true
+          }
+        },
+        disciplineLevel: {
+          select: {
+            id: true,
+            name: true,
+            description: true
+          }
+        }
+      }
+    })
 
-    const newPlanification = result[0]
-
-    // Obtener las relaciones (discipline y discipline_level)
-    const withRelations = await sql`
-      SELECT 
-        p.*,
-        jsonb_build_object(
-          'id', d.id,
-          'name', d.name,
-          'color', d.color,
-          'icon', d.icon
-        ) as discipline,
-        jsonb_build_object(
-          'id', dl.id,
-          'name', dl.name,
-          'description', dl.description
-        ) as discipline_level
-      FROM planifications p
-      LEFT JOIN disciplines d ON p.discipline_id = d.id
-      LEFT JOIN discipline_levels dl ON p.discipline_level_id = dl.id
-      WHERE p.id = ${newPlanification.id}
-    `
-
-    // Transformar los campos JSONB
+    // Transformar para respuesta
     const transformed = {
-      ...withRelations[0],
-      discipline: typeof withRelations[0].discipline === 'string' 
-        ? JSON.parse(withRelations[0].discipline) 
-        : withRelations[0].discipline,
-      discipline_level: typeof withRelations[0].discipline_level === 'string' 
-        ? JSON.parse(withRelations[0].discipline_level) 
-        : withRelations[0].discipline_level
+      ...newPlanification,
+      discipline: (newPlanification as any).discipline ? {
+        id: (newPlanification as any).discipline.id,
+        name: (newPlanification as any).discipline.name,
+        color: (newPlanification as any).discipline.color
+      } : null,
+      discipline_level: (newPlanification as any).disciplineLevel ? {
+        id: (newPlanification as any).disciplineLevel.id,
+        name: (newPlanification as any).disciplineLevel.name,
+        description: (newPlanification as any).disciplineLevel.description
+      } : null
     }
 
     return NextResponse.json(transformed)

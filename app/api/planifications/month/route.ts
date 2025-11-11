@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { sql } from '@/lib/neon'
+import { prisma } from '@/lib/prisma'
 
 // GET /api/planifications/month?year=2024&month=1
-// Obtiene todas las planificaciones del mes según las preferencias del usuario (discipline y level)
+// Obtiene todas las planificaciones del mes del coach del estudiante según sus preferencias (discipline y level)
 export async function GET(request: NextRequest) {
   try {
     const session = await auth()
@@ -12,23 +12,49 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    const userId = session.user.id
+    const userId = typeof session.user.id === 'string' ? parseInt(session.user.id) : session.user.id
+
+    // Obtener el coach del estudiante
+    const relationship = await prisma.coachStudentRelationship.findFirst({
+      where: {
+        studentId: userId,
+        status: 'active'
+      },
+      include: {
+        coach: {
+          select: {
+            id: true
+          }
+        }
+      }
+    })
+
+    if (!relationship) {
+      return NextResponse.json({ 
+        data: [],
+        message: 'El usuario no está asociado a ningún coach activo'
+      })
+    }
+
+    const coachId = relationship.coach.id
 
     // Obtener las preferencias del usuario
-    const preferences = await sql`
-      SELECT preferred_discipline_id, preferred_level_id
-      FROM user_preferences
-      WHERE user_id = ${userId}
-    `
+    const preference = await prisma.userPreference.findUnique({
+      where: { userId },
+      select: {
+        preferredDisciplineId: true,
+        preferredLevelId: true
+      }
+    })
 
-    if (!preferences || preferences.length === 0 || !preferences[0].preferred_discipline_id || !preferences[0].preferred_level_id) {
+    if (!preference || !preference.preferredDisciplineId || !preference.preferredLevelId) {
       return NextResponse.json({ 
         data: [],
         message: 'El usuario no tiene preferencias configuradas (discipline y level)'
       })
     }
 
-    const { preferred_discipline_id, preferred_level_id } = preferences[0]
+    const { preferredDisciplineId, preferredLevelId } = preference
 
     // Obtener año y mes de los query params
     const { searchParams } = new URL(request.url)
@@ -41,33 +67,30 @@ export async function GET(request: NextRequest) {
 
     // Calcular el primer y último día del mes
     const firstDay = new Date(year, month - 1, 1)
+    firstDay.setHours(0, 0, 0, 0)
     const lastDay = new Date(year, month, 0)
-    
-    const startDate = firstDay.toISOString().split('T')[0] // YYYY-MM-DD
-    const endDate = lastDay.toISOString().split('T')[0] // YYYY-MM-DD
+    lastDay.setHours(23, 59, 59, 999)
 
-    // Buscar todas las planificaciones activas del mes que coincidan EXACTAMENTE con la disciplina y nivel del usuario
-    // Comparar directamente usando el formato de fecha
-    const planifications = await sql`
-      SELECT 
-        p.id,
-        p.date,
-        p.discipline_id,
-        p.discipline_level_id,
-        p.is_active
-      FROM planifications p
-      WHERE p.discipline_id = ${preferred_discipline_id}
-        AND p.discipline_level_id = ${preferred_level_id}
-        AND p.date::date >= ${startDate}::date
-        AND p.date::date <= ${endDate}::date
-        AND p.is_active = true
-      ORDER BY p.date ASC
-    `
+    // Buscar todas las planificaciones del coach del estudiante según sus preferencias
+    const planifications = await prisma.planification.findMany({
+      where: {
+        coachId: coachId, // Solo planificaciones del coach del estudiante
+        disciplineId: preferredDisciplineId,
+        disciplineLevelId: preferredLevelId,
+        date: {
+          gte: firstDay,
+          lte: lastDay
+        }
+      },
+      select: {
+        date: true
+      },
+      orderBy: { date: 'asc' }
+    })
 
     // Extraer solo las fechas (días del mes) que tienen planificación
-    // Asegurarse de que la fecha pertenezca al mes correcto
     const datesWithPlanification = planifications
-      .map((p: any) => {
+      .map((p) => {
         const date = new Date(p.date)
         // Verificar que la fecha pertenezca al mes y año correcto
         if (date.getFullYear() === year && date.getMonth() + 1 === month) {
@@ -75,7 +98,7 @@ export async function GET(request: NextRequest) {
         }
         return null
       })
-      .filter((day: number | null) => day !== null) as number[]
+      .filter((day): day is number => day !== null)
 
     return NextResponse.json({ 
       data: datesWithPlanification,

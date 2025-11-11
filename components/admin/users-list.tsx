@@ -8,11 +8,11 @@ import { UserEditModal } from './user-edit-modal'
 import { useUsersManagement } from '@/hooks/use-users-management'
 
 interface UsersListProps {
-  adminId: string | null
+  coachId: string | null
 }
 
-export function UsersList({ adminId }: UsersListProps) {
-  const { users, plans, loading, assignSubscription, cancelSubscription, deleteUser, loadUsers } = useUsersManagement(adminId)
+export function UsersList({ coachId }: UsersListProps) {
+  const { users, plans, loading, assignSubscription, cancelSubscription, deleteUser, loadUsers } = useUsersManagement(coachId)
   
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPlan, setSelectedPlan] = useState<string>('all')
@@ -88,7 +88,7 @@ export function UsersList({ adminId }: UsersListProps) {
               key={user.id}
               user={user}
               plans={plans}
-              adminId={adminId}
+              coachId={coachId}
               onAssignSubscription={assignSubscription}
               onCancelSubscription={cancelSubscription}
               onEditUser={handleEditUser}
@@ -104,7 +104,7 @@ export function UsersList({ adminId }: UsersListProps) {
         open={showEditModal}
         onOpenChange={handleCloseEditModal}
         user={selectedUser}
-        adminId={adminId}
+        coachId={coachId}
         onUserUpdated={handleUserUpdated}
       />
     </div>

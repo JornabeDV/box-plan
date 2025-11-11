@@ -1,26 +1,27 @@
 import NextAuth, { DefaultSession } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
-import { sql } from './neon'
+import { prisma } from './prisma'
 import bcrypt from 'bcryptjs'
 
 declare module "next-auth" {
   interface Session {
     user: {
-      id: string
+      id: number
       email: string
       name?: string | null
       image?: string | null
-      role?: 'admin' | 'user'
+      role?: 'admin' | 'user' | 'coach' | 'student'
     } & DefaultSession["user"]
   }
   
   interface User {
-    role?: 'admin' | 'user'
+    id: number
+    role?: 'admin' | 'user' | 'coach' | 'student'
   }
 
   interface JWT {
-    id?: string
-    role?: 'admin' | 'user'
+    id?: number
+    role?: 'admin' | 'user' | 'coach' | 'student'
   }
 }
 
@@ -38,9 +39,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         try {
-          // Buscar usuario en la base de datos usando template literals de Neon
-          const userResult = await sql`SELECT id, email, name, image, password FROM users WHERE email = ${credentials.email}`
-          const foundUser = userResult && userResult.length > 0 ? userResult[0] : null
+          // Buscar usuario en la base de datos usando Prisma
+          const email = credentials.email as string
+          const foundUser = await prisma.user.findUnique({
+            where: { email },
+            include: {
+              roles: {
+                take: 1,
+                orderBy: { createdAt: 'desc' }
+              }
+            }
+          })
 
           if (!foundUser) {
             throw new Error('Email o contraseña incorrectos')
@@ -60,15 +69,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
 
           // Obtener rol del usuario
-          const roleResult = await sql`SELECT role FROM user_roles_simple WHERE user_id = ${foundUser.id}`
-          const userRole = roleResult && roleResult.length > 0 ? roleResult[0] : null
+          const userRole = foundUser.roles[0]
 
           return {
             id: foundUser.id,
             email: foundUser.email,
             name: foundUser.name,
             image: foundUser.image,
-            role: userRole?.role || 'user'
+            role: (userRole?.role as 'admin' | 'user' | 'coach' | 'student') || 'user'
           }
         } catch (error) {
           console.error('Auth error:', error)
@@ -90,9 +98,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return token
     },
     async session({ session, token }) {
-      if (session.user && token) {
-        session.user.id = token.id as string
-        session.user.role = token.role as 'admin' | 'user' | undefined
+      if (session.user && token && token.id) {
+        (session.user as any).id = token.id as number
+        (session.user as any).role = token.role as 'admin' | 'user' | 'coach' | 'student' | undefined
       }
       return session
     }

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { sql } from '@/lib/neon'
-import { randomUUID } from 'crypto'
+import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { nanoid } from 'nanoid'
 import { Resend } from 'resend'
@@ -21,11 +20,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar que el usuario existe
-    const userResult = await sql`
-      SELECT id, email, name FROM users WHERE email = ${email}
-    `
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true, email: true, name: true }
+    })
 
-    if (!userResult || userResult.length === 0) {
+    if (!user) {
       // Por seguridad, no revelamos si el email existe o no
       return NextResponse.json({
         success: true,
@@ -33,24 +33,24 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const user = userResult[0]
-
     // Generar token único
     const resetToken = nanoid(32)
     const expiresAt = new Date()
     expiresAt.setHours(expiresAt.getHours() + 1) // Token válido por 1 hora
 
-    // Eliminar tokens previos del usuario
-    await sql`
-      DELETE FROM password_reset_tokens 
-      WHERE user_id = ${user.id}
-    `
-
-    // Guardar nuevo token
-    await sql`
-      INSERT INTO password_reset_tokens (id, user_id, token, expires_at, created_at)
-      VALUES (${randomUUID()}, ${user.id}, ${resetToken}, ${expiresAt.toISOString()}, NOW())
-    `
+    // Eliminar tokens previos del usuario y crear nuevo token
+    await prisma.$transaction([
+      prisma.passwordResetToken.deleteMany({
+        where: { userId: user.id }
+      }),
+      prisma.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          token: resetToken,
+          expiresAt
+        }
+      })
+    ])
 
     // Generar URL de reset
     const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`

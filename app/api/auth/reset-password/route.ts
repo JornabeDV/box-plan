@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { sql } from '@/lib/neon'
+import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 
 /**
@@ -25,47 +25,61 @@ export async function POST(request: NextRequest) {
     }
 
     // Buscar el token válido
-    const tokenResult = await sql`
-      SELECT prt.*, u.id as user_id, u.email
-      FROM password_reset_tokens prt
-      INNER JOIN users u ON prt.user_id = u.id
-      WHERE prt.token = ${token}
-        AND prt.expires_at > NOW()
-        AND prt.used = false
-    `
+    const resetToken = await prisma.passwordResetToken.findFirst({
+      where: {
+        token,
+        expiresAt: { gt: new Date() },
+        used: false
+      },
+      include: {
+        // Nota: Como no hay foreign key, necesitamos buscar el usuario manualmente
+      }
+    })
 
-    if (!tokenResult || tokenResult.length === 0) {
+    if (!resetToken) {
       return NextResponse.json(
         { error: 'Token inválido o expirado' },
         { status: 400 }
       )
     }
 
-    const resetToken = tokenResult[0]
+    // Verificar que el usuario existe
+    const user = await prisma.user.findUnique({
+      where: { id: resetToken.userId }
+    })
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Usuario no encontrado' },
+        { status: 404 }
+      )
+    }
 
     // Hash de la nueva contraseña
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Actualizar contraseña del usuario
-    await sql`
-      UPDATE users 
-      SET password = ${hashedPassword}
-      WHERE id = ${resetToken.user_id}
-    `
-
-    // Marcar token como usado
-    await sql`
-      UPDATE password_reset_tokens
-      SET used = true, used_at = NOW()
-      WHERE id = ${resetToken.id}
-    `
-
-    // Eliminar todos los tokens del usuario (por seguridad)
-    await sql`
-      DELETE FROM password_reset_tokens
-      WHERE user_id = ${resetToken.user_id}
-        AND used = false
-    `
+    // Actualizar contraseña y marcar token como usado en una transacción
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: resetToken.userId },
+        data: { password: hashedPassword }
+      }),
+      prisma.passwordResetToken.update({
+        where: { id: resetToken.id },
+        data: {
+          used: true,
+          usedAt: new Date()
+        }
+      }),
+      // Eliminar todos los tokens no usados del usuario (por seguridad)
+      prisma.passwordResetToken.deleteMany({
+        where: {
+          userId: resetToken.userId,
+          used: false,
+          id: { not: resetToken.id }
+        }
+      })
+    ])
 
     return NextResponse.json({
       success: true,

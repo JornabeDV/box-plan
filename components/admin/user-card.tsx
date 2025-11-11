@@ -71,7 +71,7 @@ interface SubscriptionPlan {
 interface UserCardProps {
   user: UserWithSubscription
   plans: SubscriptionPlan[]
-  adminId: string | null
+  coachId: string | null
   onAssignSubscription: (userId: string, planId: string, paymentMethod: string) => Promise<void>
   onCancelSubscription: (subscriptionId: string) => void
   onEditUser: (user: UserWithSubscription) => void
@@ -82,7 +82,7 @@ interface UserCardProps {
 export function UserCard({ 
   user, 
   plans, 
-  adminId,
+  coachId,
   onAssignSubscription, 
   onCancelSubscription, 
   onEditUser,
