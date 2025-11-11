@@ -36,13 +36,13 @@ interface UserEditModalProps {
       }
     } | null
   } | null
-  adminId: string | null
+  coachId: string | null
   onUserUpdated?: () => void
 }
 
-export function UserEditModal({ open, onOpenChange, user, adminId, onUserUpdated }: UserEditModalProps) {
-  const { disciplines, disciplineLevels } = useDisciplines(adminId)
-  const { updateUserPreferences } = useUserPreferences(adminId)
+export function UserEditModal({ open, onOpenChange, user, coachId, onUserUpdated }: UserEditModalProps) {
+  const { disciplines, disciplineLevels } = useDisciplines(coachId)
+  const { updateUserPreferences } = useUserPreferences(coachId)
   const { toast } = useToast()
   
   const [loading, setLoading] = useState(false)

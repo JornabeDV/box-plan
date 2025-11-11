@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { sql } from '@/lib/neon'
+import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,15 +10,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const subscriptions = await sql`
-      SELECT *
-      FROM subscriptions
-      WHERE user_id = ${session.user.id} AND status = 'active'
-      ORDER BY created_at DESC
-      LIMIT 1
-    `
-
-    const subscription = subscriptions.length > 0 ? subscriptions[0] : null
+    const subscription = await prisma.subscription.findFirst({
+      where: {
+        userId: session.user.id,
+        status: 'active'
+      },
+      orderBy: { createdAt: 'desc' }
+    })
     
     return NextResponse.json(subscription)
   } catch (error) {

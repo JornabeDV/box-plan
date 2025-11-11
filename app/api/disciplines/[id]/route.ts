@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { sql } from '@/lib/neon'
+import { prisma } from '@/lib/prisma'
 
 // PATCH /api/disciplines/[id]
 export async function PATCH(
@@ -13,57 +13,46 @@ export async function PATCH(
 			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 		}
 
-		const { id } = params
+		const disciplineId = parseInt(params.id)
 		const body = await request.json()
 		const { name, description, color, order_index, levels } = body
 
 		// Verificar que la disciplina existe
-		const existing = await sql`
-			SELECT id, admin_id FROM disciplines WHERE id = ${id} AND is_active = true
-		`
+		const existing = await prisma.discipline.findFirst({
+			where: {
+				id: disciplineId,
+				isActive: true
+			},
+			select: { id: true, coachId: true }
+		})
 
-		if (!existing || existing.length === 0) {
+		if (!existing) {
 			return NextResponse.json(
 				{ error: 'Disciplina no encontrada' },
 				{ status: 404 }
 			)
 		}
 
-		// Actualizar disciplina
-		const conditions: string[] = []
-
-		if (name !== undefined) {
-			conditions.push(`name = '${name.replace(/'/g, "''")}'`)
-		}
-		if (description !== undefined) {
-			conditions.push(`description = ${description ? `'${description.replace(/'/g, "''")}'` : 'NULL'}`)
-		}
-		if (color !== undefined) {
-			conditions.push(`color = '${color.replace(/'/g, "''")}'`)
-		}
-		if (order_index !== undefined) {
-			conditions.push(`order_index = ${order_index}`)
-		}
-
-		if (conditions.length > 0) {
-			conditions.push('updated_at = NOW()')
-			const setClause = conditions.join(', ')
-
-			await sql.unsafe(`UPDATE disciplines SET ${setClause} WHERE id = '${id}'`)
-		}
+		// Preparar datos de actualización
+		const updateData: any = {}
+		if (name !== undefined) updateData.name = name
+		if (description !== undefined) updateData.description = description || null
+		if (color !== undefined) updateData.color = color
+		if (order_index !== undefined) updateData.orderIndex = order_index
 
 		// Manejar niveles si se proporcionan
 		if (levels !== undefined) {
 			// Obtener niveles existentes
-			const existingLevels = await sql`
-				SELECT id, name, order_index FROM discipline_levels 
-				WHERE discipline_id = ${id} AND is_active = true
-				ORDER BY order_index ASC
-			`
+			const existingLevels = await prisma.disciplineLevel.findMany({
+				where: {
+					disciplineId,
+					isActive: true
+				},
+				select: { id: true },
+				orderBy: { orderIndex: 'asc' }
+			})
 
-			const existingLevelIds = new Set(
-				(existingLevels as any[]).map((l: any) => l.id)
-			)
+			const existingLevelIds = new Set(existingLevels.map(l => l.id))
 			const newLevelIds = new Set(
 				(levels as any[])
 					.filter((l: any) => l.id)
@@ -76,52 +65,73 @@ export async function PATCH(
 			)
 
 			if (levelsToDelete.length > 0) {
-				await sql`
-					UPDATE discipline_levels 
-					SET is_active = false, updated_at = NOW()
-					WHERE id = ANY(${levelsToDelete}::uuid[])
-				`
+				await prisma.disciplineLevel.updateMany({
+					where: {
+						id: { in: levelsToDelete }
+					},
+					data: {
+						isActive: false
+					}
+				})
 			}
 
-			// Crear o actualizar niveles
+			// Preparar operaciones de niveles
+			const levelOperations: any[] = []
+
 			for (const level of levels) {
 				if (level.id && newLevelIds.has(level.id)) {
 					// Actualizar nivel existente
-					await sql`
-						UPDATE discipline_levels
-						SET 
-							name = ${level.name},
-							description = ${level.description || null},
-							order_index = ${level.order_index || 0},
-							is_active = ${level.is_active !== undefined ? level.is_active : true},
-							updated_at = NOW()
-						WHERE id = ${level.id}
-					`
+					levelOperations.push(
+						prisma.disciplineLevel.update({
+							where: { id: level.id },
+							data: {
+								name: level.name,
+								description: level.description || null,
+								orderIndex: level.order_index || 0,
+								isActive: level.is_active !== undefined ? level.is_active : true
+							}
+						})
+					)
 				} else if (!level.id) {
 					// Crear nuevo nivel
-					await sql`
-						INSERT INTO discipline_levels (discipline_id, name, description, order_index, is_active)
-						VALUES (${id}, ${level.name}, ${level.description || null}, ${level.order_index || 0}, ${level.is_active !== undefined ? level.is_active : true})
-					`
+					levelOperations.push(
+						prisma.disciplineLevel.create({
+							data: {
+								disciplineId,
+								name: level.name,
+								description: level.description || null,
+								orderIndex: level.order_index || 0,
+								isActive: level.is_active !== undefined ? level.is_active : true
+							}
+						})
+					)
 				}
+			}
+
+			// Ejecutar operaciones de niveles
+			if (levelOperations.length > 0) {
+				await Promise.all(levelOperations)
 			}
 		}
 
-		// Obtener disciplina actualizada con sus niveles
-		const updatedDiscipline = await sql`
-			SELECT * FROM disciplines WHERE id = ${id}
-		`
-
-		const disciplineLevels = await sql`
-			SELECT * FROM discipline_levels 
-			WHERE discipline_id = ${id} AND is_active = true 
-			ORDER BY order_index ASC
-		`
-
-		const result = {
-			...updatedDiscipline[0],
-			levels: disciplineLevels
+		// Actualizar disciplina si hay cambios
+		if (Object.keys(updateData).length > 0) {
+			await prisma.discipline.update({
+				where: { id: disciplineId },
+				data: updateData
+			})
 		}
+
+		// Obtener disciplina actualizada con sus niveles
+		const result = await prisma.discipline.findUnique({
+			where: { id: disciplineId },
+			include: {
+				levels: {
+					where: { isActive: true },
+					orderBy: { orderIndex: 'asc' }
+				}
+			}
+		})
 
 		return NextResponse.json(result)
 	} catch (error) {
@@ -145,21 +155,19 @@ export async function DELETE(
 			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 		}
 
-		const { id } = params
+		const disciplineId = parseInt(params.id)
 
 		// Soft delete: marcar como inactivo
-		await sql`
-			UPDATE disciplines 
-			SET is_active = false, updated_at = NOW()
-			WHERE id = ${id}
-		`
-
-		// También eliminar niveles relacionados (soft delete)
-		await sql`
-			UPDATE discipline_levels 
-			SET is_active = false, updated_at = NOW()
-			WHERE discipline_id = ${id}
-		`
+		await prisma.$transaction([
+			prisma.discipline.update({
+				where: { id: disciplineId },
+				data: { isActive: false }
+			}),
+			prisma.disciplineLevel.updateMany({
+				where: { disciplineId },
+				data: { isActive: false }
+			})
+		])
 
 		return NextResponse.json({ success: true })
 	} catch (error) {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { sql } from '@/lib/neon'
+import { prisma } from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,13 +49,15 @@ async function handlePaymentNotification(paymentId: string) {
 
     // Update payment history
     try {
-      await sql`
-        UPDATE payment_history 
-        SET status = ${payment.status === 'approved' ? 'approved' : 'rejected'}, 
-            mercadopago_payment_id = ${paymentId}, 
-            updated_at = NOW()
-        WHERE mercadopago_preference_id = ${payment.preference_id}
-      `
+      await prisma.paymentHistory.updateMany({
+        where: {
+          mercadopagoPreferenceId: payment.preference_id
+        },
+        data: {
+          status: payment.status === 'approved' ? 'approved' : 'rejected',
+          mercadopagoPaymentId: paymentId
+        }
+      })
     } catch (updateError) {
       console.error('Error updating payment history:', updateError)
       return
@@ -85,33 +87,46 @@ async function createOrUpdateSubscription(payment: any) {
     const periodEnd = new Date(now)
     periodEnd.setMonth(periodEnd.getMonth() + 1) // Default to monthly
 
-    // Check if user already has an active subscription
-    const existing = await sql`
-      SELECT * FROM subscriptions WHERE user_id = ${user_id} AND status = 'active'
-    `
+    const userId = parseInt(user_id)
+    const planId = parseInt(plan_id)
 
-    if (existing.length > 0) {
+    // Check if user already has an active subscription
+    const existing = await prisma.subscription.findFirst({
+      where: {
+        userId,
+        status: 'active'
+      }
+    })
+
+    if (existing) {
       // Update existing subscription
       try {
-        await sql`
-          UPDATE subscriptions
-          SET plan_id = ${plan_id}, 
-              current_period_start = ${now.toISOString()}, 
-              current_period_end = ${periodEnd.toISOString()}, 
-              mercadopago_payment_id = ${payment.id}, 
-              updated_at = NOW()
-          WHERE id = ${existing[0].id}
-        `
+        await prisma.subscription.update({
+          where: { id: existing.id },
+          data: {
+            planId,
+            currentPeriodStart: now,
+            currentPeriodEnd: periodEnd,
+            mercadopagoPaymentId: payment.id.toString()
+          }
+        })
       } catch (error) {
         console.error('Error updating subscription:', error)
       }
     } else {
       // Create new subscription
       try {
-        await sql`
-          INSERT INTO subscriptions (user_id, plan_id, status, current_period_start, current_period_end, mercadopago_payment_id, cancel_at_period_end)
-          VALUES (${user_id}, ${plan_id}, 'active', ${now.toISOString()}, ${periodEnd.toISOString()}, ${payment.id}, false)
-        `
+        await prisma.subscription.create({
+          data: {
+            userId,
+            planId,
+            status: 'active',
+            currentPeriodStart: now,
+            currentPeriodEnd: periodEnd,
+            mercadopagoPaymentId: payment.id.toString(),
+            cancelAtPeriodEnd: false
+          }
+        })
       } catch (error) {
         console.error('Error creating subscription:', error)
       }

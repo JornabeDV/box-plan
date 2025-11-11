@@ -11,12 +11,12 @@ import { useUserPreferences, UserWithPreferences, UpdateUserPreferenceData } fro
 import { useDisciplines } from '@/hooks/use-disciplines'
 
 interface UsersPreferencesProps {
-  adminId: string | null
+  coachId: string | null
 }
 
-export function UsersPreferences({ adminId }: UsersPreferencesProps) {
-  const { users, loading, error, updateUserPreferences } = useUserPreferences(adminId)
-  const { disciplines, disciplineLevels } = useDisciplines(adminId)
+export function UsersPreferences({ coachId }: UsersPreferencesProps) {
+  const { users, loading, error, updateUserPreferences } = useUserPreferences(coachId)
+  const { disciplines, disciplineLevels } = useDisciplines(coachId)
   const [editingUser, setEditingUser] = useState<string | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
   const [tempPreferences, setTempPreferences] = useState<Record<string, UpdateUserPreferenceData>>({})

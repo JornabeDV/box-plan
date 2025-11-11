@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 
 export interface Planification {
   id: string
-  admin_id: string
+  coach_id: string
   discipline_id: string
   discipline_level_id: string
   date: string
@@ -33,14 +33,14 @@ export interface Planification {
   }
 }
 
-export function usePlanifications(adminId?: string) {
+export function usePlanifications(coachId?: string) {
   const [planifications, setPlanifications] = useState<Planification[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // Cargar planificaciones desde la base de datos
   const loadPlanifications = async () => {
-    if (!adminId) {
+    if (!coachId) {
       setLoading(false)
       return
     }
@@ -49,7 +49,7 @@ export function usePlanifications(adminId?: string) {
       setLoading(true)
       setError(null)
 
-      const response = await fetch(`/api/planifications?adminId=${adminId}`)
+      const response = await fetch(`/api/planifications?coachId=${coachId}`)
       
       if (!response.ok) {
         throw new Error('Error al cargar planificaciones')
@@ -71,8 +71,8 @@ export function usePlanifications(adminId?: string) {
       setError(null)
 
       // Validar que los datos requeridos estén presentes
-      if (!planificationData.admin_id) {
-        const errorMessage = 'ID de administrador requerido'
+      if (!planificationData.coach_id) {
+        const errorMessage = 'ID de coach requerido'
         setError(errorMessage)
         return { error: errorMessage }
       }
@@ -198,14 +198,14 @@ export function usePlanifications(adminId?: string) {
 
   // Buscar planificaciones
   const searchPlanifications = async (query: string) => {
-    if (!adminId) return
+    if (!coachId) return
 
     try {
       setLoading(true)
       setError(null)
 
       // Obtener todas las planificaciones y filtrar por notas
-      const response = await fetch(`/api/planifications?adminId=${adminId}`)
+      const response = await fetch(`/api/planifications?coachId=${coachId}`)
       
       if (!response.ok) {
         throw new Error('Error al buscar planificaciones')
@@ -230,7 +230,7 @@ export function usePlanifications(adminId?: string) {
   // Cargar planificaciones al montar el componente
   useEffect(() => {
     loadPlanifications()
-  }, [adminId])
+  }, [coachId])
 
   return {
     planifications,

@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useAuthWithRoles } from "@/hooks/use-auth-with-roles"
 
 export function BottomNavigation() {
-  const { isAdmin } = useAuthWithRoles()
+  const { isAdmin, isCoach } = useAuthWithRoles()
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border">
@@ -36,7 +36,16 @@ export function BottomNavigation() {
           </Button>
         </Link>
 
-        {isAdmin && (
+        {isCoach && (
+          <Link href="/admin-dashboard">
+            <Button variant="ghost" className="flex-col gap-1 h-auto py-3 px-4 hover:bg-accent text-foreground">
+              <Settings className="w-5 h-5" />
+              <span className="text-xs font-medium">Dashboard</span>
+            </Button>
+          </Link>
+        )}
+        
+        {isAdmin && !isCoach && (
           <Link href="/admin-dashboard">
             <Button variant="ghost" className="flex-col gap-1 h-auto py-3 px-4 hover:bg-accent text-foreground">
               <Settings className="w-5 h-5" />

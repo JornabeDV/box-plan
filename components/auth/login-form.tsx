@@ -147,6 +147,23 @@ export function LoginForm({ onSuccess, onSwitchToSignUp, onForgotPassword }: Log
                 Regístrate aquí
               </Button>
             </div>
+
+            <div className="text-center text-sm">
+              <span className="text-gray-400">¿Eres coach? </span>
+              <Button
+                type="button"
+                variant="link"
+                className="p-0 h-auto font-semibold text-lime-400 hover:text-lime-300"
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    window.location.href = '/register/coach'
+                  }
+                }}
+                disabled={loading}
+              >
+                Regístrate como coach
+              </Button>
+            </div>
             
             <div className="text-center">
               <Button

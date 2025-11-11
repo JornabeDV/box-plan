@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { sql } from '@/lib/neon'
+import { prisma } from '@/lib/prisma'
+import { isCoach } from '@/lib/auth-helpers'
 
 // PATCH /api/planifications/[id]
 export async function PATCH(
@@ -14,85 +15,86 @@ export async function PATCH(
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    const { id } = params
+    // Verificar que el usuario es coach
+    const authCheck = await isCoach(session.user.id)
+    if (!authCheck.isAuthorized || !authCheck.profile) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+    }
+
+    const coachId = authCheck.profile.id
+    const planificationId = parseInt(params.id)
     const body = await request.json()
 
-    // Verificar que la planificación existe
-    const existing = await sql`
-      SELECT id FROM planifications WHERE id = ${id}
-    `
+    // Verificar que la planificación existe y pertenece al coach
+    const existing = await prisma.planification.findUnique({
+      where: { id: planificationId },
+      select: { id: true, coachId: true }
+    })
 
-    if (!existing || existing.length === 0) {
+    if (!existing) {
       return NextResponse.json(
         { error: 'Planificación no encontrada' },
         { status: 404 }
       )
     }
 
-    // Construir update dinámicamente usando template literals
-    let setClause = ''
-    const conditions: string[] = []
-
-    if (body.discipline_id !== undefined) {
-      conditions.push(`discipline_id = ${body.discipline_id}`)
-    }
-    if (body.discipline_level_id !== undefined) {
-      conditions.push(`discipline_level_id = ${body.discipline_level_id}`)
-    }
-    if (body.date !== undefined) {
-      conditions.push(`date = '${body.date}'`)
-    }
-    if (body.estimated_duration !== undefined) {
-      conditions.push(`estimated_duration = ${body.estimated_duration}`)
-    }
-    if (body.blocks !== undefined) {
-      conditions.push(`blocks = '${JSON.stringify(body.blocks)}'::jsonb`)
-    }
-    if (body.notes !== undefined) {
-      conditions.push(`notes = '${body.notes.replace(/'/g, "''")}'`)
-    }
-    if (body.is_active !== undefined) {
-      conditions.push(`is_active = ${body.is_active}`)
+    // Verificar que la planificación pertenece al coach autenticado
+    if (existing.coachId !== coachId) {
+      return NextResponse.json(
+        { error: 'No autorizado. Esta planificación no pertenece a tu cuenta.' },
+        { status: 403 }
+      )
     }
 
-    if (conditions.length === 0) {
+    // Preparar datos de actualización
+    const updateData: any = {}
+    if (body.discipline_id !== undefined) updateData.disciplineId = body.discipline_id || null
+    if (body.discipline_level_id !== undefined) updateData.disciplineLevelId = body.discipline_level_id || null
+    if (body.date !== undefined) updateData.date = new Date(body.date)
+    if (body.title !== undefined) updateData.title = body.title || null
+    if (body.description !== undefined) updateData.description = body.description || null
+    if (body.exercises !== undefined) updateData.exercises = body.exercises || null
+    if (body.notes !== undefined) updateData.notes = body.notes || null
+    if (body.is_completed !== undefined) updateData.isCompleted = body.is_completed
+
+    if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'No hay campos para actualizar' }, { status: 400 })
     }
 
-    conditions.push('updated_at = NOW()')
-    setClause = conditions.join(', ')
-
-    await sql.unsafe(`UPDATE planifications SET ${setClause} WHERE id = '${id}'`)
-
-    // Obtener con relaciones
-    const withRelations = await sql`
-      SELECT 
-        p.*,
-        jsonb_build_object(
-          'id', d.id,
-          'name', d.name,
-          'color', d.color,
-          'icon', d.icon
-        ) as discipline,
-        jsonb_build_object(
-          'id', dl.id,
-          'name', dl.name,
-          'description', dl.description
-        ) as discipline_level
-      FROM planifications p
-      LEFT JOIN disciplines d ON p.discipline_id = d.id
-      LEFT JOIN discipline_levels dl ON p.discipline_level_id = dl.id
-      WHERE p.id = ${id}
-    `
+    // Actualizar y obtener con relaciones
+    const updated = await prisma.planification.update({
+      where: { id: planificationId },
+      data: updateData,
+      include: {
+        discipline: {
+          select: {
+            id: true,
+            name: true,
+            color: true
+          }
+        },
+        disciplineLevel: {
+          select: {
+            id: true,
+            name: true,
+            description: true
+          }
+        }
+      }
+    })
 
     const transformed = {
-      ...withRelations[0],
-      discipline: typeof withRelations[0].discipline === 'string' 
-        ? JSON.parse(withRelations[0].discipline) 
-        : withRelations[0].discipline,
-      discipline_level: typeof withRelations[0].discipline_level === 'string' 
-        ? JSON.parse(withRelations[0].discipline_level) 
-        : withRelations[0].discipline_level
+      ...updated,
+      discipline: updated.discipline ? {
+        id: updated.discipline.id,
+        name: updated.discipline.name,
+        color: updated.discipline.color
+      } : null,
+      discipline_level: updated.disciplineLevel ? {
+        id: updated.disciplineLevel.id,
+        name: updated.disciplineLevel.name,
+        description: updated.disciplineLevel.description
+      } : null
     }
 
     return NextResponse.json(transformed)
@@ -117,21 +119,51 @@ export async function DELETE(
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    const { id } = params
+    // Verificar que el usuario es coach
+    const authCheck = await isCoach(session.user.id)
+    if (!authCheck.isAuthorized || !authCheck.profile) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+    }
 
-    const result = await sql`
-      DELETE FROM planifications WHERE id = ${id}
-      RETURNING id
-    `
+    const coachId = authCheck.profile.id
+    const planificationId = parseInt(params.id)
 
-    if (!result || result.length === 0) {
+    // Verificar que la planificación existe y pertenece al coach
+    const existing = await prisma.planification.findUnique({
+      where: { id: planificationId },
+      select: { id: true, coachId: true }
+    })
+
+    if (!existing) {
       return NextResponse.json(
         { error: 'Planificación no encontrada' },
         { status: 404 }
       )
     }
 
-    return NextResponse.json({ success: true })
+    // Verificar que la planificación pertenece al coach autenticado
+    if (existing.coachId !== coachId) {
+      return NextResponse.json(
+        { error: 'No autorizado. Esta planificación no pertenece a tu cuenta.' },
+        { status: 403 }
+      )
+    }
+
+    try {
+      await prisma.planification.delete({
+        where: { id: planificationId }
+      })
+
+      return NextResponse.json({ success: true })
+    } catch (error: any) {
+      if (error.code === 'P2025') {
+        return NextResponse.json(
+          { error: 'Planificación no encontrada' },
+          { status: 404 }
+        )
+      }
+      throw error
+    }
   } catch (error) {
     console.error('Error deleting planification:', error)
     return NextResponse.json(

@@ -35,20 +35,20 @@ export interface UpdateUserPreferenceData {
   preferred_level_id: string | null
 }
 
-export function useUserPreferences(adminId: string | null) {
+export function useUserPreferences(coachId: string | null) {
   const [users, setUsers] = useState<UserWithPreferences[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // Cargar usuarios con sus preferencias
   const fetchUsers = async () => {
-    if (!adminId) return
+    if (!coachId) return
 
     setLoading(true)
     setError(null)
 
     try {
-      const response = await fetch(`/api/admin/users?adminId=${adminId}`)
+      const response = await fetch(`/api/admin/users?coachId=${coachId}`)
       
       if (!response.ok) {
         throw new Error('Error al cargar usuarios')
@@ -128,7 +128,7 @@ export function useUserPreferences(adminId: string | null) {
   // Cargar usuarios al montar el componente
   useEffect(() => {
     fetchUsers()
-  }, [adminId])
+  }, [coachId])
 
   return {
     users,

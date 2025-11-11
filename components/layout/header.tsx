@@ -6,7 +6,7 @@ import Link from "next/link"
 interface HeaderProps {}
 
 export function Header({}: HeaderProps) {
-  const { user, isAdmin, signOut } = useAuthWithRoles()
+  const { user, isAdmin, isCoach, signOut } = useAuthWithRoles()
 
   return (
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 shadow-sm">
@@ -36,7 +36,20 @@ export function Header({}: HeaderProps) {
         </div>
         
         <div className="flex items-center gap-2 md:gap-3">
-          {isAdmin && (
+          {isCoach && (
+            <Link href="/admin-dashboard">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 md:gap-2 hover:bg-white/5 hover:text-lime-400 transition-colors rounded-xl touch-manipulation"
+              >
+                <Settings className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="hidden sm:inline text-xs md:text-sm font-semibold">Dashboard</span>
+              </Button>
+            </Link>
+          )}
+          
+          {isAdmin && !isCoach && (
             <Link href="/admin-dashboard">
               <Button
                 variant="ghost"

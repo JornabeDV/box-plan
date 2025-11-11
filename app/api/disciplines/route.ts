@@ -1,41 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { sql } from '@/lib/neon'
+import { prisma } from '@/lib/prisma'
+import { isCoach } from '@/lib/auth-helpers'
 
-// GET /api/disciplines?adminId=xxx
+// GET /api/disciplines?coachId=xxx
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const adminId = searchParams.get('adminId')
+    const coachId = searchParams.get('coachId')
 
-    if (!adminId) {
-      return NextResponse.json({ error: 'Admin ID required' }, { status: 400 })
+    if (!coachId) {
+      return NextResponse.json({ error: 'Coach ID required' }, { status: 400 })
     }
 
-    // Cargar disciplinas
-    const disciplines = await sql`
-      SELECT * FROM disciplines 
-      WHERE admin_id = ${adminId} AND is_active = true 
-      ORDER BY order_index ASC
-    `
+    // Cargar disciplinas con sus niveles
+    const disciplines = await prisma.discipline.findMany({
+      where: {
+        coachId: parseInt(coachId),
+        isActive: true
+      },
+      include: {
+        levels: {
+          where: { isActive: true },
+          orderBy: { orderIndex: 'asc' }
+        }
+      },
+      orderBy: { orderIndex: 'asc' }
+    })
 
     if (disciplines.length === 0) {
       return NextResponse.json({ disciplines: [], levels: [] })
     }
 
-    const disciplineIds: string[] = (disciplines as any[]).map((d: any) => d.id)
-
-    // Cargar niveles
-    const levels = await sql`
-      SELECT * FROM discipline_levels 
-      WHERE discipline_id = ANY(${disciplineIds}::uuid[]) AND is_active = true 
-      ORDER BY order_index ASC
-    `
+    // Extraer niveles para respuesta separada
+    const levels = disciplines.flatMap(d => d.levels)
 
     // Combinar disciplinas con sus niveles
-    const disciplinesWithLevels = (disciplines as any[]).map((discipline: any) => ({
+    const disciplinesWithLevels = disciplines.map(discipline => ({
       ...discipline,
-      levels: (levels as any[]).filter((level: any) => level.discipline_id === discipline.id)
+      levels: discipline.levels
     }))
 
     return NextResponse.json({ disciplines: disciplinesWithLevels, levels })
@@ -53,27 +56,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
-    const { name, description, color, admin_id, order_index, levels } = body
-
-    // Insertar disciplina usando template literal
-    const result = await sql`
-      INSERT INTO disciplines (name, description, color, admin_id, order_index)
-      VALUES (${name}, ${description || null}, ${color || '#3B82F6'}, ${admin_id}, ${order_index || 0})
-      RETURNING *
-    `
-
-    const newDiscipline = result[0]
-
-    // Crear niveles si existen
-    if (levels && levels.length > 0) {
-      for (const level of levels) {
-        await sql`
-          INSERT INTO discipline_levels (discipline_id, name, description, order_index)
-          VALUES (${newDiscipline.id}, ${level.name}, ${level.description || null}, ${level.order_index || 0})
-        `
-      }
+    // Verificar que el usuario es coach
+    const authCheck = await isCoach(session.user.id)
+    if (!authCheck.isAuthorized) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
+
+    const body = await request.json()
+    const { name, description, color, coach_id, order_index, levels } = body
+
+    // Usar coach_id del body o el ID del perfil del coach
+    const profileId = coach_id || (authCheck.profile as any).id
+
+    // Crear disciplina con niveles en una transacción
+    const newDiscipline = await prisma.discipline.create({
+      data: {
+        name,
+        description: description || null,
+        color: color || '#3B82F6',
+        coachId: profileId,
+        orderIndex: order_index || 0,
+        levels: levels && levels.length > 0 ? {
+          create: levels.map((level: any) => ({
+            name: level.name,
+            description: level.description || null,
+            orderIndex: level.order_index || 0
+          }))
+        } : undefined
+      },
+      include: {
+        levels: true
+      }
+    })
 
     return NextResponse.json(newDiscipline)
   } catch (error) {

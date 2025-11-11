@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { sql } from '@/lib/neon'
+import { prisma } from '@/lib/prisma'
 
 /**
  * GET /api/auth/validate-reset-token?token=xxx
@@ -18,15 +18,16 @@ export async function GET(request: NextRequest) {
     }
 
     // Buscar token válido
-    const tokenResult = await sql`
-      SELECT id
-      FROM password_reset_tokens
-      WHERE token = ${token}
-        AND expires_at > NOW()
-        AND used = false
-    `
+    const tokenResult = await prisma.passwordResetToken.findFirst({
+      where: {
+        token,
+        expiresAt: { gt: new Date() },
+        used: false
+      },
+      select: { id: true }
+    })
 
-    if (!tokenResult || tokenResult.length === 0) {
+    if (!tokenResult) {
       return NextResponse.json({
         valid: false,
         error: 'Token inválido o expirado'

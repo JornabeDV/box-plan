@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { sql } from '@/lib/neon'
+import { prisma } from '@/lib/prisma'
 
 // GET /api/workouts/ranking?date=YYYY-MM-DD
 export async function GET(request: NextRequest) {
@@ -26,24 +26,37 @@ export async function GET(request: NextRequest) {
 			targetDate = `${year}-${month}-${day}`
 		}
 
-		// Obtener todos los workouts del día especificado que sean WODs (tienen duration_seconds)
-		// Usar solo las columnas que existen: user_id, completed_at, duration_seconds
-		const workouts = await sql`
-			SELECT 
-				w.id,
-				w.user_id,
-				w.completed_at,
-				w.duration_seconds,
-				COALESCE(u.name, u.email) as user_name,
-				u.email as user_email
-			FROM workouts w
-			LEFT JOIN users u ON w.user_id = u.id
-			WHERE w.completed_at IS NOT NULL
-				AND DATE(w.completed_at) = ${targetDate}::date
-				AND w.duration_seconds IS NOT NULL
-				AND w.duration_seconds > 0
-			ORDER BY w.duration_seconds ASC, w.completed_at ASC
-		`
+		// Obtener todos los workouts del día especificado que sean WODs
+		const targetDateObj = new Date(targetDate)
+		targetDateObj.setHours(0, 0, 0, 0)
+		const nextDay = new Date(targetDateObj)
+		nextDay.setDate(nextDay.getDate() + 1)
+
+		const workouts = await prisma.workout.findMany({
+			where: {
+				completedAt: {
+					not: null,
+					gte: targetDateObj,
+					lt: nextDay
+				},
+				durationSeconds: {
+					not: null,
+					gt: 0
+				}
+			},
+			include: {
+				user: {
+					select: {
+						name: true,
+						email: true
+					}
+				}
+			},
+			orderBy: [
+				{ durationSeconds: 'asc' },
+				{ completedAt: 'asc' }
+			]
+		})
 
 		// Agrupar todos los workouts en un solo grupo "WOD del día"
 		// Ya que no tenemos información del nombre del WOD en la base de datos
@@ -51,13 +64,13 @@ export async function GET(request: NextRequest) {
 			'WOD del día': []
 		}
 		
-		workouts.forEach((workout: any) => {
+		workouts.forEach((workout) => {
 			groupedByWOD['WOD del día'].push({
 				id: workout.id,
-				user_id: workout.user_id,
-				user_name: workout.user_name || 'Usuario',
-				duration_seconds: workout.duration_seconds,
-				completed_at: workout.completed_at,
+				user_id: workout.userId,
+				user_name: workout.user.name || workout.user.email || 'Usuario',
+				duration_seconds: workout.durationSeconds,
+				completed_at: workout.completedAt,
 				notes: null
 			})
 		})

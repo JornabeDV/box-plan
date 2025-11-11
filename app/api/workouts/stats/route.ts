@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { sql } from '@/lib/neon'
+import { prisma } from '@/lib/prisma'
 
 // GET /api/workouts/stats?userId=xxx
 export async function GET(request: NextRequest) {
@@ -13,32 +13,38 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const targetUserId = userId || session?.user?.id
+    const targetUserId = userId ? parseInt(userId) : session?.user?.id
 
-    const workouts = await sql`
-      SELECT completed_at, duration_seconds
-      FROM workouts
-      WHERE user_id = ${targetUserId}
-      ORDER BY completed_at DESC
-    `
+    if (!targetUserId) {
+      return NextResponse.json({ error: 'User ID required' }, { status: 400 })
+    }
+
+    const workouts = await prisma.workout.findMany({
+      where: { userId: targetUserId },
+      select: {
+        completedAt: true,
+        durationSeconds: true
+      },
+      orderBy: { completedAt: 'desc' }
+    })
 
     const stats = {
       totalWorkouts: workouts.length,
-      thisWeek: workouts.filter((w: any) => {
-        if (!w.completed_at) return false
-        const workoutDate = new Date(w.completed_at)
+      thisWeek: workouts.filter((w) => {
+        if (!w.completedAt) return false
+        const workoutDate = new Date(w.completedAt)
         const weekAgo = new Date()
         weekAgo.setDate(weekAgo.getDate() - 7)
         return workoutDate >= weekAgo
       }).length,
-      thisMonth: workouts.filter((w: any) => {
-        if (!w.completed_at) return false
-        const workoutDate = new Date(w.completed_at)
+      thisMonth: workouts.filter((w) => {
+        if (!w.completedAt) return false
+        const workoutDate = new Date(w.completedAt)
         const monthAgo = new Date()
         monthAgo.setDate(monthAgo.getDate() - 30)
         return workoutDate >= monthAgo
       }).length,
-      averageDuration: workouts.reduce((acc: number, w: any) => acc + (w.duration_seconds || 0), 0) / (workouts.length || 1),
+      averageDuration: workouts.reduce((acc: number, w) => acc + (w.durationSeconds || 0), 0) / (workouts.length || 1),
       streak: calculateStreak(workouts)
     }
 
@@ -49,7 +55,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function calculateStreak(workouts: any[]): number {
+function calculateStreak(workouts: { completedAt: Date | null }[]): number {
   if (workouts.length === 0) return 0
 
   const today = new Date()
@@ -58,8 +64,8 @@ function calculateStreak(workouts: any[]): number {
   // Obtener fechas únicas de entrenamientos
   const workoutDates = new Set<string>()
   for (const workout of workouts) {
-    if (!workout.completed_at) continue
-    const workoutDate = new Date(workout.completed_at)
+    if (!workout.completedAt) continue
+    const workoutDate = new Date(workout.completedAt)
     workoutDate.setHours(0, 0, 0, 0)
     workoutDates.add(workoutDate.toISOString().split('T')[0])
   }

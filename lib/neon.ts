@@ -10,7 +10,7 @@ export const sql = connectionString ? neon(connectionString) : (() => {
 
 // Interfaces para los tipos de base de datos
 export interface User {
-  id: string
+  id: number
   email: string
   emailVerified: Date | null
   name: string | null
@@ -20,8 +20,8 @@ export interface User {
 }
 
 export interface Session {
-  id: string
-  userId: string
+  id: number
+  userId: number
   expiresAt: Date
   token: string
   ipAddress: string | null
@@ -31,7 +31,7 @@ export interface Session {
 }
 
 export interface Profile {
-  id: string
+  id: number
   email: string
   full_name: string | null
   avatar_url: string | null
@@ -40,17 +40,17 @@ export interface Profile {
 }
 
 export interface UserRole {
-  id: string
-  user_id: string
-  role: 'admin' | 'user'
+  id: number
+  user_id: number
+  role: 'admin' | 'user' | 'coach' | 'student'
   created_at: string
   updated_at: string
 }
 
 export interface Subscription {
-  id: string
-  user_id: string
-  plan_id: string
+  id: number
+  user_id: number
+  plan_id: number
   status: 'active' | 'canceled' | 'past_due' | 'unpaid'
   current_period_start: string
   current_period_end: string

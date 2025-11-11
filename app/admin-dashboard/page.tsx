@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuthWithRoles as useSimplifiedAuth } from '@/hooks/use-auth-with-roles'
 import { useDisciplines } from '@/hooks/use-disciplines'
 import { usePlanifications } from '@/hooks/use-planifications'
@@ -28,7 +28,19 @@ import { SubscriptionPlansList } from '@/components/admin/subscription-plans-lis
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 export default function AdminDashboardPage() {
-  const { user, adminProfile, loading: authLoading, isAdmin, userRole } = useSimplifiedAuth()
+  const { user, coachProfile, loading: authLoading, isCoach, userRole } = useSimplifiedAuth()
+
+  // Usar coachId (convertir a string para los hooks)
+  const profileId = coachProfile?.id ? String(coachProfile.id) : null
+  
+  // Estado para el acceso del coach
+  const [coachAccess, setCoachAccess] = useState<{
+    hasAccess: boolean
+    isTrial: boolean
+    trialEndsAt: Date | null
+    daysRemaining: number
+  } | null>(null)
+  const [loadingAccess, setLoadingAccess] = useState(true)
 
   const {
     disciplines,
@@ -39,7 +51,7 @@ export default function AdminDashboardPage() {
     createDisciplineLevel,
     reorderDisciplines,
     reorderDisciplineLevels
-  } = useDisciplines(adminProfile?.id || null)
+  } = useDisciplines(profileId)
 
   const {
     planifications,
@@ -48,9 +60,9 @@ export default function AdminDashboardPage() {
     updatePlanification,
     deletePlanification,
     searchPlanifications
-  } = usePlanifications(adminProfile?.id)
+  } = usePlanifications(profileId || undefined)
 
-  const { users } = useUsersManagement(adminProfile?.id || null)
+  const { users } = useUsersManagement(profileId)
 
   const [activeTab, setActiveTab] = useState('overview')
   const [showDisciplineModal, setShowDisciplineModal] = useState(false)
@@ -135,7 +147,7 @@ export default function AdminDashboardPage() {
           return { error: result.error }
         }
       } else {
-        const result = await createPlanification({ ...data, admin_id: adminProfile?.id })
+        const result = await createPlanification({ ...data, coach_id: profileId })
         
         if (result.error) {
           return { error: result.error }
@@ -192,6 +204,35 @@ export default function AdminDashboardPage() {
     }
   }
 
+  // Cargar información de acceso del coach
+  useEffect(() => {
+    if (profileId && isCoach) {
+      const fetchCoachAccess = async () => {
+        try {
+          setLoadingAccess(true)
+          const response = await fetch('/api/coaches/access')
+          if (response.ok) {
+            const data = await response.json()
+            const daysRemaining = data.trialEndsAt 
+              ? Math.ceil((new Date(data.trialEndsAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+              : 0
+            setCoachAccess({
+              hasAccess: data.hasAccess,
+              isTrial: data.isTrial,
+              trialEndsAt: data.trialEndsAt ? new Date(data.trialEndsAt) : null,
+              daysRemaining: Math.max(0, daysRemaining)
+            })
+          }
+        } catch (error) {
+          console.error('Error fetching coach access:', error)
+        } finally {
+          setLoadingAccess(false)
+        }
+      }
+      fetchCoachAccess()
+    }
+  }, [profileId, isCoach])
+
 
   if (authLoading) {
     return (
@@ -204,7 +245,7 @@ export default function AdminDashboardPage() {
     )
   }
 
-  if (!isAdmin) {
+  if (!isCoach) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -213,14 +254,14 @@ export default function AdminDashboardPage() {
           </div>
           <h1 className="text-2xl font-bold">Acceso Restringido</h1>
           <p className="text-muted-foreground">
-            Solo los administradores pueden acceder a este dashboard.
+            Solo los coaches pueden acceder a este dashboard.
           </p>
           {process.env.NODE_ENV === 'development' && (
             <div className="mt-4 p-4 bg-muted/50 rounded-lg text-left text-sm">
               <p><strong>Debug Info:</strong></p>
               <p>Usuario: {user?.email || 'No autenticado'}</p>
               <p>Rol: {userRole?.role || 'No asignado'}</p>
-              <p>Admin Profile: {adminProfile?.name || 'No encontrado'}</p>
+              <p>Coach Profile: {coachProfile?.businessName || 'No encontrado'}</p>
               <p>Loading: {authLoading ? 'Sí' : 'No'}</p>
             </div>
           )}
@@ -229,8 +270,85 @@ export default function AdminDashboardPage() {
     )
   }
 
+  // Verificar si el coach tiene acceso (suscripción activa o período de prueba válido)
+  if (!loadingAccess && coachAccess && !coachAccess.hasAccess) {
+    const trialEndDate = coachAccess.trialEndsAt 
+      ? new Date(coachAccess.trialEndsAt).toLocaleDateString('es-AR', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        })
+      : null
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground flex items-center justify-center">
+        <div className="text-center space-y-4 max-w-md mx-auto px-4">
+          <div className="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto">
+            <DollarSign className="w-8 h-8 text-yellow-600" />
+          </div>
+          <h1 className="text-2xl font-bold">Período de Prueba Finalizado</h1>
+          <p className="text-muted-foreground">
+            {trialEndDate 
+              ? `Tu período de prueba gratuito finalizó el ${trialEndDate}. Para continuar usando Box Plan con tus estudiantes, necesitas seleccionar un plan.`
+              : 'Tu período de prueba gratuito de 7 días ha terminado. Para continuar usando Box Plan con tus estudiantes, necesitas seleccionar un plan.'
+            }
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
+            <Button
+              onClick={() => window.location.href = '/pricing/coaches'}
+              className="hover:scale-100 active:scale-100"
+            >
+              Ver Planes y Precios
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => window.location.href = '/'}
+              className="hover:scale-100 active:scale-100"
+            >
+              Volver al Inicio
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground">
+      {/* Banner de período de prueba */}
+      {coachAccess?.isTrial && coachAccess.hasAccess && (
+        <div className={`border-b ${
+          coachAccess.daysRemaining <= 2 
+            ? 'bg-yellow-500/10 border-yellow-500/20' 
+            : 'bg-blue-500/10 border-blue-500/20'
+        }`}>
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className={`text-sm font-medium ${
+                  coachAccess.daysRemaining <= 2 
+                    ? 'text-yellow-700 dark:text-yellow-400' 
+                    : 'text-blue-700 dark:text-blue-400'
+                }`}>
+                  {coachAccess.daysRemaining > 0 
+                    ? `Período de prueba: ${coachAccess.daysRemaining} día${coachAccess.daysRemaining !== 1 ? 's' : ''} restante${coachAccess.daysRemaining !== 1 ? 's' : ''}`
+                    : 'Tu período de prueba ha terminado'}
+                </span>
+              </div>
+              {coachAccess.daysRemaining > 0 && (
+                <Button
+                  size="sm"
+                  onClick={() => window.location.href = '/pricing/coaches'}
+                  className="hover:scale-100 active:scale-100"
+                >
+                  Seleccionar Plan
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="border-b bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-6">
@@ -246,9 +364,11 @@ export default function AdminDashboardPage() {
                 <span className="hidden sm:inline">Volver al Inicio</span>
               </Button>
               <div>
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Dashboard Administrador</h1>
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">
+                  Dashboard Coach
+                </h1>
                 <p className="text-sm sm:text-base text-muted-foreground">
-                  {adminProfile?.organization_name || 'Panel de Control'}
+                  {coachProfile?.businessName || 'Panel de Control'}
                 </p>
               </div>
             </div>
@@ -335,7 +455,7 @@ export default function AdminDashboardPage() {
                     setSelectedDiscipline(null)
                     setShowDisciplineModal(true)
                   }}
-                  disabled={!adminProfile?.id}
+                  disabled={!profileId}
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Nueva Disciplina
@@ -387,7 +507,7 @@ export default function AdminDashboardPage() {
 
           {/* Usuarios Tab */}
           <TabsContent value="users" className="space-y-6">
-            <UsersList adminId={adminProfile?.id || null} />
+            <UsersList coachId={profileId} />
           </TabsContent>
 
           {/* Planes Tab */}
@@ -424,7 +544,7 @@ export default function AdminDashboardPage() {
         }}
         planification={selectedPlanification}
         selectedDate={selectedDate}
-        adminId={adminProfile?.id}
+        coachId={profileId}
         onSubmit={handlePlanificationSubmit}
       />
 

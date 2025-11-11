@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { sql } from '@/lib/neon'
+import { prisma } from '@/lib/prisma'
 
 // PATCH /api/subscriptions/[id]/renew
 export async function PATCH(
@@ -17,44 +17,55 @@ export async function PATCH(
       )
     }
 
-    const { id } = params
+    const subscriptionId = parseInt(params.id)
 
-    // Extender el período
+    // Extender el período y crear registro de pago en una transacción
     const newEndDate = new Date()
     newEndDate.setDate(newEndDate.getDate() + 30)
 
-    await sql`
-      UPDATE subscriptions
-      SET 
-        current_period_end = ${newEndDate.toISOString()},
-        status = 'active',
-        updated_at = NOW()
-      WHERE id = ${id} AND user_id = ${session.user.id}
-    `
+    await prisma.$transaction(async (tx) => {
+      // Obtener la suscripción con el plan
+      const subscription = await tx.subscription.findUnique({
+        where: {
+          id: subscriptionId,
+          userId: session.user.id
+        },
+        include: {
+          plan: {
+            select: {
+              price: true,
+              currency: true
+            }
+          }
+        }
+      })
 
-    // Crear registro de pago
-    await sql`
-      INSERT INTO payment_history (
-        user_id,
-        subscription_id,
-        amount,
-        currency,
-        status,
-        mercadopago_payment_id,
-        payment_method
-      )
-      SELECT 
-        ${session.user.id},
-        ${id},
-        sp.price,
-        sp.currency,
-        'approved',
-        ${`renewal_${Date.now()}`},
-        'mercadopago'
-      FROM subscriptions s
-      JOIN subscription_plans sp ON s.plan_id = sp.id
-      WHERE s.id = ${id}
-    `
+      if (!subscription) {
+        throw new Error('Suscripción no encontrada')
+      }
+
+      // Actualizar suscripción
+      await tx.subscription.update({
+        where: { id: subscriptionId },
+        data: {
+          currentPeriodEnd: newEndDate,
+          status: 'active'
+        }
+      })
+
+      // Crear registro de pago
+      await tx.paymentHistory.create({
+        data: {
+          userId: session.user.id,
+          subscriptionId,
+          amount: subscription.plan.price,
+          currency: subscription.plan.currency,
+          status: 'approved',
+          mercadopagoPaymentId: `renewal_${Date.now()}`,
+          paymentMethod: 'mercadopago'
+        }
+      })
+    })
 
     return NextResponse.json({ success: true })
   } catch (error) {

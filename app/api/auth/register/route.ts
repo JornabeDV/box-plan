@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { sql } from '@/lib/neon'
-import { randomUUID } from 'crypto'
+import { prisma } from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,11 +15,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar si el usuario ya existe
-    const existing = await sql`
-      SELECT id FROM users WHERE email = ${email}
-    `
+    const existing = await prisma.user.findUnique({
+      where: { email }
+    })
 
-    if (existing.length > 0) {
+    if (existing) {
       return NextResponse.json(
         { error: 'El email ya está registrado' },
         { status: 409 }
@@ -30,20 +29,21 @@ export async function POST(request: NextRequest) {
     // Hash de la contraseña
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Crear usuario con UUID
-    const userId = randomUUID()
+    // Crear usuario y rol en una transacción
+    const user = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        name: name || email.split('@')[0],
+        roles: {
+          create: {
+            role: 'user'
+          }
+        }
+      }
+    })
 
-    await sql`
-      INSERT INTO users (id, email, password, name)
-      VALUES (${userId}, ${email}, ${hashedPassword}, ${name || email.split('@')[0]})
-    `
-
-    // Crear rol de usuario por defecto
-    const roleId = randomUUID()
-    await sql`
-      INSERT INTO user_roles_simple (id, user_id, role)
-      VALUES (${roleId}, ${userId}, 'user')
-    `
+    const userId = user.id
 
     return NextResponse.json({ 
       success: true,

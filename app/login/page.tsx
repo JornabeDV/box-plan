@@ -21,13 +21,19 @@ export default function LoginPage() {
   // Redirigir si el usuario ya está autenticado
   useEffect(() => {
     if (!authLoading && user) {
-      router.push('/')
+      // Redirigir según el rol del usuario
+      if (user.role === 'coach') {
+        router.push('/admin-dashboard')
+      } else {
+        router.push('/')
+      }
     }
     setLoading(false)
   }, [user, authLoading, router])
 
   const handleSuccess = () => {
-    router.push('/')
+    // La redirección se maneja en el useEffect según el rol
+    // Este callback se ejecuta después del login exitoso
   }
 
   const switchToSignUp = () => setMode('signup')

@@ -26,7 +26,8 @@ import {
   BarChart3,
   Clock,
   Weight,
-  Trophy
+  Trophy,
+  Settings
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -39,7 +40,7 @@ export default function BoxPlanApp() {
   const [paymentStatusHandled, setPaymentStatusHandled] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
-  const { user, loading: authLoading } = useAuthWithRoles()
+  const { user, loading: authLoading, isCoach } = useAuthWithRoles()
   const { subscription, loading: profileLoading } = useProfile()
   
   // Verificar si el usuario tiene suscripción activa
@@ -522,6 +523,36 @@ export default function BoxPlanApp() {
             </div>
           </section>
         </main>
+      </div>
+    )
+  }
+
+  // Para coaches, mostrar botón para ir al dashboard
+  if (isCoach && user?.id) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground">
+        <Header />
+        <main className="container mx-auto px-4 py-8 pb-24">
+          <div className="max-w-2xl mx-auto text-center space-y-6">
+            <div className="space-y-4">
+              <h1 className="text-3xl md:text-4xl font-bold">
+                Bienvenido, Coach
+              </h1>
+              <p className="text-lg text-muted-foreground">
+                Accede a tu dashboard para gestionar tus estudiantes y planificaciones
+              </p>
+            </div>
+            <Button
+              onClick={() => router.push('/admin-dashboard')}
+              size="lg"
+              className="text-lg px-8 py-6"
+            >
+              <Settings className="w-5 h-5 mr-2" />
+              Ir al Dashboard
+            </Button>
+          </div>
+        </main>
+        <BottomNavigation />
       </div>
     )
   }
