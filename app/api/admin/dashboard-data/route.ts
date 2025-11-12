@@ -13,8 +13,11 @@ import {
 } from '@/lib/dashboard-helpers'
 
 // Forzar modo dinámico para evitar errores en build time
+// Estas configuraciones aseguran que la ruta nunca se pre-renderice
 export const dynamic = 'force-dynamic'
+export const dynamicParams = true
 export const runtime = 'nodejs'
+export const preferredRegion = 'auto'
 
 /**
  * Endpoint combinado que trae todos los datos del dashboard en una sola petición
@@ -27,6 +30,14 @@ export const runtime = 'nodejs'
  * Ejemplo: /api/admin/dashboard-data?coachId=1&include=disciplines,users
  */
 export async function GET(request: NextRequest) {
+	// Verificar que tenemos un request válido (no durante build)
+	if (!request || typeof request.url === 'undefined') {
+		return NextResponse.json(
+			{ error: 'Service unavailable during build' },
+			{ status: 503 }
+		)
+	}
+
 	try {
 		const session = await auth()
 		const { searchParams } = new URL(request.url)
