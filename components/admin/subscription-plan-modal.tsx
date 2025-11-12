@@ -15,9 +15,10 @@ interface SubscriptionPlanModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   plan?: SubscriptionPlan | null
+  onPlanUpdated?: () => void
 }
 
-export function SubscriptionPlanModal({ open, onOpenChange, plan }: SubscriptionPlanModalProps) {
+export function SubscriptionPlanModal({ open, onOpenChange, plan, onPlanUpdated }: SubscriptionPlanModalProps) {
   const { createPlan, updatePlan } = useSubscriptionPlans()
   const [loading, setLoading] = useState(false)
   
@@ -91,6 +92,9 @@ export function SubscriptionPlanModal({ open, onOpenChange, plan }: Subscription
       if (result.success) {
         // El estado ya se actualizó en updatePlan, solo cerrar el modal
         onOpenChange(false)
+        if (onPlanUpdated) {
+          onPlanUpdated()
+        }
       }
     } catch (error) {
       console.error('Error saving plan:', error)

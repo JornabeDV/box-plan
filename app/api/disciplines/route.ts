@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isCoach } from '@/lib/auth-helpers'
+import { isCoach, normalizeUserId } from '@/lib/auth-helpers'
 
 // GET /api/disciplines?coachId=xxx
 export async function GET(request: NextRequest) {
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     // Cargar disciplinas con sus niveles
     const disciplines = await prisma.discipline.findMany({
       where: {
-        coachId: parseInt(coachId),
+        coachId: parseInt(coachId, 10),
         isActive: true
       },
       include: {
@@ -41,7 +41,12 @@ export async function GET(request: NextRequest) {
       levels: discipline.levels
     }))
 
-    return NextResponse.json({ disciplines: disciplinesWithLevels, levels })
+    const response = NextResponse.json({ disciplines: disciplinesWithLevels, levels })
+    
+    // Agregar caché para reducir queries repetidas
+    response.headers.set('Cache-Control', 'private, max-age=30, stale-while-revalidate=15')
+    
+    return response
   } catch (error) {
     console.error('Error fetching disciplines:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -52,12 +57,13 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await auth()
-    if (!session?.user?.id) {
+    const userId = normalizeUserId(session?.user?.id)
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Verificar que el usuario es coach
-    const authCheck = await isCoach(session.user.id)
+    const authCheck = await isCoach(userId)
     if (!authCheck.isAuthorized) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }

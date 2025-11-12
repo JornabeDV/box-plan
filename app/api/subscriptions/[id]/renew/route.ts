@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { normalizeUserId } from '@/lib/auth-helpers'
 
 // PATCH /api/subscriptions/[id]/renew
 export async function PATCH(
@@ -10,14 +11,15 @@ export async function PATCH(
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    const userId = normalizeUserId(session?.user?.id)
+    if (!userId) {
       return NextResponse.json(
         { error: 'No autenticado' },
         { status: 401 }
       )
     }
 
-    const subscriptionId = parseInt(params.id)
+    const subscriptionId = parseInt(params.id, 10)
 
     // Extender el período y crear registro de pago en una transacción
     const newEndDate = new Date()
@@ -28,7 +30,7 @@ export async function PATCH(
       const subscription = await tx.subscription.findUnique({
         where: {
           id: subscriptionId,
-          userId: session.user.id
+          userId
         },
         include: {
           plan: {
@@ -56,7 +58,7 @@ export async function PATCH(
       // Crear registro de pago
       await tx.paymentHistory.create({
         data: {
-          userId: session.user.id,
+          userId,
           subscriptionId,
           amount: subscription.plan.price,
           currency: subscription.plan.currency,

@@ -1,21 +1,21 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useAuthWithRoles as useSimplifiedAuth } from '@/hooks/use-auth-with-roles'
+import { useDashboardData } from '@/hooks/use-dashboard-data'
 import { useDisciplines } from '@/hooks/use-disciplines'
 import { usePlanifications } from '@/hooks/use-planifications'
-import { useUsersManagement } from '@/hooks/use-users-management'
+import { useModalState } from '@/hooks/use-modal-state'
+import { useDashboardCRUD } from '@/hooks/use-dashboard-crud'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
   Plus, 
   Users, 
   BarChart3, 
-  Settings,
   Calendar,
   Target,
-  DollarSign,
-  ArrowLeft
+  DollarSign
 } from 'lucide-react'
 import { AdminStats } from '@/components/admin/admin-stats'
 import { UsersList } from '@/components/admin/users-list'
@@ -26,6 +26,11 @@ import { PlanificationCalendar } from '@/components/admin/planification-calendar
 import { PlanificationDayModal } from '@/components/admin/planification-day-modal'
 import { SubscriptionPlansList } from '@/components/admin/subscription-plans-list'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
+import { DashboardHeader } from '@/components/admin/dashboard/dashboard-header'
+import { TrialBanner } from '@/components/admin/dashboard/trial-banner'
+import { AccessRestricted } from '@/components/admin/dashboard/access-restricted'
+import { TrialExpired } from '@/components/admin/dashboard/trial-expired'
+import { LoadingScreen } from '@/components/admin/dashboard/loading-screen'
 
 export default function AdminDashboardPage() {
   const { user, coachProfile, loading: authLoading, isCoach, userRole } = useSimplifiedAuth()
@@ -33,348 +38,179 @@ export default function AdminDashboardPage() {
   // Usar coachId (convertir a string para los hooks)
   const profileId = coachProfile?.id ? String(coachProfile.id) : null
   
-  // Estado para el acceso del coach
-  const [coachAccess, setCoachAccess] = useState<{
-    hasAccess: boolean
-    isTrial: boolean
-    trialEndsAt: Date | null
-    daysRemaining: number
-  } | null>(null)
-  const [loadingAccess, setLoadingAccess] = useState(true)
-
+  // Hook combinado que trae todos los datos en una sola petición
   const {
-    disciplines,
-    loading: disciplinesLoading,
+    disciplines: dashboardDisciplines,
+    disciplineLevels: dashboardDisciplineLevels,
+    planifications: dashboardPlanifications,
+    users: dashboardUsers,
+    subscriptionPlans: dashboardSubscriptionPlans,
+    coachAccess: dashboardCoachAccess,
+    loading: dashboardLoading,
+    refresh: refreshDashboard
+  } = useDashboardData(profileId)
+
+  // Hooks individuales solo para operaciones CRUD (no cargan datos iniciales)
+  const {
     createDiscipline,
     updateDiscipline,
-    deleteDiscipline,
-    createDisciplineLevel,
+    deleteDiscipline,    
     reorderDisciplines,
-    reorderDisciplineLevels
+    reorderDisciplineLevels,
   } = useDisciplines(profileId)
 
   const {
-    planifications,
-    loading: planificationsLoading,
     createPlanification,
     updatePlanification,
     deletePlanification,
     searchPlanifications
   } = usePlanifications(profileId || undefined)
 
-  const { users } = useUsersManagement(profileId)
+  // Usar datos del dashboard combinado
+  const disciplines = dashboardDisciplines
+  const planifications = dashboardPlanifications
+  const users = dashboardUsers
+  const coachAccess = dashboardCoachAccess ? {
+    hasAccess: dashboardCoachAccess.hasAccess,
+    isTrial: dashboardCoachAccess.isTrial,
+    trialEndsAt: dashboardCoachAccess.trialEndsAt ? new Date(dashboardCoachAccess.trialEndsAt) : null,
+    daysRemaining: dashboardCoachAccess.daysRemaining
+  } : null
 
-  const [activeTab, setActiveTab] = useState('overview')
-  const [showDisciplineModal, setShowDisciplineModal] = useState(false)
-  const [selectedDiscipline, setSelectedDiscipline] = useState<any>(null)
-  const [showPlanificationModal, setShowPlanificationModal] = useState(false)
-  const [selectedPlanification, setSelectedPlanification] = useState<any>(null)
+  // Hooks para manejar modales
+  const disciplineModal = useModalState<any>()
+  const planificationModal = useModalState<any>()
+  const dayModal = useModalState<{ date: Date; planifications: any[] }>()
+  const deleteDialog = useModalState<any>()
+
+  // Hook para operaciones CRUD con refresh automático
+  const { handleCRUDOperation } = useDashboardCRUD(refreshDashboard)
+
+  // Estado para fecha seleccionada y planificaciones del día
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-  const [showDayModal, setShowDayModal] = useState(false)
   const [dayPlanifications, setDayPlanifications] = useState<any[]>([])
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [planificationToDelete, setPlanificationToDelete] = useState<any>(null)
+  const [activeTab, setActiveTab] = useState('overview')
 
-  const handleCreateDiscipline = async (data: any) => {
-    
-    const result = await createDiscipline(data) as { error?: string }
-    
-    if (!result.error) {
-      setShowDisciplineModal(false)
-    }
-    return { error: result.error || undefined }
-  }
-
-  const handleEditDiscipline = async (data: any) => {
-    const result = await updateDiscipline(data) as { error?: string }
-    
-    if (!result.error) {
-      setShowDisciplineModal(false)
-      setSelectedDiscipline(null)
-    }
-    return { error: result.error || undefined }
-  }
-
+  // Handlers para disciplinas
   const handleDisciplineSubmit = async (data: any) => {
-    if (selectedDiscipline) {
-      return await handleEditDiscipline({ ...data, id: selectedDiscipline.id })
-    } else {
-      return await handleCreateDiscipline(data)
-    }
+    const operation = disciplineModal.selectedItem
+      ? () => updateDiscipline({ ...data, id: disciplineModal.selectedItem.id })
+      : () => createDiscipline(data)
+
+    return handleCRUDOperation(operation, () => disciplineModal.close())
   }
 
   const handleEditDisciplineClick = (discipline: any) => {
-    setSelectedDiscipline(discipline)
-    setShowDisciplineModal(true)
+    disciplineModal.open(discipline)
   }
 
   const handleDeleteDiscipline = async (disciplineId: string) => {
-    try {
-      const result = await deleteDiscipline(disciplineId)
-      if (result.error) {
-        console.error('Error deleting discipline:', result.error)
-      } else {
-      }
-    } catch (error) {
-      console.error('Error deleting discipline:', error)
-    }
+    await handleCRUDOperation(() => deleteDiscipline(disciplineId))
   }
 
-  // Funciones para planificaciones
+  // Handlers para planificaciones
   const handleCreatePlanification = () => {
-    setSelectedPlanification(null)
     setSelectedDate(null)
-    setShowPlanificationModal(true)
+    planificationModal.open()
   }
 
   const handleDateClick = (date: Date) => {
     setSelectedDate(date)
-    setSelectedPlanification(null)
-    setShowPlanificationModal(true)
+    planificationModal.open()
   }
 
   const handleEditPlanification = (planification: any) => {
-    setSelectedPlanification(planification)
     setSelectedDate(null)
-    setShowPlanificationModal(true)
+    planificationModal.open(planification)
   }
 
-  const handlePlanificationSubmit = async (data: any) => {
-    try {
-      if (selectedPlanification) {
-        const result = await updatePlanification(selectedPlanification.id, data)
-        if (result.error) {
-          return { error: result.error }
-        }
-      } else {
-        const result = await createPlanification({ ...data, coach_id: profileId })
-        
-        if (result.error) {
-          return { error: result.error }
-        }
-      }
-      return { error: undefined }
-    } catch (error) {
-      return { error: 'Error inesperado al procesar la solicitud' }
-    }
+  const handlePlanificationSubmit = async (data: any): Promise<{ error?: string }> => {
+    const operation = planificationModal.selectedItem
+      ? () => updatePlanification(planificationModal.selectedItem.id, data).then(r => ({ error: r.error || undefined }))
+      : () => createPlanification({ ...data, coach_id: profileId }).then(r => ({ error: r.error || undefined }))
+
+    const result = await handleCRUDOperation(operation, () => {
+      planificationModal.close()
+      setSelectedDate(null)
+    })
+    
+    return { error: result.error || undefined }
   }
 
   const handleDeletePlanification = (planification: any) => {
-    setPlanificationToDelete(planification)
-    setShowDeleteDialog(true)
+    deleteDialog.open(planification)
   }
 
   const handleDeleteConfirm = async () => {
-    if (planificationToDelete) {
-      const result = await deletePlanification(planificationToDelete.id)
-      if (result.error) {
-        console.error('Error deleting planification:', result.error)
-      }
-      setPlanificationToDelete(null)
+    if (deleteDialog.selectedItem) {
+      await handleCRUDOperation(
+        () => deletePlanification(deleteDialog.selectedItem.id),
+        () => deleteDialog.close()
+      )
     }
   }
 
   const handleViewDayPlanifications = (date: Date, planifications: any[]) => {
     setSelectedDate(date)
     setDayPlanifications(planifications)
-    setShowDayModal(true)
+    dayModal.open({ date, planifications })
   }
 
   const handleCreateFromDay = (date: Date) => {
     setSelectedDate(date)
-    setSelectedPlanification(null)
-    setShowDayModal(false)
-    setShowPlanificationModal(true)
+    dayModal.close()
+    planificationModal.open()
   }
 
   const handleEditFromDay = (planification: any) => {
-    setSelectedPlanification(planification)
     setSelectedDate(null)
-    setShowDayModal(false)
-    setShowPlanificationModal(true)
+    dayModal.close()
+    planificationModal.open(planification)
   }
 
   const handleDeleteFromDay = async (planificationId: string) => {
-    const result = await deletePlanification(planificationId)
-    if (result.error) {
-      console.error('Error deleting planification:', result.error)
-    } else {
-      // Actualizar la lista de planificaciones del día
-      setDayPlanifications(prev => prev.filter(p => p.id !== planificationId))
-    }
+    await handleCRUDOperation(
+      () => deletePlanification(planificationId),
+      () => setDayPlanifications(prev => prev.filter(p => p.id !== planificationId))
+    )
   }
 
-  // Cargar información de acceso del coach
-  useEffect(() => {
-    if (profileId && isCoach) {
-      const fetchCoachAccess = async () => {
-        try {
-          setLoadingAccess(true)
-          const response = await fetch('/api/coaches/access')
-          if (response.ok) {
-            const data = await response.json()
-            const daysRemaining = data.trialEndsAt 
-              ? Math.ceil((new Date(data.trialEndsAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-              : 0
-            setCoachAccess({
-              hasAccess: data.hasAccess,
-              isTrial: data.isTrial,
-              trialEndsAt: data.trialEndsAt ? new Date(data.trialEndsAt) : null,
-              daysRemaining: Math.max(0, daysRemaining)
-            })
-          }
-        } catch (error) {
-          console.error('Error fetching coach access:', error)
-        } finally {
-          setLoadingAccess(false)
-        }
-      }
-      fetchCoachAccess()
-    }
-  }, [profileId, isCoach])
+  // El coachAccess ahora viene del hook combinado, no necesitamos este useEffect
 
 
+  // Estados de carga y acceso
   if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Cargando dashboard...</p>
-        </div>
-      </div>
-    )
+    return <LoadingScreen />
   }
 
   if (!isCoach) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto">
-            <Settings className="w-8 h-8 text-destructive" />
-          </div>
-          <h1 className="text-2xl font-bold">Acceso Restringido</h1>
-          <p className="text-muted-foreground">
-            Solo los coaches pueden acceder a este dashboard.
-          </p>
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mt-4 p-4 bg-muted/50 rounded-lg text-left text-sm">
-              <p><strong>Debug Info:</strong></p>
-              <p>Usuario: {user?.email || 'No autenticado'}</p>
-              <p>Rol: {userRole?.role || 'No asignado'}</p>
-              <p>Coach Profile: {coachProfile?.businessName || 'No encontrado'}</p>
-              <p>Loading: {authLoading ? 'Sí' : 'No'}</p>
-            </div>
-          )}
-        </div>
-      </div>
+      <AccessRestricted
+        userEmail={user?.email}
+        userRole={userRole?.role}
+        businessName={coachProfile?.businessName}
+        authLoading={authLoading}
+      />
     )
   }
 
-  // Verificar si el coach tiene acceso (suscripción activa o período de prueba válido)
-  if (!loadingAccess && coachAccess && !coachAccess.hasAccess) {
-    const trialEndDate = coachAccess.trialEndsAt 
-      ? new Date(coachAccess.trialEndsAt).toLocaleDateString('es-AR', { 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
-        })
-      : null
-
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground flex items-center justify-center">
-        <div className="text-center space-y-4 max-w-md mx-auto px-4">
-          <div className="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto">
-            <DollarSign className="w-8 h-8 text-yellow-600" />
-          </div>
-          <h1 className="text-2xl font-bold">Período de Prueba Finalizado</h1>
-          <p className="text-muted-foreground">
-            {trialEndDate 
-              ? `Tu período de prueba gratuito finalizó el ${trialEndDate}. Para continuar usando Box Plan con tus estudiantes, necesitas seleccionar un plan.`
-              : 'Tu período de prueba gratuito de 7 días ha terminado. Para continuar usando Box Plan con tus estudiantes, necesitas seleccionar un plan.'
-            }
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
-            <Button
-              onClick={() => window.location.href = '/pricing/coaches'}
-              className="hover:scale-100 active:scale-100"
-            >
-              Ver Planes y Precios
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => window.location.href = '/'}
-              className="hover:scale-100 active:scale-100"
-            >
-              Volver al Inicio
-            </Button>
-          </div>
-        </div>
-      </div>
-    )
+  if (!dashboardLoading && coachAccess && !coachAccess.hasAccess) {
+    return <TrialExpired trialEndDate={coachAccess.trialEndsAt} />
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground">
       {/* Banner de período de prueba */}
       {coachAccess?.isTrial && coachAccess.hasAccess && (
-        <div className={`border-b ${
-          coachAccess.daysRemaining <= 2 
-            ? 'bg-yellow-500/10 border-yellow-500/20' 
-            : 'bg-blue-500/10 border-blue-500/20'
-        }`}>
-          <div className="container mx-auto px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className={`text-sm font-medium ${
-                  coachAccess.daysRemaining <= 2 
-                    ? 'text-yellow-700 dark:text-yellow-400' 
-                    : 'text-blue-700 dark:text-blue-400'
-                }`}>
-                  {coachAccess.daysRemaining > 0 
-                    ? `Período de prueba: ${coachAccess.daysRemaining} día${coachAccess.daysRemaining !== 1 ? 's' : ''} restante${coachAccess.daysRemaining !== 1 ? 's' : ''}`
-                    : 'Tu período de prueba ha terminado'}
-                </span>
-              </div>
-              {coachAccess.daysRemaining > 0 && (
-                <Button
-                  size="sm"
-                  onClick={() => window.location.href = '/pricing/coaches'}
-                  className="hover:scale-100 active:scale-100"
-                >
-                  Seleccionar Plan
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
+        <TrialBanner
+          isTrial={coachAccess.isTrial}
+          hasAccess={coachAccess.hasAccess}
+          daysRemaining={coachAccess.daysRemaining}
+        />
       )}
 
       {/* Header */}
-      <div className="border-b bg-card/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button 
-                variant="outline"
-                size="sm"
-                onClick={() => window.location.href = '/'}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">Volver al Inicio</span>
-              </Button>
-              <div>
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">
-                  Dashboard Coach
-                </h1>
-                <p className="text-sm sm:text-base text-muted-foreground">
-                  {coachProfile?.businessName || 'Panel de Control'}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <DashboardHeader businessName={coachProfile?.businessName} />
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
@@ -451,10 +287,7 @@ export default function AdminDashboardPage() {
               </div>
               <div className="flex gap-2">
                 <Button 
-                  onClick={() => {
-                    setSelectedDiscipline(null)
-                    setShowDisciplineModal(true)
-                  }}
+                  onClick={() => disciplineModal.open()}
                   disabled={!profileId}
                 >
                   <Plus className="w-4 h-4 mr-2" />
@@ -465,7 +298,7 @@ export default function AdminDashboardPage() {
 
             <DisciplinesList
               disciplines={disciplines}
-              loading={disciplinesLoading}
+              loading={dashboardLoading}
               onEdit={handleEditDisciplineClick}
               onDelete={handleDeleteDiscipline}
               onReorder={reorderDisciplines}
@@ -483,12 +316,7 @@ export default function AdminDashboardPage() {
                 </p>
               </div>
               <div className="flex gap-2">
-                <Button 
-                  onClick={() => {
-                    setSelectedPlanification(null)
-                    setShowPlanificationModal(true)
-                  }}
-                >
+                <Button onClick={handleCreatePlanification}>
                   <Plus className="w-4 h-4 mr-2" />
                   Nueva Planificación
                 </Button>
@@ -497,7 +325,7 @@ export default function AdminDashboardPage() {
 
             <PlanificationCalendar
               planifications={planifications}
-              loading={planificationsLoading}
+              loading={dashboardLoading}
               onDateClick={handleDateClick}
               onEditPlanification={handleEditPlanification}
               onDeletePlanification={handleDeletePlanification}
@@ -507,12 +335,20 @@ export default function AdminDashboardPage() {
 
           {/* Usuarios Tab */}
           <TabsContent value="users" className="space-y-6">
-            <UsersList coachId={profileId} />
+            <UsersList 
+              coachId={profileId} 
+              initialUsers={users}
+              initialPlans={dashboardSubscriptionPlans}
+              onRefresh={refreshDashboard}
+            />
           </TabsContent>
 
           {/* Planes Tab */}
           <TabsContent value="plans" className="space-y-6">
-            <SubscriptionPlansList />
+            <SubscriptionPlansList 
+              initialPlans={dashboardSubscriptionPlans}
+              onRefresh={refreshDashboard}
+            />
           </TabsContent>
 
         </Tabs>
@@ -521,28 +357,22 @@ export default function AdminDashboardPage() {
 
       {/* Modal para crear/editar disciplina */}
       <DisciplineModal
-        open={showDisciplineModal}
-        onOpenChange={(open: boolean) => {
-          setShowDisciplineModal(open)
-          if (!open) {
-            setSelectedDiscipline(null)
-          }
-        }}
-        discipline={selectedDiscipline}
+        open={disciplineModal.isOpen}
+        onOpenChange={disciplineModal.handleOpenChange}
+        discipline={disciplineModal.selectedItem}
         onSubmit={handleDisciplineSubmit}
       />
 
       {/* Modal para crear/editar planificación */}
       <PlanificationModal
-        open={showPlanificationModal}
+        open={planificationModal.isOpen}
         onOpenChange={(open: boolean) => {
-          setShowPlanificationModal(open)
+          planificationModal.handleOpenChange(open)
           if (!open) {
-            setSelectedPlanification(null)
             setSelectedDate(null)
           }
         }}
-        planification={selectedPlanification}
+        planification={planificationModal.selectedItem}
         selectedDate={selectedDate}
         coachId={profileId}
         onSubmit={handlePlanificationSubmit}
@@ -550,9 +380,9 @@ export default function AdminDashboardPage() {
 
       {/* Modal para ver planificaciones del día */}
       <PlanificationDayModal
-        open={showDayModal}
+        open={dayModal.isOpen}
         onOpenChange={(open: boolean) => {
-          setShowDayModal(open)
+          dayModal.handleOpenChange(open)
           if (!open) {
             setSelectedDate(null)
             setDayPlanifications([])
@@ -567,8 +397,8 @@ export default function AdminDashboardPage() {
 
       {/* Diálogo de confirmación para eliminar planificación */}
       <ConfirmationDialog
-        open={showDeleteDialog}
-        onOpenChange={setShowDeleteDialog}
+        open={deleteDialog.isOpen}
+        onOpenChange={deleteDialog.handleOpenChange}
         onConfirm={handleDeleteConfirm}
         title="Eliminar Planificación"
         description={`¿Estás seguro de que quieres eliminar esta planificación? Esta acción no se puede deshacer.`}

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isCoach } from '@/lib/auth-helpers'
+import { isCoach, normalizeUserId } from '@/lib/auth-helpers'
 
 // PATCH /api/subscriptions/[id]/cancel
 export async function PATCH(
@@ -11,24 +11,25 @@ export async function PATCH(
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    const userId = normalizeUserId(session?.user?.id)
+    if (!userId) {
       return NextResponse.json(
         { error: 'No autenticado' },
         { status: 401 }
       )
     }
 
-    const subscriptionId = parseInt(params.id)
+    const subscriptionId = parseInt(params.id, 10)
 
     // Verificar si el usuario es coach
-    const authCheck = await isCoach(session.user.id)
+    const authCheck = await isCoach(userId)
     const isCoachUser = authCheck.isAuthorized
 
     // Si es coach, puede cancelar cualquier suscripción
     // Si no es coach, solo puede cancelar su propia suscripción
     const whereClause = isCoachUser
       ? { id: subscriptionId }
-      : { id: subscriptionId, userId: session.user.id }
+      : { id: subscriptionId, userId }
 
     try {
       const updated = await prisma.subscription.updateMany({

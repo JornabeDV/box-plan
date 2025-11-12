@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 interface UserWithSubscription {
   id: string
@@ -61,15 +61,29 @@ export function useUsersManagement(coachId: string | null) {
   const [users, setUsers] = useState<UserWithSubscription[]>([])
   const [plans, setPlans] = useState<SubscriptionPlan[]>([])
   const [loading, setLoading] = useState(true)
+  const loadingUsersRef = useRef(false)
+  const loadingPlansRef = useRef(false)
+  const lastCoachIdRef = useRef<string | null>(null)
+  const hasUsersDataRef = useRef(false)
+  const hasPlansDataRef = useRef(false)
 
   // Cargar usuarios
   const loadUsers = async () => {
     if (!coachId) return
+    
+    // Evitar llamadas duplicadas
+    if (loadingUsersRef.current) return
+    if (lastCoachIdRef.current === coachId && hasUsersDataRef.current) return
+
+    loadingUsersRef.current = true
+    lastCoachIdRef.current = coachId
 
     try {
       setLoading(true)
       
-      const response = await fetch(`/api/admin/users?coachId=${coachId}`)
+      const response = await fetch(`/api/admin/users?coachId=${coachId}`, {
+        cache: 'default'
+      })
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
@@ -80,17 +94,29 @@ export function useUsersManagement(coachId: string | null) {
 
       const data = await response.json()
       setUsers(data || [])
+      hasUsersDataRef.current = true
     } catch (err) {
       console.error('Error loading users:', err)
+      lastCoachIdRef.current = null
+      hasUsersDataRef.current = false
     } finally {
       setLoading(false)
+      loadingUsersRef.current = false
     }
   }
 
   // Cargar planes de suscripción
   const loadPlans = async () => {
+    // Evitar llamadas duplicadas
+    if (loadingPlansRef.current) return
+    if (hasPlansDataRef.current) return
+
+    loadingPlansRef.current = true
+
     try {
-      const response = await fetch('/api/subscription-plans')
+      const response = await fetch('/api/subscription-plans', {
+        cache: 'default'
+      })
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
@@ -101,6 +127,7 @@ export function useUsersManagement(coachId: string | null) {
 
       const data = await response.json()
       setPlans(data || [])
+      hasPlansDataRef.current = true
       
       if (!data || data.length === 0) {
         console.warn('No hay planes de suscripción disponibles en la base de datos')
@@ -108,6 +135,9 @@ export function useUsersManagement(coachId: string | null) {
     } catch (err) {
       console.error('Error loading plans:', err)
       setPlans([])
+      hasPlansDataRef.current = false
+    } finally {
+      loadingPlansRef.current = false
     }
   }
 
@@ -183,13 +213,17 @@ export function useUsersManagement(coachId: string | null) {
     }
   }
 
-  // Cargar datos al montar
-  useEffect(() => {
-    if (coachId) {
-      loadUsers()
-      loadPlans()
-    }
-  }, [coachId])
+  // No cargar automáticamente - solo cuando se llama explícitamente
+  // Esto permite usar el hook solo para operaciones CRUD sin cargar datos iniciales
+  // useEffect(() => {
+  //   if (lastCoachIdRef.current !== coachId) {
+  //     hasUsersDataRef.current = false
+  //   }
+  //   if (coachId) {
+  //     loadUsers()
+  //     loadPlans()
+  //   }
+  // }, [coachId])
 
   return {
     users,

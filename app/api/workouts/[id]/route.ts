@@ -1,19 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { normalizeUserId } from '@/lib/auth-helpers'
 
 // PATCH /api/workouts/[id]
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    const userId = normalizeUserId(session?.user?.id)
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
     const { data, completed_at, duration_seconds } = body
-    const workoutId = parseInt(params.id)
+    const workoutId = parseInt(params.id, 10)
 
     // Preparar datos de actualización
     const updateData: any = {}
@@ -42,14 +44,15 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    const userId = normalizeUserId(session?.user?.id)
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     await prisma.workout.deleteMany({
       where: {
-        id: parseInt(params.id),
-        userId: session.user.id
+        id: parseInt(params.id, 10),
+        userId
       }
     })
 

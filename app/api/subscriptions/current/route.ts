@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { normalizeUserId } from '@/lib/auth-helpers'
 
 // GET /api/subscriptions/current
 export async function GET(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    const userId = normalizeUserId(session?.user?.id)
+    if (!userId) {
       return NextResponse.json(
         { error: 'No autenticado' },
         { status: 401 }
@@ -17,7 +19,7 @@ export async function GET(request: NextRequest) {
     // Buscar suscripción activa del usuario
     const subscription = await prisma.subscription.findFirst({
       where: {
-        userId: session.user.id,
+        userId,
         status: 'active'
       },
       include: {

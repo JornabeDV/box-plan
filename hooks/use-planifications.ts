@@ -227,10 +227,11 @@ export function usePlanifications(coachId?: string) {
     }
   }
 
-  // Cargar planificaciones al montar el componente
-  useEffect(() => {
-    loadPlanifications()
-  }, [coachId])
+  // No cargar automáticamente - solo cuando se llama explícitamente loadPlanifications
+  // Esto permite usar el hook solo para operaciones CRUD sin cargar datos iniciales
+  // useEffect(() => {
+  //   loadPlanifications()
+  // }, [coachId])
 
   return {
     planifications,
