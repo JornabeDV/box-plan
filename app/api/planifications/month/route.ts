@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { normalizeUserId } from '@/lib/auth-helpers'
 
 // GET /api/planifications/month?year=2024&month=1
 // Obtiene todas las planificaciones del mes del coach del estudiante según sus preferencias (discipline y level)
@@ -8,11 +9,10 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    const userId = normalizeUserId(session?.user?.id)
+    if (!userId) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
-
-    const userId = typeof session.user.id === 'string' ? parseInt(session.user.id) : session.user.id
 
     // Obtener el coach del estudiante
     const relationship = await prisma.coachStudentRelationship.findFirst({

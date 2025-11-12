@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { normalizeUserId } from '@/lib/auth-helpers'
 
 // POST /api/subscriptions/change-plan
 export async function POST(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    const userId = normalizeUserId(session?.user?.id)
+    if (!userId) {
       return NextResponse.json(
         { error: 'No autenticado' },
         { status: 401 }
@@ -51,7 +53,7 @@ export async function POST(request: NextRequest) {
       // Crear nueva suscripción
       const newSubscription = await tx.subscription.create({
         data: {
-          userId: session.user.id,
+          userId,
           planId: newPlanId,
           status: 'active',
           currentPeriodStart: new Date(),
@@ -64,7 +66,7 @@ export async function POST(request: NextRequest) {
       // Crear registro de pago
       await tx.paymentHistory.create({
         data: {
-          userId: session.user.id,
+          userId,
           subscriptionId: newSubscription.id,
           amount: newPlan.price,
           currency: newPlan.currency,

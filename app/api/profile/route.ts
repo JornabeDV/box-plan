@@ -1,19 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { normalizeUserId } from '@/lib/auth-helpers'
 
 export async function GET(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    const userId = normalizeUserId(session?.user?.id)
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     try {
       // Nota: La tabla profiles no existe en el schema, usar User directamente
       const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
+        where: { id: userId },
         select: {
           id: true,
           email: true,
@@ -51,7 +53,8 @@ export async function PATCH(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    const userId = normalizeUserId(session?.user?.id)
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -69,7 +72,7 @@ export async function PATCH(request: NextRequest) {
 
     // Actualizar usuario
     const user = await prisma.user.update({
-      where: { id: session.user.id },
+      where: { id: userId },
       data: updateData
     })
 

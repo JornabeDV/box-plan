@@ -9,10 +9,17 @@ import { useUsersManagement } from '@/hooks/use-users-management'
 
 interface UsersListProps {
   coachId: string | null
+  initialUsers?: any[]
+  initialPlans?: any[]
+  onRefresh?: () => void
 }
 
-export function UsersList({ coachId }: UsersListProps) {
-  const { users, plans, loading, assignSubscription, cancelSubscription, deleteUser, loadUsers } = useUsersManagement(coachId)
+export function UsersList({ coachId, initialUsers, initialPlans, onRefresh }: UsersListProps) {
+  const { users: hookUsers, plans: hookPlans, loading, assignSubscription, cancelSubscription, deleteUser, loadUsers } = useUsersManagement(coachId)
+  
+  // Usar datos iniciales si están disponibles, sino usar los del hook
+  const users = initialUsers || hookUsers
+  const plans = initialPlans || hookPlans
   
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPlan, setSelectedPlan] = useState<string>('all')
@@ -45,10 +52,15 @@ export function UsersList({ coachId }: UsersListProps) {
   }
 
   const handleUserUpdated = () => {
-    loadUsers()
+    if (onRefresh) {
+      onRefresh()
+    } else {
+      loadUsers()
+    }
   }
 
-  if (loading) {
+  // Solo mostrar loading si no hay datos iniciales y está cargando
+  if (!initialUsers && loading) {
     return (
       <div className="text-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>

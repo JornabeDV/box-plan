@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isCoach } from '@/lib/auth-helpers'
+import { isCoach, normalizeUserId } from '@/lib/auth-helpers'
 
 // PATCH /api/subscription-plans/[id]
 export async function PATCH(
@@ -11,12 +11,13 @@ export async function PATCH(
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    const userId = normalizeUserId(session?.user?.id)
+    if (!userId) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
     // Verificar que el usuario es coach
-    const authCheck = await isCoach(session.user.id)
+    const authCheck = await isCoach(userId)
 
     if (!authCheck.isAuthorized || !authCheck.profile) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
@@ -102,12 +103,13 @@ export async function DELETE(
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    const userId = normalizeUserId(session?.user?.id)
+    if (!userId) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
     // Verificar que el usuario es coach
-    const authCheck = await isCoach(session.user.id)
+    const authCheck = await isCoach(userId)
 
     if (!authCheck.isAuthorized || !authCheck.profile) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })

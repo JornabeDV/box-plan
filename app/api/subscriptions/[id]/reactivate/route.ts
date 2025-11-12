@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { normalizeUserId } from '@/lib/auth-helpers'
 
 // PATCH /api/subscriptions/[id]/reactivate
 export async function PATCH(
@@ -10,19 +11,20 @@ export async function PATCH(
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    const userId = normalizeUserId(session?.user?.id)
+    if (!userId) {
       return NextResponse.json(
         { error: 'No autenticado' },
         { status: 401 }
       )
     }
 
-    const subscriptionId = parseInt(params.id)
+    const subscriptionId = parseInt(params.id, 10)
 
     await prisma.subscription.updateMany({
       where: {
         id: subscriptionId,
-        userId: session.user.id
+        userId
       },
       data: {
         cancelAtPeriodEnd: false

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isCoach } from '@/lib/auth-helpers'
+import { isCoach, normalizeUserId } from '@/lib/auth-helpers'
 
 // GET /api/subscription-plans
 export async function GET(request: NextRequest) {
@@ -10,8 +10,9 @@ export async function GET(request: NextRequest) {
     let coachId: number | null = null
     
     // Verificar si el usuario es coach y obtener su coachId
-    if (session?.user?.id) {
-      const authCheck = await isCoach(session.user.id)
+    const userId = normalizeUserId(session?.user?.id)
+    if (userId) {
+      const authCheck = await isCoach(userId)
       if (authCheck.isAuthorized && authCheck.profile) {
         coachId = authCheck.profile.id
       }
@@ -47,10 +48,8 @@ export async function GET(request: NextRequest) {
     }))
 
     const response = NextResponse.json(formattedPlans)
-    // Deshabilitar caché para asegurar datos frescos
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
-    response.headers.set('Pragma', 'no-cache')
-    response.headers.set('Expires', '0')
+    // Caché moderado para reducir queries pero mantener datos relativamente frescos
+    response.headers.set('Cache-Control', 'private, max-age=30, stale-while-revalidate=15')
     return response
   } catch (error: any) {
     console.error('Error fetching subscription plans:', error)
@@ -73,12 +72,13 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    const userId = normalizeUserId(session?.user?.id)
+    if (!userId) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
     // Verificar que el usuario es coach
-    const authCheck = await isCoach(session.user.id)
+    const authCheck = await isCoach(userId)
 
     if (!authCheck.isAuthorized || !authCheck.profile) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })

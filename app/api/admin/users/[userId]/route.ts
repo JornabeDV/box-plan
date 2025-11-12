@@ -170,7 +170,8 @@ export async function DELETE(
 			await tx.adminUserAssignment.deleteMany({ where: { userId } })
 			await tx.userRole.deleteMany({ where: { userId } })
 			await tx.workout.deleteMany({ where: { userId } })
-			await tx.planification.deleteMany({ where: { userId } })
+			// Nota: Las planificaciones no tienen userId, solo coachId, por lo que no se eliminan aquí
+			// Si el usuario es coach, las planificaciones se eliminarán cuando se elimine el coachProfile
 			
 			// Finalmente, eliminar el usuario
 			await tx.user.delete({ where: { id: userId } })

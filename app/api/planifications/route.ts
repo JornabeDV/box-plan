@@ -1,19 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isCoach } from '@/lib/auth-helpers'
+import { isCoach, normalizeUserId } from '@/lib/auth-helpers'
 
 // GET /api/planifications
 export async function GET(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    const userId = normalizeUserId(session?.user?.id)
+    if (!userId) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
     // Verificar que el usuario es coach y obtener su coachId
-    const authCheck = await isCoach(session.user.id)
+    const authCheck = await isCoach(userId)
     if (!authCheck.isAuthorized || !authCheck.profile) {
       return NextResponse.json({ error: 'No autorizado. Solo coaches pueden ver planificaciones.' }, { status: 403 })
     }
@@ -22,7 +23,19 @@ export async function GET(request: NextRequest) {
 
     const planifications = await prisma.planification.findMany({
       where: { coachId: coachId },
-      include: {
+      select: {
+        id: true,
+        disciplineId: true,
+        disciplineLevelId: true,
+        coachId: true,
+        date: true,
+        title: true,
+        description: true,
+        exercises: true,
+        notes: true,
+        isCompleted: true,
+        createdAt: true,
+        updatedAt: true,
         discipline: {
           select: {
             id: true,
@@ -71,12 +84,13 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    const userId = normalizeUserId(session?.user?.id)
+    if (!userId) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
     // Verificar que el usuario es coach
-    const authCheck = await isCoach(session.user.id)
+    const authCheck = await isCoach(userId)
     if (!authCheck.isAuthorized || !authCheck.profile) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }

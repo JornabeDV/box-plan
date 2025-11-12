@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 export interface Discipline {
   id: string
@@ -53,16 +53,27 @@ export function useDisciplines(coachId: string | null) {
   const [disciplineLevels, setDisciplineLevels] = useState<DisciplineLevel[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const loadingRef = useRef(false)
+  const lastCoachIdRef = useRef<string | null>(null)
+  const hasDataRef = useRef(false)
 
   // Cargar disciplinas con sus niveles
   const fetchDisciplines = async () => {
     if (!coachId) return
+    
+    // Evitar llamadas duplicadas
+    if (loadingRef.current) return
+    if (lastCoachIdRef.current === coachId && hasDataRef.current) return
 
+    loadingRef.current = true
+    lastCoachIdRef.current = coachId
     setLoading(true)
     setError(null)
 
     try {
-      const response = await fetch(`/api/disciplines?coachId=${coachId}`)
+      const response = await fetch(`/api/disciplines?coachId=${coachId}`, {
+        cache: 'default'
+      })
       
       if (!response.ok) {
         throw new Error('Error al cargar disciplinas')
@@ -72,11 +83,15 @@ export function useDisciplines(coachId: string | null) {
       
       setDisciplines(data.disciplines || [])
       setDisciplineLevels(data.levels || [])
+      hasDataRef.current = true
     } catch (err) {
       console.error('Error fetching disciplines:', err)
       setError(err instanceof Error ? err.message : 'Error al cargar disciplinas')
+      lastCoachIdRef.current = null
+      hasDataRef.current = false
     } finally {
       setLoading(false)
+      loadingRef.current = false
     }
   }
 
@@ -108,6 +123,8 @@ export function useDisciplines(coachId: string | null) {
 
       const newDiscipline = await response.json()
 
+      // Resetear ref para forzar recarga
+      hasDataRef.current = false
       // Recargar todas las disciplinas para asegurar sincronización
       await fetchDisciplines()
       
@@ -144,6 +161,8 @@ export function useDisciplines(coachId: string | null) {
 
       const updatedDiscipline = responseData
 
+      // Resetear ref para forzar recarga
+      hasDataRef.current = false
       // Recargar todas las disciplinas para asegurar sincronización (especialmente niveles)
       await fetchDisciplines()
       
@@ -301,10 +320,6 @@ export function useDisciplines(coachId: string | null) {
       return { error: err instanceof Error ? err.message : 'Error al reordenar niveles' }
     }
   }
-
-  useEffect(() => {
-    fetchDisciplines()
-  }, [coachId])
 
   return {
     disciplines,

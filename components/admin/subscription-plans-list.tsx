@@ -9,8 +9,16 @@ import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { useSubscriptionPlans, SubscriptionPlan as PlanType } from '@/hooks/use-subscription-plans'
 import { Plus, Edit, Trash2, DollarSign, Calendar } from 'lucide-react'
 
-export function SubscriptionPlansList() {
-  const { plans, loading, deletePlan, updateTrigger } = useSubscriptionPlans()
+interface SubscriptionPlansListProps {
+  initialPlans?: any[]
+  onRefresh?: () => void
+}
+
+export function SubscriptionPlansList({ initialPlans, onRefresh }: SubscriptionPlansListProps = {}) {
+  const { plans: hookPlans, loading, deletePlan, updateTrigger } = useSubscriptionPlans()
+  
+  // Usar datos iniciales si están disponibles, sino usar los del hook
+  const plans = initialPlans || hookPlans
   const [showModal, setShowModal] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -88,7 +96,8 @@ export function SubscriptionPlansList() {
     }).format(price)
   }
 
-  if (loading) {
+  // Solo mostrar loading si no hay datos iniciales y está cargando
+  if (!initialPlans && loading) {
     return (
       <div className="text-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -221,6 +230,7 @@ export function SubscriptionPlansList() {
           }
         }}
         plan={selectedPlan}
+        onPlanUpdated={onRefresh}
       />
 
       {/* Diálogo de confirmación para eliminar */}

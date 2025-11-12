@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSession, signOut as nextAuthSignOut } from 'next-auth/react'
 
 export interface UserRole {
@@ -49,13 +49,31 @@ export function useAuthWithRoles() {
   const [coachProfile, setCoachProfile] = useState<CoachProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [roleOverride, setRoleOverride] = useState<'admin' | 'user' | 'coach' | 'student' | null>(null)
+  
+  // Ref para evitar llamadas duplicadas
+  const loadingRef = useRef(false)
+  const lastUserIdRef = useRef<string | number | undefined>(undefined)
 
-  const loadUserRole = async (userId: string) => {
+  const loadUserRole = async (userId: string | number) => {
+    // Evitar llamadas duplicadas
+    if (loadingRef.current) {
+      return
+    }
+
+    // Si el userId no cambió, no hacer la llamada
+    if (lastUserIdRef.current === userId) {
+      return
+    }
+
     try {
+      loadingRef.current = true
+      lastUserIdRef.current = userId
       setLoading(true)
       
       // Llamar a API route en el servidor
-      const response = await fetch('/api/user-role')
+      const response = await fetch('/api/user-role', {
+        cache: 'default'
+      })
       
       if (!response.ok) {
         throw new Error('Failed to fetch user role')
@@ -84,6 +102,7 @@ export function useAuthWithRoles() {
       }
       
       setLoading(false)
+      loadingRef.current = false
       
     } catch (error) {
       console.error('loadUserRole: Error loading user role:', error)
@@ -91,6 +110,8 @@ export function useAuthWithRoles() {
       setAdminProfile(null)
       setCoachProfile(null)
       setLoading(false)
+      loadingRef.current = false
+      lastUserIdRef.current = undefined
     }
   }
 
@@ -102,16 +123,17 @@ export function useAuthWithRoles() {
     
     const userId = session?.user?.id
     if (userId) {
-      // Convertir userId a string si es necesario
-      const userIdString = typeof userId === 'string' ? userId : String(userId)
-      loadUserRole(userIdString)
+      loadUserRole(userId)
     } else {
       setUserRole(null)
       setAdminProfile(null)
       setCoachProfile(null)
       setLoading(false)
+      lastUserIdRef.current = undefined
     }
-  }, [session, status])
+    // Solo dependemos del userId, no del objeto session completo
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id, status])
 
   const signOut = async () => {
     await nextAuthSignOut({ redirect: false })
