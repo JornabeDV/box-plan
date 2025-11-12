@@ -1,5 +1,3 @@
-import { prisma } from './prisma'
-
 /**
  * Verifica si un coach tiene acceso activo (suscripción activa o período de prueba válido)
  */
@@ -9,6 +7,8 @@ export async function hasCoachAccess(coachId: number): Promise<{
 	trialEndsAt: Date | null
 	subscription: any | null
 }> {
+	const { prisma } = await import('./prisma')
+
 	const coachProfile = await prisma.coachProfile.findUnique({
 		where: { id: coachId },
 		include: {
