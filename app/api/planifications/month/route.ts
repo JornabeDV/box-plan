@@ -3,6 +3,9 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeUserId } from '@/lib/auth-helpers'
 
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 // GET /api/planifications/month?year=2024&month=1
 // Obtiene todas las planificaciones del mes del coach del estudiante según sus preferencias (discipline y level)
 export async function GET(request: NextRequest) {
