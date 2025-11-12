@@ -1,6 +1,5 @@
 import NextAuth, { DefaultSession } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
-import { prisma } from './prisma'
 import bcrypt from 'bcryptjs'
 
 declare module "next-auth" {
@@ -39,6 +38,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         try {
+          // Import dinámico en runtime
+          const { prisma } = await import('@/lib/prisma')
+
           // Buscar usuario en la base de datos usando Prisma
           const email = credentials.email as string
           const foundUser = await prisma.user.findUnique({
