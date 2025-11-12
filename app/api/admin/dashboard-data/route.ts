@@ -1,24 +1,13 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
+import { normalizeUserId } from '@/lib/auth-helpers'
+
 // Forzar modo dinámico para evitar errores en build time
 // Estas configuraciones aseguran que la ruta nunca se pre-renderice
 export const dynamic = 'force-dynamic'
 export const dynamicParams = true
 export const runtime = 'nodejs'
 export const preferredRegion = 'auto'
-
-import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
-import { normalizeUserId } from '@/lib/auth-helpers'
-import { getTrialDaysRemaining } from '@/lib/coach-helpers'
-import {
-	loadDashboardDisciplines,
-	loadDashboardPlanifications,
-	loadDashboardUsers,
-	loadDashboardSubscriptionPlans,
-	calculateCoachAccess,
-	getCoachIdFromUser,
-	loadCoachProfile
-} from '@/lib/dashboard-helpers'
-
 
 /**
  * Endpoint combinado que trae todos los datos del dashboard en una sola petición
@@ -40,6 +29,19 @@ export async function GET(request: NextRequest) {
 	}
 
 	try {
+		// Importación dinámica de helpers que usan Prisma (solo se ejecuta en runtime)
+		const {
+			loadDashboardDisciplines,
+			loadDashboardPlanifications,
+			loadDashboardUsers,
+			loadDashboardSubscriptionPlans,
+			calculateCoachAccess,
+			getCoachIdFromUser,
+			loadCoachProfile
+		} = await import('@/lib/dashboard-helpers')
+
+		const { getTrialDaysRemaining } = await import('@/lib/coach-helpers')
+
 		const session = await auth()
 		const { searchParams } = new URL(request.url)
 		
