@@ -1,12 +1,14 @@
 "use client"
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useAuth } from '@/hooks/use-auth'
+import { CoachSelector } from '@/components/auth/coach-selector'
 import { Loader2, Eye, EyeOff, CheckCircle } from 'lucide-react'
 
 interface SignUpFormProps {
@@ -14,7 +16,12 @@ interface SignUpFormProps {
   onSwitchToLogin?: () => void
 }
 
+type Step = 'register' | 'select-coach'
+
 export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
+  const router = useRouter()
+  const [step, setStep] = useState<Step>('register')
+  const [userId, setUserId] = useState<number | null>(null)
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -25,9 +32,9 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
+  const [selectingCoach, setSelectingCoach] = useState(false)
 
-  const { signUp } = useAuth()
+  const { signUp, signIn } = useAuth()
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
@@ -55,47 +62,155 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
     }
 
     try {
-      const { error } = await signUp(formData.email, formData.password, formData.fullName)
-      
-      if (error) {
-        setError(error.message)
-      } else {
-        setSuccess(true)
-        // Marcar que el usuario tiene cuenta creada
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('hasAccount', 'true')
-          localStorage.setItem('hasVisitedLogin', 'true')
-        }
-        // No redirigir automáticamente, dejar que el usuario haga login
+      // Crear cuenta
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          name: formData.fullName || formData.email.split('@')[0],
+        })
+      })
+
+      // Verificar si la respuesta es JSON válido
+      let data
+      try {
+        data = await response.json()
+      } catch (jsonError) {
+        console.error('Error parsing response:', jsonError)
+        setError('Error al procesar la respuesta del servidor')
+        setLoading(false)
+        return
       }
-    } catch (err) {
-      setError('Error inesperado. Intenta nuevamente.')
+
+      if (!response.ok) {
+        // Mostrar el error específico del servidor
+        const errorMessage = data?.error || `Error ${response.status}: ${response.statusText}`
+        setError(errorMessage)
+        setLoading(false)
+        return
+      }
+
+      // Verificar que userId esté presente
+      if (!data.userId) {
+        console.error('Response missing userId:', data)
+        setError('Error: No se recibió el ID de usuario. Por favor, intenta nuevamente.')
+        setLoading(false)
+        return
+      }
+
+      // Guardar userId y pasar al siguiente paso
+      setUserId(data.userId)
+      setStep('select-coach')
+    } catch (err: any) {
+      console.error('Error in handleSubmit:', err)
+      // Mostrar mensaje de error más específico
+      if (err.message) {
+        setError(`Error: ${err.message}`)
+      } else if (err instanceof TypeError && err.message.includes('fetch')) {
+        setError('Error de conexión. Verifica tu conexión a internet e intenta nuevamente.')
+      } else {
+        setError('Error inesperado. Por favor, intenta nuevamente.')
+      }
     } finally {
       setLoading(false)
     }
   }
 
-  if (success) {
+  const handleSelectCoach = async (coachId: number) => {
+    if (!userId) return
+
+    try {
+      setSelectingCoach(true)
+      setError(null)
+
+      // Primero autenticar al usuario
+      const signInResult = await signIn(formData.email, formData.password)
+      
+      if (signInResult.error) {
+        setError('Error al iniciar sesión. Por favor, inicia sesión manualmente.')
+        setSelectingCoach(false)
+        return
+      }
+
+      // Esperar un momento para que la sesión se establezca
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Luego asignar el coach
+      const response = await fetch('/api/coaches/select', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Asegurar que se envíen las cookies de sesión
+        body: JSON.stringify({ coachId })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || 'Error al seleccionar el coach')
+        setSelectingCoach(false)
+        return
+      }
+
+      // Éxito - redirigir al dashboard
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('hasAccount', 'true')
+        localStorage.setItem('hasVisitedLogin', 'true')
+      }
+      
+      // Recargar la página para asegurar que la sesión esté disponible
+      window.location.href = '/'
+    } catch (err: any) {
+      setError(err.message || 'Error al seleccionar el coach')
+      setSelectingCoach(false)
+    }
+  }
+
+  const handleSkipCoach = async () => {
+    if (!userId) return
+
+    try {
+      setSelectingCoach(true)
+      setError(null)
+
+      // Autenticar al usuario sin seleccionar coach
+      const signInResult = await signIn(formData.email, formData.password)
+      
+      if (signInResult.error) {
+        setError('Error al iniciar sesión. Por favor, inicia sesión manualmente.')
+        setSelectingCoach(false)
+        return
+      }
+
+      // Éxito - redirigir al dashboard
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('hasAccount', 'true')
+        localStorage.setItem('hasVisitedLogin', 'true')
+      }
+      
+      // Recargar la página para asegurar que la sesión esté disponible
+      window.location.href = '/'
+    } catch (err: any) {
+      setError(err.message || 'Error al iniciar sesión')
+      setSelectingCoach(false)
+    }
+  }
+
+  // Mostrar selector de coach después del registro
+  if (step === 'select-coach' && userId) {
     return (
-      <Card className="w-full max-w-md mx-auto">
-        <CardContent className="pt-6">
-          <div className="text-center space-y-4">
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
-            <div>
-              <h3 className="text-lg font-semibold">¡Cuenta creada exitosamente!</h3>
-              <p className="text-sm text-muted-foreground">
-                Inicia sesión para comenzar
-              </p>
-            </div>
-            <Button
-              onClick={onSwitchToLogin}
-              className="w-full"
-            >
-              Iniciar Sesión
-            </Button>
+      <div className="w-full">
+        <CoachSelector
+          userId={userId}
+          onSelect={handleSelectCoach}
+          onSkip={handleSkipCoach}
+        />
           </div>
-        </CardContent>
-      </Card>
     )
   }
 

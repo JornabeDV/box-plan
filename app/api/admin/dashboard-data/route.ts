@@ -12,6 +12,10 @@ import {
 	loadCoachProfile
 } from '@/lib/dashboard-helpers'
 
+// Forzar modo dinámico para evitar errores en build time
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 /**
  * Endpoint combinado que trae todos los datos del dashboard en una sola petición
  * 
