@@ -1,3 +1,10 @@
+// Forzar modo dinámico para evitar errores en build time
+// Estas configuraciones aseguran que la ruta nunca se pre-renderice
+export const dynamic = 'force-dynamic'
+export const dynamicParams = true
+export const runtime = 'nodejs'
+export const preferredRegion = 'auto'
+
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { normalizeUserId } from '@/lib/auth-helpers'
@@ -12,12 +19,6 @@ import {
 	loadCoachProfile
 } from '@/lib/dashboard-helpers'
 
-// Forzar modo dinámico para evitar errores en build time
-// Estas configuraciones aseguran que la ruta nunca se pre-renderice
-export const dynamic = 'force-dynamic'
-export const dynamicParams = true
-export const runtime = 'nodejs'
-export const preferredRegion = 'auto'
 
 /**
  * Endpoint combinado que trae todos los datos del dashboard en una sola petición
