@@ -6,9 +6,12 @@ import { Header } from "@/components/layout/header"
 import { BottomNavigation } from "@/components/layout/bottom-navigation"
 import { useAuthWithRoles } from "@/hooks/use-auth-with-roles"
 import { useProfile } from "@/hooks/use-profile"
+import { useUserCoach } from "@/hooks/use-user-coach"
 import { TodaySection } from "@/components/dashboard/today-section"
 import { StatsCards } from "@/components/dashboard/stats-cards"
 import { ReviewsSection } from "@/components/home/reviews-section"
+import { CoachInfoCard } from "@/components/dashboard/coach-info-card"
+import { TrialCalendar } from "@/components/dashboard/trial-calendar"
 import { 
   Loader2, 
   Target, 
@@ -42,6 +45,7 @@ export default function BoxPlanApp() {
   const { toast } = useToast()
   const { user, loading: authLoading, isCoach } = useAuthWithRoles()
   const { subscription, loading: profileLoading } = useProfile()
+  const { coach: userCoach, loading: coachLoading } = useUserCoach()
   
   // Verificar si el usuario tiene suscripción activa
   const hasActiveSubscription = subscription?.status === 'active'
@@ -586,6 +590,32 @@ export default function BoxPlanApp() {
             )}
           </div>
         </section>
+
+        {/* Calendario de prueba y información del coach - Para usuarios sin suscripción */}
+        {user?.id && !hasActiveSubscription && !profileLoading && (
+          <section className="space-y-6">
+            {/* Calendario de entrenamientos - Solo si tiene coach */}
+            {!coachLoading && userCoach && (
+              <TrialCalendar 
+                onDateClick={(date) => {
+                  // Formatear fecha como YYYY-MM-DD
+                  const year = date.getFullYear()
+                  const month = String(date.getMonth() + 1).padStart(2, '0')
+                  const day = String(date.getDate()).padStart(2, '0')
+                  const dateString = `${year}-${month}-${day}`
+                  
+                  // Redirigir a la página de planificación con la fecha
+                  router.push(`/planification/today?date=${dateString}`)
+                }}
+              />
+            )}
+            
+            {/* Mostrar información del coach si tiene uno asignado */}
+            {!coachLoading && userCoach && (
+              <CoachInfoCard coach={userCoach} />
+            )}
+          </section>
+        )}
 
         {/* Estadísticas rápidas - Solo para usuarios con suscripción activa */}
         {user?.id && hasActiveSubscription && (
