@@ -4,13 +4,22 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ChevronLeft, ChevronRight, Lock, Unlock, Calendar as CalendarIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Lock, Unlock, Calendar as CalendarIcon, Filter } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useMonthPlanifications } from '@/hooks/use-month-planifications'
 import { useToast } from '@/hooks/use-toast'
+import { useDisciplines } from '@/hooks/use-disciplines'
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue
+} from '@/components/ui/select'
 
 interface TrialCalendarProps {
 	onDateClick?: (date: Date) => void
+	coachId?: number | null
 }
 
 /**
@@ -18,19 +27,83 @@ interface TrialCalendarProps {
  * Muestra el calendario completo pero solo permite acceso al primer día con planificación
  * Los demás días redirigen a /pricing
  */
-export function TrialCalendar({ onDateClick }: TrialCalendarProps) {
+export function TrialCalendar({ onDateClick, coachId }: TrialCalendarProps) {
 	const router = useRouter()
 	const { toast } = useToast()
 	const [currentDate, setCurrentDate] = useState(new Date())
+	const [selectedDisciplineId, setSelectedDisciplineId] = useState<number | null>(null)
 
 	const today = new Date()
 	const year = currentDate.getFullYear()
 	const month = currentDate.getMonth() + 1 // 1-12
 
+	// Obtener disciplinas del coach
+	const { disciplines, loading: disciplinesLoading, fetchDisciplines } = useDisciplines(
+		coachId ? coachId.toString() : null
+	)
+
+	// Cargar disciplinas cuando cambie el coachId
+	useEffect(() => {
+		if (coachId) {
+			fetchDisciplines()
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [coachId])
+
+	// Seleccionar automáticamente la primera disciplina cuando se carguen las disciplinas
+	useEffect(() => {
+		if (disciplines.length > 0 && selectedDisciplineId === null) {
+			setSelectedDisciplineId(parseInt(disciplines[0].id, 10))
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [disciplines])
+
+	// Obtener planificaciones del mes, filtradas por disciplina si está seleccionada
 	const { datesWithPlanification, firstAvailableDay, loading } = useMonthPlanifications(
 		year,
-		month
+		month,
+		selectedDisciplineId
 	)
+
+	// Si no hay disciplinas, no mostrar el calendario
+	if (!coachId) {
+		return null
+	}
+
+	if (disciplinesLoading) {
+		return (
+			<Card className="bg-card/80 backdrop-blur-sm border-2 border-border shadow-soft">
+				<CardContent className="py-12">
+					<div className="flex items-center justify-center">
+						<div className="text-muted-foreground">Cargando calendario...</div>
+					</div>
+				</CardContent>
+			</Card>
+		)
+	}
+
+	if (disciplines.length === 0) {
+		return (
+			<Card className="bg-card/80 backdrop-blur-sm border-2 border-border shadow-soft">
+				<CardHeader>
+					<CardTitle className="text-xl font-heading text-foreground flex items-center justify-center gap-2">
+						<CalendarIcon className="w-5 h-5" />
+						Calendario de Entrenamientos
+					</CardTitle>
+				</CardHeader>
+				<CardContent className="py-12">
+					<div className="flex flex-col items-center justify-center gap-3 text-center">
+						<p className="text-muted-foreground">
+							Tu coach aún no ha configurado disciplinas de entrenamiento.
+						</p>
+						<p className="text-sm text-muted-foreground">
+							Una vez que tu coach agregue disciplinas y planificaciones, podrás verlas aquí.
+						</p>
+					</div>
+				</CardContent>
+			</Card>
+		)
+	}
 
 	// Calcular días del mes
 	const firstDay = new Date(year, month - 1, 1)
@@ -128,6 +201,34 @@ export function TrialCalendar({ onDateClick }: TrialCalendarProps) {
 					<p className="text-sm text-muted-foreground mt-2">
 						Prueba tu entrenamiento hoy. Suscríbete para acceder a todo el mes.
 					</p>
+				</div>
+
+				{/* Dropdown de filtro por disciplina */}
+				<div className="mb-4 flex items-center justify-center gap-2">
+					<Filter className="w-4 h-4 text-muted-foreground" />
+					<Select
+						value={selectedDisciplineId?.toString() || ''}
+						onValueChange={(value) => {
+							setSelectedDisciplineId(parseInt(value, 10))
+						}}
+					>
+						<SelectTrigger className="w-full max-w-xs">
+							<SelectValue placeholder="Seleccionar disciplina" />
+						</SelectTrigger>
+						<SelectContent>
+							{disciplines.map((discipline) => (
+								<SelectItem key={discipline.id} value={discipline.id}>
+									<div className="flex items-center gap-2">
+										<div
+											className="w-3 h-3 rounded-full"
+											style={{ backgroundColor: discipline.color }}
+										/>
+										<span>{discipline.name}</span>
+									</div>
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
 				</div>
 
 				{/* Navegación del mes */}

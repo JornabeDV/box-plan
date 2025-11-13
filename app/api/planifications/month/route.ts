@@ -41,28 +41,11 @@ export async function GET(request: NextRequest) {
 
     const coachId = relationship.coach.id
 
-    // Obtener las preferencias del usuario
-    const preference = await prisma.userPreference.findUnique({
-      where: { userId },
-      select: {
-        preferredDisciplineId: true,
-        preferredLevelId: true
-      }
-    })
-
-    if (!preference || !preference.preferredDisciplineId || !preference.preferredLevelId) {
-      return NextResponse.json({ 
-        data: [],
-        message: 'El usuario no tiene preferencias configuradas (discipline y level)'
-      })
-    }
-
-    const { preferredDisciplineId, preferredLevelId } = preference
-
     // Obtener año y mes de los query params
     const { searchParams } = new URL(request.url)
     const yearParam = searchParams.get('year')
     const monthParam = searchParams.get('month')
+    const disciplineIdParam = searchParams.get('disciplineId')
     
     const now = new Date()
     const year = yearParam ? parseInt(yearParam) : now.getFullYear()
@@ -74,17 +57,30 @@ export async function GET(request: NextRequest) {
     const lastDay = new Date(year, month, 0)
     lastDay.setHours(23, 59, 59, 999)
 
-    // Buscar todas las planificaciones del coach del estudiante según sus preferencias
+    // Construir el filtro de where
+    const whereClause: any = {
+      coachId: coachId, // Solo planificaciones del coach del estudiante
+      date: {
+        gte: firstDay,
+        lte: lastDay
+      }
+    }
+
+    // Si se proporciona disciplineId, filtrar por esa disciplina
+    // Si no se proporciona, mostrar todas las planificaciones del coach (sin filtrar por disciplina)
+    if (disciplineIdParam) {
+      const disciplineId = parseInt(disciplineIdParam, 10)
+      if (!isNaN(disciplineId)) {
+        whereClause.disciplineId = disciplineId
+        // No filtrar por level cuando se filtra por disciplina específica
+      }
+    }
+    // Si no se proporciona disciplineId, no agregar filtro de disciplina
+    // Esto mostrará todas las planificaciones del coach sin importar la disciplina
+
+    // Buscar todas las planificaciones del coach del estudiante según el filtro
     const planifications = await prisma.planification.findMany({
-      where: {
-        coachId: coachId, // Solo planificaciones del coach del estudiante
-        disciplineId: preferredDisciplineId,
-        disciplineLevelId: preferredLevelId,
-        date: {
-          gte: firstDay,
-          lte: lastDay
-        }
-      },
+      where: whereClause,
       select: {
         date: true
       },

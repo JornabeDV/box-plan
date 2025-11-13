@@ -12,6 +12,7 @@ import { StatsCards } from "@/components/dashboard/stats-cards"
 import { ReviewsSection } from "@/components/home/reviews-section"
 import { CoachInfoCard } from "@/components/dashboard/coach-info-card"
 import { TrialCalendar } from "@/components/dashboard/trial-calendar"
+import { WhatsAppButton } from "@/components/dashboard/whatsapp-button"
 import { 
   Loader2, 
   Target, 
@@ -52,18 +53,18 @@ export default function BoxPlanApp() {
   
   // Frases motivacionales para usuarios con suscripción activa
   const motivationalQuotes = [
-    "El único entrenamiento malo es el que no haces. ¡Vamos! 💪",
-    "Cada repetición te acerca más a tu mejor versión. 🔥",
-    "La disciplina es el puente entre tus metas y tus logros. ⚡",
-    "Hoy no es el día para rendirse. ¡Sigue adelante! 🚀",
-    "Tu cuerpo puede hacerlo. Es tu mente la que necesitas convencer. 🧠",
-    "El dolor es temporal, pero el orgullo es para siempre. 💎",
-    "No esperes la motivación, crea la disciplina. 🎯",
-    "Cada día es una nueva oportunidad de superarte. 🌟",
-    "La fuerza no viene de lo que puedes hacer, viene de superar lo que pensabas que no podías. 💪",
-    "El éxito es la suma de pequeños esfuerzos repetidos día tras día. 📈",
-    "No te detengas cuando estés cansado, detente cuando hayas terminado. 🏋️",
-    "Tu competencia más grande eres tú mismo. ¡Vence a tu yo de ayer! 🥇"
+    "El único entrenamiento malo es el que no haces. ¡Vamos!",
+    "Cada repetición te acerca más a tu mejor versión.",
+    "La disciplina es el puente entre tus metas y tus logros.",
+    "Hoy no es el día para rendirse. ¡Sigue adelante! ",
+    "Tu cuerpo puede hacerlo. Es tu mente la que necesitas convencer.",
+    "El dolor es temporal, pero el orgullo es para siempre.",
+    "No esperes la motivación, crea la disciplina.",
+    "Cada día es una nueva oportunidad de superarte.",
+    "La fuerza no viene de lo que puedes hacer, viene de superar lo que pensabas que no podías.",
+    "El éxito es la suma de pequeños esfuerzos repetidos día tras día.",
+    "No te detengas cuando estés cansado, detente cuando hayas terminado.",
+    "Tu competencia más grande eres tú mismo. ¡Vence a tu yo de ayer!"
   ]
 
   // Obtener una frase motivacional basada en el día del año para que cambie diariamente
@@ -582,7 +583,7 @@ export default function BoxPlanApp() {
                 })}
               </p>
             </div>
-            {/* Frase motivacional - Solo para usuarios con suscripción activa */}
+            {/* Frase motivacional - Para usuarios con suscripción activa */}
             {!profileLoading && subscription?.status === 'active' && (
               <p className="text-lime-400 text-base md:text-lg font-medium italic">
                 {getDailyMotivationalQuote()}
@@ -594,9 +595,16 @@ export default function BoxPlanApp() {
         {/* Calendario de prueba y información del coach - Para usuarios sin suscripción */}
         {user?.id && !hasActiveSubscription && !profileLoading && (
           <section className="space-y-6">
+            {/* Frase motivacional - Para usuarios con coach sin suscripción */}
+            {!coachLoading && userCoach && (
+              <p className="text-lime-400 text-base md:text-lg font-medium italic">
+                {getDailyMotivationalQuote()}
+              </p>
+            )}
             {/* Calendario de entrenamientos - Solo si tiene coach */}
             {!coachLoading && userCoach && (
               <TrialCalendar 
+                coachId={userCoach.id}
                 onDateClick={(date) => {
                   // Formatear fecha como YYYY-MM-DD
                   const year = date.getFullYear()
@@ -692,6 +700,14 @@ export default function BoxPlanApp() {
       </main>
 
       <BottomNavigation />
+      
+      {/* Botón flotante de WhatsApp para contactar al coach */}
+      {!coachLoading && userCoach && (
+        <WhatsAppButton 
+          phone={userCoach.phone} 
+          coachName={userCoach.name}
+        />
+      )}
     </div>
   )
 }
