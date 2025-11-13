@@ -155,8 +155,8 @@ export async function GET(request: NextRequest) {
 
 		const httpResponse = NextResponse.json(response)
 		
-		// Agregar caché
-		httpResponse.headers.set('Cache-Control', 'private, max-age=30, stale-while-revalidate=15')
+		// Agregar caché para reducir queries repetidas
+		httpResponse.headers.set('Cache-Control', 'private, max-age=15, stale-while-revalidate=5')
 		
 		return httpResponse
 	} catch (error) {

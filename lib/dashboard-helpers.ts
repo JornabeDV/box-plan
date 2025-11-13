@@ -1,6 +1,33 @@
 import { prisma } from './prisma'
 
 /**
+ * Transforma una disciplina de Prisma al formato esperado por el frontend
+ */
+function transformDiscipline(discipline: any) {
+	return {
+		id: String(discipline.id),
+		name: discipline.name,
+		description: discipline.description || undefined,
+		color: discipline.color,
+		order_index: discipline.orderIndex,
+		is_active: discipline.isActive,
+		coach_id: String(discipline.coachId),
+		created_at: discipline.createdAt.toISOString(),
+		updated_at: discipline.updatedAt.toISOString(),
+		levels: discipline.levels?.map((level: any) => ({
+			id: String(level.id),
+			discipline_id: String(level.disciplineId),
+			name: level.name,
+			description: level.description || undefined,
+			order_index: level.orderIndex,
+			is_active: level.isActive,
+			created_at: level.createdAt.toISOString(),
+			updated_at: level.updatedAt.toISOString()
+		})) || []
+	}
+}
+
+/**
  * Tipos para los datos del dashboard
  */
 export interface DashboardDisciplines {
@@ -61,11 +88,11 @@ export async function loadDashboardDisciplines(coachId: number): Promise<Dashboa
 		orderBy: { orderIndex: 'asc' }
 	})
 
-	const levels = disciplines.flatMap(d => d.levels)
-	const disciplinesWithLevels = disciplines.map(discipline => ({
-		...discipline,
-		levels: discipline.levels
-	}))
+	// Transformar disciplinas al formato esperado por el frontend
+	const disciplinesWithLevels = disciplines.map(transformDiscipline)
+
+	// Extraer niveles para respuesta separada
+	const levels = disciplinesWithLevels.flatMap(d => d.levels || [])
 
 	return {
 		disciplines: disciplinesWithLevels,
