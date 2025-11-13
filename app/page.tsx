@@ -12,6 +12,7 @@ import { StatsCards } from "@/components/dashboard/stats-cards"
 import { ReviewsSection } from "@/components/home/reviews-section"
 import { CoachInfoCard } from "@/components/dashboard/coach-info-card"
 import { TrialCalendar } from "@/components/dashboard/trial-calendar"
+import { WhatsAppButton } from "@/components/dashboard/whatsapp-button"
 import { 
   Loader2, 
   Target, 
@@ -699,6 +700,14 @@ export default function BoxPlanApp() {
       </main>
 
       <BottomNavigation />
+      
+      {/* Botón flotante de WhatsApp para contactar al coach */}
+      {!coachLoading && userCoach && (
+        <WhatsAppButton 
+          phone={userCoach.phone} 
+          coachName={userCoach.name}
+        />
+      )}
     </div>
   )
 }
