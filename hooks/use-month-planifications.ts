@@ -10,7 +10,7 @@ interface MonthPlanificationsState {
 	error: string | null
 }
 
-export function useMonthPlanifications(year: number, month: number) {
+export function useMonthPlanifications(year: number, month: number, disciplineId?: number | null) {
 	const [state, setState] = useState<MonthPlanificationsState>({
 		datesWithPlanification: [],
 		firstAvailableDay: null,
@@ -35,8 +35,18 @@ export function useMonthPlanifications(year: number, month: number) {
 			try {
 				setState(prev => ({ ...prev, loading: true, error: null }))
 
+				// Construir URL con parámetros opcionales
+				const params = new URLSearchParams({
+					year: year.toString(),
+					month: month.toString()
+				})
+				
+				if (disciplineId !== null && disciplineId !== undefined) {
+					params.append('disciplineId', disciplineId.toString())
+				}
+
 				const response = await fetch(
-					`/api/planifications/month?year=${year}&month=${month}`
+					`/api/planifications/month?${params.toString()}`
 				)
 
 				if (!response.ok) {
@@ -74,7 +84,7 @@ export function useMonthPlanifications(year: number, month: number) {
 		}
 
 		fetchMonthPlanifications()
-	}, [session?.user?.id, year, month])
+	}, [session?.user?.id, year, month, disciplineId])
 
 	return state
 }
