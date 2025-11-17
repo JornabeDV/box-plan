@@ -107,7 +107,8 @@ async function createOrUpdateSubscription(payment: any) {
             planId,
             currentPeriodStart: now,
             currentPeriodEnd: periodEnd,
-            mercadopagoPaymentId: payment.id.toString()
+            mercadopagoPaymentId: payment.id.toString(),
+            paymentMethod: 'mercadopago' // Actualizar método de pago a MercadoPago
           }
         })
       } catch (error) {
@@ -124,6 +125,7 @@ async function createOrUpdateSubscription(payment: any) {
             currentPeriodStart: now,
             currentPeriodEnd: periodEnd,
             mercadopagoPaymentId: payment.id.toString(),
+            paymentMethod: 'mercadopago', // Método de pago desde MercadoPago
             cancelAtPeriodEnd: false
           }
         })

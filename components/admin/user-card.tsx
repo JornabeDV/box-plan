@@ -118,7 +118,7 @@ export function UserCard({
           <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             <Badge variant={user.has_subscription ? 'default' : 'outline'} className="text-xs sm:text-base px-2 sm:px-4 py-1 sm:py-1.5 whitespace-nowrap">
               {user.has_subscription 
-                ? user.subscription?.plan.name 
+                ? user.subscription?.plan?.name || 'Plan sin nombre'
                 : user.subscription_status === 'canceled' 
                   ? 'Cancelado' 
                   : 'Sin plan'}
@@ -158,7 +158,7 @@ export function UserCard({
             <Calendar className="h-4 w-4 mr-2" />
             <span>Registrado: {new Date(user.created_at).toLocaleDateString()}</span>
           </div>
-          {user.subscription && user.subscription_status === 'active' && (
+          {user.subscription && user.subscription_status === 'active' && user.subscription.plan && (
             <div className="text-sm">
               <span className="font-medium">Suscripción:</span>
               <p className="text-muted-foreground">
@@ -170,7 +170,7 @@ export function UserCard({
               </p>
             </div>
           )}
-          {user.subscription && user.subscription_status === 'canceled' && (
+          {user.subscription && user.subscription_status === 'canceled' && user.subscription.plan && (
             <div className="text-sm">
               <span className="font-medium text-muted-foreground">Última suscripción (cancelada):</span>
               <p className="text-muted-foreground text-xs">
@@ -271,10 +271,14 @@ export function UserCard({
           await onCancelSubscription(user.subscription.id)
           toast({
             title: 'Suscripción cancelada',
-            description: `La suscripción del plan "${user.subscription.plan.name}" ha sido cancelada inmediatamente para ${user.full_name || user.email}.`,
+            description: `La suscripción del plan "${user.subscription.plan?.name || 'desconocido'}" ha sido cancelada inmediatamente para ${user.full_name || user.email}.`,
             variant: 'default'
           })
           setShowCancelSubscriptionDialog(false)
+          // Notificar que se completó la cancelación para actualizar la lista
+          if (onAssignmentComplete) {
+            onAssignmentComplete()
+          }
         } catch (error) {
           toast({
             title: 'Error al cancelar suscripción',
@@ -288,7 +292,7 @@ export function UserCard({
       title="Confirmar Cancelación de Suscripción"
       description={
         user.subscription
-          ? `¿Estás seguro de que quieres cancelar la suscripción del plan "${user.subscription.plan.name}" para ${user.full_name || user.email}? La suscripción se cancelará inmediatamente y el usuario perderá el acceso a las funcionalidades premium.`
+          ? `¿Estás seguro de que quieres cancelar la suscripción del plan "${user.subscription.plan?.name || 'desconocido'}" para ${user.full_name || user.email}? La suscripción se cancelará inmediatamente y el usuario perderá el acceso a las funcionalidades premium.`
           : ''
       }
       confirmText="Cancelar Suscripción"

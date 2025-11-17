@@ -27,15 +27,15 @@ export function useDashboardData(coachId: string | null) {
 	const lastCoachIdRef = useRef<string | null>(null)
 	const hasDataRef = useRef(false)
 
-	const loadDashboardData = async () => {
+	const loadDashboardData = async (forceRefresh = false) => {
 		if (!coachId) {
 			setLoading(false)
 			return
 		}
 
-		// Evitar llamadas duplicadas
-		if (loadingRef.current) return
-		if (lastCoachIdRef.current === coachId && hasDataRef.current) return
+		// Evitar llamadas duplicadas (a menos que sea un refresh forzado)
+		if (loadingRef.current && !forceRefresh) return
+		if (lastCoachIdRef.current === coachId && hasDataRef.current && !forceRefresh) return
 
 		loadingRef.current = true
 		lastCoachIdRef.current = coachId
@@ -44,7 +44,8 @@ export function useDashboardData(coachId: string | null) {
 
 		try {
 			const response = await fetch(`/api/admin/dashboard-data?coachId=${coachId}`, {
-				cache: 'default'
+				cache: forceRefresh ? 'no-store' : 'default',
+				headers: forceRefresh ? { 'Cache-Control': 'no-cache' } : undefined
 			})
 
 			if (!response.ok) {
@@ -76,7 +77,7 @@ export function useDashboardData(coachId: string | null) {
 
 	const refresh = () => {
 		hasDataRef.current = false
-		loadDashboardData()
+		loadDashboardData(true)
 	}
 
 	return {

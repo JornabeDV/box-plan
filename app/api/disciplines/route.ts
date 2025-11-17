@@ -32,14 +32,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ disciplines: [], levels: [] })
     }
 
-    // Extraer niveles para respuesta separada
-    const levels = disciplines.flatMap(d => d.levels)
-
-    // Combinar disciplinas con sus niveles
+    // Transformar disciplinas al formato esperado por el frontend
     const disciplinesWithLevels = disciplines.map(discipline => ({
-      ...discipline,
-      levels: discipline.levels
+      id: String(discipline.id),
+      name: discipline.name,
+      description: discipline.description || undefined,
+      color: discipline.color,
+      order_index: discipline.orderIndex,
+      is_active: discipline.isActive,
+      coach_id: String(discipline.coachId),
+      created_at: discipline.createdAt.toISOString(),
+      updated_at: discipline.updatedAt.toISOString(),
+      levels: discipline.levels.map(level => ({
+        id: String(level.id),
+        discipline_id: String(level.disciplineId),
+        name: level.name,
+        description: level.description || undefined,
+        order_index: level.orderIndex,
+        is_active: level.isActive,
+        created_at: level.createdAt.toISOString(),
+        updated_at: level.updatedAt.toISOString()
+      }))
     }))
+
+    // Extraer niveles para respuesta separada
+    const levels = disciplinesWithLevels.flatMap(d => d.levels || [])
 
     const response = NextResponse.json({ disciplines: disciplinesWithLevels, levels })
     
@@ -73,6 +90,13 @@ export async function POST(request: NextRequest) {
 
     // Usar coach_id del body o el ID del perfil del coach
     const profileId = coach_id || (authCheck.profile as any).id
+    
+    // Asegurar que coachId sea un número entero
+    const coachIdNumber = typeof profileId === 'string' ? parseInt(profileId, 10) : profileId
+    
+    if (isNaN(coachIdNumber)) {
+      return NextResponse.json({ error: 'Invalid coach ID' }, { status: 400 })
+    }
 
     // Crear disciplina con niveles en una transacción
     const newDiscipline = await prisma.discipline.create({
@@ -80,7 +104,7 @@ export async function POST(request: NextRequest) {
         name,
         description: description || null,
         color: color || '#3B82F6',
-        coachId: profileId,
+        coachId: coachIdNumber,
         orderIndex: order_index || 0,
         levels: levels && levels.length > 0 ? {
           create: levels.map((level: any) => ({
@@ -91,11 +115,37 @@ export async function POST(request: NextRequest) {
         } : undefined
       },
       include: {
-        levels: true
+        levels: {
+          where: { isActive: true },
+          orderBy: { orderIndex: 'asc' }
+        }
       }
     })
 
-    return NextResponse.json(newDiscipline)
+    // Transformar al formato esperado por el frontend
+    const transformedDiscipline = {
+      id: String(newDiscipline.id),
+      name: newDiscipline.name,
+      description: newDiscipline.description || undefined,
+      color: newDiscipline.color,
+      order_index: newDiscipline.orderIndex,
+      is_active: newDiscipline.isActive,
+      coach_id: String(newDiscipline.coachId),
+      created_at: newDiscipline.createdAt.toISOString(),
+      updated_at: newDiscipline.updatedAt.toISOString(),
+      levels: newDiscipline.levels.map(level => ({
+        id: String(level.id),
+        discipline_id: String(level.disciplineId),
+        name: level.name,
+        description: level.description || undefined,
+        order_index: level.orderIndex,
+        is_active: level.isActive,
+        created_at: level.createdAt.toISOString(),
+        updated_at: level.updatedAt.toISOString()
+      }))
+    }
+
+    return NextResponse.json(transformedDiscipline)
   } catch (error) {
     console.error('Error creating discipline:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

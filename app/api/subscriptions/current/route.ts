@@ -51,6 +51,7 @@ export async function GET(request: NextRequest) {
       current_period_end: subscription.currentPeriodEnd.toISOString(),
       cancel_at_period_end: subscription.cancelAtPeriodEnd,
       mercadopago_payment_id: subscription.mercadopagoPaymentId,
+      payment_method: subscription.paymentMethod || null,
       created_at: subscription.createdAt.toISOString(),
       updated_at: subscription.updatedAt.toISOString(),
       subscription_plans: {

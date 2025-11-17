@@ -41,7 +41,7 @@ export async function PATCH(
 		if (order_index !== undefined) updateData.orderIndex = order_index
 
 		// Manejar niveles si se proporcionan
-		if (levels !== undefined) {
+		if (levels !== undefined && Array.isArray(levels)) {
 			// Obtener niveles existentes
 			const existingLevels = await prisma.disciplineLevel.findMany({
 				where: {
@@ -55,22 +55,33 @@ export async function PATCH(
 			const existingLevelIds = new Set(existingLevels.map(l => l.id))
 			const newLevelIds = new Set(
 				(levels as any[])
-					.filter((l: any) => l.id)
-					.map((l: any) => l.id)
+					.filter((l: any) => l.id !== undefined && l.id !== null && l.id !== '')
+					.map((l: any) => {
+						const id = typeof l.id === 'string' ? parseInt(l.id, 10) : l.id
+						return isNaN(id) ? null : id
+					})
+					.filter((id): id is number => id !== null)
 			)
 
-			// Eliminar niveles que ya no están en la lista (soft delete)
+			// Eliminar niveles que ya no están en la lista (hard delete)
 			const levelsToDelete = Array.from(existingLevelIds).filter(
 				(id) => !newLevelIds.has(id)
 			)
 
 			if (levelsToDelete.length > 0) {
-				await prisma.disciplineLevel.updateMany({
+				// Primero actualizar planificaciones que referencian estos niveles
+				await prisma.planification.updateMany({
 					where: {
-						id: { in: levelsToDelete }
+						disciplineLevelId: { in: levelsToDelete }
 					},
 					data: {
-						isActive: false
+						disciplineLevelId: null
+					}
+				})
+				// Luego eliminar los niveles físicamente
+				await prisma.disciplineLevel.deleteMany({
+					where: {
+						id: { in: levelsToDelete }
 					}
 				})
 			}
@@ -79,28 +90,39 @@ export async function PATCH(
 			const levelOperations: any[] = []
 
 			for (const level of levels) {
-				if (level.id && newLevelIds.has(level.id)) {
+				// Validar que el nivel tenga nombre (requerido)
+				if (!level.name || typeof level.name !== 'string' || level.name.trim() === '') {
+					continue
+				}
+
+				// Verificar si el nivel tiene un ID válido
+				const hasValidId = level.id !== undefined && level.id !== null && level.id !== ''
+				const levelId = hasValidId 
+					? (typeof level.id === 'string' ? parseInt(level.id, 10) : level.id)
+					: null
+
+				if (hasValidId && levelId && !isNaN(levelId) && existingLevelIds.has(levelId)) {
 					// Actualizar nivel existente
 					levelOperations.push(
 						prisma.disciplineLevel.update({
-							where: { id: level.id },
+							where: { id: levelId },
 							data: {
-								name: level.name,
-								description: level.description || null,
-								orderIndex: level.order_index || 0,
+								name: level.name.trim(),
+								description: level.description?.trim() || null,
+								orderIndex: level.order_index ?? 0,
 								isActive: level.is_active !== undefined ? level.is_active : true
 							}
 						})
 					)
-				} else if (!level.id) {
-					// Crear nuevo nivel
+				} else {
+					// Crear nuevo nivel (no tiene ID o el ID no es válido o no existe)
 					levelOperations.push(
 						prisma.disciplineLevel.create({
 							data: {
 								disciplineId,
-								name: level.name,
-								description: level.description || null,
-								orderIndex: level.order_index || 0,
+								name: level.name.trim(),
+								description: level.description?.trim() || null,
+								orderIndex: level.order_index ?? 0,
 								isActive: level.is_active !== undefined ? level.is_active : true
 							}
 						})
@@ -108,9 +130,9 @@ export async function PATCH(
 				}
 			}
 
-			// Ejecutar operaciones de niveles
+			// Ejecutar operaciones de niveles en una transacción para asegurar consistencia
 			if (levelOperations.length > 0) {
-				await Promise.all(levelOperations)
+				await prisma.$transaction(levelOperations)
 			}
 		}
 
@@ -133,7 +155,37 @@ export async function PATCH(
 			}
 		})
 
-		return NextResponse.json(result)
+		if (!result) {
+			return NextResponse.json(
+				{ error: 'Disciplina no encontrada' },
+				{ status: 404 }
+			)
+		}
+
+		// Transformar al formato esperado por el frontend
+		const transformedDiscipline = {
+			id: String(result.id),
+			name: result.name,
+			description: result.description || undefined,
+			color: result.color,
+			order_index: result.orderIndex,
+			is_active: result.isActive,
+			coach_id: String(result.coachId),
+			created_at: result.createdAt.toISOString(),
+			updated_at: result.updatedAt.toISOString(),
+			levels: result.levels.map(level => ({
+				id: String(level.id),
+				discipline_id: String(level.disciplineId),
+				name: level.name,
+				description: level.description || undefined,
+				order_index: level.orderIndex,
+				is_active: level.isActive,
+				created_at: level.createdAt.toISOString(),
+				updated_at: level.updatedAt.toISOString()
+			}))
+		}
+
+		return NextResponse.json(transformedDiscipline)
 	} catch (error) {
 		console.error('Error updating discipline:', error)
 		const errorMessage = error instanceof Error ? error.message : 'Error al actualizar disciplina'
@@ -157,17 +209,42 @@ export async function DELETE(
 
 		const disciplineId = parseInt(params.id)
 
-		// Soft delete: marcar como inactivo
-		await prisma.$transaction([
-			prisma.discipline.update({
-				where: { id: disciplineId },
-				data: { isActive: false }
-			}),
-			prisma.disciplineLevel.updateMany({
-				where: { disciplineId },
-				data: { isActive: false }
+		// Hard delete: eliminar físicamente de la base de datos
+		// Primero obtenemos los IDs de los niveles para actualizar las planificaciones
+		const levels = await prisma.disciplineLevel.findMany({
+			where: { disciplineId },
+			select: { id: true }
+		})
+		const levelIds = levels.map(l => l.id)
+
+		await prisma.$transaction(async (tx) => {
+			// Actualizar planificaciones que referencian estos niveles
+			if (levelIds.length > 0) {
+				await tx.planification.updateMany({
+					where: {
+						disciplineLevelId: { in: levelIds }
+					},
+					data: {
+						disciplineLevelId: null
+					}
+				})
+			}
+			// Eliminar los niveles físicamente
+			await tx.disciplineLevel.deleteMany({
+				where: { disciplineId }
 			})
-		])
+			// Actualizar planificaciones que referencian la disciplina
+			await tx.planification.updateMany({
+				where: { disciplineId },
+				data: {
+					disciplineId: null
+				}
+			})
+			// Eliminar la disciplina físicamente
+			await tx.discipline.delete({
+				where: { id: disciplineId }
+			})
+		})
 
 		return NextResponse.json({ success: true })
 	} catch (error) {

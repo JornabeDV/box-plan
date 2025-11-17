@@ -37,6 +37,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Obtener suscripción actual para mantener el método de pago y coachId
+    // Usar findUnique y hacer cast para incluir paymentMethod que puede no estar en los tipos generados
+    const currentSubscriptionRaw = await prisma.subscription.findUnique({
+      where: { id: currentSubscriptionId }
+    }) as { coachId: number | null; paymentMethod?: string | null } | null
+    
+    const currentSubscription = currentSubscriptionRaw ? {
+      coachId: currentSubscriptionRaw.coachId,
+      paymentMethod: (currentSubscriptionRaw as any).paymentMethod || null
+    } : null
+
     // Crear nueva suscripción y actualizar la actual en una transacción
     const newEndDate = new Date()
     newEndDate.setDate(newEndDate.getDate() + 30) // 30 días
@@ -51,16 +62,30 @@ export async function POST(request: NextRequest) {
       })
 
       // Crear nueva suscripción
+      const subscriptionData: any = {
+        userId,
+        planId: newPlanId,
+        status: 'active',
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: newEndDate,
+        cancelAtPeriodEnd: false,
+        mercadopagoPaymentId: `change_${Date.now()}`
+      }
+
+      // Mantener método de pago anterior o usar 'plan_change'
+      if (currentSubscription?.paymentMethod) {
+        subscriptionData.paymentMethod = currentSubscription.paymentMethod
+      } else {
+        subscriptionData.paymentMethod = 'plan_change'
+      }
+
+      // Mantener coachId si existe
+      if (currentSubscription?.coachId !== null && currentSubscription?.coachId !== undefined) {
+        subscriptionData.coachId = currentSubscription.coachId
+      }
+
       const newSubscription = await tx.subscription.create({
-        data: {
-          userId,
-          planId: newPlanId,
-          status: 'active',
-          currentPeriodStart: new Date(),
-          currentPeriodEnd: newEndDate,
-          cancelAtPeriodEnd: false,
-          mercadopagoPaymentId: `change_${Date.now()}`
-        }
+        data: subscriptionData
       })
 
       // Crear registro de pago

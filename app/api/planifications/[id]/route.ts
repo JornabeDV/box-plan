@@ -49,8 +49,14 @@ export async function PATCH(
 
     // Preparar datos de actualización
     const updateData: any = {}
-    if (body.discipline_id !== undefined) updateData.disciplineId = body.discipline_id || null
-    if (body.discipline_level_id !== undefined) updateData.disciplineLevelId = body.discipline_level_id || null
+    if (body.discipline_id !== undefined) {
+      const disciplineIdNum = typeof body.discipline_id === 'string' ? parseInt(body.discipline_id, 10) : body.discipline_id
+      updateData.disciplineId = isNaN(disciplineIdNum) ? null : disciplineIdNum
+    }
+    if (body.discipline_level_id !== undefined) {
+      const disciplineLevelIdNum = typeof body.discipline_level_id === 'string' ? parseInt(body.discipline_level_id, 10) : body.discipline_level_id
+      updateData.disciplineLevelId = isNaN(disciplineLevelIdNum) ? null : disciplineLevelIdNum
+    }
     if (body.date !== undefined) updateData.date = new Date(body.date)
     if (body.title !== undefined) updateData.title = body.title || null
     if (body.description !== undefined) updateData.description = body.description || null

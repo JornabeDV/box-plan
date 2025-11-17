@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { isCoach, normalizeUserId } from '@/lib/auth-helpers'
 
 // POST /api/subscriptions
 export async function POST(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    const userId = normalizeUserId(session?.user?.id)
+    if (!userId) {
       return NextResponse.json(
         { error: 'No autenticado' },
         { status: 401 }
@@ -22,7 +24,8 @@ export async function POST(request: NextRequest) {
       current_period_start,
       current_period_end,
       cancel_at_period_end = false,
-      payment_method = 'admin_assignment'
+      payment_method = 'admin_assignment',
+      coach_id // Opcional: puede venir del body si se pasa explícitamente
     } = body
 
     if (!user_id || !plan_id) {
@@ -32,9 +35,51 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Convertir user_id y plan_id a números enteros
+    const userIdNum = typeof user_id === 'string' ? parseInt(user_id, 10) : user_id
+    const planIdNum = typeof plan_id === 'string' ? parseInt(plan_id, 10) : plan_id
+
+    if (isNaN(userIdNum) || isNaN(planIdNum)) {
+      return NextResponse.json(
+        { error: 'user_id y plan_id deben ser números válidos' },
+        { status: 400 }
+      )
+    }
+
+    // Determinar el coachId
+    let coachIdNum: number | null = null
+    
+    // Si viene explícitamente en el body, usarlo
+    if (coach_id !== undefined && coach_id !== null) {
+      const parsedCoachId = typeof coach_id === 'string' ? parseInt(coach_id, 10) : coach_id
+      if (!isNaN(parsedCoachId) && typeof parsedCoachId === 'number') {
+        coachIdNum = parsedCoachId
+      }
+    } else {
+      // Si no viene en el body, verificar si el usuario autenticado es coach
+      // y si el estudiante está asociado a ese coach
+      const authCheck = await isCoach(userId)
+      if (authCheck.isAuthorized && authCheck.profile) {
+        const coachId = authCheck.profile.id
+        
+        // Verificar que el estudiante esté asociado a este coach
+        const relationship = await prisma.coachStudentRelationship.findFirst({
+          where: {
+            coachId: coachId,
+            studentId: userIdNum,
+            status: 'active'
+          }
+        })
+        
+        if (relationship) {
+          coachIdNum = coachId
+        }
+      }
+    }
+
     // Obtener información del plan para el registro de pago
     const plan = await prisma.subscriptionPlan.findUnique({
-      where: { id: plan_id }
+      where: { id: planIdNum }
     })
 
     if (!plan) {
@@ -46,22 +91,34 @@ export async function POST(request: NextRequest) {
 
     // Crear la suscripción y el registro de pago en una transacción
     const result = await prisma.$transaction(async (tx) => {
+      const subscriptionData: any = {
+        userId: userIdNum,
+        planId: planIdNum,
+        status,
+        currentPeriodStart: new Date(current_period_start),
+        currentPeriodEnd: new Date(current_period_end),
+        cancelAtPeriodEnd: cancel_at_period_end
+      }
+
+      // Incluir coachId si está disponible
+      if (coachIdNum !== null) {
+        subscriptionData.coachId = coachIdNum
+      }
+
+      // Incluir método de pago
+      if (payment_method) {
+        subscriptionData.paymentMethod = payment_method
+      }
+
       const newSubscription = await tx.subscription.create({
-        data: {
-          userId: user_id,
-          planId: plan_id,
-          status,
-          currentPeriodStart: new Date(current_period_start),
-          currentPeriodEnd: new Date(current_period_end),
-          cancelAtPeriodEnd: cancel_at_period_end
-        }
+        data: subscriptionData
       })
 
       // Crear registro de pago en payment_history
       try {
         await tx.paymentHistory.create({
           data: {
-            userId: user_id,
+            userId: userIdNum,
             subscriptionId: newSubscription.id,
             amount: plan.price,
             currency: plan.currency,

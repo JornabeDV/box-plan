@@ -46,6 +46,7 @@ export interface UpdateDisciplineData extends Partial<CreateDisciplineData> {
 
 export interface UpdateDisciplineLevelData extends Partial<CreateDisciplineLevelData> {
   id: string
+  is_active?: boolean
 }
 
 export function useDisciplines(coachId: string | null) {
@@ -58,12 +59,12 @@ export function useDisciplines(coachId: string | null) {
   const hasDataRef = useRef(false)
 
   // Cargar disciplinas con sus niveles
-  const fetchDisciplines = async () => {
+  const fetchDisciplines = async (forceRefresh = false) => {
     if (!coachId) return
     
-    // Evitar llamadas duplicadas
-    if (loadingRef.current) return
-    if (lastCoachIdRef.current === coachId && hasDataRef.current) return
+    // Evitar llamadas duplicadas (a menos que sea un refresh forzado)
+    if (loadingRef.current && !forceRefresh) return
+    if (lastCoachIdRef.current === coachId && hasDataRef.current && !forceRefresh) return
 
     loadingRef.current = true
     lastCoachIdRef.current = coachId
@@ -72,7 +73,8 @@ export function useDisciplines(coachId: string | null) {
 
     try {
       const response = await fetch(`/api/disciplines?coachId=${coachId}`, {
-        cache: 'default'
+        cache: forceRefresh ? 'no-store' : 'default',
+        headers: forceRefresh ? { 'Cache-Control': 'no-cache' } : undefined
       })
       
       if (!response.ok) {
@@ -125,8 +127,9 @@ export function useDisciplines(coachId: string | null) {
 
       // Resetear ref para forzar recarga
       hasDataRef.current = false
+      lastCoachIdRef.current = null
       // Recargar todas las disciplinas para asegurar sincronización
-      await fetchDisciplines()
+      await fetchDisciplines(true)
       
       return { data: newDiscipline }
     } catch (err) {
@@ -163,8 +166,9 @@ export function useDisciplines(coachId: string | null) {
 
       // Resetear ref para forzar recarga
       hasDataRef.current = false
+      lastCoachIdRef.current = null
       // Recargar todas las disciplinas para asegurar sincronización (especialmente niveles)
-      await fetchDisciplines()
+      await fetchDisciplines(true)
       
       return { data: updatedDiscipline }
     } catch (err) {
@@ -206,13 +210,12 @@ export function useDisciplines(coachId: string | null) {
 
       const newLevel = await response.json()
 
-      setDisciplines(prev => 
-        prev.map(d => 
-          d.id === data.discipline_id 
-            ? { ...d, levels: [...(d.levels || []), newLevel] }
-            : d
-        )
-      )
+      // Resetear ref para forzar recarga
+      hasDataRef.current = false
+      lastCoachIdRef.current = null
+      // Recargar todas las disciplinas para asegurar sincronización
+      await fetchDisciplines(true)
+
       return { data: newLevel }
     } catch (err) {
       return { error: err instanceof Error ? err.message : 'Error al crear nivel' }
@@ -225,23 +228,24 @@ export function useDisciplines(coachId: string | null) {
       const response = await fetch(`/api/disciplines/levels/${data.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify({
+          name: data.name,
+          description: data.description,
+          order_index: data.order_index,
+          is_active: data.is_active
+        })
       })
 
       if (!response.ok) throw new Error('Error al actualizar nivel')
 
       const updatedLevel = await response.json()
 
-      setDisciplines(prev => 
-        prev.map(d => 
-          d.id === updatedLevel.discipline_id
-            ? { 
-                ...d, 
-                levels: d.levels?.map(l => l.id === data.id ? updatedLevel : l) || []
-              }
-            : d
-        )
-      )
+      // Resetear ref para forzar recarga
+      hasDataRef.current = false
+      lastCoachIdRef.current = null
+      // Recargar todas las disciplinas para asegurar sincronización
+      await fetchDisciplines(true)
+
       return { data: updatedLevel }
     } catch (err) {
       return { error: err instanceof Error ? err.message : 'Error al actualizar nivel' }
@@ -257,12 +261,12 @@ export function useDisciplines(coachId: string | null) {
 
       if (!response.ok) throw new Error('Error al eliminar nivel')
 
-      setDisciplines(prev => 
-        prev.map(d => ({
-          ...d,
-          levels: d.levels?.filter(l => l.id !== id) || []
-        }))
-      )
+      // Resetear ref para forzar recarga
+      hasDataRef.current = false
+      lastCoachIdRef.current = null
+      // Recargar todas las disciplinas para asegurar sincronización
+      await fetchDisciplines(true)
+
       return { success: true }
     } catch (err) {
       return { error: err instanceof Error ? err.message : 'Error al eliminar nivel' }
