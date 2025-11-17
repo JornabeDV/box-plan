@@ -144,8 +144,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Transformar para respuesta
+    // Convertir "exercises" (JSON) a "blocks" para el frontend
+    const exercisesData = (planification as any).exercises
+    const blocksData = exercisesData ? (Array.isArray(exercisesData) ? exercisesData : []) : []
+
     const transformed = {
       ...planification,
+      blocks: blocksData, // Agregar blocks para compatibilidad con el frontend
+      exercises: exercisesData, // Mantener exercises también
       discipline: planification.discipline ? {
         id: planification.discipline.id,
         name: planification.discipline.name,

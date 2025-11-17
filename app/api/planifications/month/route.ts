@@ -41,6 +41,15 @@ export async function GET(request: NextRequest) {
 
     const coachId = relationship.coach.id
 
+    // Obtener las preferencias del usuario
+    const preference = await prisma.userPreference.findUnique({
+      where: { userId },
+      select: {
+        preferredDisciplineId: true,
+        preferredLevelId: true
+      }
+    })
+
     // Obtener año y mes de los query params
     const { searchParams } = new URL(request.url)
     const yearParam = searchParams.get('year')
@@ -67,17 +76,29 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Si se proporciona disciplineId, filtrar por esa disciplina
-    // Si no se proporciona, mostrar todas las planificaciones del coach (sin filtrar por disciplina)
+    // Determinar qué disciplina usar:
+    // 1. Si se proporciona disciplineId en los params, usar ese
+    // 2. Si no, usar la preferencia del usuario si existe
+    // 3. Si no hay preferencia, no filtrar por disciplina (mostrar todas)
+    let disciplineIdToUse: number | null = null
+    
     if (disciplineIdParam) {
       const disciplineId = parseInt(disciplineIdParam, 10)
       if (!isNaN(disciplineId)) {
-        whereClause.disciplineId = disciplineId
-        // No filtrar por level cuando se filtra por disciplina específica
+        disciplineIdToUse = disciplineId
+      }
+    } else if (preference?.preferredDisciplineId) {
+      disciplineIdToUse = preference.preferredDisciplineId
+    }
+
+    // Si tenemos una disciplina, filtrar por ella
+    if (disciplineIdToUse !== null) {
+      whereClause.disciplineId = disciplineIdToUse
+      // También filtrar por nivel si el usuario tiene preferencia de nivel
+      if (preference?.preferredLevelId) {
+        whereClause.disciplineLevelId = preference.preferredLevelId
       }
     }
-    // Si no se proporciona disciplineId, no agregar filtro de disciplina
-    // Esto mostrará todas las planificaciones del coach sin importar la disciplina
 
     // Buscar todas las planificaciones del coach del estudiante según el filtro
     const planifications = await prisma.planification.findMany({

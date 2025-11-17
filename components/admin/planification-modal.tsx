@@ -21,14 +21,16 @@ interface Block {
 
 interface Planification {
   id?: string
-  coach_id: string
-  discipline_id: string
-  discipline_level_id: string
+  coach_id?: string
+  discipline_id?: string | number
+  discipline_level_id?: string | number
+  disciplineId?: number | null // Formato camelCase (del dashboard)
+  disciplineLevelId?: number | null // Formato camelCase (del dashboard)
   date: string
   estimated_duration?: number
-  blocks: Block[]
+  blocks?: Block[]
   notes?: string
-  is_active: boolean
+  is_active?: boolean
 }
 
 interface PlanificationModalProps {
@@ -89,13 +91,31 @@ export function PlanificationModal({
           setError('Error: La planificación no tiene un ID válido')
           return
         }
+        
+        // Manejar diferentes formatos de datos (camelCase o snake_case)
+        // También convertir números a strings para los Select components
+        const planificationAny = planification as any
+        const disciplineId = planification.discipline_id 
+          ? String(planification.discipline_id)
+          : planificationAny.disciplineId 
+            ? String(planificationAny.disciplineId)
+            : ''
+        
+        const disciplineLevelId = planification.discipline_level_id
+          ? String(planification.discipline_level_id)
+          : planificationAny.disciplineLevelId
+            ? String(planificationAny.disciplineLevelId)
+            : ''
+        
         setFormData({
-          discipline_id: planification.discipline_id,
-          discipline_level_id: planification.discipline_level_id,
+          discipline_id: disciplineId,
+          discipline_level_id: disciplineLevelId,
           estimated_duration: planification.estimated_duration?.toString() || '',
           notes: planification.notes || ''
         })
-        setBlocks(planification.blocks || [])
+        // Manejar bloques desde blocks o exercises
+        const blocksToSet = planification.blocks || planificationAny.exercises || []
+        setBlocks(Array.isArray(blocksToSet) ? blocksToSet : [])
       } else {
         setFormData({
           discipline_id: '',
