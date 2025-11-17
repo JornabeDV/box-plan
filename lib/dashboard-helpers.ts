@@ -154,9 +154,32 @@ export async function loadDashboardPlanifications(coachId: number): Promise<Dash
 
 /**
  * Carga usuarios con sus suscripciones y preferencias
+ * Filtra por estudiantes asociados al coach a través de CoachStudentRelationship
  */
-export async function loadDashboardUsers(): Promise<DashboardUsers[]> {
+export async function loadDashboardUsers(coachId: number): Promise<DashboardUsers[]> {
+	// Primero obtener las relaciones activas del coach con estudiantes
+	const relationships = await prisma.coachStudentRelationship.findMany({
+		where: {
+			coachId: coachId,
+			status: 'active'
+		},
+		select: {
+			studentId: true
+		}
+	})
+
+	// Si no hay estudiantes asociados, retornar array vacío
+	if (relationships.length === 0) {
+		return []
+	}
+
+	// Obtener IDs de estudiantes
+	const studentIds = relationships.map(r => r.studentId)
+
 	const users = await prisma.user.findMany({
+		where: {
+			id: { in: studentIds }
+		},
 		select: {
 			id: true,
 			email: true,
@@ -165,7 +188,8 @@ export async function loadDashboardUsers(): Promise<DashboardUsers[]> {
 			createdAt: true,
 			updatedAt: true,
 			subscriptions: {
-				where: { status: 'active' },
+				// Obtener la suscripción más reciente sin importar su estado
+				// para poder mostrar información histórica de suscripciones canceladas
 				include: {
 					plan: {
 						select: {
@@ -204,7 +228,10 @@ export async function loadDashboardUsers(): Promise<DashboardUsers[]> {
 			avatar_url: user.image,
 			created_at: user.createdAt.toISOString(),
 			updated_at: user.updatedAt.toISOString(),
-			subscription: subscription ? {
+			// has_subscription debe ser true solo si la suscripción está activa
+			has_subscription: subscription?.status === 'active',
+			subscription_status: subscription?.status || null,
+			subscription: subscription && subscription.plan ? {
 				id: String(subscription.id),
 				user_id: String(subscription.userId),
 				plan_id: String(subscription.planId),
@@ -212,7 +239,8 @@ export async function loadDashboardUsers(): Promise<DashboardUsers[]> {
 				current_period_start: subscription.currentPeriodStart.toISOString(),
 				current_period_end: subscription.currentPeriodEnd.toISOString(),
 				cancel_at_period_end: subscription.cancelAtPeriodEnd,
-				subscription_plans: {
+				payment_method: (subscription as any).paymentMethod || null,
+				plan: {
 					id: String(subscription.plan.id),
 					name: subscription.plan.name,
 					description: subscription.plan.description,

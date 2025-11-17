@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
 		}
 		
 		if (shouldInclude('users')) {
-			loadPromises.push({ key: 'users', promise: loadDashboardUsers() })
+			loadPromises.push({ key: 'users', promise: loadDashboardUsers(coachId) })
 		}
 		
 		if (shouldInclude('plans')) {

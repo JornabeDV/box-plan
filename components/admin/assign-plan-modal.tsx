@@ -61,7 +61,8 @@ export function AssignPlanModal({
 		}
 	}, [open])
 
-	const selectedPlan = plans.find(p => p.id === selectedPlanId)
+	// Normalizar comparación de IDs (pueden ser string o número)
+	const selectedPlan = plans.find(p => String(p.id) === String(selectedPlanId))
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault()
@@ -75,12 +76,24 @@ export function AssignPlanModal({
 			return
 		}
 
+		// Obtener el plan nuevamente justo antes de usarlo (por si cambió)
+		const planToAssign = plans.find(p => String(p.id) === String(selectedPlanId))
+		
+		if (!planToAssign) {
+			toast({
+				title: 'Error de validación',
+				description: 'El plan seleccionado no es válido. Por favor, selecciona otro plan.',
+				variant: 'destructive'
+			})
+			return
+		}
+
 		setAssigning(true)
 		try {
 			await onAssign(user.id, selectedPlanId, selectedPaymentMethod)
 			toast({
 				title: 'Plan asignado exitosamente',
-				description: `El plan "${selectedPlan?.name}" ha sido asignado a ${user.full_name || user.email} con método de pago: ${PAYMENT_METHODS.find(m => m.value === selectedPaymentMethod)?.label}.`,
+				description: `El plan "${planToAssign.name}" ha sido asignado a ${user.full_name || user.email} con método de pago: ${PAYMENT_METHODS.find(m => m.value === selectedPaymentMethod)?.label}.`,
 				variant: 'default'
 			})
 			onOpenChange(false)
@@ -123,7 +136,7 @@ export function AssignPlanModal({
 								{plans
 									.filter(plan => plan.is_active)
 									.map((plan) => (
-										<SelectItem key={plan.id} value={plan.id}>
+										<SelectItem key={String(plan.id)} value={String(plan.id)}>
 											<div className="flex flex-col">
 												<span className="font-medium">{plan.name}</span>
 												<span className="text-xs text-muted-foreground">

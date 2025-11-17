@@ -189,6 +189,7 @@ model Subscription {
   cancelAtPeriodEnd   Boolean   @default(false) @map("cancel_at_period_end")
   mercadopagoPaymentId String?  @map("mercadopago_payment_id") @db.VarChar(255)
   coachId             Int?      @map("coach_id")
+  paymentMethod       String?   @map("payment_method") @db.VarChar(50)
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
 
@@ -217,7 +218,7 @@ model Planification {
   id                Int       @id @default(autoincrement())
   disciplineId       Int?      @map("discipline_id")
   disciplineLevelId  Int?      @map("discipline_level_id")
-  coachId            Int?      @map("coach_id")
+  coachId            Int       @map("coach_id")
   date               DateTime  @db.Date
   title              String?   @db.VarChar(255)
   description        String?   @db.Text
@@ -229,6 +230,7 @@ model Planification {
 
   discipline         Discipline? @relation(fields: [disciplineId], references: [id])
   disciplineLevel    DisciplineLevel? @relation(fields: [disciplineLevelId], references: [id])
+  coach              CoachProfile @relation(fields: [coachId], references: [id])
   workouts           Workout[]
   userProgress       UserProgress[]
 
@@ -308,6 +310,7 @@ model CoachProfile {
   studentRelationships CoachStudentRelationship[] @relation("CoachRelationships")
   commissions         CoachCommission[]
   subscriptionPlans   SubscriptionPlan[]
+  planifications      Planification[]
 
   @@map("coach_profiles")
 }

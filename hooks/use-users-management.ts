@@ -68,12 +68,12 @@ export function useUsersManagement(coachId: string | null) {
   const hasPlansDataRef = useRef(false)
 
   // Cargar usuarios
-  const loadUsers = async () => {
+  const loadUsers = async (forceRefresh = false) => {
     if (!coachId) return
     
-    // Evitar llamadas duplicadas
-    if (loadingUsersRef.current) return
-    if (lastCoachIdRef.current === coachId && hasUsersDataRef.current) return
+    // Evitar llamadas duplicadas (a menos que sea un refresh forzado)
+    if (loadingUsersRef.current && !forceRefresh) return
+    if (lastCoachIdRef.current === coachId && hasUsersDataRef.current && !forceRefresh) return
 
     loadingUsersRef.current = true
     lastCoachIdRef.current = coachId
@@ -81,8 +81,14 @@ export function useUsersManagement(coachId: string | null) {
     try {
       setLoading(true)
       
+      // Si es un refresh forzado, resetear el flag de datos
+      if (forceRefresh) {
+        hasUsersDataRef.current = false
+      }
+      
       const response = await fetch(`/api/admin/users?coachId=${coachId}`, {
-        cache: 'default'
+        cache: forceRefresh ? 'no-store' : 'default',
+        headers: forceRefresh ? { 'Cache-Control': 'no-cache' } : undefined
       })
       
       if (!response.ok) {
@@ -144,18 +150,25 @@ export function useUsersManagement(coachId: string | null) {
   // Asignar suscripción
   const assignSubscription = async (userId: string, planId: string, paymentMethod: string = 'admin_assignment'): Promise<void> => {
     try {
+      const requestBody: any = {
+        user_id: userId,
+        plan_id: planId,
+        status: 'active',
+        current_period_start: new Date().toISOString(),
+        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        cancel_at_period_end: false,
+        payment_method: paymentMethod
+      }
+
+      // Incluir coachId si está disponible
+      if (coachId) {
+        requestBody.coach_id = coachId
+      }
+
       const response = await fetch('/api/subscriptions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: userId,
-          plan_id: planId,
-          status: 'active',
-          current_period_start: new Date().toISOString(),
-          current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          cancel_at_period_end: false,
-          payment_method: paymentMethod
-        })
+        body: JSON.stringify(requestBody)
       })
 
       if (!response.ok) {
@@ -163,8 +176,8 @@ export function useUsersManagement(coachId: string | null) {
         throw new Error(errorData.error || 'Error al asignar suscripción')
       }
 
-      // Recargar usuarios
-      await loadUsers()
+      // Recargar usuarios (forzar refresh para obtener datos actualizados)
+      await loadUsers(true)
     } catch (err) {
       console.error('Error assigning subscription:', err)
       throw err
@@ -183,8 +196,8 @@ export function useUsersManagement(coachId: string | null) {
         throw new Error(errorData.error || 'Error al cancelar suscripción')
       }
 
-      // Recargar usuarios
-      await loadUsers()
+      // Recargar usuarios (forzar refresh para obtener datos actualizados)
+      await loadUsers(true)
     } catch (err) {
       console.error('Error canceling subscription:', err)
       throw err
@@ -203,8 +216,8 @@ export function useUsersManagement(coachId: string | null) {
         throw new Error(errorData.error || 'Error al eliminar usuario')
       }
 
-      // Recargar usuarios
-      await loadUsers()
+      // Recargar usuarios (forzar refresh para obtener datos actualizados)
+      await loadUsers(true)
       return { error: null }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al eliminar usuario'

@@ -17,9 +17,11 @@ interface UsersListProps {
 export function UsersList({ coachId, initialUsers, initialPlans, onRefresh }: UsersListProps) {
   const { users: hookUsers, plans: hookPlans, loading, assignSubscription, cancelSubscription, deleteUser, loadUsers } = useUsersManagement(coachId)
   
-  // Usar datos iniciales si están disponibles, sino usar los del hook
-  const users = initialUsers || hookUsers
-  const plans = initialPlans || hookPlans
+  // Priorizar datos del hook si están disponibles (indica que se han cargado/actualizado)
+  // Usar datos iniciales solo como fallback inicial antes de que el hook cargue
+  // Esto asegura que después de actualizaciones (cancelar, asignar, etc.), siempre se usen los datos más recientes
+  const users = (hookUsers && hookUsers.length > 0) ? hookUsers : (initialUsers || hookUsers || [])
+  const plans = (hookPlans && hookPlans.length > 0) ? hookPlans : (initialPlans || hookPlans || [])
   
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPlan, setSelectedPlan] = useState<string>('all')
@@ -51,11 +53,12 @@ export function UsersList({ coachId, initialUsers, initialPlans, onRefresh }: Us
     setSelectedUser(null)
   }
 
-  const handleUserUpdated = () => {
+  const handleUserUpdated = async () => {
     if (onRefresh) {
       onRefresh()
     } else {
-      loadUsers()
+      // Forzar refresh y esperar a que termine
+      await loadUsers(true)
     }
   }
 

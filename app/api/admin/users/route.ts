@@ -5,7 +5,6 @@ import { prisma } from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-// GET /api/admin/users?coachId=xxx
 export async function GET(request: NextRequest) {
   try {
     const session = await auth()
@@ -20,13 +19,37 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Coach ID required' }, { status: 400 })
     }
 
-    // MVP - Modelo B2C: Mostrar TODOS los usuarios (sin filtro por asignación)
-    // TODO: Cuando migren a modelo con coaches/gimnasios, descomentar el filtro abajo
-    // y usar la lógica de admin_user_assignments
-    
-    // Obtener datos de TODOS los usuarios (MVP)
+    // Convertir coachId a número
+    const coachIdNum = parseInt(coachId, 10)
+    if (isNaN(coachIdNum)) {
+      return NextResponse.json({ error: 'Invalid coach ID' }, { status: 400 })
+    }
+
     try {
+      // Primero obtener las relaciones activas del coach con estudiantes
+      const relationships = await prisma.coachStudentRelationship.findMany({
+        where: {
+          coachId: coachIdNum,
+          status: 'active'
+        },
+        select: {
+          studentId: true
+        }
+      })
+
+      // Si no hay estudiantes asociados, retornar array vacío
+      if (relationships.length === 0) {
+        return NextResponse.json([])
+      }
+
+      // Obtener IDs de estudiantes
+      const studentIds = relationships.map(r => r.studentId)
+
+      // Obtener datos de los estudiantes asociados al coach
       const users = await prisma.user.findMany({
+        where: {
+          id: { in: studentIds }
+        },
         select: {
           id: true,
           email: true,
@@ -46,11 +69,11 @@ export async function GET(request: NextRequest) {
       // Obtener IDs de usuarios
       const userIds = users.map(u => u.id)
 
-      // Obtener suscripciones de usuarios
-      const subscriptions = await prisma.subscription.findMany({
+      // Obtener la suscripción más reciente de cada usuario (no solo activas)
+      // Esto permite mostrar el estado correcto incluso si está cancelada o vencida
+      const allSubscriptions = await prisma.subscription.findMany({
         where: {
-          userId: { in: userIds },
-          status: 'active'
+          userId: { in: userIds }
         },
         include: {
           plan: {
@@ -65,8 +88,18 @@ export async function GET(request: NextRequest) {
               isActive: true
             }
           }
-        }
+        },
+        orderBy: { createdAt: 'desc' }
       })
+
+      // Obtener la suscripción más reciente de cada usuario
+      const subscriptionsMap = new Map<number, typeof allSubscriptions[0]>()
+      for (const sub of allSubscriptions) {
+        if (!subscriptionsMap.has(sub.userId)) {
+          subscriptionsMap.set(sub.userId, sub)
+        }
+      }
+      const subscriptions = Array.from(subscriptionsMap.values())
 
       // Obtener preferencias de usuarios
       const preferences = await prisma.userPreference.findMany({
@@ -121,9 +154,10 @@ export async function GET(request: NextRequest) {
           avatar_url: user.image,
           created_at: user.createdAt,
           updated_at: user.updatedAt,
-          has_subscription: !!userSubscription,
+          // has_subscription debe ser true solo si la suscripción está activa
+          has_subscription: userSubscription?.status === 'active',
           subscription_status: userSubscription?.status || null,
-          subscription: userSubscription ? {
+          subscription: userSubscription && userSubscription.plan ? {
             id: userSubscription.id,
             user_id: userSubscription.userId,
             plan_id: userSubscription.planId,
@@ -131,6 +165,7 @@ export async function GET(request: NextRequest) {
             current_period_start: userSubscription.currentPeriodStart,
             current_period_end: userSubscription.currentPeriodEnd,
             cancel_at_period_end: userSubscription.cancelAtPeriodEnd,
+            payment_method: (userSubscription as any).paymentMethod || null,
             plan: {
               id: userSubscription.plan.id,
               name: userSubscription.plan.name,

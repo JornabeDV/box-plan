@@ -107,12 +107,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Convertir discipline_id y discipline_level_id a números enteros
+    const disciplineIdNum = typeof discipline_id === 'string' ? parseInt(discipline_id, 10) : discipline_id
+    const disciplineLevelIdNum = typeof discipline_level_id === 'string' ? parseInt(discipline_level_id, 10) : discipline_level_id
+
+    if (isNaN(disciplineIdNum) || isNaN(disciplineLevelIdNum)) {
+      return NextResponse.json(
+        { error: 'discipline_id y discipline_level_id deben ser números válidos' },
+        { status: 400 }
+      )
+    }
+
     const newPlanification = await prisma.planification.create({
       data: {
         coachId: coachId, // ID del perfil del coach (consistente con otras tablas)
         // userId no se incluye - las planificaciones son libres del coach
-        disciplineId: discipline_id || null,
-        disciplineLevelId: discipline_level_id || null,
+        disciplineId: disciplineIdNum || null,
+        disciplineLevelId: disciplineLevelIdNum || null,
         date: new Date(date),
         title: title || null,
         description: description || null,
