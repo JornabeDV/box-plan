@@ -252,8 +252,8 @@ export default function AdminDashboardPage() {
             >
               <div className="flex flex-col items-center gap-1">
                 <Users className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">Usuarios</span>
-                <span className="sm:hidden text-xs">Usuarios</span>
+                <span className="hidden sm:inline">Estudiantes</span>
+                <span className="sm:hidden text-xs">Estudiantes</span>
               </div>
             </TabsTrigger>
             <TabsTrigger 
@@ -271,8 +271,8 @@ export default function AdminDashboardPage() {
           {/* Resumen Tab */}
           <TabsContent value="overview" className="space-y-6">
             <AdminStats 
-              totalSheets={planifications.length}
-              totalUsers={users.length}
+              users={users}
+              planifications={planifications}
             />
           </TabsContent>
 
@@ -333,7 +333,7 @@ export default function AdminDashboardPage() {
             />
           </TabsContent>
 
-          {/* Usuarios Tab */}
+          {/* Estudiantes Tab */}
           <TabsContent value="users" className="space-y-6">
             <UsersList 
               coachId={profileId} 

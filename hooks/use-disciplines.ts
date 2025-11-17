@@ -66,6 +66,12 @@ export function useDisciplines(coachId: string | null) {
     if (loadingRef.current && !forceRefresh) return
     if (lastCoachIdRef.current === coachId && hasDataRef.current && !forceRefresh) return
 
+    // Si es un refresh forzado, resetear los flags antes de continuar
+    if (forceRefresh) {
+      hasDataRef.current = false
+      loadingRef.current = false
+    }
+
     loadingRef.current = true
     lastCoachIdRef.current = coachId
     setLoading(true)
@@ -73,8 +79,7 @@ export function useDisciplines(coachId: string | null) {
 
     try {
       const response = await fetch(`/api/disciplines?coachId=${coachId}`, {
-        cache: forceRefresh ? 'no-store' : 'default',
-        headers: forceRefresh ? { 'Cache-Control': 'no-cache' } : undefined
+        cache: forceRefresh ? 'no-store' : 'default'
       })
       
       if (!response.ok) {
@@ -272,6 +277,20 @@ export function useDisciplines(coachId: string | null) {
       return { error: err instanceof Error ? err.message : 'Error al eliminar nivel' }
     }
   }
+
+  // Cargar disciplinas automáticamente cuando cambia el coachId
+  useEffect(() => {
+    if (coachId) {
+      fetchDisciplines()
+    } else {
+      // Si no hay coachId, limpiar las disciplinas
+      setDisciplines([])
+      setDisciplineLevels([])
+      hasDataRef.current = false
+      lastCoachIdRef.current = null
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coachId])
 
   // Reordenar disciplinas
   const reorderDisciplines = async (disciplineIds: string[]) => {

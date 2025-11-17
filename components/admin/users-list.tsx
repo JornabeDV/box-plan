@@ -34,7 +34,7 @@ export function UsersList({ coachId, initialUsers, initialPlans, onRefresh }: Us
       (user.full_name && user.full_name.toLowerCase().includes(searchQuery.toLowerCase()))
     
     const matchesPlan = selectedPlan === 'all' || 
-      (user.subscription?.plan_id === selectedPlan) ||
+      (user.subscription?.plan_id && String(user.subscription.plan_id) === selectedPlan) ||
       (selectedPlan === 'sin_plan' && !user.has_subscription)
     
     const matchesStatus = selectedStatus === 'all' || 
@@ -54,6 +54,9 @@ export function UsersList({ coachId, initialUsers, initialPlans, onRefresh }: Us
   }
 
   const handleUserUpdated = async () => {
+    // Pequeño delay para asegurar que la actualización en la BD se complete
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
     if (onRefresh) {
       onRefresh()
     } else {

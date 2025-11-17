@@ -51,7 +51,7 @@ export interface DashboardPlanifications {
 	disciplineId: number | null
 	disciplineLevelId: number | null
 	coachId: number | null
-	date: Date
+	date: string | Date
 	title: string | null
 	description: string | null
 	exercises: any
@@ -139,6 +139,7 @@ export async function loadDashboardPlanifications(coachId: number): Promise<Dash
 
 	return planifications.map(p => ({
 		...p,
+		date: p.date instanceof Date ? p.date.toISOString().split('T')[0] : p.date,
 		discipline: p.discipline ? {
 			id: p.discipline.id,
 			name: p.discipline.name,
@@ -209,17 +210,65 @@ export async function loadDashboardUsers(coachId: number): Promise<DashboardUser
 			},
 			userPreferences: {
 				select: {
+					id: true,
 					preferredDisciplineId: true,
-					preferredLevelId: true
+					preferredLevelId: true,
+					createdAt: true,
+					updatedAt: true
 				}
 			}
 		},
 		orderBy: { createdAt: 'desc' }
 	})
 
+	// Cargar disciplinas y niveles para las preferencias
+	const disciplineIds = [...new Set(users
+		.map(u => u.userPreferences?.preferredDisciplineId)
+		.filter((id): id is number => id !== null && id !== undefined)
+	)]
+	
+	const levelIds = [...new Set(users
+		.map(u => u.userPreferences?.preferredLevelId)
+		.filter((id): id is number => id !== null && id !== undefined)
+	)]
+
+	// Cargar disciplinas y niveles en paralelo
+	const [disciplines, levels] = await Promise.all([
+		disciplineIds.length > 0
+			? prisma.discipline.findMany({
+					where: { 
+						id: { in: disciplineIds },
+						isActive: true
+					},
+					select: { id: true, name: true, color: true }
+				})
+			: Promise.resolve([]),
+		levelIds.length > 0
+			? prisma.disciplineLevel.findMany({
+					where: { 
+						id: { in: levelIds },
+						isActive: true
+					},
+					select: { id: true, name: true, description: true }
+				})
+			: Promise.resolve([])
+	])
+
+	// Crear mapas para acceso rápido
+	const disciplineMap = new Map(disciplines.map(d => [d.id, d]))
+	const levelMap = new Map(levels.map(l => [l.id, l]))
+
 	return users.map(user => {
 		const subscription = user.subscriptions[0] || null
 		const preferences = user.userPreferences
+
+		// Buscar disciplina y nivel usando los IDs de las preferencias
+		const discipline = preferences?.preferredDisciplineId
+			? disciplineMap.get(preferences.preferredDisciplineId)
+			: null
+		const level = preferences?.preferredLevelId
+			? levelMap.get(preferences.preferredLevelId)
+			: null
 
 		return {
 			id: String(user.id),
@@ -252,8 +301,22 @@ export async function loadDashboardUsers(coachId: number): Promise<DashboardUser
 				}
 			} : null,
 			preferences: preferences ? {
-				preferred_discipline_id: preferences.preferredDisciplineId,
-				preferred_level_id: preferences.preferredLevelId
+				id: String(preferences.id || ''),
+				user_id: String(user.id),
+				preferred_discipline_id: preferences.preferredDisciplineId ? String(preferences.preferredDisciplineId) : null,
+				preferred_level_id: preferences.preferredLevelId ? String(preferences.preferredLevelId) : null,
+				created_at: preferences.createdAt?.toISOString() || new Date().toISOString(),
+				updated_at: preferences.updatedAt?.toISOString() || new Date().toISOString(),
+				discipline: discipline ? {
+					id: String(discipline.id),
+					name: discipline.name,
+					color: discipline.color
+				} : null,
+				level: level ? {
+					id: String(level.id),
+					name: level.name,
+					description: level.description
+				} : null
 			} : null
 		}
 	})
