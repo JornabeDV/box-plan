@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isCoach, normalizeUserId } from '@/lib/auth-helpers'
+import { normalizeDateForArgentina } from '@/lib/utils'
 
 // PATCH /api/planifications/[id]
 export async function PATCH(
@@ -57,7 +58,11 @@ export async function PATCH(
       const disciplineLevelIdNum = typeof body.discipline_level_id === 'string' ? parseInt(body.discipline_level_id, 10) : body.discipline_level_id
       updateData.disciplineLevelId = isNaN(disciplineLevelIdNum) ? null : disciplineLevelIdNum
     }
-    if (body.date !== undefined) updateData.date = new Date(body.date)
+    if (body.date !== undefined) {
+      updateData.date = typeof body.date === 'string' 
+        ? normalizeDateForArgentina(body.date)
+        : new Date(body.date)
+    }
     if (body.title !== undefined) updateData.title = body.title || null
     if (body.description !== undefined) updateData.description = body.description || null
     if (body.exercises !== undefined) updateData.exercises = body.exercises || null

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isCoach, normalizeUserId } from '@/lib/auth-helpers'
+import { normalizeDateForArgentina } from '@/lib/utils'
 
 // GET /api/planifications
 export async function GET(request: NextRequest) {
@@ -118,13 +119,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Normalizar la fecha para Argentina (UTC-3) para evitar problemas de timezone
+    const normalizedDate = typeof date === 'string' 
+      ? normalizeDateForArgentina(date)
+      : new Date(date)
+
     const newPlanification = await prisma.planification.create({
       data: {
         coachId: coachId, // ID del perfil del coach (consistente con otras tablas)
         // userId no se incluye - las planificaciones son libres del coach
         disciplineId: disciplineIdNum || null,
         disciplineLevelId: disciplineLevelIdNum || null,
-        date: new Date(date),
+        date: normalizedDate,
         title: title || null,
         description: description || null,
         exercises: exercises || null,

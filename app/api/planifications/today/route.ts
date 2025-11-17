@@ -87,10 +87,13 @@ export async function GET(request: NextRequest) {
     }
     
     // Buscar planificaciones activas para la fecha especificada
-    const targetDate = new Date(dateStr)
-    targetDate.setHours(0, 0, 0, 0)
-    const nextDay = new Date(targetDate)
-    nextDay.setDate(nextDay.getDate() + 1)
+    // Usar UTC para evitar problemas de zona horaria
+    // Parsear la fecha manualmente y crear en UTC
+    const [year, month, day] = dateStr.split('-').map(Number)
+    // Crear la fecha representando el inicio del día en Argentina (UTC-3) = 03:00 UTC
+    const targetDate = new Date(Date.UTC(year, month - 1, day, 3, 0, 0, 0))
+    // El siguiente día: día siguiente a las 02:59:59 UTC (que es 23:59:59 del día actual en Argentina)
+    const nextDay = new Date(Date.UTC(year, month - 1, day + 1, 2, 59, 59, 999))
 
     const planification = await prisma.planification.findFirst({
       where: {

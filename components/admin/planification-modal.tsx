@@ -204,10 +204,18 @@ export function PlanificationModal({
     }, 8000) // Reducido a 8 segundos
 
     try {
+      // Función helper para obtener la fecha en formato YYYY-MM-DD sin problemas de timezone
+      const getLocalDateString = (date: Date): string => {
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+      }
+
       const submitData = {
         discipline_id: formData.discipline_id,
         discipline_level_id: formData.discipline_level_id,
-        date: planification?.date || selectedDate!.toISOString().split('T')[0],
+        date: planification?.date || getLocalDateString(selectedDate!),
         estimated_duration: formData.estimated_duration ? parseInt(formData.estimated_duration) : undefined,
         blocks: blocks,
         notes: formData.notes.trim() || undefined,

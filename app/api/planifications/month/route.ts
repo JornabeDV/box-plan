@@ -51,11 +51,12 @@ export async function GET(request: NextRequest) {
     const year = yearParam ? parseInt(yearParam) : now.getFullYear()
     const month = monthParam ? parseInt(monthParam) : now.getMonth() + 1
 
-    // Calcular el primer y último día del mes
-    const firstDay = new Date(year, month - 1, 1)
-    firstDay.setHours(0, 0, 0, 0)
-    const lastDay = new Date(year, month, 0)
-    lastDay.setHours(23, 59, 59, 999)
+    // Calcular el primer y último día del mes en UTC
+    // Usar UTC para evitar problemas de zona horaria en las consultas
+    // El primer día del mes en Argentina (UTC-3) = 03:00 UTC del mismo día
+    const firstDay = new Date(Date.UTC(year, month - 1, 1, 3, 0, 0, 0))
+    // El último día del mes: día 1 del mes siguiente a las 02:59:59 UTC (que es 23:59:59 del último día en Argentina)
+    const lastDay = new Date(Date.UTC(year, month, 1, 2, 59, 59, 999))
 
     // Construir el filtro de where
     const whereClause: any = {
@@ -88,12 +89,18 @@ export async function GET(request: NextRequest) {
     })
 
     // Extraer solo las fechas (días del mes) que tienen planificación
+    // Usar UTC para evitar problemas de zona horaria al leer las fechas
     const datesWithPlanification = planifications
       .map((p) => {
         const date = new Date(p.date)
+        // Usar métodos UTC para obtener año, mes y día sin problemas de timezone
+        const dateYear = date.getUTCFullYear()
+        const dateMonth = date.getUTCMonth() + 1
+        const dateDay = date.getUTCDate()
+        
         // Verificar que la fecha pertenezca al mes y año correcto
-        if (date.getFullYear() === year && date.getMonth() + 1 === month) {
-          return date.getDate() // Retornar solo el día del mes (1-31)
+        if (dateYear === year && dateMonth === month) {
+          return dateDay // Retornar solo el día del mes (1-31)
         }
         return null
       })
