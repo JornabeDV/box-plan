@@ -75,20 +75,20 @@ export function useUsersManagement(coachId: string | null) {
     if (loadingUsersRef.current && !forceRefresh) return
     if (lastCoachIdRef.current === coachId && hasUsersDataRef.current && !forceRefresh) return
 
+    // Si es un refresh forzado, resetear los flags antes de continuar
+    if (forceRefresh) {
+      hasUsersDataRef.current = false
+      loadingUsersRef.current = false
+    }
+
     loadingUsersRef.current = true
     lastCoachIdRef.current = coachId
 
     try {
       setLoading(true)
       
-      // Si es un refresh forzado, resetear el flag de datos
-      if (forceRefresh) {
-        hasUsersDataRef.current = false
-      }
-      
       const response = await fetch(`/api/admin/users?coachId=${coachId}`, {
-        cache: forceRefresh ? 'no-store' : 'default',
-        headers: forceRefresh ? { 'Cache-Control': 'no-cache' } : undefined
+        cache: forceRefresh ? 'no-store' : 'default'
       })
       
       if (!response.ok) {

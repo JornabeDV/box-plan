@@ -273,6 +273,20 @@ export function useDisciplines(coachId: string | null) {
     }
   }
 
+  // Cargar disciplinas automáticamente cuando cambia el coachId
+  useEffect(() => {
+    if (coachId) {
+      fetchDisciplines()
+    } else {
+      // Si no hay coachId, limpiar las disciplinas
+      setDisciplines([])
+      setDisciplineLevels([])
+      hasDataRef.current = false
+      lastCoachIdRef.current = null
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coachId])
+
   // Reordenar disciplinas
   const reorderDisciplines = async (disciplineIds: string[]) => {
     try {

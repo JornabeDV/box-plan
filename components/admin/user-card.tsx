@@ -178,6 +178,29 @@ export function UserCard({
               </p>
             </div>
           )}
+          {/* Preferencias de disciplina y nivel */}
+          {user.preferences && (user.preferences.discipline || user.preferences.level) && (
+            <div className="text-sm">
+              <span className="font-medium">Preferencias:</span>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {user.preferences.discipline && (
+                  <div className="flex items-center gap-1.5">
+                    <div 
+                      className="w-2 h-2 rounded-full shrink-0" 
+                      style={{ backgroundColor: user.preferences.discipline.color }}
+                    />
+                    <span className="text-muted-foreground">{user.preferences.discipline.name}</span>
+                  </div>
+                )}
+                {user.preferences.level && (
+                  <span className="text-muted-foreground">
+                    {user.preferences.discipline ? ' - ' : ''}
+                    {user.preferences.level.name}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-4 pt-4 border-t">
           <div className="flex flex-wrap gap-2 w-full sm:w-auto">

@@ -68,17 +68,41 @@ export async function PUT(request: NextRequest, { params }: { params: { userId: 
     const { preferred_discipline_id, preferred_level_id } = body
     const userId = parseInt(params.userId)
 
+    // Convertir preferred_discipline_id y preferred_level_id a números enteros
+    const preferredDisciplineIdNum = preferred_discipline_id 
+      ? parseInt(String(preferred_discipline_id), 10)
+      : null
+    
+    const preferredLevelIdNum = preferred_level_id
+      ? parseInt(String(preferred_level_id), 10)
+      : null
+
+    // Validar que los valores convertidos sean números válidos
+    if (preferredDisciplineIdNum !== null && isNaN(preferredDisciplineIdNum)) {
+      return NextResponse.json(
+        { error: 'preferred_discipline_id debe ser un número válido' },
+        { status: 400 }
+      )
+    }
+
+    if (preferredLevelIdNum !== null && isNaN(preferredLevelIdNum)) {
+      return NextResponse.json(
+        { error: 'preferred_level_id debe ser un número válido' },
+        { status: 400 }
+      )
+    }
+
     // Usar upsert para crear o actualizar
     const result = await prisma.userPreference.upsert({
       where: { userId },
       update: {
-        preferredDisciplineId: preferred_discipline_id || null,
-        preferredLevelId: preferred_level_id || null
+        preferredDisciplineId: preferredDisciplineIdNum,
+        preferredLevelId: preferredLevelIdNum
       },
       create: {
         userId,
-        preferredDisciplineId: preferred_discipline_id || null,
-        preferredLevelId: preferred_level_id || null
+        preferredDisciplineId: preferredDisciplineIdNum,
+        preferredLevelId: preferredLevelIdNum
       }
     })
 

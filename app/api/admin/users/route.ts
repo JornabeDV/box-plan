@@ -103,33 +103,41 @@ export async function GET(request: NextRequest) {
 
       // Obtener preferencias de usuarios
       const preferences = await prisma.userPreference.findMany({
-        where: { userId: { in: userIds } },
-        include: {
-          // Nota: Como no hay foreign keys, cargamos manualmente
-        }
+        where: { userId: { in: userIds } }
       })
 
-      // Cargar disciplinas y niveles para las preferencias
-      const disciplineIds = preferences
+      // Extraer IDs únicos de disciplinas y niveles
+      const disciplineIds = [...new Set(preferences
         .map(p => p.preferredDisciplineId)
         .filter((id): id is number => id !== null)
-      const levelIds = preferences
+      )]
+      
+      const levelIds = [...new Set(preferences
         .map(p => p.preferredLevelId)
         .filter((id): id is number => id !== null)
+      )]
 
-      const disciplines = disciplineIds.length > 0
-        ? await prisma.discipline.findMany({
-            where: { id: { in: disciplineIds } },
-            select: { id: true, name: true, color: true }
-          })
-        : []
-
-      const levels = levelIds.length > 0
-        ? await prisma.disciplineLevel.findMany({
-            where: { id: { in: levelIds } },
-            select: { id: true, name: true, description: true }
-          })
-        : []
+      // Cargar disciplinas y niveles en paralelo
+      const [disciplines, levels] = await Promise.all([
+        disciplineIds.length > 0
+          ? prisma.discipline.findMany({
+              where: { 
+                id: { in: disciplineIds },
+                isActive: true
+              },
+              select: { id: true, name: true, color: true }
+            })
+          : Promise.resolve([]),
+        levelIds.length > 0
+          ? prisma.disciplineLevel.findMany({
+              where: { 
+                id: { in: levelIds },
+                isActive: true
+              },
+              select: { id: true, name: true, description: true }
+            })
+          : Promise.resolve([])
+      ])
 
       // Crear mapas para acceso rápido
       const disciplineMap = new Map(disciplines.map(d => [d.id, d]))
@@ -140,6 +148,7 @@ export async function GET(request: NextRequest) {
         const userPreference = preferences.find(p => p.userId === user.id)
         const userSubscription = subscriptions.find(s => s.userId === user.id)
 
+        // Buscar disciplina y nivel usando los IDs de las preferencias
         const discipline = userPreference?.preferredDisciplineId
           ? disciplineMap.get(userPreference.preferredDisciplineId)
           : null
@@ -178,23 +187,23 @@ export async function GET(request: NextRequest) {
             }
           } : null,
           preferences: userPreference ? {
-            id: userPreference.id,
-            user_id: userPreference.userId,
-            preferred_discipline_id: userPreference.preferredDisciplineId,
-            preferred_level_id: userPreference.preferredLevelId,
-            created_at: userPreference.createdAt,
-            updated_at: userPreference.updatedAt,
+            id: String(userPreference.id),
+            user_id: String(userPreference.userId),
+            preferred_discipline_id: userPreference.preferredDisciplineId ? String(userPreference.preferredDisciplineId) : null,
+            preferred_level_id: userPreference.preferredLevelId ? String(userPreference.preferredLevelId) : null,
+            created_at: userPreference.createdAt.toISOString(),
+            updated_at: userPreference.updatedAt.toISOString(),
             discipline: discipline ? {
-              id: discipline.id,
+              id: String(discipline.id),
               name: discipline.name,
               color: discipline.color
-            } : undefined,
+            } : null,
             level: level ? {
-              id: level.id,
+              id: String(level.id),
               name: level.name,
               description: level.description
-            } : undefined
-          } : undefined
+            } : null
+          } : null
         }
       })
 

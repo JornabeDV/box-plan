@@ -54,6 +54,9 @@ export function UsersList({ coachId, initialUsers, initialPlans, onRefresh }: Us
   }
 
   const handleUserUpdated = async () => {
+    // Pequeño delay para asegurar que la actualización en la BD se complete
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
     if (onRefresh) {
       onRefresh()
     } else {
