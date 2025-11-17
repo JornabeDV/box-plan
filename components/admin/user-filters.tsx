@@ -53,7 +53,7 @@ export function UserFilters({
           <SelectItem value="all">Todos los planes</SelectItem>
           <SelectItem value="sin_plan">Sin plan</SelectItem>
           {plans.map((plan) => (
-            <SelectItem key={plan.id} value={plan.id}>
+            <SelectItem key={plan.id} value={String(plan.id)}>
               {plan.name}
             </SelectItem>
           ))}

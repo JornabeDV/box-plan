@@ -72,10 +72,10 @@ export function PlanificationModal({
   // Verificar si hay disciplinas disponibles
   const hasDisciplines = disciplines.length > 0
 
-  // Recargar disciplinas cuando se abre el modal
+  // Recargar disciplinas cuando se abre el modal (siempre con forceRefresh para tener datos actualizados)
   useEffect(() => {
     if (open && coachId) {
-      fetchDisciplines()
+      fetchDisciplines(true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, coachId])

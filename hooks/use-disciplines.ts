@@ -66,6 +66,12 @@ export function useDisciplines(coachId: string | null) {
     if (loadingRef.current && !forceRefresh) return
     if (lastCoachIdRef.current === coachId && hasDataRef.current && !forceRefresh) return
 
+    // Si es un refresh forzado, resetear los flags antes de continuar
+    if (forceRefresh) {
+      hasDataRef.current = false
+      loadingRef.current = false
+    }
+
     loadingRef.current = true
     lastCoachIdRef.current = coachId
     setLoading(true)
@@ -73,8 +79,7 @@ export function useDisciplines(coachId: string | null) {
 
     try {
       const response = await fetch(`/api/disciplines?coachId=${coachId}`, {
-        cache: forceRefresh ? 'no-store' : 'default',
-        headers: forceRefresh ? { 'Cache-Control': 'no-cache' } : undefined
+        cache: forceRefresh ? 'no-store' : 'default'
       })
       
       if (!response.ok) {
