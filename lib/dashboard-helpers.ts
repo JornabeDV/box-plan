@@ -51,7 +51,7 @@ export interface DashboardPlanifications {
 	disciplineId: number | null
 	disciplineLevelId: number | null
 	coachId: number | null
-	date: Date
+	date: string | Date
 	title: string | null
 	description: string | null
 	exercises: any
@@ -139,6 +139,7 @@ export async function loadDashboardPlanifications(coachId: number): Promise<Dash
 
 	return planifications.map(p => ({
 		...p,
+		date: p.date instanceof Date ? p.date.toISOString().split('T')[0] : p.date,
 		discipline: p.discipline ? {
 			id: p.discipline.id,
 			name: p.discipline.name,

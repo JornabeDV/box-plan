@@ -137,7 +137,7 @@ export function SubscriptionPlansList({ initialPlans, onRefresh }: SubscriptionP
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {memoizedPlans.map((plan) => (
-              <Card key={`${plan.id}-${plan.price}-${plan.updated_at || plan.created_at}-${updateTrigger}`} className="relative">
+              <Card key={`${plan.id}-${plan.price}-${plan.updated_at || plan.created_at}-${updateTrigger}`} className="relative flex flex-col h-full">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -153,8 +153,8 @@ export function SubscriptionPlansList({ initialPlans, onRefresh }: SubscriptionP
                     )}
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
+                <CardContent className="flex flex-col flex-1">
+                  <div className="flex flex-col flex-1 space-y-4">
                     {/* Precio */}
                     <div className="flex items-center gap-2" key={`price-${plan.id}-${plan.price}-${updateTrigger}`}>
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -172,7 +172,7 @@ export function SubscriptionPlansList({ initialPlans, onRefresh }: SubscriptionP
 
                     {/* Features */}
                     {plan.features && Array.isArray(plan.features) && plan.features.length > 0 && (
-                      <div>
+                      <div className="flex-1">
                         <p className="text-sm font-medium mb-2">Características:</p>
                         <ul className="text-sm text-muted-foreground space-y-1">
                           {plan.features.slice(0, 3).map((feature: string, index: number) => (
@@ -190,8 +190,8 @@ export function SubscriptionPlansList({ initialPlans, onRefresh }: SubscriptionP
                       </div>
                     )}
 
-                    {/* Acciones */}
-                    <div className="flex gap-2 pt-4 border-t">
+                    {/* Acciones - Siempre al final */}
+                    <div className="flex gap-2 pt-4 border-t mt-auto">
                       <Button
                         variant="outline"
                         size="sm"
