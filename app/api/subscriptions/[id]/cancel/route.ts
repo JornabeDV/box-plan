@@ -35,8 +35,7 @@ export async function PATCH(
       const updated = await prisma.subscription.updateMany({
         where: whereClause,
         data: {
-          status: 'canceled',
-          cancelAtPeriodEnd: false
+          cancelAtPeriodEnd: true
         }
       })
 

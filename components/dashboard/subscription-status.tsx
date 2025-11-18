@@ -91,7 +91,7 @@ export function SubscriptionStatus() {
           </div>
 
           {/* CTA Button */}
-          <Link href="/pricing" className="block">
+          <Link href="/subscription" className="block">
             <Button 
               size="lg" 
               className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-primary-foreground font-semibold shadow-lg hover:shadow-xl transition-all duration-300 group"

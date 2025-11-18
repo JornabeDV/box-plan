@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { normalizeUserId } from '@/lib/auth-helpers'
+import { normalizeUserId, isCoach } from '@/lib/auth-helpers'
 
 // POST /api/subscriptions/change-plan
 export async function POST(request: NextRequest) {
@@ -25,9 +25,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Convertir IDs a números enteros
+    const newPlanIdNum = typeof newPlanId === 'string' ? parseInt(newPlanId, 10) : newPlanId
+    const currentSubscriptionIdNum = typeof currentSubscriptionId === 'string' ? parseInt(currentSubscriptionId, 10) : currentSubscriptionId
+
+    if (isNaN(newPlanIdNum) || isNaN(currentSubscriptionIdNum)) {
+      return NextResponse.json(
+        { error: 'IDs inválidos' },
+        { status: 400 }
+      )
+    }
+
     // Obtener nuevo plan
     const newPlan = await prisma.subscriptionPlan.findUnique({
-      where: { id: newPlanId }
+      where: { id: newPlanIdNum }
     })
 
     if (!newPlan) {
@@ -40,7 +51,7 @@ export async function POST(request: NextRequest) {
     // Obtener suscripción actual para mantener el método de pago y coachId
     // Usar findUnique y hacer cast para incluir paymentMethod que puede no estar en los tipos generados
     const currentSubscriptionRaw = await prisma.subscription.findUnique({
-      where: { id: currentSubscriptionId }
+      where: { id: currentSubscriptionIdNum }
     }) as { coachId: number | null; paymentMethod?: string | null } | null
     
     const currentSubscription = currentSubscriptionRaw ? {
@@ -48,15 +59,55 @@ export async function POST(request: NextRequest) {
       paymentMethod: (currentSubscriptionRaw as any).paymentMethod || null
     } : null
 
+    // Determinar el coachId si no existe en la suscripción actual
+    let coachIdNum: number | null = currentSubscription?.coachId ?? null
+    
+    if (coachIdNum === null) {
+      // Buscar el coach asociado al estudiante
+      const authCheck = await isCoach(userId)
+      if (authCheck.isAuthorized && authCheck.profile) {
+        const coachId = authCheck.profile.id
+        
+        // Verificar que el estudiante esté asociado a este coach
+        const relationship = await prisma.coachStudentRelationship.findFirst({
+          where: {
+            coachId: coachId,
+            studentId: userId,
+            status: 'active'
+          }
+        })
+        
+        if (relationship) {
+          coachIdNum = coachId
+        }
+      } else {
+        // Si el usuario autenticado no es coach, buscar el coach del estudiante
+        const studentRelationship = await prisma.coachStudentRelationship.findFirst({
+          where: {
+            studentId: userId,
+            status: 'active'
+          }
+        })
+        
+        if (studentRelationship) {
+          coachIdNum = studentRelationship.coachId
+        }
+      }
+    }
+
     // Crear nueva suscripción y actualizar la actual en una transacción
     const newEndDate = new Date()
     newEndDate.setDate(newEndDate.getDate() + 30) // 30 días
 
     const result = await prisma.$transaction(async (tx) => {
-      // Cancelar suscripción actual al final del período
-      await tx.subscription.update({
-        where: { id: currentSubscriptionId },
+      // Cancelar TODAS las suscripciones activas del usuario inmediatamente
+      await tx.subscription.updateMany({
+        where: {
+          userId: userId,
+          status: 'active'
+        },
         data: {
+          status: 'canceled',
           cancelAtPeriodEnd: true
         }
       })
@@ -64,7 +115,7 @@ export async function POST(request: NextRequest) {
       // Crear nueva suscripción
       const subscriptionData: any = {
         userId,
-        planId: newPlanId,
+        planId: newPlanIdNum,
         status: 'active',
         currentPeriodStart: new Date(),
         currentPeriodEnd: newEndDate,
@@ -79,16 +130,18 @@ export async function POST(request: NextRequest) {
         subscriptionData.paymentMethod = 'plan_change'
       }
 
-      // Mantener coachId si existe
-      if (currentSubscription?.coachId !== null && currentSubscription?.coachId !== undefined) {
-        subscriptionData.coachId = currentSubscription.coachId
+      // Incluir coachId si está disponible
+      if (coachIdNum !== null) {
+        subscriptionData.coachId = coachIdNum
       }
 
       const newSubscription = await tx.subscription.create({
         data: subscriptionData
       })
 
-      // Crear registro de pago
+      // Crear registro de pago usando el mismo método de pago de la suscripción
+      const paymentMethodForHistory = currentSubscription?.paymentMethod || subscriptionData.paymentMethod || 'manual'
+      
       await tx.paymentHistory.create({
         data: {
           userId,
@@ -97,7 +150,7 @@ export async function POST(request: NextRequest) {
           currency: newPlan.currency,
           status: 'approved',
           mercadopagoPaymentId: `change_${Date.now()}`,
-          paymentMethod: 'plan_change'
+          paymentMethod: paymentMethodForHistory
         }
       })
 

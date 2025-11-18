@@ -41,9 +41,10 @@ interface Subscription {
 
 interface SubscriptionManagementProps {
   subscription: Subscription | null
-  onPlanChange: (newPlanId: string) => void
+  onPlanChange: () => void
   onCancel: () => void
   onReactivate: () => void
+  onRenew?: () => void
   loading?: boolean
 }
 
@@ -72,6 +73,7 @@ export function SubscriptionManagement({
   onPlanChange, 
   onCancel, 
   onReactivate,
+  onRenew,
   loading = false 
 }: SubscriptionManagementProps) {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
@@ -90,9 +92,13 @@ export function SubscriptionManagement({
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
               No tienes una suscripción activa. 
-              <Button variant="link" className="p-0 h-auto ml-1">
-                Suscribirse ahora
-              </Button>
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto ml-1"
+                  onClick={onPlanChange}
+                >
+                  Suscribirse ahora
+                </Button>
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -137,7 +143,7 @@ export function SubscriptionManagement({
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => onPlanChange(subscription.plan_id)}
+              onClick={onPlanChange}
               disabled={loading}
             >
               Cambiar Plan
@@ -184,7 +190,17 @@ export function SubscriptionManagement({
                   addSuffix: true, 
                   locale: es 
                 })}. 
-                <Button variant="link" className="p-0 h-auto ml-1 text-yellow-800">
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto ml-1 text-yellow-800"
+                  onClick={() => {
+                    if (onRenew) {
+                      onRenew()
+                    } else {
+                      onPlanChange()
+                    }
+                  }}
+                >
                   Renovar ahora
                 </Button>
               </AlertDescription>
@@ -233,9 +249,9 @@ export function SubscriptionManagement({
               </Button>
             )}
             
-            {subscription.status === 'past_due' && (
+            {subscription.status === 'past_due' && onRenew && (
               <Button 
-                onClick={() => {/* Lógica de renovación */}}
+                onClick={onRenew}
                 disabled={loading}
                 className="flex items-center gap-2"
               >

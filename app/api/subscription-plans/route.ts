@@ -14,14 +14,32 @@ export async function GET(request: NextRequest) {
     if (userId) {
       const authCheck = await isCoach(userId)
       if (authCheck.isAuthorized && authCheck.profile) {
+        // Si es coach, usar su propio coachId
         coachId = authCheck.profile.id
+      } else {
+        // Si no es coach, buscar su coach asignado (estudiante)
+        const relationship = await prisma.coachStudentRelationship.findFirst({
+          where: {
+            studentId: userId,
+            status: 'active'
+          },
+          select: {
+            coachId: true
+          }
+        })
+        
+        if (relationship) {
+          coachId = relationship.coachId
+        }
       }
     }
 
-    // Construir el filtro: si es coach, solo sus planes; si no, solo planes activos sin coachId (globales)
+    // Construir el filtro:
+    // - Si es coach o tiene coach asignado, mostrar planes de ese coach
+    // - Si no tiene coach, mostrar planes globales (sin coachId) o vacío
     const whereClause = coachId 
-      ? { coachId } // Coach ve solo sus planes
-      : { isActive: true, coachId: null } // Usuarios normales ven solo planes globales activos
+      ? { coachId, isActive: true } // Planes del coach (activos)
+      : { isActive: true, coachId: null } // Planes globales activos (sin coach)
 
     const plans = await prisma.subscriptionPlan.findMany({
       where: whereClause,

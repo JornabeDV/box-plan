@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { toast } from '@/hooks/use-toast'
 
 interface Plan {
@@ -32,6 +33,7 @@ interface Subscription {
 }
 
 export function useSubscriptionManagement() {
+  const { data: session } = useSession()
   const [plans, setPlans] = useState<Plan[]>([])
   const [currentSubscription, setCurrentSubscription] = useState<Subscription | null>(null)
   const [loading, setLoading] = useState(true)
@@ -44,14 +46,40 @@ export function useSubscriptionManagement() {
       const response = await fetch('/api/subscription-plans')
       
       if (!response.ok) {
-        throw new Error('Error al cargar planes')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Error al cargar planes')
       }
 
       const data = await response.json()
-      setPlans(data)
+      
+      // Verificar que data sea un array
+      if (!Array.isArray(data)) {
+        console.warn('La respuesta de planes no es un array:', data)
+        setPlans([])
+        return
+      }
+
+      // Asegurar que features sea un array
+      const formattedPlans = data.map((plan: any) => ({
+        ...plan,
+        id: String(plan.id), // Asegurar que id sea string para consistencia
+        features: Array.isArray(plan.features) 
+          ? plan.features 
+          : typeof plan.features === 'string' 
+            ? (() => {
+                try {
+                  return JSON.parse(plan.features)
+                } catch {
+                  return []
+                }
+              })()
+            : []
+      }))
+      setPlans(formattedPlans)
     } catch (error) {
       console.error('Error loading plans:', error)
-      setError('Error al cargar los planes')
+      setError(error instanceof Error ? error.message : 'Error al cargar los planes')
+      setPlans([]) // Asegurar que planes esté vacío en caso de error
     }
   }
 
@@ -65,6 +93,14 @@ export function useSubscriptionManagement() {
       }
 
       const { data } = await response.json()
+      // Asegurar que features sea un array si existe
+      if (data && data.subscription_plans && data.subscription_plans.features) {
+        if (!Array.isArray(data.subscription_plans.features)) {
+          data.subscription_plans.features = typeof data.subscription_plans.features === 'string'
+            ? JSON.parse(data.subscription_plans.features)
+            : []
+        }
+      }
       setCurrentSubscription(data)
     } catch (error) {
       console.error('Error loading subscription:', error)
@@ -72,37 +108,82 @@ export function useSubscriptionManagement() {
     }
   }
 
-  // Cambiar plan
+  // Cambiar plan o crear nueva suscripción
   const changePlan = async (newPlanId: string) => {
-    if (!currentSubscription) return
-
     setActionLoading(true)
     try {
-      const response = await fetch('/api/subscriptions/change-plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          newPlanId,
-          currentSubscriptionId: currentSubscription.id
-        })
-      })
+      // Si no hay suscripción actual, crear una nueva
+      if (!currentSubscription) {
+        if (!session?.user?.id) {
+          throw new Error('Usuario no autenticado')
+        }
 
-      if (!response.ok) {
-        throw new Error('Error al cambiar plan')
+        const userId = typeof session.user.id === 'string' ? parseInt(session.user.id, 10) : session.user.id
+        const planIdNum = typeof newPlanId === 'string' ? parseInt(newPlanId, 10) : newPlanId
+        
+        if (isNaN(userId) || isNaN(planIdNum)) {
+          throw new Error('ID de usuario o plan inválido')
+        }
+        
+        // Calcular fechas del período
+        const now = new Date()
+        const periodEnd = new Date()
+        periodEnd.setDate(periodEnd.getDate() + 30) // 30 días
+
+        const response = await fetch('/api/subscriptions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: userId,
+            plan_id: planIdNum,
+            status: 'active',
+            current_period_start: now.toISOString(),
+            current_period_end: periodEnd.toISOString(),
+            payment_method: 'manual'
+          })
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Error al crear suscripción')
+        }
+
+        // Recargar la suscripción después de crear
+        await loadCurrentSubscription()
+        
+        toast({
+          title: "Suscripción creada exitosamente",
+          description: `Tu suscripción ha sido creada exitosamente`,
+        })
+      } else {
+        // Si hay suscripción, cambiar de plan
+        const response = await fetch('/api/subscriptions/change-plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            newPlanId,
+            currentSubscriptionId: currentSubscription.id
+          })
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Error al cambiar plan')
+        }
+
+        // Recargar la suscripción actual después del cambio
+        await loadCurrentSubscription()
+        
+        toast({
+          title: "Plan cambiado exitosamente",
+          description: `Tu suscripción ha sido actualizada exitosamente`,
+        })
       }
 
-      const { data } = await response.json()
-      setCurrentSubscription(data)
-      
-      toast({
-        title: "Plan cambiado exitosamente",
-        description: `Tu suscripción ha sido actualizada exitosamente`,
-      })
-
     } catch (error) {
-      console.error('Error changing plan:', error)
+      console.error('Error changing/creating plan:', error)
       toast({
-        title: "Error al cambiar plan",
+        title: "Error",
         description: error instanceof Error ? error.message : "Error desconocido",
         variant: "destructive"
       })
@@ -122,13 +203,12 @@ export function useSubscriptionManagement() {
       })
 
       if (!response.ok) {
-        throw new Error('Error al cancelar suscripción')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Error al cancelar suscripción')
       }
 
-      setCurrentSubscription(prev => prev ? {
-        ...prev,
-        cancel_at_period_end: true
-      } : null)
+      // Recargar la suscripción después de cancelar
+      await loadCurrentSubscription()
 
       toast({
         title: "Suscripción cancelada",
@@ -158,13 +238,12 @@ export function useSubscriptionManagement() {
       })
 
       if (!response.ok) {
-        throw new Error('Error al reactivar suscripción')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Error al reactivar suscripción')
       }
 
-      setCurrentSubscription(prev => prev ? {
-        ...prev,
-        cancel_at_period_end: false
-      } : null)
+      // Recargar la suscripción después de reactivar
+      await loadCurrentSubscription()
 
       toast({
         title: "Suscripción reactivada",
@@ -194,17 +273,12 @@ export function useSubscriptionManagement() {
       })
 
       if (!response.ok) {
-        throw new Error('Error al renovar suscripción')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Error al renovar suscripción')
       }
 
-      const newEndDate = new Date()
-      newEndDate.setDate(newEndDate.getDate() + 30)
-
-      setCurrentSubscription(prev => prev ? {
-        ...prev,
-        current_period_end: newEndDate.toISOString(),
-        status: 'active'
-      } : null)
+      // Recargar la suscripción después de renovar
+      await loadCurrentSubscription()
 
       toast({
         title: "Suscripción renovada",
@@ -227,11 +301,17 @@ export function useSubscriptionManagement() {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true)
-      await Promise.all([
-        loadPlans(),
-        loadCurrentSubscription()
-      ])
-      setLoading(false)
+      setError(null)
+      try {
+        await Promise.all([
+          loadPlans(),
+          loadCurrentSubscription()
+        ])
+      } catch (error) {
+        console.error('Error loading initial data:', error)
+      } finally {
+        setLoading(false)
+      }
     }
 
     loadData()
@@ -247,6 +327,7 @@ export function useSubscriptionManagement() {
     cancelSubscription,
     reactivateSubscription,
     renewSubscription,
-    loadCurrentSubscription
+    loadCurrentSubscription,
+    loadPlans
   }
 }
