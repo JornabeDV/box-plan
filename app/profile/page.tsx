@@ -1,26 +1,98 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Header } from "@/components/layout/header"
+import { BottomNavigation } from "@/components/layout/bottom-navigation"
 import { useAuth } from "@/hooks/use-auth"
 import { useProfile } from "@/hooks/use-profile"
 import { SubscriptionStatus } from "@/components/dashboard/subscription-status"
+import { useToast } from "@/hooks/use-toast"
 import { 
   User, 
   Mail, 
   Calendar, 
-  LogOut, 
-  ArrowLeft
+  ArrowLeft,
+  Edit,
+  Loader2
 } from "lucide-react"
-import { formatDistanceToNow } from "date-fns"
+import { format } from "date-fns"
 import { es } from "date-fns/locale"
 
 export default function ProfilePage() {
   const router = useRouter()
-  const { user, signOut, loading: authLoading } = useAuth()
-  const { profile } = useProfile()
+  const { user, loading: authLoading } = useAuth()
+  const { profile, updateProfile, loading: profileLoading } = useProfile()
+  const { toast } = useToast()
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [formData, setFormData] = useState({
+    full_name: profile?.full_name || '',
+    avatar_url: profile?.avatar_url || ''
+  })
+
+  // Actualizar formData cuando el perfil cambie
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        full_name: profile.full_name || '',
+        avatar_url: profile.avatar_url || ''
+      })
+    }
+  }, [profile])
+
+  const handleEdit = () => {
+    setFormData({
+      full_name: profile?.full_name || '',
+      avatar_url: profile?.avatar_url || ''
+    })
+    setIsEditModalOpen(true)
+  }
+
+  const handleSave = async () => {
+    setIsSaving(true)
+    try {
+      const result = await updateProfile({
+        full_name: formData.full_name || null,
+        avatar_url: formData.avatar_url || null
+      })
+
+      if (result.error) {
+        toast({
+          title: "Error al actualizar",
+          description: result.error,
+          variant: "destructive"
+        })
+      } else {
+        toast({
+          title: "Perfil actualizado",
+          description: "Tu información se ha actualizado exitosamente",
+        })
+        setIsEditModalOpen(false)
+      }
+    } catch (error) {
+      toast({
+        title: "Error al actualizar",
+        description: "Ocurrió un error al actualizar tu perfil",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   // Si está cargando la autenticación, mostrar loading
   if (authLoading) {
@@ -51,29 +123,32 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-foreground hover:bg-accent"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Volver
-          </Button>
-          <h1 className="text-3xl font-bold text-foreground">Mi Perfil</h1>
-        </div>
-
+      <Header />
+      
+      <main className="container mx-auto px-4 py-8 pb-32">
         {/* Información Básica del Usuario */}
         <div className="max-w-2xl mx-auto">
+          {/* Título */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-foreground">Mi Perfil</h1>
+          </div>
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-foreground">
-                <User className="h-5 w-5" />
-                Información Personal
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-foreground">
+                  <User className="h-5 w-5" />
+                  Información Personal
+                </CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleEdit}
+                  className="flex items-center gap-2"
+                >
+                  <Edit className="h-4 w-4" />
+                  <span className="hidden sm:inline">Editar</span>
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-4">
@@ -87,7 +162,6 @@ export default function ProfilePage() {
                   <h3 className="text-xl font-semibold text-foreground">
                     {profile?.full_name || user?.name || 'Usuario'}
                   </h3>
-                  <p className="text-muted-foreground">{user?.email}</p>
                 </div>
               </div>
 
@@ -101,8 +175,7 @@ export default function ProfilePage() {
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">Miembro desde:</span>
                   <span className="text-sm font-medium text-foreground">
-                    {profile?.created_at ? formatDistanceToNow(new Date(profile.created_at), { 
-                      addSuffix: true, 
+                    {profile?.created_at ? format(new Date(profile.created_at), 'dd/MM/yyyy', { 
                       locale: es 
                     }) : 'N/A'}
                   </span>
@@ -115,48 +188,67 @@ export default function ProfilePage() {
           <div className="mt-6">
             <SubscriptionStatus />
           </div>
-
-          {/* Información de Debug */}
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle className="text-foreground">Información de Debug</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="p-4 bg-secondary rounded-lg">
-                <h4 className="text-sm font-medium text-foreground mb-2">Información de Debug:</h4>
-                <pre className="text-xs text-muted-foreground overflow-auto">
-                  {JSON.stringify({
-                    userId: user?.id,
-                    email: user?.email,
-                    name: user?.name,
-                    role: user?.role,
-                    profile: profile ? {
-                      id: profile.id,
-                      full_name: profile.full_name,
-                      avatar_url: profile.avatar_url,
-                      created_at: profile.created_at
-                    } : null
-                  }, null, 2)}
-                </pre>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Botón de Cerrar Sesión */}
-          <Card className="mt-6">
-            <CardContent className="pt-6">
-              <Button 
-                variant="destructive" 
-                className="w-full justify-start"
-                onClick={signOut}
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Cerrar Sesión
-              </Button>
-            </CardContent>
-          </Card>
         </div>
-      </div>
+      </main>
+
+      <BottomNavigation />
+
+      {/* Modal de Edición */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Editar Perfil</DialogTitle>
+            <DialogDescription>
+              Actualiza tu información personal. Los cambios se guardarán en tu perfil.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="full_name">Nombre Completo</Label>
+              <Input
+                id="full_name"
+                value={formData.full_name}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                placeholder="Ingresa tu nombre completo"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="avatar_url">URL del Avatar</Label>
+              <Input
+                id="avatar_url"
+                value={formData.avatar_url}
+                onChange={(e) => setFormData({ ...formData, avatar_url: e.target.value })}
+                placeholder="https://ejemplo.com/avatar.jpg"
+              />
+              <p className="text-xs text-muted-foreground">
+                Ingresa la URL de tu imagen de perfil
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditModalOpen(false)}
+              disabled={isSaving}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                'Guardar Cambios'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

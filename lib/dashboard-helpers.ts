@@ -137,20 +137,28 @@ export async function loadDashboardPlanifications(coachId: number): Promise<Dash
 		orderBy: { date: 'asc' }
 	})
 
-	return planifications.map(p => ({
-		...p,
-		date: p.date instanceof Date ? p.date.toISOString().split('T')[0] : p.date,
-		discipline: p.discipline ? {
-			id: p.discipline.id,
-			name: p.discipline.name,
-			color: p.discipline.color
-		} : null,
-		discipline_level: p.disciplineLevel ? {
-			id: p.disciplineLevel.id,
-			name: p.disciplineLevel.name,
-			description: p.disciplineLevel.description
-		} : null
-	}))
+	return planifications.map(p => {
+		// Transformar exercises (JSON) a blocks para el frontend
+		const exercisesData = (p as any).exercises
+		const blocksData = exercisesData ? (Array.isArray(exercisesData) ? exercisesData : []) : []
+		
+		return {
+			...p,
+			date: p.date instanceof Date ? p.date.toISOString().split('T')[0] : p.date,
+			blocks: blocksData, // Agregar blocks para compatibilidad con el frontend
+			exercises: exercisesData, // Mantener exercises también
+			discipline: p.discipline ? {
+				id: p.discipline.id,
+				name: p.discipline.name,
+				color: p.discipline.color
+			} : null,
+			discipline_level: p.disciplineLevel ? {
+				id: p.disciplineLevel.id,
+				name: p.disciplineLevel.name,
+				description: p.disciplineLevel.description
+			} : null
+		}
+	})
 }
 
 /**

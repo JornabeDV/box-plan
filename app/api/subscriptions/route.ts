@@ -56,8 +56,8 @@ export async function POST(request: NextRequest) {
         coachIdNum = parsedCoachId
       }
     } else {
-      // Si no viene en el body, verificar si el usuario autenticado es coach
-      // y si el estudiante está asociado a ese coach
+      // Si no viene en el body, buscar el coach asociado al estudiante
+      // Primero verificar si el usuario autenticado es coach
       const authCheck = await isCoach(userId)
       if (authCheck.isAuthorized && authCheck.profile) {
         const coachId = authCheck.profile.id
@@ -73,6 +73,19 @@ export async function POST(request: NextRequest) {
         
         if (relationship) {
           coachIdNum = coachId
+        }
+      } else {
+        // Si el usuario autenticado no es coach, buscar el coach del estudiante
+        // (esto ocurre cuando un estudiante crea su propia suscripción)
+        const studentRelationship = await prisma.coachStudentRelationship.findFirst({
+          where: {
+            studentId: userIdNum,
+            status: 'active'
+          }
+        })
+        
+        if (studentRelationship) {
+          coachIdNum = studentRelationship.coachId
         }
       }
     }

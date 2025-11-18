@@ -4,18 +4,12 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ChevronLeft, ChevronRight, Lock, Unlock, Calendar as CalendarIcon, Filter } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Lock, Unlock, Calendar as CalendarIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useMonthPlanifications } from '@/hooks/use-month-planifications'
 import { useToast } from '@/hooks/use-toast'
-import { useDisciplines } from '@/hooks/use-disciplines'
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue
-} from '@/components/ui/select'
+import { useCurrentUserPreferences } from '@/hooks/use-current-user-preferences'
+import { PreferenceSelector } from './preference-selector'
 
 interface TrialCalendarProps {
 	onDateClick?: (date: Date) => void
@@ -24,53 +18,41 @@ interface TrialCalendarProps {
 
 /**
  * Componente TrialCalendar - Calendario para usuarios sin suscripción
- * Muestra el calendario completo pero solo permite acceso al primer día con planificación
+ * Muestra el calendario completo pero solo permite acceso al día de hoy
  * Los demás días redirigen a /pricing
  */
 export function TrialCalendar({ onDateClick, coachId }: TrialCalendarProps) {
 	const router = useRouter()
 	const { toast } = useToast()
 	const [currentDate, setCurrentDate] = useState(new Date())
-	const [selectedDisciplineId, setSelectedDisciplineId] = useState<number | null>(null)
+	const { preferences, loading: preferencesLoading, refetch: refetchPreferences } = useCurrentUserPreferences()
 
 	const today = new Date()
+	today.setHours(0, 0, 0, 0)
 	const year = currentDate.getFullYear()
 	const month = currentDate.getMonth() + 1 // 1-12
+	const todayDay = today.getDate()
 
-	// Obtener disciplinas del coach
-	const { disciplines, loading: disciplinesLoading, fetchDisciplines } = useDisciplines(
-		coachId ? coachId.toString() : null
-	)
-
-	// Cargar disciplinas cuando cambie el coachId
-	useEffect(() => {
-		if (coachId) {
-			fetchDisciplines()
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [coachId])
-
-	// Seleccionar automáticamente la primera disciplina cuando se carguen las disciplinas
-	useEffect(() => {
-		if (disciplines.length > 0 && selectedDisciplineId === null) {
-			setSelectedDisciplineId(parseInt(disciplines[0].id, 10))
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [disciplines])
-
-	// Obtener planificaciones del mes, filtradas por disciplina si está seleccionada
-	const { datesWithPlanification, firstAvailableDay, loading } = useMonthPlanifications(
+	// Obtener planificaciones del mes, filtradas por la disciplina preferida del usuario
+	const { datesWithPlanification, loading } = useMonthPlanifications(
 		year,
 		month,
-		selectedDisciplineId
+		preferences?.preferredDisciplineId || null
 	)
 
-	// Si no hay disciplinas, no mostrar el calendario
-	if (!coachId) {
-		return null
+	// Si no hay preferencias configuradas, mostrar el selector
+	if (!preferencesLoading && (!preferences || !preferences.preferredDisciplineId || !preferences.preferredLevelId)) {
+		return (
+			<PreferenceSelector
+				coachId={coachId ?? null}
+				onPreferencesSaved={() => {
+					refetchPreferences()
+				}}
+			/>
+		)
 	}
 
-	if (disciplinesLoading) {
+	if (preferencesLoading) {
 		return (
 			<Card className="bg-card/80 backdrop-blur-sm border-2 border-border shadow-soft">
 				<CardContent className="py-12">
@@ -82,27 +64,8 @@ export function TrialCalendar({ onDateClick, coachId }: TrialCalendarProps) {
 		)
 	}
 
-	if (disciplines.length === 0) {
-		return (
-			<Card className="bg-card/80 backdrop-blur-sm border-2 border-border shadow-soft">
-				<CardHeader>
-					<CardTitle className="text-xl font-heading text-foreground flex items-center justify-center gap-2">
-						<CalendarIcon className="w-5 h-5" />
-						Calendario de Entrenamientos
-					</CardTitle>
-				</CardHeader>
-				<CardContent className="py-12">
-					<div className="flex flex-col items-center justify-center gap-3 text-center">
-						<p className="text-muted-foreground">
-							Tu coach aún no ha configurado disciplinas de entrenamiento.
-						</p>
-						<p className="text-sm text-muted-foreground">
-							Una vez que tu coach agregue disciplinas y planificaciones, podrás verlas aquí.
-						</p>
-					</div>
-				</CardContent>
-			</Card>
-		)
+	if (!coachId) {
+		return null
 	}
 
 	// Calcular días del mes
@@ -145,22 +108,30 @@ export function TrialCalendar({ onDateClick, coachId }: TrialCalendarProps) {
 
 	const isToday = (day: number) => {
 		const date = new Date(year, month - 1, day)
-		return date.toDateString() === today.toDateString()
+		const dateStr = date.toDateString()
+		const todayStr = today.toDateString()
+		return dateStr === todayStr
 	}
 
-	const isFirstAvailableDay = (day: number) => {
-		return firstAvailableDay !== null && day === firstAvailableDay
+	const isCurrentMonth = () => {
+		return currentDate.getFullYear() === today.getFullYear() && 
+		       currentDate.getMonth() === today.getMonth()
 	}
 
 	const isBlocked = (day: number) => {
-		return hasWorkout(day) && !isFirstAvailableDay(day)
+		// Solo el día de hoy está desbloqueado (si tiene planificación)
+		if (isCurrentMonth() && isToday(day) && hasWorkout(day)) {
+			return false
+		}
+		// Todos los demás días están bloqueados
+		return hasWorkout(day)
 	}
 
 	const handleDayClick = (day: number) => {
 		const date = new Date(year, month - 1, day)
 
-		// Si es el primer día disponible, permitir acceso completo
-		if (isFirstAvailableDay(day)) {
+		// Solo permitir acceso al día de hoy si tiene planificación
+		if (isCurrentMonth() && isToday(day) && hasWorkout(day)) {
 			if (onDateClick) {
 				onDateClick(date)
 			}
@@ -199,36 +170,13 @@ export function TrialCalendar({ onDateClick, coachId }: TrialCalendarProps) {
 						Calendario de Entrenamientos
 					</CardTitle>
 					<p className="text-sm text-muted-foreground mt-2">
-						Prueba tu entrenamiento hoy. Suscríbete para acceder a todo el mes.
+						Accede a tu entrenamiento de hoy. Suscríbete para acceder a todo el mes.
 					</p>
-				</div>
-
-				{/* Dropdown de filtro por disciplina */}
-				<div className="mb-4 flex items-center justify-center gap-2">
-					<Filter className="w-4 h-4 text-muted-foreground" />
-					<Select
-						value={selectedDisciplineId?.toString() || ''}
-						onValueChange={(value) => {
-							setSelectedDisciplineId(parseInt(value, 10))
-						}}
-					>
-						<SelectTrigger className="w-full max-w-xs">
-							<SelectValue placeholder="Seleccionar disciplina" />
-						</SelectTrigger>
-						<SelectContent>
-							{disciplines.map((discipline) => (
-								<SelectItem key={discipline.id} value={discipline.id}>
-									<div className="flex items-center gap-2">
-										<div
-											className="w-3 h-3 rounded-full"
-											style={{ backgroundColor: discipline.color }}
-										/>
-										<span>{discipline.name}</span>
-									</div>
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
+					{preferences?.discipline && (
+						<Badge variant="outline" className="mt-2">
+							{preferences.discipline.name} - {preferences.level?.name}
+						</Badge>
+					)}
 				</div>
 
 				{/* Navegación del mes */}
@@ -297,15 +245,15 @@ export function TrialCalendar({ onDateClick, coachId }: TrialCalendarProps) {
 
 								const hasWorkoutValue = hasWorkout(day)
 								const isCurrentDay = isToday(day)
-								const isFirstDay = isFirstAvailableDay(day)
 								const isBlockedDay = isBlocked(day)
+								const isTodayUnlocked = isCurrentMonth() && isCurrentDay && hasWorkoutValue
 
 								return (
 									<div key={`day-${day}-${month}-${year}`} className="aspect-square">
 										<div
 											className={`
                         w-full h-full flex flex-col items-center justify-center text-sm font-semibold rounded-xl transition-all duration-200 relative
-                        ${isFirstDay
+                        ${isTodayUnlocked
 													? 'bg-primary text-primary-foreground shadow-lg border-2 border-primary hover:scale-105 cursor-pointer'
 													: isBlockedDay
 														? 'bg-muted/30 text-muted-foreground border-2 border-muted/50 hover:bg-muted/40 cursor-pointer opacity-60'
@@ -315,12 +263,12 @@ export function TrialCalendar({ onDateClick, coachId }: TrialCalendarProps) {
 																? 'bg-primary/20 text-primary-foreground border border-primary/30'
 																: 'text-muted-foreground hover:bg-muted/20'
 														}
-                        ${isFirstDay || isBlockedDay ? 'cursor-pointer' : 'cursor-default'}
+                        ${isTodayUnlocked || isBlockedDay ? 'cursor-pointer' : 'cursor-default'}
                       `}
 											onClick={() => handleDayClick(day)}
 										>
 											<span className="text-sm font-semibold">{day}</span>
-											{isFirstDay && (
+											{isTodayUnlocked && (
 												<Badge
 													variant="secondary"
 													className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center bg-green-500 text-white border-0"
@@ -346,7 +294,7 @@ export function TrialCalendar({ onDateClick, coachId }: TrialCalendarProps) {
 						<div className="flex items-center justify-center gap-4 mt-6 pt-4 border-t border-border flex-wrap">
 							<div className="flex items-center gap-2">
 								<div className="w-3 h-3 bg-primary rounded-full border-2 border-primary"></div>
-								<span className="text-xs text-muted-foreground">Día disponible</span>
+								<span className="text-xs text-muted-foreground">Hoy disponible</span>
 							</div>
 							<div className="flex items-center gap-2">
 								<div className="w-3 h-3 bg-muted/30 border-2 border-muted/50 rounded-full"></div>

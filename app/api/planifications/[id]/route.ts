@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isCoach, normalizeUserId } from '@/lib/auth-helpers'
+import { normalizeDateForArgentina } from '@/lib/utils'
 
 // PATCH /api/planifications/[id]
 export async function PATCH(
@@ -57,10 +58,19 @@ export async function PATCH(
       const disciplineLevelIdNum = typeof body.discipline_level_id === 'string' ? parseInt(body.discipline_level_id, 10) : body.discipline_level_id
       updateData.disciplineLevelId = isNaN(disciplineLevelIdNum) ? null : disciplineLevelIdNum
     }
-    if (body.date !== undefined) updateData.date = new Date(body.date)
+    if (body.date !== undefined) {
+      updateData.date = typeof body.date === 'string' 
+        ? normalizeDateForArgentina(body.date)
+        : new Date(body.date)
+    }
     if (body.title !== undefined) updateData.title = body.title || null
     if (body.description !== undefined) updateData.description = body.description || null
-    if (body.exercises !== undefined) updateData.exercises = body.exercises || null
+    // Los bloques se envían como "blocks" pero se guardan en "exercises" (campo JSON)
+    // Priorizar "blocks" sobre "exercises" si ambos están presentes
+    if (body.blocks !== undefined || body.exercises !== undefined) {
+      const exercisesData = body.blocks || body.exercises || null
+      updateData.exercises = exercisesData ? JSON.parse(JSON.stringify(exercisesData)) : null
+    }
     if (body.notes !== undefined) updateData.notes = body.notes || null
     if (body.is_completed !== undefined) updateData.isCompleted = body.is_completed
 
@@ -90,8 +100,15 @@ export async function PATCH(
       }
     })
 
+    // Transformar para respuesta
+    // Convertir "exercises" (JSON) a "blocks" para el frontend
+    const exercisesData = (updated as any).exercises
+    const blocksData = exercisesData ? (Array.isArray(exercisesData) ? exercisesData : []) : []
+
     const transformed = {
       ...updated,
+      blocks: blocksData, // Agregar blocks para compatibilidad con el frontend
+      exercises: exercisesData, // Mantener exercises también
       discipline: updated.discipline ? {
         id: updated.discipline.id,
         name: updated.discipline.name,

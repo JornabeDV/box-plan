@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isCoach, normalizeUserId } from '@/lib/auth-helpers'
+import { normalizeDateForArgentina } from '@/lib/utils'
 
 // GET /api/planifications
 export async function GET(request: NextRequest) {
@@ -55,19 +56,27 @@ export async function GET(request: NextRequest) {
     })
 
     // Transformar para respuesta
-    const transformed = planifications.map(p => ({
-      ...p,
-      discipline: p.discipline ? {
-        id: p.discipline.id,
-        name: p.discipline.name,
-        color: p.discipline.color
-      } : null,
-      discipline_level: p.disciplineLevel ? {
-        id: p.disciplineLevel.id,
-        name: p.disciplineLevel.name,
-        description: p.disciplineLevel.description
-      } : null
-    }))
+    // Convertir "exercises" (JSON) a "blocks" para el frontend
+    const transformed = planifications.map(p => {
+      const exercisesData = (p as any).exercises
+      const blocksData = exercisesData ? (Array.isArray(exercisesData) ? exercisesData : []) : []
+      
+      return {
+        ...p,
+        blocks: blocksData, // Agregar blocks para compatibilidad con el frontend
+        exercises: exercisesData, // Mantener exercises también
+        discipline: p.discipline ? {
+          id: p.discipline.id,
+          name: p.discipline.name,
+          color: p.discipline.color
+        } : null,
+        discipline_level: p.disciplineLevel ? {
+          id: p.disciplineLevel.id,
+          name: p.disciplineLevel.name,
+          description: p.disciplineLevel.description
+        } : null
+      }
+    })
 
     return NextResponse.json(transformed)
   } catch (error) {
@@ -98,7 +107,7 @@ export async function POST(request: NextRequest) {
     const coachId = authCheck.profile.id
 
     const body = await request.json()
-    const { discipline_id, discipline_level_id, date, title, description, exercises, notes, is_completed } = body
+    const { discipline_id, discipline_level_id, date, title, description, exercises, blocks, notes, is_completed, estimated_duration } = body
 
     if (!discipline_id || !discipline_level_id || !date) {
       return NextResponse.json(
@@ -118,16 +127,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Normalizar la fecha para Argentina (UTC-3) para evitar problemas de timezone
+    const normalizedDate = typeof date === 'string' 
+      ? normalizeDateForArgentina(date)
+      : new Date(date)
+
+    // Los bloques se envían como "blocks" pero se guardan en "exercises" (campo JSON)
+    // Priorizar "blocks" sobre "exercises" si ambos están presentes
+    const blocksToSave = blocks || exercises || null
+
     const newPlanification = await prisma.planification.create({
       data: {
         coachId: coachId, // ID del perfil del coach (consistente con otras tablas)
         // userId no se incluye - las planificaciones son libres del coach
         disciplineId: disciplineIdNum || null,
         disciplineLevelId: disciplineLevelIdNum || null,
-        date: new Date(date),
+        date: normalizedDate,
         title: title || null,
         description: description || null,
-        exercises: exercises || null,
+        exercises: blocksToSave ? JSON.parse(JSON.stringify(blocksToSave)) : null, // Asegurar que sea JSON válido
         notes: notes || null,
         isCompleted: is_completed !== undefined ? is_completed : false
       } as any,
@@ -150,8 +168,14 @@ export async function POST(request: NextRequest) {
     })
 
     // Transformar para respuesta
+    // Convertir "exercises" (JSON) a "blocks" para el frontend
+    const exercisesData = (newPlanification as any).exercises
+    const blocksData = exercisesData ? (Array.isArray(exercisesData) ? exercisesData : []) : []
+
     const transformed = {
       ...newPlanification,
+      blocks: blocksData, // Agregar blocks para compatibilidad con el frontend
+      exercises: exercisesData, // Mantener exercises también
       discipline: (newPlanification as any).discipline ? {
         id: (newPlanification as any).discipline.id,
         name: (newPlanification as any).discipline.name,
