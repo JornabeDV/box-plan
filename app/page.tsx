@@ -13,6 +13,8 @@ import { ReviewsSection } from "@/components/home/reviews-section"
 import { CoachInfoCard } from "@/components/dashboard/coach-info-card"
 import { TrialCalendar } from "@/components/dashboard/trial-calendar"
 import { WhatsAppButton } from "@/components/dashboard/whatsapp-button"
+import { PreferenceSelector } from "@/components/dashboard/preference-selector"
+import { useCurrentUserPreferences } from "@/hooks/use-current-user-preferences"
 import { 
   Loader2, 
   Target, 
@@ -47,9 +49,13 @@ export default function BoxPlanApp() {
   const { user, loading: authLoading, isCoach } = useAuthWithRoles()
   const { subscription, loading: profileLoading } = useProfile()
   const { coach: userCoach, loading: coachLoading } = useUserCoach()
+  const { preferences, loading: preferencesLoading, refetch: refetchPreferences } = useCurrentUserPreferences()
   
   // Verificar si el usuario tiene suscripción activa
   const hasActiveSubscription = subscription?.status === 'active'
+  
+  // Verificar si el usuario tiene preferencias configuradas
+  const hasPreferences = preferences && preferences.preferredDisciplineId && preferences.preferredLevelId
   
   // Frases motivacionales para usuarios con suscripción activa
   const motivationalQuotes = [
@@ -632,8 +638,20 @@ export default function BoxPlanApp() {
           </section>
         )}
 
-        {/* Sección del día - Solo para usuarios con suscripción activa */}
-        {user?.id && hasActiveSubscription && (
+        {/* Selector de preferencias - Solo para usuarios con suscripción activa sin preferencias */}
+        {user?.id && hasActiveSubscription && !preferencesLoading && !hasPreferences && (
+          <section>
+            <PreferenceSelector
+              coachId={userCoach?.id ?? null}
+              onPreferencesSaved={() => {
+                refetchPreferences()
+              }}
+            />
+          </section>
+        )}
+
+        {/* Sección del día - Solo para usuarios con suscripción activa y con preferencias */}
+        {user?.id && hasActiveSubscription && hasPreferences && (
           <section>
             <TodaySection />
           </section>

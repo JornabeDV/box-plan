@@ -21,13 +21,24 @@ import { useAuth } from "@/hooks/use-auth"
 import { useProfile } from "@/hooks/use-profile"
 import { SubscriptionStatus } from "@/components/dashboard/subscription-status"
 import { useToast } from "@/hooks/use-toast"
+import { useCurrentUserPreferences } from "@/hooks/use-current-user-preferences"
+import { useUserCoach } from "@/hooks/use-user-coach"
+import { useDisciplines } from "@/hooks/use-disciplines"
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select"
 import { 
   User, 
   Mail, 
   Calendar, 
   ArrowLeft,
   Edit,
-  Loader2
+  Loader2,
+  Target
 } from "lucide-react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
@@ -37,8 +48,16 @@ export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth()
   const { profile, updateProfile, loading: profileLoading } = useProfile()
   const { toast } = useToast()
+  const { preferences, loading: preferencesLoading, refetch: refetchPreferences, updatePreferences } = useCurrentUserPreferences()
+  const { coach: userCoach, loading: coachLoading } = useUserCoach()
+  const { disciplines, disciplineLevels, loading: disciplinesLoading } = useDisciplines(
+    userCoach?.id ? userCoach.id.toString() : null
+  )
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [selectedDisciplineId, setSelectedDisciplineId] = useState<number | null>(null)
+  const [selectedLevelId, setSelectedLevelId] = useState<number | null>(null)
+  const [savingPreferences, setSavingPreferences] = useState(false)
   const [formData, setFormData] = useState({
     full_name: profile?.full_name || '',
     avatar_url: profile?.avatar_url || ''
@@ -53,6 +72,61 @@ export default function ProfilePage() {
       })
     }
   }, [profile])
+
+  // Cargar preferencias existentes cuando se carguen
+  useEffect(() => {
+    if (preferences && !preferencesLoading) {
+      setSelectedDisciplineId(preferences.preferredDisciplineId)
+      setSelectedLevelId(preferences.preferredLevelId)
+    }
+  }, [preferences, preferencesLoading])
+
+  // Obtener niveles filtrados por disciplina seleccionada
+  const availableLevels = selectedDisciplineId
+    ? disciplineLevels.filter(level => level.discipline_id === selectedDisciplineId.toString())
+    : []
+
+  const handleDisciplineSelect = (value: string) => {
+    const disciplineId = value === '' ? null : parseInt(value, 10)
+    setSelectedDisciplineId(disciplineId)
+    // Resetear nivel cuando cambia la disciplina
+    setSelectedLevelId(null)
+  }
+
+  const handleLevelSelect = (value: string) => {
+    const levelId = value === '' ? null : parseInt(value, 10)
+    setSelectedLevelId(levelId)
+  }
+
+  const handleSavePreferences = async () => {
+    if (!selectedDisciplineId || !selectedLevelId) {
+      toast({
+        title: 'Selección incompleta',
+        description: 'Por favor, selecciona una disciplina y un nivel',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    setSavingPreferences(true)
+    const result = await updatePreferences(selectedDisciplineId, selectedLevelId)
+
+    if (result.error) {
+      toast({
+        title: 'Error',
+        description: result.error,
+        variant: 'destructive'
+      })
+    } else {
+      toast({
+        title: "Preferencias actualizadas",
+        description: "Tus preferencias han sido guardadas correctamente",
+      })
+      refetchPreferences()
+    }
+
+    setSavingPreferences(false)
+  }
 
   const handleEdit = () => {
     setFormData({
@@ -187,6 +261,144 @@ export default function ProfilePage() {
           {/* Estado de Suscripción */}
           <div className="mt-6">
             <SubscriptionStatus />
+          </div>
+
+          {/* Preferencias de Entrenamiento */}
+          <div className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-foreground">
+                  <Target className="h-5 w-5" />
+                  Preferencias de Entrenamiento
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {preferencesLoading || coachLoading || disciplinesLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <span className="ml-2 text-muted-foreground">Cargando preferencias...</span>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Mostrar preferencias actuales si existen */}
+                    {preferences && preferences.preferredDisciplineId && preferences.preferredLevelId && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4 border-b border-border">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Disciplina preferida</p>
+                          <p className="text-base font-semibold text-foreground">
+                            {preferences.discipline?.name || 'No especificada'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Nivel preferido</p>
+                          <p className="text-base font-semibold text-foreground">
+                            {preferences.level?.name || 'No especificado'}
+                          </p>
+                          {preferences.level?.description && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {preferences.level.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Selectores de preferencias */}
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="profile-discipline-select" className="text-sm font-semibold text-foreground">
+                            {preferences?.preferredDisciplineId ? 'Cambiar Disciplina' : 'Selecciona tu Disciplina'}
+                          </Label>
+                          <Select
+                            value={selectedDisciplineId?.toString() || ''}
+                            onValueChange={handleDisciplineSelect}
+                          >
+                            <SelectTrigger id="profile-discipline-select">
+                              <SelectValue placeholder="Selecciona una disciplina" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {disciplines.map((discipline) => (
+                                <SelectItem key={discipline.id} value={discipline.id}>
+                                  <div className="flex items-center gap-2">
+                                    <div
+                                      className="w-3 h-3 rounded-full border"
+                                      style={{
+                                        backgroundColor: discipline.color,
+                                        borderColor: discipline.color
+                                      }}
+                                    />
+                                    <span>{discipline.name}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="profile-level-select" className="text-sm font-semibold text-foreground">
+                            {preferences?.preferredLevelId ? 'Cambiar Nivel' : 'Selecciona tu Nivel'}
+                          </Label>
+                          <Select
+                            value={selectedLevelId?.toString() || ''}
+                            onValueChange={handleLevelSelect}
+                            disabled={!selectedDisciplineId || availableLevels.length === 0}
+                          >
+                            <SelectTrigger id="profile-level-select">
+                              <SelectValue placeholder={
+                                !selectedDisciplineId
+                                  ? 'Primero selecciona una disciplina'
+                                  : availableLevels.length === 0
+                                    ? 'No hay niveles disponibles'
+                                    : 'Selecciona un nivel'
+                              } />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableLevels.map((level) => (
+                                <SelectItem key={level.id} value={level.id}>
+                                  {level.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      {!selectedDisciplineId && (
+                        <p className="text-xs text-muted-foreground">
+                          Selecciona una disciplina para habilitar la selección de nivel
+                        </p>
+                      )}
+
+                      {/* Botón Guardar */}
+                      <Button
+                        onClick={handleSavePreferences}
+                        disabled={!selectedDisciplineId || !selectedLevelId || savingPreferences}
+                        className="w-full"
+                        size="lg"
+                      >
+                        {savingPreferences ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Guardando...
+                          </>
+                        ) : (
+                          <>
+                            <Target className="w-4 h-4 mr-2" />
+                            {preferences?.preferredDisciplineId ? 'Actualizar Preferencias' : 'Guardar Preferencias'}
+                          </>
+                        )}
+                      </Button>
+                      {selectedDisciplineId && !selectedLevelId && (
+                        <p className="text-xs text-muted-foreground text-center">
+                          Por favor, selecciona un nivel para continuar
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
       </main>
