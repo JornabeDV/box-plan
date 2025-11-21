@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuthWithRoles as useSimplifiedAuth } from '@/hooks/use-auth-with-roles'
 import { useDashboardData } from '@/hooks/use-dashboard-data'
 import { useDisciplines } from '@/hooks/use-disciplines'
@@ -31,6 +31,7 @@ import { TrialBanner } from '@/components/admin/dashboard/trial-banner'
 import { AccessRestricted } from '@/components/admin/dashboard/access-restricted'
 import { TrialExpired } from '@/components/admin/dashboard/trial-expired'
 import { LoadingScreen } from '@/components/admin/dashboard/loading-screen'
+import { MercadoPagoConnect } from '@/components/coach/mercadopago-connect'
 
 export default function AdminDashboardPage() {
   const { user, coachProfile, loading: authLoading, isCoach, userRole } = useSimplifiedAuth()
@@ -62,8 +63,7 @@ export default function AdminDashboardPage() {
   const {
     createPlanification,
     updatePlanification,
-    deletePlanification,
-    searchPlanifications
+    deletePlanification
   } = usePlanifications(profileId || undefined)
 
   // Usar datos del dashboard combinado
@@ -90,6 +90,20 @@ export default function AdminDashboardPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [dayPlanifications, setDayPlanifications] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState('overview')
+
+  // Detectar tab desde URL (para redirecciones de OAuth)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const tabParam = params.get('tab')
+      if (tabParam && ['overview', 'disciplines', 'planning', 'users', 'plans'].includes(tabParam)) {
+        setActiveTab(tabParam)
+        // Limpiar URL después de establecer el tab
+        const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '')
+        window.history.replaceState({}, '', newUrl)
+      }
+    }
+  }, [])
 
   // Handlers para disciplinas
   const handleDisciplineSubmit = async (data: any) => {
@@ -345,10 +359,20 @@ export default function AdminDashboardPage() {
 
           {/* Planes Tab */}
           <TabsContent value="plans" className="space-y-6">
-            <SubscriptionPlansList 
-              initialPlans={dashboardSubscriptionPlans}
-              onRefresh={refreshDashboard}
-            />
+            {/* Conexión con MercadoPago */}
+            <MercadoPagoConnect coachId={coachProfile?.id} />
+            
+            {/* Lista de Planes */}
+            <div>
+              <h2 className="text-2xl font-bold mb-4">Planes de Suscripción</h2>
+              <p className="text-muted-foreground mb-6">
+                Gestiona los planes de suscripción disponibles para tus estudiantes
+              </p>
+              <SubscriptionPlansList 
+                initialPlans={dashboardSubscriptionPlans}
+                onRefresh={refreshDashboard}
+              />
+            </div>
           </TabsContent>
 
         </Tabs>
