@@ -3,7 +3,14 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '@/components/ui/select'
 import { Loader2, Target, CheckCircle } from 'lucide-react'
 import { useDisciplines, type Discipline, type DisciplineLevel } from '@/hooks/use-disciplines'
 import { useCurrentUserPreferences } from '@/hooks/use-current-user-preferences'
@@ -38,13 +45,15 @@ export function PreferenceSelector({ coachId, onPreferencesSaved }: PreferenceSe
 		? disciplineLevels.filter(level => level.discipline_id === selectedDisciplineId.toString())
 		: []
 
-	const handleDisciplineSelect = (disciplineId: number) => {
+	const handleDisciplineSelect = (value: string) => {
+		const disciplineId = value === '' ? null : parseInt(value, 10)
 		setSelectedDisciplineId(disciplineId)
 		// Resetear nivel cuando cambia la disciplina
 		setSelectedLevelId(null)
 	}
 
-	const handleLevelSelect = (levelId: number) => {
+	const handleLevelSelect = (value: string) => {
+		const levelId = value === '' ? null : parseInt(value, 10)
 		setSelectedLevelId(levelId)
 	}
 
@@ -123,110 +132,69 @@ export function PreferenceSelector({ coachId, onPreferencesSaved }: PreferenceSe
 			</CardHeader>
 			<CardContent className="space-y-6">
 				{/* Selección de Disciplina */}
-				<div className="space-y-3">
-					<label className="text-sm font-semibold text-foreground">
+				<div className="space-y-2">
+					<Label htmlFor="discipline-select" className="text-sm font-semibold text-foreground">
 						Selecciona tu Disciplina
-					</label>
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-						{disciplines.map((discipline) => (
-							<button
-								key={discipline.id}
-								type="button"
-								onClick={() => handleDisciplineSelect(parseInt(discipline.id, 10))}
-								className={`
-									relative p-4 rounded-lg border-2 transition-all duration-200
-									text-left hover:scale-105
-									${selectedDisciplineId === parseInt(discipline.id, 10)
-										? 'border-primary bg-primary/10 shadow-md'
-										: 'border-border bg-card hover:border-primary/50'
-									}
-								`}
-							>
-								<div className="flex items-center gap-3">
-									<div
-										className="w-4 h-4 rounded-full border-2 flex items-center justify-center"
-										style={{
-											backgroundColor: selectedDisciplineId === parseInt(discipline.id, 10)
-												? discipline.color
-												: 'transparent',
-											borderColor: discipline.color
-										}}
-									>
-										{selectedDisciplineId === parseInt(discipline.id, 10) && (
-											<CheckCircle className="w-3 h-3 text-white" />
-										)}
+					</Label>
+					<Select
+						value={selectedDisciplineId?.toString() || ''}
+						onValueChange={handleDisciplineSelect}
+					>
+						<SelectTrigger id="discipline-select">
+							<SelectValue placeholder="Selecciona una disciplina" />
+						</SelectTrigger>
+						<SelectContent>
+							{disciplines.map((discipline) => (
+								<SelectItem key={discipline.id} value={discipline.id}>
+									<div className="flex items-center gap-2">
+										<div
+											className="w-3 h-3 rounded-full border"
+											style={{
+												backgroundColor: discipline.color,
+												borderColor: discipline.color
+											}}
+										/>
+										<span>{discipline.name}</span>
 									</div>
-									<div className="flex-1">
-										<div className="font-semibold text-foreground">{discipline.name}</div>
-										{discipline.description && (
-											<div className="text-xs text-muted-foreground mt-1">
-												{discipline.description}
-											</div>
-										)}
-									</div>
-								</div>
-							</button>
-						))}
-					</div>
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
 				</div>
 
 				{/* Selección de Nivel */}
-				{selectedDisciplineId && (
-					<div className="space-y-3">
-						<label className="text-sm font-semibold text-foreground">
-							Selecciona tu Nivel
-						</label>
-						{availableLevels.length === 0 ? (
-							<div className="p-4 rounded-lg border border-border bg-muted/30 text-center">
-								<p className="text-sm text-muted-foreground">
-									No hay niveles disponibles para esta disciplina
-								</p>
-							</div>
-						) : (
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-								{availableLevels.map((level) => (
-									<button
-										key={level.id}
-										type="button"
-										onClick={() => handleLevelSelect(parseInt(level.id, 10))}
-										className={`
-											relative p-4 rounded-lg border-2 transition-all duration-200
-											text-left hover:scale-105
-											${selectedLevelId === parseInt(level.id, 10)
-												? 'border-primary bg-primary/10 shadow-md'
-												: 'border-border bg-card hover:border-primary/50'
-											}
-										`}
-									>
-										<div className="flex items-center gap-3">
-											<div
-												className={`
-													w-4 h-4 rounded-full border-2 flex items-center justify-center
-													${selectedLevelId === parseInt(level.id, 10)
-														? 'bg-primary border-primary'
-														: 'border-border'
-													}
-												`}
-											>
-												{selectedLevelId === parseInt(level.id, 10) && (
-													<CheckCircle className="w-3 h-3 text-white" />
-												)}
-											</div>
-											<div className="flex-1">
-												<div className="font-semibold text-foreground">{level.name}</div>
-												{level.description && (
-													<div className="text-xs text-muted-foreground mt-1">
-														{level.description}
-													</div>
-												)}
-											</div>
-										</div>
-									</button>
-								))}
-							</div>
-						)}
-					</div>
-				)}
+				<div className="space-y-2">
+					<Label htmlFor="level-select" className="text-sm font-semibold text-foreground">
+						Selecciona tu Nivel
+					</Label>
+					<Select
+						value={selectedLevelId?.toString() || ''}
+						onValueChange={handleLevelSelect}
+						disabled={!selectedDisciplineId || availableLevels.length === 0}
+					>
+						<SelectTrigger id="level-select">
+							<SelectValue placeholder={
+								!selectedDisciplineId
+									? 'Primero selecciona una disciplina'
+									: availableLevels.length === 0
+										? 'No hay niveles disponibles'
+										: 'Selecciona un nivel'
+							} />
+						</SelectTrigger>
+						<SelectContent>
+							{availableLevels.map((level) => (
+								<SelectItem key={level.id} value={level.id}>
+									{level.name}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+					{!selectedDisciplineId && (
+						<p className="text-xs text-muted-foreground">
+							Selecciona una disciplina para habilitar la selección de nivel
+						</p>
+					)}
+				</div>
 
 				{/* Botón Guardar */}
 				<div className="pt-4 border-t border-border">

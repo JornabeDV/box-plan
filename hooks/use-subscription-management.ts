@@ -118,43 +118,58 @@ export function useSubscriptionManagement() {
           throw new Error('Usuario no autenticado')
         }
 
-        const userId = typeof session.user.id === 'string' ? parseInt(session.user.id, 10) : session.user.id
+        const userId = typeof session.user.id === 'string' ? session.user.id : String(session.user.id)
         const planIdNum = typeof newPlanId === 'string' ? parseInt(newPlanId, 10) : newPlanId
         
-        if (isNaN(userId) || isNaN(planIdNum)) {
-          throw new Error('ID de usuario o plan inválido')
+        if (isNaN(planIdNum)) {
+          throw new Error('ID de plan inválido')
         }
         
-        // Calcular fechas del período
-        const now = new Date()
-        const periodEnd = new Date()
-        periodEnd.setDate(periodEnd.getDate() + 30) // 30 días
+        // Obtener información del plan para crear la preferencia de pago
+        const plan = plans.find(p => p.id === newPlanId || String(p.id) === String(newPlanId))
+        
+        if (!plan) {
+          throw new Error('Plan no encontrado')
+        }
 
-        const response = await fetch('/api/subscriptions', {
+        // Asegurar que el precio sea un número
+        const planPrice = typeof plan.price === 'string' ? parseFloat(plan.price) : Number(plan.price)
+        
+        if (isNaN(planPrice)) {
+          throw new Error('Precio del plan inválido')
+        }
+
+        // Crear preferencia de pago en MercadoPago (esto activará el split si está configurado)
+        const preferenceResponse = await fetch('/api/create-payment-preference', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            plan_id: String(planIdNum),
             user_id: userId,
-            plan_id: planIdNum,
-            status: 'active',
-            current_period_start: now.toISOString(),
-            current_period_end: periodEnd.toISOString(),
-            payment_method: 'manual'
+            plan: {
+              id: String(planIdNum),
+              name: plan.name,
+              price: planPrice,
+              currency: plan.currency,
+              interval: plan.interval
+            }
           })
         })
 
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.error || 'Error al crear suscripción')
+        if (!preferenceResponse.ok) {
+          const errorData = await preferenceResponse.json()
+          throw new Error(errorData.error || 'Error al crear preferencia de pago')
         }
 
-        // Recargar la suscripción después de crear
-        await loadCurrentSubscription()
+        const { preference } = await preferenceResponse.json()
         
-        toast({
-          title: "Suscripción creada exitosamente",
-          description: `Tu suscripción ha sido creada exitosamente`,
-        })
+        // Redirigir a MercadoPago para completar el pago
+        if (preference?.init_point) {
+          window.location.href = preference.init_point
+          return // No continuar, el usuario será redirigido
+        } else {
+          throw new Error('No se recibió URL de pago de MercadoPago')
+        }
       } else {
         // Si hay suscripción, cambiar de plan
         const response = await fetch('/api/subscriptions/change-plan', {

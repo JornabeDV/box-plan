@@ -1,150 +1,279 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { MercadoPagoConfig, Payment } from 'mercadopago'
+import { calculatePaymentSplit } from '@/lib/payment-helpers'
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const body: { data: { id: string } | string, type: string } = await request.json()
     
-    // Verify the webhook signature (optional but recommended)
-    const signature = request.headers.get('x-signature')
-    if (!signature) {
-      console.error('No signature provided')
-      return NextResponse.json({ error: 'No signature' }, { status: 400 })
-    }
-
-    // Process different types of notifications
     if (body.type === 'payment') {
-      await handlePaymentNotification(body.data)
-    } else if (body.type === 'subscription') {
-      await handleSubscriptionNotification(body.data)
+      const paymentId = typeof body.data === 'string' ? body.data : body.data.id
+      await handlePayment(paymentId)
     }
 
     return NextResponse.json({ received: true })
   } catch (error) {
-    console.error('Webhook error:', error)
+    console.error('Error en webhook:', error)
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 })
   }
 }
 
-async function handlePaymentNotification(paymentId: string) {
-  try {
-    // Get payment details from MercadoPago
-    const mpAccessToken = process.env.MERCADOPAGO_ACCESS_TOKEN
-    if (!mpAccessToken) {
-      throw new Error('MercadoPago access token not configured')
-    }
-
-    const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-      headers: {
-        'Authorization': `Bearer ${mpAccessToken}`,
-        'Content-Type': 'application/json',
-      }
-    })
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch payment details: ${response.status}`)
-    }
-
-    const payment = await response.json()
-
-    // Update payment history
-    try {
-      await prisma.paymentHistory.updateMany({
-        where: {
-          mercadopagoPreferenceId: payment.preference_id
-        },
-        data: {
-          status: payment.status === 'approved' ? 'approved' : 'rejected',
-          mercadopagoPaymentId: paymentId
-        }
-      })
-    } catch (updateError) {
-      console.error('Error updating payment history:', updateError)
-      return
-    }
-
-    // If payment is approved, create or update subscription
-    if (payment.status === 'approved') {
-      await createOrUpdateSubscription(payment)
-    }
-
-  } catch (error) {
-    console.error('Error handling payment notification:', error)
+async function handlePayment(paymentId: string) {
+  const mpAccessToken = process.env.MERCADOPAGO_ACCESS_TOKEN
+  if (!mpAccessToken) {
+    throw new Error('MercadoPago access token not configured')
   }
-}
 
-async function createOrUpdateSubscription(payment: any) {
-  try {
-    const { user_id, plan_id } = payment.metadata || {}
+  const client = new MercadoPagoConfig({ accessToken: mpAccessToken })
+  const payment = await new Payment(client).get({ id: paymentId })
+
+  if (payment.status === 'approved') {
+    const { user_id, plan_id, coach_id } = payment.metadata || {}
     
     if (!user_id || !plan_id) {
       console.error('Missing user_id or plan_id in payment metadata')
       return
     }
 
-    // Calculate subscription period
-    const now = new Date()
-    const periodEnd = new Date(now)
-    periodEnd.setMonth(periodEnd.getMonth() + 1) // Default to monthly
-
     const userId = parseInt(user_id)
     const planId = parseInt(plan_id)
+    const coachId = coach_id ? parseInt(coach_id) : null
 
-    // Check if user already has an active subscription
-    const existing = await prisma.subscription.findFirst({
-      where: {
-        userId,
-        status: 'active'
+    if (coachId) {
+      await createSubscriptionWithSplit({ userId, planId, coachId, payment, paymentId })
+    } else {
+      await createDirectSubscription({ userId, planId, payment, paymentId })
+    }
+  }
+
+  // Actualizar payment history
+  const preferenceId = (payment as any).preference_id
+  if (preferenceId) {
+    await prisma.paymentHistory.updateMany({
+      where: { mercadopagoPreferenceId: preferenceId },
+      data: {
+        status: payment.status === 'approved' ? 'approved' : 'rejected',
+        mercadopagoPaymentId: paymentId
       }
     })
+  }
+}
 
-    if (existing) {
-      // Update existing subscription
-      try {
-        await prisma.subscription.update({
+function calculatePeriodEnd(interval: 'month' | 'year'): Date {
+  const periodEnd = new Date()
+  periodEnd.setMonth(periodEnd.getMonth() + (interval === 'year' ? 12 : 1))
+  return periodEnd
+}
+
+async function createSubscriptionWithSplit({
+  userId,
+  planId,
+  coachId,
+  payment,
+  paymentId
+}: {
+  userId: number
+  planId: number
+  coachId: number
+  payment: any
+  paymentId: string
+}) {
+  const plan = await prisma.subscriptionPlan.findUnique({
+    where: { id: planId },
+    include: { coach: true }
+  })
+
+  if (!plan || !plan.coach) {
+    throw new Error(`Plan ${planId} o coach no encontrado`)
+  }
+
+  const coach = plan.coach
+  const totalAmount = Number(plan.price)
+  const coachRate = Number(coach.commissionRate)
+  const platformRate = Number(coach.platformCommissionRate)
+
+  if (Math.abs(coachRate + platformRate - 100) > 0.01) {
+    throw new Error('Comisiones no suman 100%')
+  }
+
+  const split = calculatePaymentSplit(totalAmount, coachRate, platformRate)
+  const now = new Date()
+  const periodEnd = calculatePeriodEnd(plan.interval as 'month' | 'year')
+  const isNativeSplit = true // Con marketplace_fee, MercadoPago ya distribuyó el dinero
+  const preferenceId = (payment as any).preference_id
+  const paymentIdStr = payment.id?.toString() || paymentId
+
+  return await prisma.$transaction(async (tx) => {
+    const existing = await tx.subscription.findFirst({
+      where: { userId, status: 'active' }
+    })
+
+    const subscription = existing
+      ? await tx.subscription.update({
+          where: { id: existing.id },
+          data: {
+            planId,
+            coachId,
+            currentPeriodStart: now,
+            currentPeriodEnd: periodEnd,
+            mercadopagoPaymentId: paymentIdStr,
+            paymentMethod: 'mercadopago'
+          }
+        })
+      : await tx.subscription.create({
+          data: {
+            userId,
+            planId,
+            coachId,
+            status: 'active',
+            currentPeriodStart: now,
+            currentPeriodEnd: periodEnd,
+            mercadopagoPaymentId: paymentIdStr,
+            paymentMethod: 'mercadopago',
+            cancelAtPeriodEnd: false
+          }
+        })
+
+    // Crear comisión si no existe
+    const existingCommission = await tx.coachCommission.findFirst({
+      where: { studentSubscriptionId: subscription.id, periodStart: now }
+    })
+
+    if (!existingCommission) {
+      await tx.coachCommission.create({
+        data: {
+          coachId,
+          studentSubscriptionId: subscription.id,
+          studentId: userId,
+          commissionAmount: split.coachAmount,
+          commissionRate: split.coachRate,
+          platformCommissionAmount: split.platformAmount,
+          platformCommissionRate: split.platformRate,
+          studentSubscriptionAmount: split.totalAmount,
+          periodStart: now,
+          periodEnd,
+          status: isNativeSplit ? 'paid' : 'approved',
+          ...(isNativeSplit && { paidAt: now })
+        }
+      })
+    }
+
+    // Actualizar totalEarnings del coach
+    await tx.coachProfile.update({
+      where: { id: coachId },
+      data: { totalEarnings: { increment: split.coachAmount } }
+    })
+
+    // Registrar pagos en PaymentHistory
+    const paymentData = {
+      subscriptionId: subscription.id,
+      currency: plan.currency,
+      mercadopagoPaymentId: paymentIdStr,
+      paymentMethod: 'mercadopago' as const,
+      ...(preferenceId && { mercadopagoPreferenceId: preferenceId })
+    }
+
+    await tx.paymentHistory.createMany({
+      data: [
+        {
+          userId,
+          amount: split.totalAmount,
+          status: 'approved',
+          recipientType: 'student',
+          ...paymentData
+        },
+        {
+          userId: coach.userId,
+          amount: split.coachAmount,
+          status: isNativeSplit ? 'paid' : 'approved',
+          recipientType: 'coach',
+          recipientId: coachId,
+          splitAmount: split.coachAmount,
+          ...paymentData
+        },
+        {
+          userId,
+          amount: split.platformAmount,
+          status: isNativeSplit ? 'paid' : 'approved',
+          recipientType: 'platform',
+          splitAmount: split.platformAmount,
+          ...paymentData
+        }
+      ]
+    })
+
+    return subscription
+  })
+}
+
+async function createDirectSubscription({
+  userId,
+  planId,
+  payment,
+  paymentId
+}: {
+  userId: number
+  planId: number
+  payment: any
+  paymentId: string
+}) {
+  const plan = await prisma.subscriptionPlan.findUnique({
+    where: { id: planId }
+  })
+
+  if (!plan) {
+    throw new Error(`Plan ${planId} no encontrado`)
+  }
+
+  const now = new Date()
+  const periodEnd = calculatePeriodEnd(plan.interval as 'month' | 'year')
+  const preferenceId = (payment as any).preference_id
+  const paymentIdStr = payment.id?.toString() || paymentId
+
+  return await prisma.$transaction(async (tx) => {
+    const existing = await tx.subscription.findFirst({
+      where: { userId, status: 'active' }
+    })
+
+    const subscription = existing
+      ? await tx.subscription.update({
           where: { id: existing.id },
           data: {
             planId,
             currentPeriodStart: now,
             currentPeriodEnd: periodEnd,
-            mercadopagoPaymentId: payment.id.toString(),
-            paymentMethod: 'mercadopago' // Actualizar método de pago a MercadoPago
+            mercadopagoPaymentId: paymentIdStr,
+            paymentMethod: 'mercadopago'
           }
         })
-      } catch (error) {
-        console.error('Error updating subscription:', error)
-      }
-    } else {
-      // Create new subscription
-      try {
-        await prisma.subscription.create({
+      : await tx.subscription.create({
           data: {
             userId,
             planId,
             status: 'active',
             currentPeriodStart: now,
             currentPeriodEnd: periodEnd,
-            mercadopagoPaymentId: payment.id.toString(),
-            paymentMethod: 'mercadopago', // Método de pago desde MercadoPago
+            mercadopagoPaymentId: paymentIdStr,
+            paymentMethod: 'mercadopago',
             cancelAtPeriodEnd: false
           }
         })
-      } catch (error) {
-        console.error('Error creating subscription:', error)
+
+    await tx.paymentHistory.create({
+      data: {
+        userId,
+        subscriptionId: subscription.id,
+        amount: Number(plan.price),
+        currency: plan.currency,
+        status: 'approved',
+        recipientType: 'platform',
+        mercadopagoPaymentId: paymentIdStr,
+        ...(preferenceId && { mercadopagoPreferenceId: preferenceId }),
+        paymentMethod: 'mercadopago'
       }
-    }
+    })
 
-  } catch (error) {
-    console.error('Error creating/updating subscription:', error)
-  }
-}
-
-async function handleSubscriptionNotification(subscriptionId: string) {
-  try {
-    // Handle subscription-specific notifications
-    // This would be used for recurring payments, cancellations, etc.
-    console.log('Subscription notification received:', subscriptionId)
-  } catch (error) {
-    console.error('Error handling subscription notification:', error)
-  }
+    return subscription
+  })
 }
