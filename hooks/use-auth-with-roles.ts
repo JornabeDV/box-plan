@@ -70,9 +70,12 @@ export function useAuthWithRoles() {
       lastUserIdRef.current = userId
       setLoading(true)
       
-      // Llamar a API route en el servidor
+      // Llamar a API route en el servidor con cache deshabilitado para evitar datos stale
       const response = await fetch('/api/user-role', {
-        cache: 'default'
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
       })
       
       if (!response.ok) {
@@ -122,21 +125,46 @@ export function useAuthWithRoles() {
     }
     
     const userId = session?.user?.id
-    if (userId) {
-      loadUserRole(userId)
-    } else {
+    
+    // Si no hay sesión, limpiar todo el estado
+    if (!session || !userId) {
       setUserRole(null)
       setAdminProfile(null)
       setCoachProfile(null)
+      setRoleOverride(null)
       setLoading(false)
+      loadingRef.current = false
       lastUserIdRef.current = undefined
+      return
     }
+    
+    // Si el userId cambió, resetear el ref para forzar la carga del nuevo usuario
+    if (lastUserIdRef.current !== undefined && lastUserIdRef.current !== userId) {
+      lastUserIdRef.current = undefined
+      loadingRef.current = false
+    }
+    
+    // Cargar el rol del usuario (la función loadUserRole maneja las verificaciones)
+    loadUserRole(userId)
     // Solo dependemos del userId, no del objeto session completo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id, status])
 
   const signOut = async () => {
+    // Limpiar todo el estado local antes de hacer logout
+    setUserRole(null)
+    setAdminProfile(null)
+    setCoachProfile(null)
+    setRoleOverride(null)
+    setLoading(true)
+    loadingRef.current = false
+    lastUserIdRef.current = undefined
+    
+    // Hacer logout de NextAuth
     await nextAuthSignOut({ redirect: false })
+    
+    // Forzar un refresh de la página para limpiar cualquier cache
+    window.location.href = '/login'
   }
 
   const isAdmin = roleOverride ? roleOverride === 'admin' : userRole?.role === 'admin'

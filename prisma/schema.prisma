@@ -241,7 +241,6 @@ model Workout {
   id              Int       @id @default(autoincrement())
   userId          Int       @map("user_id")
   planificationId Int?      @map("planification_id")
-  workoutSheetId  Int?      @map("workout_sheet_id")
   data            Json?
   completedAt     DateTime? @map("completed_at")
   durationSeconds Int?      @map("duration_seconds")

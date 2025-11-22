@@ -41,8 +41,10 @@ export async function GET(request: NextRequest) {
       coachProfile
     })
 
-    // Agregar caché para evitar llamadas repetidas
-    response.headers.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=30')
+    // Deshabilitar cache para evitar problemas al cambiar de usuario
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
     
     return response
   } catch (error) {

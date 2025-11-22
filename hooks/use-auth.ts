@@ -101,8 +101,17 @@ export function useAuth() {
   }, [])
 
   const signOut = useCallback(async () => {
-    await nextAuthSignOut({ redirect: false })
-    return { error: null }
+    try {
+      await nextAuthSignOut({ redirect: false })
+      // Forzar un refresh completo para limpiar cualquier cache
+      window.location.href = '/login'
+      return { error: null }
+    } catch (err) {
+      console.error('SignOut error:', err)
+      // Aún así redirigir al login
+      window.location.href = '/login'
+      return { error: null }
+    }
   }, [])
 
   const resetPassword = useCallback(async (email: string) => {
