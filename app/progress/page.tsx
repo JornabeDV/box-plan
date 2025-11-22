@@ -217,34 +217,49 @@ export default function ProgresoPage() {
 							</div>
 						) : (
 							<div className="space-y-4">
-								{recentWorkouts.map((workout: any) => (
-									<div
-										key={workout.id}
-										className="flex items-center justify-between p-4 bg-card rounded-lg border"
-									>
-										<div className="flex-1">
-											<div className="font-semibold">
-												{workout.title || 'Entrenamiento'}
-											</div>
-											<div className="text-sm text-muted-foreground">
-												{workout.completed_at
-													? formatDistanceToNow(new Date(workout.completed_at), {
-															addSuffix: true,
-															locale: es,
-														})
-													: 'Fecha no disponible'}
-											</div>
-										</div>
-										{workout.duration_seconds && (
-											<div className="text-right ml-4">
-												<div className="font-bold text-lime-400">
-													{formatDuration(workout.duration_seconds)}
+								{recentWorkouts.map((workout: any) => {
+									// Obtener el nombre del entrenamiento desde diferentes fuentes
+									const workoutName = 
+										workout.planification?.title || 
+										workout.data?.wod_name || 
+										workout.data?.exercise || 
+										'Entrenamiento'
+									
+									// Obtener duración (puede venir como duration_seconds o durationSeconds)
+									const duration = workout.duration_seconds || workout.durationSeconds
+									
+									// Obtener fecha de completado (puede venir como completed_at o completedAt)
+									const completedAt = workout.completed_at || workout.completedAt
+
+									return (
+										<div
+											key={workout.id}
+											className="flex items-center justify-between p-4 bg-card rounded-lg border"
+										>
+											<div className="flex-1">
+												<div className="font-semibold">
+													{workoutName}
 												</div>
-												<div className="text-xs text-muted-foreground">Tiempo</div>
+												<div className="text-sm text-muted-foreground">
+													{completedAt
+														? formatDistanceToNow(new Date(completedAt), {
+																addSuffix: true,
+																locale: es,
+															})
+														: 'Fecha no disponible'}
+												</div>
 											</div>
-										)}
-									</div>
-								))}
+											{duration && (
+												<div className="text-right ml-4">
+													<div className="font-bold text-lime-400">
+														{formatDuration(duration)}
+													</div>
+													<div className="text-xs text-muted-foreground">Tiempo</div>
+												</div>
+											)}
+										</div>
+									)
+								})}
 							</div>
 						)}
 					</CardContent>
