@@ -29,6 +29,7 @@ model User {
   userPreferences UserPreference?
   subscriptions Subscription[]
   workouts      Workout[]
+  rmRecords     RMRecord[]
   userProgress  UserProgress[]
   paymentHistory PaymentHistory[]
   coachProfile  CoachProfile?
@@ -251,6 +252,20 @@ model Workout {
   planification   Planification? @relation(fields: [planificationId], references: [id])
 
   @@map("workouts")
+}
+
+model RMRecord {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @map("user_id")
+  exercise        String    @db.VarChar(255)
+  weight          Decimal   @db.Decimal(10, 2)
+  recordedAt      DateTime  @default(now()) @map("recorded_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("rm_records")
 }
 
 model UserProgress {

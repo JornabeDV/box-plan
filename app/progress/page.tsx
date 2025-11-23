@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/header"
 import { BottomNavigation } from "@/components/layout/bottom-navigation"
 import { useAuth } from "@/hooks/use-auth"
 import { useWorkouts } from "@/hooks/use-workouts"
+import { useRMs } from "@/hooks/use-rms"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { 
@@ -15,7 +16,8 @@ import {
 	Timer, 
 	Target,
 	ArrowLeft,
-	Loader2
+	Loader2,
+	Weight
 } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
@@ -24,6 +26,7 @@ export default function ProgresoPage() {
 	const router = useRouter()
 	const { user, loading: authLoading } = useAuth()
 	const { workouts, loading: workoutsLoading, getUserStats } = useWorkouts()
+	const { rmRecords, loading: rmsLoading } = useRMs()
 	const [stats, setStats] = useState<any>(null)
 	const [loadingStats, setLoadingStats] = useState(true)
 
@@ -101,9 +104,9 @@ export default function ProgresoPage() {
 				</div>
 
 				{/* Estadísticas Generales */}
-				{loadingStats ? (
-					<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-						{[1, 2, 3, 4].map((i) => (
+				{loadingStats || rmsLoading ? (
+					<div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+						{[1, 2, 3, 4, 5].map((i) => (
 							<Card key={i}>
 								<CardContent className="pt-6">
 									<div className="text-center">
@@ -114,13 +117,13 @@ export default function ProgresoPage() {
 							</Card>
 						))}
 					</div>
-				) : stats ? (
-					<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+				) : (
+					<div className="grid grid-cols-2 md:grid-cols-5 gap-4">
 						<Card>
 							<CardContent className="pt-6">
 								<div className="text-center">
 									<div className="text-3xl font-bold text-lime-400 mb-1">
-										{stats.totalWorkouts || 0}
+										{stats?.totalWorkouts || 0}
 									</div>
 									<div className="text-sm text-muted-foreground">
 										Total Entrenamientos
@@ -133,7 +136,7 @@ export default function ProgresoPage() {
 							<CardContent className="pt-6">
 								<div className="text-center">
 									<div className="text-3xl font-bold text-blue-400 mb-1">
-										{stats.thisWeek || 0}
+										{stats?.thisWeek || 0}
 									</div>
 									<div className="text-sm text-muted-foreground">
 										Esta Semana
@@ -146,7 +149,7 @@ export default function ProgresoPage() {
 							<CardContent className="pt-6">
 								<div className="text-center">
 									<div className="text-3xl font-bold text-purple-400 mb-1">
-										{stats.thisMonth || 0}
+										{stats?.thisMonth || 0}
 									</div>
 									<div className="text-sm text-muted-foreground">
 										Este Mes
@@ -159,7 +162,7 @@ export default function ProgresoPage() {
 							<CardContent className="pt-6">
 								<div className="text-center">
 									<div className="text-3xl font-bold text-orange-400 mb-1">
-										{stats.streak || 0}
+										{stats?.streak || 0}
 									</div>
 									<div className="text-sm text-muted-foreground">
 										Racha (días)
@@ -167,15 +170,33 @@ export default function ProgresoPage() {
 								</div>
 							</CardContent>
 						</Card>
+
+						{/* Card de RMs */}
+						<Card 
+							className="cursor-pointer hover:bg-gray-900/10 dark:hover:bg-gray-100/5 transition-colors"
+							onClick={() => router.push('/log-rm')}
+							tabIndex={0}
+							onKeyDown={(e) => {
+								if (e.key === 'Enter' || e.key === ' ') {
+									e.preventDefault()
+									router.push('/log-rm')
+								}
+							}}
+							role="button"
+							aria-label="Ver repeticiones máximas"
+						>
+							<CardContent className="pt-6">
+								<div className="text-center">
+									<div className="text-3xl font-bold text-lime-400 mb-1">
+										{rmRecords?.length || 0}
+									</div>
+									<div className="text-sm text-muted-foreground">
+										Mis RMs
+									</div>
+								</div>
+							</CardContent>
+						</Card>
 					</div>
-				) : (
-					<Card>
-						<CardContent className="pt-6">
-							<div className="text-center text-muted-foreground">
-								<p>No se pudieron cargar las estadísticas</p>
-							</div>
-						</CardContent>
-					</Card>
 				)}
 
 				{/* Duración Promedio */}
