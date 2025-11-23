@@ -65,13 +65,6 @@ export function PlanificationDayModal({
     })
   }
 
-  const getTotalDuration = () => {
-    return planifications.reduce((total, plan) => total + (plan.estimated_duration || 0), 0)
-  }
-
-  const getTotalBlocks = () => {
-    return planifications.reduce((total, plan) => total + (plan.blocks?.length || 0), 0)
-  }
 
   if (!selectedDate) return null
 
@@ -89,35 +82,6 @@ export function PlanificationDayModal({
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Resumen del día */}
-          <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
-            <CardContent className="pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="flex items-center gap-2">
-                  <Target className="w-5 h-5 text-primary" />
-                  <div>
-                    <p className="text-sm font-medium">Planificaciones</p>
-                    <p className="text-2xl font-bold text-primary">{planifications.length}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-primary" />
-                  <div>
-                    <p className="text-sm font-medium">Duración Total</p>
-                    <p className="text-2xl font-bold text-primary">{getTotalDuration()} min</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Dumbbell className="w-5 h-5 text-primary" />
-                  <div>
-                    <p className="text-sm font-medium">Bloques Totales</p>
-                    <p className="text-2xl font-bold text-primary">{getTotalBlocks()}</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Lista de planificaciones */}
           {planifications.length === 0 ? (
             <Card className="text-center py-12">
@@ -214,7 +178,7 @@ export function PlanificationDayModal({
                               {block.title || `Bloque ${blockIndex + 1}`}
                             </h5>
                             {block.items && block.items.length > 0 && (
-                              <ul className="space-y-1 ml-6">
+                              <ul className="space-y-1 ml-6 mb-3">
                                 {block.items.map((item: string, itemIndex: number) => (
                                   <li key={itemIndex} className="text-sm text-muted-foreground flex items-start gap-2">
                                     <span className="text-primary mt-1">•</span>
@@ -222,6 +186,14 @@ export function PlanificationDayModal({
                                   </li>
                                 ))}
                               </ul>
+                            )}
+                            {block.notes && (
+                              <div className="mt-3 pt-3 border-t border-border/50">
+                                <p className="text-xs font-medium text-muted-foreground mb-1">Notas:</p>
+                                <p className="text-sm text-muted-foreground bg-muted/30 p-2 rounded-md">
+                                  {block.notes}
+                                </p>
+                              </div>
                             )}
                           </div>
                         ))}

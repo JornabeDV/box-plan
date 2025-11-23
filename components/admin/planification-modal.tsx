@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Plus, X, Clock, FileText, Target, Trash2 } from 'lucide-react'
+import { Plus, X, Clock, FileText, Target, Trash2, Pencil, Check } from 'lucide-react'
 import { useDisciplines } from '@/hooks/use-disciplines'
 
 interface Block {
@@ -17,6 +17,7 @@ interface Block {
   title: string
   items: string[]
   order: number
+  notes?: string
 }
 
 interface Planification {
@@ -63,6 +64,8 @@ export function PlanificationModal({
   const [blockTitle, setBlockTitle] = useState('')
   const [blockItem, setBlockItem] = useState('')
   const [currentBlockId, setCurrentBlockId] = useState<string | null>(null)
+  const [editingItem, setEditingItem] = useState<{ blockId: string; itemIndex: number } | null>(null)
+  const [editingItemValue, setEditingItemValue] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -128,6 +131,8 @@ export function PlanificationModal({
       setBlockTitle('')
       setBlockItem('')
       setCurrentBlockId(null)
+      setEditingItem(null)
+      setEditingItemValue('')
       setError(null)
       setLoading(false)
     } else {
@@ -161,6 +166,10 @@ export function PlanificationModal({
 
   const addItemToBlock = (blockId: string) => {
     if (blockItem.trim()) {
+      // Si se está editando un inciso, cancelar la edición antes de agregar uno nuevo
+      if (editingItem) {
+        cancelEditingItem()
+      }
       setBlocks(prev => prev.map(block => 
         block.id === blockId 
           ? { ...block, items: [...block.items, blockItem.trim()] }
@@ -178,7 +187,41 @@ export function PlanificationModal({
     ))
   }
 
+  const startEditingItem = (blockId: string, itemIndex: number) => {
+    const block = blocks.find(b => b.id === blockId)
+    if (block && block.items[itemIndex]) {
+      setEditingItem({ blockId, itemIndex })
+      setEditingItemValue(block.items[itemIndex])
+    }
+  }
+
+  const saveEditingItem = () => {
+    if (editingItem && editingItemValue.trim()) {
+      setBlocks(prev => prev.map(block => 
+        block.id === editingItem.blockId 
+          ? { 
+              ...block, 
+              items: block.items.map((item, index) => 
+                index === editingItem.itemIndex ? editingItemValue.trim() : item
+              )
+            }
+          : block
+      ))
+      setEditingItem(null)
+      setEditingItemValue('')
+    }
+  }
+
+  const cancelEditingItem = () => {
+    setEditingItem(null)
+    setEditingItemValue('')
+  }
+
   const removeBlock = (blockId: string) => {
+    // Si se está editando un inciso de este bloque, cancelar la edición
+    if (editingItem?.blockId === blockId) {
+      cancelEditingItem()
+    }
     setBlocks(prev => prev.filter(block => block.id !== blockId))
   }
 
@@ -186,6 +229,14 @@ export function PlanificationModal({
     setBlocks(prev => prev.map(block => 
       block.id === blockId 
         ? { ...block, title: newTitle }
+        : block
+    ))
+  }
+
+  const updateBlockNotes = (blockId: string, notes: string) => {
+    setBlocks(prev => prev.map(block => 
+      block.id === blockId 
+        ? { ...block, notes }
         : block
     ))
   }
@@ -410,21 +461,83 @@ export function PlanificationModal({
 
                     {/* Incisos del bloque */}
                     <div className="ml-9 space-y-2">
-                      {block.items.map((item, itemIndex) => (
-                        <div key={itemIndex} className="flex items-center gap-2">
-                          <span className="text-muted-foreground">-</span>
-                          <span className="text-sm flex-1">{item}</span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeItemFromBlock(block.id, itemIndex)}
-                            className="text-destructive hover:text-destructive-foreground hover:bg-destructive h-6 w-6 p-0"
-                          >
-                            <X className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      ))}
+                      {block.items.map((item, itemIndex) => {
+                        const isEditing = editingItem?.blockId === block.id && editingItem?.itemIndex === itemIndex
+                        
+                        return (
+                          <div key={itemIndex} className="flex items-center gap-2">
+                            <span className="text-muted-foreground">-</span>
+                            {isEditing ? (
+                              <>
+                                <Input
+                                  value={editingItemValue}
+                                  onChange={(e) => setEditingItemValue(e.target.value)}
+                                  onKeyPress={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault()
+                                      saveEditingItem()
+                                    } else if (e.key === 'Escape') {
+                                      e.preventDefault()
+                                      cancelEditingItem()
+                                    }
+                                  }}
+                                  className="text-sm flex-1 h-8"
+                                  autoFocus
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={saveEditingItem}
+                                  disabled={!editingItemValue.trim()}
+                                  className="text-primary hover:text-primary-foreground hover:bg-primary h-6 w-6 p-0"
+                                >
+                                  <Check className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={cancelEditingItem}
+                                  className="text-muted-foreground hover:text-foreground h-6 w-6 p-0"
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <span 
+                                  className="text-sm flex-1 cursor-pointer hover:bg-muted/50 rounded px-2 py-1 -mx-2 -my-1"
+                                  onClick={() => startEditingItem(block.id, itemIndex)}
+                                  title="Haz clic para editar"
+                                >
+                                  {item}
+                                </span>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => startEditingItem(block.id, itemIndex)}
+                                  className="text-muted-foreground hover:text-foreground h-6 w-6 p-0"
+                                  title="Editar inciso"
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeItemFromBlock(block.id, itemIndex)}
+                                  className="text-destructive hover:text-destructive-foreground hover:bg-destructive h-6 w-6 p-0"
+                                  title="Eliminar inciso"
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        )
+                      })}
                       
                       {/* Agregar inciso */}
                       <div className="flex gap-2">
@@ -452,6 +565,21 @@ export function PlanificationModal({
                         >
                           <Plus className="w-3 h-3" />
                         </Button>
+                      </div>
+                      
+                      {/* Notas del bloque */}
+                      <div className="mt-3">
+                        <Label htmlFor={`block-notes-${block.id}`} className="text-xs text-muted-foreground">
+                          Notas del bloque (opcional)
+                        </Label>
+                        <Textarea
+                          id={`block-notes-${block.id}`}
+                          value={block.notes || ''}
+                          onChange={(e) => updateBlockNotes(block.id, e.target.value)}
+                          placeholder="Agregar notas específicas para este bloque..."
+                          className="text-sm mt-1 min-h-[60px]"
+                          rows={2}
+                        />
                       </div>
                     </div>
                   </div>
