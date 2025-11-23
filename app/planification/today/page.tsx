@@ -30,6 +30,7 @@ interface Planification {
     title: string
     items: string[]
     order: number
+    notes?: string
   }>
   notes?: string
   discipline?: {
@@ -302,8 +303,8 @@ export default function TodayPlanificationPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {block.items && block.items.length > 0 ? (
-                    <ul className="space-y-3">
+                  {block.items && block.items.length > 0 && (
+                    <ul className="space-y-3 mb-4">
                       {block.items.map((item, itemIndex) => (
                         <li key={itemIndex} className="flex items-start gap-3">
                           <CheckCircle 
@@ -316,8 +317,17 @@ export default function TodayPlanificationPage() {
                         </li>
                       ))}
                     </ul>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Sin ejercicios específicos</p>
+                  )}
+                  {(!block.items || block.items.length === 0) && (
+                    <p className="text-sm text-muted-foreground mb-4">Sin ejercicios específicos</p>
+                  )}
+                  {block.notes && (
+                    <div className="mt-4 pt-4 border-t border-border/50">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">Notas del bloque:</p>
+                      <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md whitespace-pre-wrap">
+                        {block.notes}
+                      </p>
+                    </div>
                   )}
                 </CardContent>
               </Card>

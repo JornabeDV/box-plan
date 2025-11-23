@@ -14,6 +14,7 @@ export interface Planification {
     title: string
     items: string[]
     order: number
+    notes?: string
   }>
   notes?: string
   is_active: boolean
