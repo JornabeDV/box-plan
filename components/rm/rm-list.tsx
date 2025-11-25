@@ -51,7 +51,6 @@ export function RMList({ rmRecords, loading, onNewRMClick, onEdit, onDelete }: R
 						className="mt-4"
 						onClick={onNewRMClick}
 					>
-						<Plus className="w-4 h-4 mr-2" />
 						Registrar Primer RM
 					</Button>
 				</div>
@@ -65,7 +64,6 @@ export function RMList({ rmRecords, loading, onNewRMClick, onEdit, onDelete }: R
 								className="mt-4"
 								onClick={onNewRMClick}
 							>
-								<Plus className="w-4 h-4 mr-2" />
 								Registrar Primer RM
 							</Button>
 						</div>
