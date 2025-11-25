@@ -107,7 +107,7 @@ export function StatsCards() {
   if (loading) {
     return (
       <div className="mb-6">
-        <Card className="border-secondary/30 bg-gradient-to-br from-card to-secondary/5 shadow-lg shadow-secondary/10">
+        <Card>
           <CardContent className="p-4 md:p-5">
             <div className="flex items-center gap-3 md:gap-4">
               <div className="w-12 h-12 bg-gradient-to-br from-secondary to-secondary/80 rounded-xl flex items-center justify-center shadow-lg shadow-secondary/25 flex-shrink-0">
@@ -126,7 +126,7 @@ export function StatsCards() {
   if (!planification) {
     return (
       <div className="mb-6">
-        <Card className="border-secondary/30 bg-gradient-to-br from-card to-secondary/5 shadow-lg shadow-secondary/10">
+        <Card>
           <CardContent className="p-4 md:p-5">
             <div className="flex items-center gap-3 md:gap-4">
               <div className="w-12 h-12 bg-gradient-to-br from-secondary to-secondary/80 rounded-xl flex items-center justify-center shadow-lg shadow-secondary/25 flex-shrink-0">
@@ -148,7 +148,7 @@ export function StatsCards() {
 
   return (
     <div className="mb-6">
-      <Card className="border-secondary/30 bg-gradient-to-br from-card to-secondary/5 shadow-lg shadow-secondary/10">
+      <Card>
         <CardContent className="p-4 md:p-5">
           <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
             <div className="flex items-center gap-3 md:gap-4">

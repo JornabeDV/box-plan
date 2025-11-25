@@ -7,7 +7,7 @@ export function BottomNavigation() {
   const { isAdmin, isCoach } = useAuthWithRoles()
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border">
+    <nav className="fixed bottom-0 left-0 right-0 bg-muted border-t border-border">
       <div className="flex items-center justify-around py-3 px-2">
 
         <Link href="/">

@@ -9,7 +9,7 @@ export function Header({}: HeaderProps) {
   const { user, isAdmin, isCoach, signOut } = useAuthWithRoles()
 
   return (
-    <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 shadow-sm">
+    <header className="sticky top-0 z-50 bg-muted/95 backdrop-blur-md border-b border-border/50 shadow-sm">
       <div className="flex items-center justify-between p-4 md:p-6">
         <div className="flex items-center gap-3 md:gap-4">
           <div className="relative group">
