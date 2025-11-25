@@ -99,7 +99,17 @@ export function TrialCalendar({ onDateClick, coachId }: TrialCalendarProps) {
 	}
 
 	const goToToday = () => {
-		setCurrentDate(new Date())
+		const today = new Date()
+		setCurrentDate(today)
+		
+		// Formatear fecha como YYYY-MM-DD
+		const year = today.getFullYear()
+		const month = String(today.getMonth() + 1).padStart(2, '0')
+		const day = String(today.getDate()).padStart(2, '0')
+		const dateString = `${year}-${month}-${day}`
+		
+		// Redirigir a la planilla de hoy
+		router.push(`/planification?date=${dateString}`)
 	}
 
 	const hasWorkout = (day: number) => {

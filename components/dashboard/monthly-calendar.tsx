@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
+import { useRouter } from "next/navigation"
 
 interface MonthlyCalendarProps {
   onDateClick?: (date: Date) => void
@@ -16,6 +17,7 @@ interface MonthlyCalendarProps {
  */
 export function MonthlyCalendar({ onDateClick }: MonthlyCalendarProps) {
   const { user } = useAuth()
+  const router = useRouter()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [datesWithPlanification, setDatesWithPlanification] = useState<number[]>([])
   const [loading, setLoading] = useState(false)
@@ -50,7 +52,17 @@ export function MonthlyCalendar({ onDateClick }: MonthlyCalendarProps) {
   }
   
   const goToToday = () => {
-    setCurrentDate(new Date())
+    const today = new Date()
+    setCurrentDate(today)
+    
+    // Formatear fecha como YYYY-MM-DD
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    const dateString = `${year}-${month}-${day}`
+    
+    // Redirigir a la planilla de hoy
+    router.push(`/planification?date=${dateString}`)
   }
   
   // Cargar planificaciones del mes
@@ -210,7 +222,7 @@ export function MonthlyCalendar({ onDateClick }: MonthlyCalendarProps) {
                       ? 'bg-primary text-primary-foreground shadow-accent animate-pulse-glow' 
                       : hasWorkoutValue 
                         ? 'bg-accent/20 text-accent hover:bg-accent/30 hover:scale-105 border-2 border-accent/30' 
-                        : 'text-muted-foreground'
+                        : 'bg-background border border-muted-foreground/20 text-muted-foreground'
                     }
                     ${isClickable ? 'cursor-pointer' : 'cursor-default'}
                     ${isPast ? 'opacity-50' : ''}
@@ -235,7 +247,7 @@ export function MonthlyCalendar({ onDateClick }: MonthlyCalendarProps) {
             <span className="text-xs text-muted-foreground">Días de entrenamiento</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-muted/50 rounded-full"></div>
+            <div className="w-3 h-3 bg-background border-2 border-muted-foreground/40 rounded-full"></div>
             <span className="text-xs text-muted-foreground">Día libre</span>
           </div>
         </div>
