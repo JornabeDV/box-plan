@@ -257,15 +257,7 @@ export default function PlanificationPage() {
               Bloques de Entrenamiento
             </h3>
             {sortedBlocks.map((block, index) => (
-              <Card 
-                key={block.id || index} 
-                className="border-l-4 shadow-2xl bg-zinc-950/80 border-zinc-800/50"
-                style={{
-                  borderLeftColor: planification.discipline?.color || 'hsl(var(--primary))',
-                  borderLeftWidth: '4px',
-                  boxShadow: '0 40px 80px -12px rgba(204, 255, 0, 0.3), 0 20px 40px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.15)'
-                }}
-              >
+              <Card key={block.id || index}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-3 text-lg text-white">
                     <span 
@@ -314,7 +306,7 @@ export default function PlanificationPage() {
 
         {/* Notas adicionales */}
         {planification.notes && (
-          <Card className="bg-zinc-950/80 border-zinc-800/50 shadow-2xl" style={{ boxShadow: '0 40px 80px -12px rgba(204, 255, 0, 0.3), 0 20px 40px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.15)' }}>
+          <Card>
             <CardHeader>
               <CardTitle className="text-xl flex items-center gap-2 text-white">
                 <FileText className="w-6 h-6 text-lime-400" />
@@ -329,7 +321,7 @@ export default function PlanificationPage() {
 
         {/* Mensaje si no hay bloques ni notas */}
         {sortedBlocks.length === 0 && !planification.notes && (
-          <Card className="bg-zinc-950/80 border-zinc-800/50 shadow-2xl" style={{ boxShadow: '0 40px 80px -12px rgba(204, 255, 0, 0.3), 0 20px 40px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.15)' }}>
+          <Card>
             <CardContent className="pt-6 text-center py-12">
               <p className="text-zinc-300">
                 No hay detalles adicionales para esta planificación

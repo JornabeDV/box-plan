@@ -131,7 +131,7 @@ export function MonthlyCalendar({ onDateClick }: MonthlyCalendarProps) {
   }
   
   return (
-    <Card className="bg-card/80 backdrop-blur-sm border-2 border-border shadow-soft">
+    <Card>
       <CardHeader className="pb-4">
         {/* Título y descripción */}
         <div className="text-center mb-4">
