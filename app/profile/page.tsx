@@ -204,7 +204,18 @@ export default function ProfilePage() {
         <div className="max-w-2xl mx-auto">
           {/* Título */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground">Mi Perfil</h1>
+            <div className="flex items-center justify-between gap-4 mb-2">
+              <h1 className="text-3xl font-bold text-foreground">Mi Perfil</h1>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push('/')}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span className="hidden sm:inline">Volver</span>
+              </Button>
+            </div>
           </div>
           <Card>
             <CardHeader>
@@ -276,7 +287,7 @@ export default function ProfilePage() {
                 {preferencesLoading || coachLoading || disciplinesLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                    <span className="ml-2 text-muted-foreground">Cargando preferencias...</span>
+                    <span className="ml-2 text-muted-foreground">Actualizando preferencias...</span>
                   </div>
                 ) : (
                   <div className="space-y-6">
@@ -369,31 +380,32 @@ export default function ProfilePage() {
                           Selecciona una disciplina para habilitar la selección de nivel
                         </p>
                       )}
-
-                      {/* Botón Guardar */}
-                      <Button
-                        onClick={handleSavePreferences}
-                        disabled={!selectedDisciplineId || !selectedLevelId || savingPreferences}
-                        className="w-full"
-                        size="lg"
-                      >
-                        {savingPreferences ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Guardando...
-                          </>
-                        ) : (
-                          <>
-                            <Target className="w-4 h-4 mr-2" />
-                            {preferences?.preferredDisciplineId ? 'Actualizar Preferencias' : 'Guardar Preferencias'}
-                          </>
-                        )}
-                      </Button>
                       {selectedDisciplineId && !selectedLevelId && (
                         <p className="text-xs text-muted-foreground text-center">
                           Por favor, selecciona un nivel para continuar
                         </p>
                       )}
+
+                      {/* Botón Guardar/Actualizar */}
+                      <div className="flex justify-end">
+                        <Button
+                          onClick={handleSavePreferences}
+                          disabled={!selectedDisciplineId || !selectedLevelId || savingPreferences}
+                          variant="outline"
+                          size="sm"
+                        >
+                          {savingPreferences ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Guardando...
+                            </>
+                          ) : (
+                            <>
+                              {preferences?.preferredDisciplineId ? 'Actualizar' : 'Guardar'}
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}
