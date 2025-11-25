@@ -6,6 +6,14 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { 
   CreditCard, 
   Calendar, 
@@ -116,7 +124,7 @@ export function SubscriptionManagement({
       {/* Estado actual de la suscripción */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <CreditCard className="w-5 h-5" />
               Gestión de Suscripción
@@ -128,12 +136,12 @@ export function SubscriptionManagement({
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Plan actual */}
-          <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="p-2 bg-primary/10 rounded-lg shrink-0">
                 <PlanIcon className="w-6 h-6 text-primary" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <h3 className="font-semibold text-lg">{plan?.name || 'Plan Básico'}</h3>
                 <p className="text-sm text-muted-foreground">
                   ${plan?.price?.toLocaleString() || '2,999'} ARS / mes
@@ -145,6 +153,7 @@ export function SubscriptionManagement({
               size="sm"
               onClick={onPlanChange}
               disabled={loading}
+              className="w-full sm:w-auto shrink-0"
             >
               Cambiar Plan
             </Button>
@@ -229,17 +238,17 @@ export function SubscriptionManagement({
             {subscription.status === 'active' && !subscription.cancel_at_period_end && (
               <Button 
                 variant="outline" 
+                size="sm"
                 onClick={() => setShowCancelConfirm(true)}
                 disabled={loading}
-                className="flex items-center gap-2"
               >
-                <X className="w-4 h-4" />
                 Cancelar Suscripción
               </Button>
             )}
             
             {subscription.cancel_at_period_end && (
               <Button 
+                size="sm"
                 onClick={onReactivate}
                 disabled={loading}
                 className="flex items-center gap-2"
@@ -251,6 +260,7 @@ export function SubscriptionManagement({
             
             {subscription.status === 'past_due' && onRenew && (
               <Button 
+                size="sm"
                 onClick={onRenew}
                 disabled={loading}
                 className="flex items-center gap-2"
@@ -264,37 +274,44 @@ export function SubscriptionManagement({
       </Card>
 
       {/* Confirmación de cancelación */}
-      {showCancelConfirm && (
-        <Card className="border-red-200">
-          <CardHeader>
-            <CardTitle className="text-red-800">Confirmar Cancelación</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
+      <Dialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Cancelación</DialogTitle>
+            <DialogDescription>
               ¿Estás seguro de que quieres cancelar tu suscripción? 
               Podrás seguir usando el servicio hasta el final del período actual.
-            </p>
-            <div className="flex gap-2">
-              <Button 
-                variant="destructive" 
-                onClick={() => {
-                  onCancel()
-                  setShowCancelConfirm(false)
-                }}
-                disabled={loading}
-              >
-                Sí, Cancelar
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => setShowCancelConfirm(false)}
-              >
-                No, Mantener
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowCancelConfirm(false)}
+            >
+              No, Mantener
+            </Button>
+            <Button 
+              variant="destructive" 
+              size="sm"
+              onClick={() => {
+                onCancel()
+                setShowCancelConfirm(false)
+              }}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Cancelando...
+                </>
+              ) : (
+                'Sí, Cancelar'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

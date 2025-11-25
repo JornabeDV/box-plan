@@ -207,7 +207,7 @@ export function PlanSwitcher({
                       ? 'bg-primary hover:bg-primary/90 text-primary-foreground ring-2 ring-primary cursor-pointer'
                       : 'bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer'
                   }`}
-                  size="default"
+                  size="sm"
                 >
                   {isProcessing ? (
                     <>
@@ -256,12 +256,14 @@ export function PlanSwitcher({
             <Button 
               onClick={() => setSelectedPlan(null)}
               variant="outline"
+              size="sm"
             >
               Cancelar
             </Button>
             <Button 
               onClick={handleConfirmChange}
               disabled={loading}
+              size="sm"
             >
               {loading ? (
                 <>

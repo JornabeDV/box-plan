@@ -142,6 +142,21 @@ export function SubscriptionStatus() {
     }
   }
 
+  const formatDate = (dateString: string | null | undefined): string => {
+    if (!dateString) return 'N/A'
+    try {
+      const date = new Date(dateString)
+      if (isNaN(date.getTime())) return 'Fecha inválida'
+      return date.toLocaleDateString('es-AR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    } catch {
+      return 'Fecha inválida'
+    }
+  }
+
   const isExpiringSoon = () => {
     if (!subscription) return false
     const endDate = new Date(subscription.current_period_end)
@@ -153,16 +168,23 @@ export function SubscriptionStatus() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Crown className="h-5 w-5" />
-          Estado de Suscripción
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Crown className="h-5 w-5" />
+            Estado de Suscripción
+          </CardTitle>
+          <Link href="/subscription">
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <span className="hidden sm:inline">Gestionar Suscripción</span>
+              <span className="sm:hidden">Gestionar</span>
+            </Button>
+          </Link>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <div>
             <h3 className="text-lg font-semibold">Plan Activo</h3>
-            <p className="text-sm text-muted-foreground">ID: {subscription.plan_id}</p>
           </div>
           <Badge className={getStatusColor(subscription.status)}>
             <div className="flex items-center gap-1">
@@ -172,17 +194,17 @@ export function SubscriptionStatus() {
           </Badge>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div>
-            <p className="text-muted-foreground">Inicio del período:</p>
+            <p className="text-muted-foreground mb-1">Inicio del período:</p>
             <p className="font-medium">
-              {new Date(subscription.current_period_start).toLocaleDateString('es-AR')}
+              {formatDate(subscription.current_period_start)}
             </p>
           </div>
           <div>
-            <p className="text-muted-foreground">Fin del período:</p>
+            <p className="text-muted-foreground mb-1">Fin del período:</p>
             <p className="font-medium">
-              {new Date(subscription.current_period_end).toLocaleDateString('es-AR')}
+              {formatDate(subscription.current_period_end)}
             </p>
           </div>
         </div>
@@ -205,19 +227,6 @@ export function SubscriptionStatus() {
             </p>
           </div>
         )}
-
-        <div className="flex gap-2">
-          <Link href="/profile" className="flex-1">
-            <Button variant="outline" className="w-full">
-              Ver Detalles Completos
-            </Button>
-          </Link>
-          <Link href="/subscription" className="flex-1">
-            <Button variant="outline" className="w-full">
-              Gestionar Suscripción
-            </Button>
-          </Link>
-        </div>
       </CardContent>
     </Card>
   )
