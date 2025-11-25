@@ -436,7 +436,7 @@ export default function ProfilePage() {
                 placeholder="Ingresa tu nombre completo"
               />
             </div>
-            <div className="grid gap-2">
+            <div className="grid gap-2 hidden">
               <Label htmlFor="avatar_url">URL del Avatar</Label>
               <Input
                 id="avatar_url"
