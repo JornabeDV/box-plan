@@ -20,7 +20,7 @@ const buttonVariants = cva(
         soft:
           'bg-lime-400/20 border border-lime-400/30 text-lime-400 font-semibold backdrop-blur-sm hover:shadow-[0_4px_15px_rgba(204,255,0,0.15)]',
         destructive:
-          'bg-gradient-to-r from-red-600 to-red-700 text-white font-bold shadow-lg hover:from-red-700 hover:to-red-800',
+          'bg-red-600 text-white font-semibold hover:bg-red-700',
         secondary:
           'bg-gray-700/50 backdrop-blur-sm border border-gray-600/50 text-gray-200 font-semibold hover:bg-gray-600/50 hover:border-gray-500/50',
         ghost:
