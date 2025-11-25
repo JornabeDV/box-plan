@@ -193,20 +193,15 @@ export default function PlanificationPage() {
             </div>
           </div>
 
-          <Card className="bg-[#141414c7] border-zinc-800/50 shadow-2xl" style={{ boxShadow: '0 40px 80px -12px rgba(204, 255, 0, 0.3), 0 20px 40px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.15)' }}>
+          <Card>
             <CardContent className="pt-6 text-center py-12">
               <Calendar className="w-16 h-16 text-zinc-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2 text-white">
+              <h3 className="text-xl font-semibold mb-4 text-white">
                 {isSameDate(selectedDate, new Date())
                   ? 'No hay planificación para hoy'
                   : `No hay planificación para el ${formatDate(selectedDate.toISOString().split('T')[0] + 'T00:00:00')}`
                 }
               </h3>
-              {error && (
-                <p className="text-sm text-zinc-400 mb-4">
-                  {error}
-                </p>
-              )}
               <Button onClick={() => router.push('/')}>
                 Volver al inicio
               </Button>

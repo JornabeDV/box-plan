@@ -1,6 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { ArrowLeft } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { BottomNavigation } from '@/components/layout/bottom-navigation'
 import { TimerModeSelector } from '@/components/timer/timer-mode-selector'
@@ -10,6 +13,7 @@ import { TimerInfo } from '@/components/timer/timer-info'
 import { useTimer, TimerMode } from '@/hooks/use-timer'
 
 export default function TimerPage() {
+	const router = useRouter()
 	const [mode, setMode] = useState<TimerMode>('normal')
 	const [workTime, setWorkTime] = useState('20')
 	const [restTime, setRestTime] = useState('10')
@@ -49,9 +53,19 @@ export default function TimerPage() {
 			<Header />
 
 			<main className="p-6 space-y-6 pb-24">
-				<div className="text-center space-y-2">
-					<h1 className="text-3xl font-heading">Timer CrossFit</h1>
-					<p className="text-muted-foreground">Herramientas de entrenamiento especializadas</p>
+				<div className="mb-8">
+					<div className="flex items-center justify-between max-w-md mx-auto gap-4 mb-2">
+						<h1 className="text-3xl font-heading">Timer CrossFit</h1>
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => router.push('/')}
+							className="flex items-center gap-2"
+						>
+							<ArrowLeft className="h-4 w-4" />
+							<span className="hidden sm:inline">Volver</span>
+						</Button>
+					</div>
 				</div>
 
 				<TimerModeSelector mode={mode} onModeChange={handleModeChange} />

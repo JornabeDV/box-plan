@@ -37,7 +37,7 @@ const defaultReviews: Review[] = [
 		role: 'Atleta Intermedio',
 		avatar: 'MG',
 		rating: 5,
-		text: 'Increíble app para CrossFit. Las planillas son súper completas y el timer es exactamente lo que necesitaba. Llevo 3 meses usándola y mi progreso mejoró notablemente.',
+		text: 'Increíble app para CrossFit. Las planillas son súper claras y el timer es exactamente lo que necesitaba. Llevo 3 meses usándola y mi progreso mejoró notablemente.',
 		plan: 'Intermedio',
 		date: 'Hace 2 semanas'
 	},
@@ -57,7 +57,7 @@ const defaultReviews: Review[] = [
 		role: 'Atleta Principiante',
 		avatar: 'AM',
 		rating: 5,
-		text: 'Perfecta para empezar en CrossFit. Las planillas básicas son claras y fáciles de seguir. El foro de la comunidad es muy activo y siempre encuentro tips útiles.',
+		text: 'Perfecta para empezar en CrossFit. Las planillas básicas son claras y fáciles de seguir.',
 		plan: 'Básico',
 		date: 'Hace 3 semanas'
 	},
@@ -67,7 +67,7 @@ const defaultReviews: Review[] = [
 		role: 'Atleta Avanzado',
 		avatar: 'DF',
 		rating: 5,
-		text: 'El análisis de progreso es impresionante. Puedo ver todos mis PRs y cómo he mejorado mes a mes. La calculadora 1RM es muy útil para planificar mis entrenamientos.',
+		text: 'App muy dinámica, fácil de usar. La calculadora RM es muy útil para planificar mis entrenamientos.',
 		plan: 'Pro',
 		date: 'Hace 5 días'
 	},
@@ -108,10 +108,10 @@ export function ReviewsSection({
 				{showTitle && (
 					<div className="text-center mb-6">
 						<h2 className="text-xl md:text-2xl font-bold mb-2">
-							Lo que dicen nuestros usuarios
+							Lo que dicen nuestros atletas
 						</h2>
 						<p className="text-sm md:text-base text-muted-foreground max-w-xl mx-auto">
-							Únete a miles de atletas mejorando su rendimiento
+							Únete a cientos de atletas mejorando su rendimiento
 						</p>
 					</div>
 				)}

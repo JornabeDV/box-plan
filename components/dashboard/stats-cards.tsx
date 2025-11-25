@@ -66,7 +66,6 @@ export function StatsCards() {
         if (data.data) {
           setPlanification(data.data)
         } else {
-          // No hay planificación para hoy
           setPlanification(null)
         }
       } catch (err) {

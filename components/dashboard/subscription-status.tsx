@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useProfile } from "@/hooks/use-profile"
+import { useUserCoach } from "@/hooks/use-user-coach"
 import { Crown, CheckCircle, XCircle, Clock, AlertTriangle, Zap, Star, Sparkles, ArrowRight } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
@@ -11,6 +12,38 @@ import Link from "next/link"
 
 export function SubscriptionStatus() {
   const { subscription, loading } = useProfile()
+  const { coach: userCoach } = useUserCoach()
+
+  // Función para abrir WhatsApp con el coach
+  const handleContactCoach = () => {
+    if (!userCoach?.phone) {
+      return
+    }
+
+    // Formatear el número de teléfono para WhatsApp
+    const formatPhoneForWhatsApp = (phoneNumber: string): string => {
+      let cleaned = phoneNumber.replace(/[^\d+]/g, '')
+      
+      if (!cleaned.startsWith('+')) {
+        if (cleaned.startsWith('54')) {
+          cleaned = '+' + cleaned
+        } else {
+          cleaned = '+54' + cleaned
+        }
+      }
+      
+      return cleaned
+    }
+
+    const formattedPhone = formatPhoneForWhatsApp(userCoach.phone)
+    const message = `Hola ${userCoach.name || 'coach'}, necesito ayuda con mi suscripción en BoxPlan.`
+    
+    // Crear URL de WhatsApp
+    const whatsappUrl = `https://wa.me/${formattedPhone.replace(/\+/g, '')}?text=${encodeURIComponent(message)}`
+    
+    // Abrir WhatsApp en una nueva ventana
+    window.open(whatsappUrl, '_blank')
+  }
 
   if (loading) {
     return (
@@ -173,12 +206,15 @@ export function SubscriptionStatus() {
             <Crown className="h-5 w-5" />
             Estado de Suscripción
           </CardTitle>
-          <Link href="/subscription">
-            <Button variant="outline" size="sm" className="flex items-center gap-2">
-              <span className="hidden sm:inline">Gestionar Suscripción</span>
-              <span className="sm:hidden">Gestionar</span>
-            </Button>
-          </Link>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex items-center gap-2"
+            onClick={handleContactCoach}
+          >
+            <span className="hidden sm:inline">Gestionar Suscripción</span>
+            <span className="sm:hidden">Gestionar</span>
+          </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
