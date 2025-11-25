@@ -18,7 +18,7 @@ export function TodaySection() {
     const dateString = `${year}-${month}-${day}`
     
     // Navegar a la página de planificación con la fecha seleccionada
-    router.push(`/planification/today?date=${dateString}`)
+    router.push(`/planification?date=${dateString}`)
   }
 
   return (

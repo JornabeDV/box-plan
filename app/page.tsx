@@ -619,7 +619,7 @@ export default function BoxPlanApp() {
                   const dateString = `${year}-${month}-${day}`
                   
                   // Redirigir a la página de planificación con la fecha
-                  router.push(`/planification/today?date=${dateString}`)
+                  router.push(`/planification?date=${dateString}`)
                 }}
               />
             )}

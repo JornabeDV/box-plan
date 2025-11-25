@@ -87,22 +87,28 @@ export async function GET(request: NextRequest) {
     }
     
     // Buscar planificaciones activas para la fecha especificada
-    // Usar UTC para evitar problemas de zona horaria
-    // Parsear la fecha manualmente y crear en UTC
+    // Crear fechas para el inicio y fin del día en hora local
     const [year, month, day] = dateStr.split('-').map(Number)
-    // Crear la fecha representando el inicio del día en Argentina (UTC-3) = 03:00 UTC
-    const targetDate = new Date(Date.UTC(year, month - 1, day, 3, 0, 0, 0))
-    // El siguiente día: día siguiente a las 02:59:59 UTC (que es 23:59:59 del día actual en Argentina)
-    const nextDay = new Date(Date.UTC(year, month - 1, day + 1, 2, 59, 59, 999))
+    const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0)
+    const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999)
+
+    console.log('Searching planification:', {
+      dateStr,
+      coachId,
+      preferredDisciplineId,
+      preferredLevelId,
+      startOfDay: startOfDay.toISOString(),
+      endOfDay: endOfDay.toISOString()
+    })
 
     const planification = await prisma.planification.findFirst({
       where: {
-        coachId: coachId, // Solo planificaciones del coach del estudiante
+        coachId: coachId,
         disciplineId: preferredDisciplineId,
         disciplineLevelId: preferredLevelId,
         date: {
-          gte: targetDate,
-          lt: nextDay
+          gte: startOfDay,
+          lte: endOfDay
         }
       },
       select: {
@@ -136,7 +142,28 @@ export async function GET(request: NextRequest) {
       orderBy: { date: 'asc' }
     })
 
+    console.log('Planification found:', planification ? 'Yes' : 'No')
+    
     if (!planification) {
+      // Intentar buscar sin filtros de disciplina y nivel para debug
+      const allPlanifications = await prisma.planification.findMany({
+        where: {
+          coachId: coachId,
+          date: {
+            gte: startOfDay,
+            lte: endOfDay
+          }
+        },
+        select: {
+          id: true,
+          disciplineId: true,
+          disciplineLevelId: true,
+          date: true
+        }
+      })
+      
+      console.log('All planifications for date:', allPlanifications)
+      
       return NextResponse.json({ 
         data: null,
         message: `No hay planificación para ${dateParam ? 'esa fecha' : 'hoy'} con tu disciplina y nivel`

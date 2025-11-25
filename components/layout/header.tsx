@@ -30,7 +30,7 @@ export function Header({}: HeaderProps) {
               Box Plan
             </h1>
             <p className="text-xs md:text-sm text-muted-foreground truncate">
-              {user ? `Hola, Jorge` : 'Tu entrenamiento de hoy'}
+              {user?.name ? `Hola, ${user.name}` : 'Tu entrenamiento de hoy'}
             </p>
           </div>
         </div>

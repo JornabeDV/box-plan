@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isCoach, normalizeUserId } from '@/lib/auth-helpers'
-import { normalizeDateForArgentina } from '@/lib/utils'
+import { normalizeUserId } from '@/lib/auth-helpers'
 
-// GET /api/planifications
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
+// GET /api/planifications?date=YYYY-MM-DD
+// Obtiene la planificación de una fecha específica (o hoy si no se proporciona) del coach del estudiante según sus preferencias (discipline y level)
 export async function GET(request: NextRequest) {
   try {
     const session = await auth()
@@ -14,16 +17,91 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    // Verificar que el usuario es coach y obtener su coachId
-    const authCheck = await isCoach(userId)
-    if (!authCheck.isAuthorized || !authCheck.profile) {
-      return NextResponse.json({ error: 'No autorizado. Solo coaches pueden ver planificaciones.' }, { status: 403 })
+    // Obtener el coach del estudiante
+    const relationship = await prisma.coachStudentRelationship.findFirst({
+      where: {
+        studentId: userId,
+        status: 'active'
+      },
+      include: {
+        coach: {
+          select: {
+            id: true
+          }
+        }
+      }
+    })
+
+    if (!relationship) {
+      return NextResponse.json({ 
+        data: null,
+        message: 'El usuario no está asociado a ningún coach activo'
+      })
     }
 
-    const coachId = authCheck.profile.id
+    const coachId = relationship.coach.id
 
-    const planifications = await prisma.planification.findMany({
-      where: { coachId: coachId },
+    // Obtener las preferencias del usuario
+    const preference = await prisma.userPreference.findUnique({
+      where: { userId },
+      select: {
+        preferredDisciplineId: true,
+        preferredLevelId: true
+      }
+    })
+
+    if (!preference || !preference.preferredDisciplineId || !preference.preferredLevelId) {
+      return NextResponse.json({ 
+        data: null,
+        message: 'El usuario no tiene preferencias configuradas (discipline y level)'
+      })
+    }
+
+    const { preferredDisciplineId, preferredLevelId } = preference
+
+    // Obtener la fecha del query param o usar hoy
+    const { searchParams } = new URL(request.url)
+    const dateParam = searchParams.get('date')
+    
+    let dateStr: string
+    if (dateParam) {
+      // Validar formato YYYY-MM-DD
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/
+      if (dateRegex.test(dateParam)) {
+        dateStr = dateParam
+      } else {
+        // Si el formato no es válido, usar hoy
+        const today = new Date()
+        const year = today.getFullYear()
+        const month = String(today.getMonth() + 1).padStart(2, '0')
+        const day = String(today.getDate()).padStart(2, '0')
+        dateStr = `${year}-${month}-${day}`
+      }
+    } else {
+      // Usar hoy - formatear manualmente para evitar problemas de timezone
+      const today = new Date()
+      const year = today.getFullYear()
+      const month = String(today.getMonth() + 1).padStart(2, '0')
+      const day = String(today.getDate()).padStart(2, '0')
+      dateStr = `${year}-${month}-${day}`
+    }
+    
+    // Buscar planificaciones activas para la fecha especificada
+    // Crear fechas para el inicio y fin del día en hora local
+    const [year, month, day] = dateStr.split('-').map(Number)
+    const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0)
+    const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999)
+
+    const planification = await prisma.planification.findFirst({
+      where: {
+        coachId: coachId,
+        disciplineId: preferredDisciplineId,
+        disciplineLevelId: preferredLevelId,
+        date: {
+          gte: startOfDay,
+          lte: endOfDay
+        }
+      },
       select: {
         id: true,
         disciplineId: true,
@@ -55,144 +133,39 @@ export async function GET(request: NextRequest) {
       orderBy: { date: 'asc' }
     })
 
-    // Transformar para respuesta
-    // Convertir "exercises" (JSON) a "blocks" para el frontend
-    const transformed = planifications.map(p => {
-      const exercisesData = (p as any).exercises
-      const blocksData = exercisesData ? (Array.isArray(exercisesData) ? exercisesData : []) : []
-      
-      return {
-        ...p,
-        blocks: blocksData, // Agregar blocks para compatibilidad con el frontend
-        exercises: exercisesData, // Mantener exercises también
-        discipline: p.discipline ? {
-          id: p.discipline.id,
-          name: p.discipline.name,
-          color: p.discipline.color
-        } : null,
-        discipline_level: p.disciplineLevel ? {
-          id: p.disciplineLevel.id,
-          name: p.disciplineLevel.name,
-          description: p.disciplineLevel.description
-        } : null
-      }
-    })
-
-    return NextResponse.json(transformed)
-  } catch (error) {
-    console.error('Error fetching planifications:', error)
-    return NextResponse.json(
-      { error: 'Error al cargar planificaciones' },
-      { status: 500 }
-    )
-  }
-}
-
-// POST /api/planifications
-export async function POST(request: NextRequest) {
-  try {
-    const session = await auth()
-    
-    const userId = normalizeUserId(session?.user?.id)
-    if (!userId) {
-      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    if (!planification) {
+      return NextResponse.json({ 
+        data: null,
+        message: `No hay planificación para ${dateParam ? 'esa fecha' : 'hoy'} con tu disciplina y nivel`
+      })
     }
-
-    // Verificar que el usuario es coach
-    const authCheck = await isCoach(userId)
-    if (!authCheck.isAuthorized || !authCheck.profile) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
-    }
-
-    const coachId = authCheck.profile.id
-
-    const body = await request.json()
-    const { discipline_id, discipline_level_id, date, title, description, exercises, blocks, notes, is_completed, estimated_duration } = body
-
-    if (!discipline_id || !discipline_level_id || !date) {
-      return NextResponse.json(
-        { error: 'Campos requeridos: discipline_id, discipline_level_id, date' },
-        { status: 400 }
-      )
-    }
-
-    // Convertir discipline_id y discipline_level_id a números enteros
-    const disciplineIdNum = typeof discipline_id === 'string' ? parseInt(discipline_id, 10) : discipline_id
-    const disciplineLevelIdNum = typeof discipline_level_id === 'string' ? parseInt(discipline_level_id, 10) : discipline_level_id
-
-    if (isNaN(disciplineIdNum) || isNaN(disciplineLevelIdNum)) {
-      return NextResponse.json(
-        { error: 'discipline_id y discipline_level_id deben ser números válidos' },
-        { status: 400 }
-      )
-    }
-
-    // Normalizar la fecha para Argentina (UTC-3) para evitar problemas de timezone
-    const normalizedDate = typeof date === 'string' 
-      ? normalizeDateForArgentina(date)
-      : new Date(date)
-
-    // Los bloques se envían como "blocks" pero se guardan en "exercises" (campo JSON)
-    // Priorizar "blocks" sobre "exercises" si ambos están presentes
-    const blocksToSave = blocks || exercises || null
-
-    const newPlanification = await prisma.planification.create({
-      data: {
-        coachId: coachId, // ID del perfil del coach (consistente con otras tablas)
-        // userId no se incluye - las planificaciones son libres del coach
-        disciplineId: disciplineIdNum || null,
-        disciplineLevelId: disciplineLevelIdNum || null,
-        date: normalizedDate,
-        title: title || null,
-        description: description || null,
-        exercises: blocksToSave ? JSON.parse(JSON.stringify(blocksToSave)) : null, // Asegurar que sea JSON válido
-        notes: notes || null,
-        isCompleted: is_completed !== undefined ? is_completed : false
-      } as any,
-      include: {
-        discipline: {
-          select: {
-            id: true,
-            name: true,
-            color: true
-          }
-        },
-        disciplineLevel: {
-          select: {
-            id: true,
-            name: true,
-            description: true
-          }
-        }
-      }
-    })
 
     // Transformar para respuesta
     // Convertir "exercises" (JSON) a "blocks" para el frontend
-    const exercisesData = (newPlanification as any).exercises
+    const exercisesData = (planification as any).exercises
     const blocksData = exercisesData ? (Array.isArray(exercisesData) ? exercisesData : []) : []
 
     const transformed = {
-      ...newPlanification,
+      ...planification,
       blocks: blocksData, // Agregar blocks para compatibilidad con el frontend
       exercises: exercisesData, // Mantener exercises también
-      discipline: (newPlanification as any).discipline ? {
-        id: (newPlanification as any).discipline.id,
-        name: (newPlanification as any).discipline.name,
-        color: (newPlanification as any).discipline.color
+      discipline: planification.discipline ? {
+        id: planification.discipline.id,
+        name: planification.discipline.name,
+        color: planification.discipline.color
       } : null,
-      discipline_level: (newPlanification as any).disciplineLevel ? {
-        id: (newPlanification as any).disciplineLevel.id,
-        name: (newPlanification as any).disciplineLevel.name,
-        description: (newPlanification as any).disciplineLevel.description
+      discipline_level: planification.disciplineLevel ? {
+        id: planification.disciplineLevel.id,
+        name: planification.disciplineLevel.name,
+        description: planification.disciplineLevel.description
       } : null
     }
 
-    return NextResponse.json(transformed)
+    return NextResponse.json({ data: transformed })
   } catch (error) {
-    console.error('Error creating planification:', error)
+    console.error('Error fetching planification:', error)
     return NextResponse.json(
-      { error: 'Error al crear planificación' },
+      { error: 'Error al cargar la planificación' },
       { status: 500 }
     )
   }
