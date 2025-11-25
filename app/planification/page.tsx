@@ -42,7 +42,7 @@ interface Planification {
   }
 }
 
-export default function TodayPlanificationPage() {
+export default function PlanificationPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user } = useAuth()
@@ -52,71 +52,74 @@ export default function TodayPlanificationPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
 
   useEffect(() => {
+    if (!user?.id) {
+      setLoading(false)
+      return
+    }
+
     // Obtener la fecha de los query params o usar hoy
     const dateParam = searchParams.get('date')
+    let dateString: string
+    let parsedDate: Date
+
     if (dateParam) {
       // Parsear la fecha manualmente para evitar problemas de zona horaria
       const [year, month, day] = dateParam.split('-').map(Number)
-      const parsedDate = new Date(year, month - 1, day, 0, 0, 0, 0)
+      parsedDate = new Date(year, month - 1, day, 0, 0, 0, 0)
       if (!isNaN(parsedDate.getTime())) {
+        dateString = dateParam
         setSelectedDate(parsedDate)
-        // Resetear planificación cuando cambia la fecha
-        setPlanification(null)
+      } else {
+        // Si la fecha no es válida, usar hoy
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const year = today.getFullYear()
+        const month = String(today.getMonth() + 1).padStart(2, '0')
+        const day = String(today.getDate()).padStart(2, '0')
+        dateString = `${year}-${month}-${day}`
+        setSelectedDate(today)
       }
     } else {
       // Si no hay fecha en los params, usar hoy
       const today = new Date()
       today.setHours(0, 0, 0, 0)
+      const year = today.getFullYear()
+      const month = String(today.getMonth() + 1).padStart(2, '0')
+      const day = String(today.getDate()).padStart(2, '0')
+      dateString = `${year}-${month}-${day}`
       setSelectedDate(today)
-      setPlanification(null)
     }
-  }, [searchParams])
 
-  useEffect(() => {
-    const fetchPlanification = async () => {
-      if (!user?.id || !selectedDate) {
-        setLoading(false)
-        return
-      }
+    setLoading(true)
+    setError(null)
+    setPlanification(null)
 
-      try {
-        setLoading(true)
-        setError(null)
-
-        // Formatear la fecha como YYYY-MM-DD (usar métodos locales para evitar problemas de zona horaria)
-        const year = selectedDate.getFullYear()
-        const month = String(selectedDate.getMonth() + 1).padStart(2, '0')
-        const day = String(selectedDate.getDate()).padStart(2, '0')
-        const dateString = `${year}-${month}-${day}`
-
-        console.log('Fetching planification for date:', dateString) // Debug
-
-        const response = await fetch(`/api/planifications/today?date=${dateString}`)
-        
+    fetch(`/api/planifications?date=${dateString}`)
+      .then(response => {
         if (!response.ok) {
           throw new Error('Error al cargar la planificación')
         }
-
-        const data = await response.json()
-        
-        console.log('Planification data:', data) // Debug
-        
+        return response.json()
+      })
+      .then(data => {
         if (data.data) {
           setPlanification(data.data)
         } else {
           setPlanification(null)
+          if (data.message) {
+            setError(data.message)
+          }
         }
-      } catch (err) {
+      })
+      .catch(err => {
         console.error('Error fetching planification:', err)
         setError('Error al cargar la planificación')
         setPlanification(null)
-      } finally {
+      })
+      .finally(() => {
         setLoading(false)
-      }
-    }
-
-    fetchPlanification()
-  }, [user?.id, selectedDate?.getTime()]) // Usar getTime() para comparar fechas correctamente
+      })
+  }, [user?.id, searchParams])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -199,6 +202,11 @@ export default function TodayPlanificationPage() {
                   : `No hay planificación para el ${formatDate(selectedDate.toISOString().split('T')[0] + 'T00:00:00')}`
                 }
               </h3>
+              {error && (
+                <p className="text-sm text-zinc-400 mb-4">
+                  {error}
+                </p>
+              )}
               <Button onClick={() => router.push('/')}>
                 Volver al inicio
               </Button>
@@ -335,3 +343,4 @@ export default function TodayPlanificationPage() {
     </div>
   )
 }
+

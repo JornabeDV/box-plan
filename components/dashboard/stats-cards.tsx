@@ -55,7 +55,7 @@ export function StatsCards() {
         setLoading(true)
         setError(null)
 
-        const response = await fetch('/api/planifications/today')
+        const response = await fetch('/api/planifications')
         
         if (!response.ok) {
           throw new Error('Error al cargar la planificación')
@@ -135,9 +135,6 @@ export function StatsCards() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-muted-foreground font-medium">Planificación de hoy</p>
                 <p className="font-bold text-base md:text-lg">No hay entrenamiento programado</p>
-                <p className="text-xs text-muted-foreground mt-1 break-words">
-                  {error || 'No hay planificación para tu disciplina y nivel hoy'}
-                </p>
               </div>
             </div>
           </CardContent>
@@ -189,7 +186,7 @@ export function StatsCards() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => router.push('/planification/today')}
+              onClick={() => router.push('/planification')}
               className="flex items-center justify-center gap-2 w-full md:w-auto md:flex-shrink-0"
             >
               Ver detalle

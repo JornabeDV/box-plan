@@ -50,7 +50,7 @@ export default function CargaScorePage() {
 				const day = String(today.getDate()).padStart(2, '0')
 				const dateString = `${year}-${month}-${day}`
 
-				const response = await fetch(`/api/planifications/today?date=${dateString}`)
+				const response = await fetch(`/api/planifications?date=${dateString}`)
 				if (response.ok) {
 					const data = await response.json()
 					if (data.data) {
