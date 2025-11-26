@@ -11,7 +11,6 @@ import {
   Edit, 
   Trash2, 
   Target,
-  GripVertical,
   ChevronDown,
   ChevronRight
 } from 'lucide-react'
@@ -22,22 +21,16 @@ interface DisciplinesListProps {
   loading?: boolean
   onEdit: (discipline: Discipline) => void
   onDelete: (disciplineId: string) => void
-  onReorder: (disciplineIds: string[]) => void
-  onReorderLevels: (disciplineId: string, levelIds: string[]) => void
 }
 
 export function DisciplinesList({ 
   disciplines, 
   loading = false, 
   onEdit, 
-  onDelete,
-  onReorder,
-  onReorderLevels
+  onDelete
 }: DisciplinesListProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedDisciplines, setExpandedDisciplines] = useState<Set<string>>(new Set())
-  const [draggedDiscipline, setDraggedDiscipline] = useState<string | null>(null)
-  const [draggedLevel, setDraggedLevel] = useState<{ disciplineId: string; levelId: string } | null>(null)
 
   // Filtrar disciplinas según búsqueda
   const filteredDisciplines = disciplines.filter(discipline => 
@@ -58,68 +51,6 @@ export function DisciplinesList({
       }
       return newSet
     })
-  }
-
-  const handleDragStart = (e: React.DragEvent, disciplineId: string) => {
-    setDraggedDiscipline(disciplineId)
-    e.dataTransfer.effectAllowed = 'move'
-  }
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-  }
-
-  const handleDrop = (e: React.DragEvent, targetDisciplineId: string) => {
-    e.preventDefault()
-    
-    if (draggedDiscipline && draggedDiscipline !== targetDisciplineId) {
-      const newOrder = disciplines.map(d => d.id)
-      const draggedIndex = newOrder.indexOf(draggedDiscipline)
-      const targetIndex = newOrder.indexOf(targetDisciplineId)
-      
-      // Mover elemento
-      newOrder.splice(draggedIndex, 1)
-      newOrder.splice(targetIndex, 0, draggedDiscipline)
-      
-      onReorder(newOrder)
-    }
-    
-    setDraggedDiscipline(null)
-  }
-
-  const handleLevelDragStart = (e: React.DragEvent, disciplineId: string, levelId: string) => {
-    setDraggedLevel({ disciplineId, levelId })
-    e.dataTransfer.effectAllowed = 'move'
-  }
-
-  const handleLevelDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-  }
-
-  const handleLevelDrop = (e: React.DragEvent, targetDisciplineId: string, targetLevelId: string) => {
-    e.preventDefault()
-    
-    if (draggedLevel && 
-        draggedLevel.disciplineId === targetDisciplineId && 
-        draggedLevel.levelId !== targetLevelId) {
-      
-      const discipline = disciplines.find(d => d.id === targetDisciplineId)
-      if (discipline?.levels) {
-        const newOrder = discipline.levels.map(l => l.id)
-        const draggedIndex = newOrder.indexOf(draggedLevel.levelId)
-        const targetIndex = newOrder.indexOf(targetLevelId)
-        
-        // Mover elemento
-        newOrder.splice(draggedIndex, 1)
-        newOrder.splice(targetIndex, 0, draggedLevel.levelId)
-        
-        onReorderLevels(targetDisciplineId, newOrder)
-      }
-    }
-    
-    setDraggedLevel(null)
   }
 
   if (loading) {
@@ -162,10 +93,6 @@ export function DisciplinesList({
           <Card 
             key={discipline.id} 
             className="hover:shadow-lg transition-shadow"
-            draggable
-            onDragStart={(e) => handleDragStart(e, discipline.id)}
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, discipline.id)}
           >
             <CardHeader className="pb-3">
               {/* Header con título y color */}
@@ -241,12 +168,7 @@ export function DisciplinesList({
                     <div
                       key={level.id}
                       className="flex items-center gap-3 p-2 bg-muted/50 rounded-lg"
-                      draggable
-                      onDragStart={(e) => handleLevelDragStart(e, discipline.id, level.id)}
-                      onDragOver={handleLevelDragOver}
-                      onDrop={(e) => handleLevelDrop(e, discipline.id, level.id)}
                     >
-                      <GripVertical className="w-4 h-4 text-muted-foreground" />
                       <div className="flex-1">
                         <div className="font-medium">{level.name}</div>
                         {level.description && (

@@ -577,7 +577,7 @@ export function PlanificationModal({
                           value={block.notes || ''}
                           onChange={(e) => updateBlockNotes(block.id, e.target.value)}
                           placeholder="Agregar notas específicas para este bloque..."
-                          className="text-sm mt-1 min-h-[60px]"
+                          className="text-sm mt-1 min-h-[60px] border border-color bg-input"
                           rows={2}
                         />
                       </div>

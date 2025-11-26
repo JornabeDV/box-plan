@@ -7,6 +7,7 @@ import { useDisciplines } from '@/hooks/use-disciplines'
 import { usePlanifications } from '@/hooks/use-planifications'
 import { useModalState } from '@/hooks/use-modal-state'
 import { useDashboardCRUD } from '@/hooks/use-dashboard-crud'
+import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
@@ -24,6 +25,7 @@ import { DisciplinesList } from '@/components/admin/disciplines-list'
 import { PlanificationModal } from '@/components/admin/planification-modal'
 import { PlanificationCalendar } from '@/components/admin/planification-calendar'
 import { PlanificationDayModal } from '@/components/admin/planification-day-modal'
+import { ReplicatePlanificationModal } from '@/components/admin/replicate-planification-modal'
 import { SubscriptionPlansList } from '@/components/admin/subscription-plans-list'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { DashboardHeader } from '@/components/admin/dashboard/dashboard-header'
@@ -35,6 +37,7 @@ import { MercadoPagoConnect } from '@/components/coach/mercadopago-connect'
 
 export default function AdminDashboardPage() {
   const { user, coachProfile, loading: authLoading, isCoach, userRole } = useSimplifiedAuth()
+  const { toast } = useToast()
 
   // Usar coachId (convertir a string para los hooks)
   const profileId = coachProfile?.id ? String(coachProfile.id) : null
@@ -55,9 +58,7 @@ export default function AdminDashboardPage() {
   const {
     createDiscipline,
     updateDiscipline,
-    deleteDiscipline,    
-    reorderDisciplines,
-    reorderDisciplineLevels,
+    deleteDiscipline,
   } = useDisciplines(profileId)
 
   const {
@@ -82,6 +83,7 @@ export default function AdminDashboardPage() {
   const planificationModal = useModalState<any>()
   const dayModal = useModalState<{ date: Date; planifications: any[] }>()
   const deleteDialog = useModalState<any>()
+  const replicateModal = useModalState<{ planifications: any[]; sourceDate: Date | null }>()
 
   // Hook para operaciones CRUD con refresh automático
   const { handleCRUDOperation } = useDashboardCRUD(refreshDashboard)
@@ -123,11 +125,6 @@ export default function AdminDashboardPage() {
   }
 
   // Handlers para planificaciones
-  const handleCreatePlanification = () => {
-    setSelectedDate(null)
-    planificationModal.open()
-  }
-
   const handleDateClick = (date: Date) => {
     setSelectedDate(date)
     planificationModal.open()
@@ -189,6 +186,113 @@ export default function AdminDashboardPage() {
     )
   }
 
+  // Handlers para replicar planificaciones
+  const handleDuplicatePlanification = (planification: any) => {
+    replicateModal.open({
+      planifications: [planification],
+      sourceDate: selectedDate
+    })
+  }
+
+  const handleDuplicateAll = () => {
+    replicateModal.open({
+      planifications: dayPlanifications,
+      sourceDate: selectedDate
+    })
+  }
+
+  const handleReplicateConfirm = async (targetDate: Date, replaceExisting: boolean) => {
+    if (!replicateModal.selectedItem) return
+    if (!profileId) {
+      toast({
+        title: 'Error',
+        description: 'No se pudo identificar el coach',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    const planificationsToReplicate = replicateModal.selectedItem.planifications
+
+    // Función helper para normalizar fechas sin problemas de zona horaria
+    const normalizeDate = (date: Date | string): string => {
+      if (typeof date === 'string') {
+        // Si ya es string, tomar solo la parte de la fecha
+        return date.split('T')[0]
+      }
+      // Crear fecha local sin timezone
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+
+    try {
+      // Formatear fecha destino usando normalización local
+      const targetDateString = normalizeDate(targetDate)
+
+      // Si hay que reemplazar, primero eliminar las planificaciones existentes del día destino
+      if (replaceExisting) {
+        const existingPlanifications = planifications.filter(p => {
+          const planDateString = normalizeDate(p.date)
+          return planDateString === targetDateString
+        })
+
+        for (const existing of existingPlanifications) {
+          await deletePlanification(existing.id)
+        }
+      }
+
+      // Duplicar cada planificación
+      let successCount = 0
+      let errorCount = 0
+
+      for (const planification of planificationsToReplicate) {
+        const newPlanificationData = {
+          coach_id: profileId,
+          discipline_id: planification.discipline_id || planification.disciplineId || planification.discipline?.id,
+          discipline_level_id: planification.discipline_level_id || planification.disciplineLevelId || planification.discipline_level?.id,
+          date: targetDateString,
+          estimated_duration: planification.estimated_duration,
+          blocks: planification.blocks || [],
+          notes: planification.notes || null,
+          is_active: planification.is_active !== undefined ? planification.is_active : true
+        }
+
+        const result = await createPlanification(newPlanificationData)
+        if (result.error) {
+          errorCount++
+        } else {
+          successCount++
+        }
+      }
+
+      replicateModal.close()
+      refreshDashboard()
+
+      // Mostrar notificación
+      if (errorCount === 0) {
+        toast({
+          title: 'Planificaciones replicadas',
+          description: `${successCount} planificación${successCount !== 1 ? 'es' : ''} replicada${successCount !== 1 ? 's' : ''} exitosamente`,
+        })
+      } else {
+        toast({
+          title: 'Replicación parcial',
+          description: `${successCount} replicada${successCount !== 1 ? 's' : ''} exitosamente, ${errorCount} con error${errorCount !== 1 ? 'es' : ''}`,
+          variant: 'destructive'
+        })
+      }
+    } catch (error) {
+      console.error('Error replicando planificaciones:', error)
+      toast({
+        title: 'Error',
+        description: 'Ocurrió un error al replicar las planificaciones',
+        variant: 'destructive'
+      })
+    }
+  }
+
   // El coachAccess ahora viene del hook combinado, no necesitamos este useEffect
 
 
@@ -232,7 +336,7 @@ export default function AdminDashboardPage() {
           <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 gap-1 h-auto p-1">
             <TabsTrigger 
               value="overview" 
-              className="text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap"
+              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300 data-[state=active]:bg-lime-400/10 data-[state=active]:border-lime-400 data-[state=active]:shadow-[0_4px_15px_rgba(204,255,0,0.3)]"
             >
               <div className="flex flex-col items-center gap-1">
                 <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -242,7 +346,7 @@ export default function AdminDashboardPage() {
             </TabsTrigger>
             <TabsTrigger 
               value="disciplines" 
-              className="text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap"
+              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300 data-[state=active]:bg-lime-400/10 data-[state=active]:border-lime-400 data-[state=active]:shadow-[0_4px_15px_rgba(204,255,0,0.3)]"
             >
               <div className="flex flex-col items-center gap-1">
                 <Target className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -252,7 +356,7 @@ export default function AdminDashboardPage() {
             </TabsTrigger>
             <TabsTrigger 
               value="planning" 
-              className="text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap"
+              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300 data-[state=active]:bg-lime-400/10 data-[state=active]:border-lime-400 data-[state=active]:shadow-[0_4px_15px_rgba(204,255,0,0.3)]"
             >
               <div className="flex flex-col items-center gap-1">
                 <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -262,7 +366,7 @@ export default function AdminDashboardPage() {
             </TabsTrigger>
             <TabsTrigger 
               value="users" 
-              className="text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap"
+              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300 data-[state=active]:bg-lime-400/10 data-[state=active]:border-lime-400 data-[state=active]:shadow-[0_4px_15px_rgba(204,255,0,0.3)]"
             >
               <div className="flex flex-col items-center gap-1">
                 <Users className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -272,7 +376,7 @@ export default function AdminDashboardPage() {
             </TabsTrigger>
             <TabsTrigger 
               value="plans" 
-              className="text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap"
+              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300 data-[state=active]:bg-lime-400/10 data-[state=active]:border-lime-400 data-[state=active]:shadow-[0_4px_15px_rgba(204,255,0,0.3)]"
             >
               <div className="flex flex-col items-center gap-1">
                 <DollarSign className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -287,6 +391,7 @@ export default function AdminDashboardPage() {
             <AdminStats 
               users={users}
               planifications={planifications}
+              onTabChange={setActiveTab}
             />
           </TabsContent>
 
@@ -315,26 +420,16 @@ export default function AdminDashboardPage() {
               loading={dashboardLoading}
               onEdit={handleEditDisciplineClick}
               onDelete={handleDeleteDiscipline}
-              onReorder={reorderDisciplines}
-              onReorderLevels={reorderDisciplineLevels}
             />
           </TabsContent>
 
           {/* Planificación Tab */}
           <TabsContent value="planning" className="space-y-6">
-            <div className="flex items-start justify-between max-md:flex-col max-sm:gap-2 gap-4">
-              <div className='flex flex-col gap-2 items-start'>
-                <h2 className="text-2xl font-bold">Planificaciones</h2>
-                <p className="text-muted-foreground">
-                  Gestiona las planificaciones de entrenamiento por disciplina y nivel
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button onClick={handleCreatePlanification}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nueva Planificación
-                </Button>
-              </div>
+            <div className="flex flex-col gap-2 items-start">
+              <h2 className="text-2xl font-bold">Planificaciones</h2>
+              <p className="text-muted-foreground">
+                Gestiona las planificaciones de entrenamiento por disciplina y nivel. Haz clic en un día del calendario para crear una nueva planificación.
+              </p>
             </div>
 
             <PlanificationCalendar
@@ -417,7 +512,20 @@ export default function AdminDashboardPage() {
         onEdit={handleEditFromDay}
         onDelete={handleDeleteFromDay}
         onCreate={handleCreateFromDay}
+        onDuplicate={handleDuplicatePlanification}
+        onDuplicateAll={handleDuplicateAll}
       />
+
+      {/* Modal para replicar planificaciones */}
+      {replicateModal.selectedItem && (
+        <ReplicatePlanificationModal
+          open={replicateModal.isOpen}
+          onOpenChange={replicateModal.handleOpenChange}
+          onConfirm={handleReplicateConfirm}
+          sourceDate={replicateModal.selectedItem.sourceDate}
+          planificationCount={replicateModal.selectedItem.planifications.length}
+        />
+      )}
 
       {/* Diálogo de confirmación para eliminar planificación */}
       <ConfirmationDialog
