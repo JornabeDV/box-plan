@@ -3,8 +3,7 @@
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { ChevronLeft, ChevronRight, Calendar, Target, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Planification } from '@/hooks/use-planifications'
 
 interface PlanificationCalendarProps {
@@ -56,7 +55,15 @@ export function PlanificationCalendar({
   }
   
   const goToToday = () => {
-    setCurrentDate(new Date())
+    const todayDate = new Date()
+    setCurrentDate(todayDate)
+    // Abrir modal de planificación con fecha de hoy
+    const dayPlanifications = getPlanificationsForDay(todayDate.getDate())
+    if (dayPlanifications.length > 0) {
+      onViewDayPlanifications?.(todayDate, dayPlanifications)
+    } else {
+      onDateClick(todayDate)
+    }
   }
   
   // Normalizar fecha a formato YYYY-MM-DD sin considerar timezone
@@ -88,14 +95,21 @@ export function PlanificationCalendar({
     return date.toDateString() === today.toDateString()
   }
   
-  // Verificar si es un día pasado
+  // Verificar si es un día pasado (comparando solo la fecha sin hora)
   const isPastDay = (day: number) => {
     const date = new Date(year, month, day)
-    return date < today && !isToday(day)
+    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    const compareDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    return compareDate < todayDate
   }
   
   // Manejar click en un día
   const handleDayClick = (day: number) => {
+    // No permitir crear planificaciones en días pasados
+    if (isPastDay(day)) {
+      return
+    }
+    
     const date = new Date(year, month, day)
     const dayPlanifications = getPlanificationsForDay(day)
     
@@ -131,7 +145,7 @@ export function PlanificationCalendar({
   }
 
   return (
-    <Card>
+    <Card className='max-sm:gap-3'>
       <CardHeader className="pb-4">
         {/* Título y descripción */}
         <div className="text-center mb-4">
@@ -147,9 +161,9 @@ export function PlanificationCalendar({
             variant="ghost"
             size="icon"
             onClick={goToPreviousMonth}
-            className="hover:bg-primary/10 hover:text-primary w-12 h-12 md:w-16 md:h-16"
+            className="w-8 h-8 md:w-16 md:h-16 border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300"
           >
-            <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
+            <ChevronLeft className="w-4 h-4 md:w-10 md:h-10" />
           </Button>
           
           <h3 className="text-2xl font-heading font-bold text-foreground">
@@ -160,9 +174,9 @@ export function PlanificationCalendar({
             variant="ghost"
             size="icon"
             onClick={goToNextMonth}
-            className="hover:bg-primary/10 hover:text-primary w-12 h-12 md:w-16 md:h-16"
+            className="w-8 h-8 md:w-16 md:h-16 border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300"
           >
-            <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
+            <ChevronRight className="w-4 h-4 md:w-10 md:h-10" />
           </Button>
         </div>
         
@@ -183,7 +197,7 @@ export function PlanificationCalendar({
         {/* Días de la semana */}
         <div className="grid grid-cols-7 gap-2 mb-4">
           {weekDays.map((day) => (
-            <div key={day} className="text-center text-sm md:text-base font-bold text-muted-foreground py-2">
+            <div key={day} className="text-center text-sm font-bold text-muted-foreground py-2">
               {day}
             </div>
           ))}
@@ -204,20 +218,24 @@ export function PlanificationCalendar({
               <div key={`day-${day}-${month}-${year}`} className="aspect-square">
                 <div
                   className={`
-                    w-full h-full flex flex-col items-center justify-center text-sm md:text-lg font-semibold rounded-xl cursor-pointer transition-all duration-200 relative
-                    ${isCurrentDay 
-                      ? 'bg-primary text-primary-foreground shadow-accent animate-pulse-glow' 
-                      : dayPlanifications.length > 0
-                        ? 'bg-lime-400/20 hover:bg-lime-400/30 hover:scale-105 border-2 border-lime-400/50' 
-                        : 'hover:bg-muted/50'
+                    w-full h-full flex items-center justify-center text-sm font-semibold rounded-xl transition-all duration-200 relative
+                    ${isPast ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
+                    ${isPast && dayPlanifications.length > 0
+                      ? 'bg-accent/10 text-accent border-2 border-accent/15'
+                      : isPast
+                        ? 'bg-background border border-muted-foreground/10 text-muted-foreground opacity-50'
+                        : isCurrentDay
+                          ? 'bg-primary text-primary-foreground shadow-accent animate-pulse-glow'
+                          : dayPlanifications.length > 0
+                            ? 'bg-accent/20 text-accent hover:bg-accent/30 hover:scale-105 border-2 border-accent/30'
+                            : 'bg-background border border-muted-foreground/20 text-muted-foreground'
                     }
-                    ${isPast ? 'opacity-50' : ''}
                   `}
                   onClick={() => handleDayClick(day)}
                 >
-                  <span className="text-sm md:text-lg font-bold">{day}</span>
+                  <span className="text-sm">{day}</span>
                   {dayPlanifications.length > 0 && (
-                    <span className="absolute top-1 right-1 bg-lime-400 text-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    <span className={`absolute -top-1 -right-1 sm:top-1 sm:right-1 bg-accent text-accent-foreground text-[9px] sm:text-xs font-bold rounded-full w-3 h-3 sm:w-5 sm:h-5 flex items-center justify-center ${isPast ? 'opacity-50' : ''}`}>
                       {dayPlanifications.length}
                     </span>
                   )}
@@ -234,11 +252,11 @@ export function PlanificationCalendar({
             <span className="text-xs text-muted-foreground">Hoy</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-lime-400/20 border-2 border-lime-400/50 rounded-full"></div>
+            <div className="w-3 h-3 bg-accent/20 border-2 border-accent/30 rounded-full"></div>
             <span className="text-xs text-muted-foreground">Con planificaciones</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-muted/50 rounded-full"></div>
+            <div className="w-3 h-3 bg-background border-2 border-muted-foreground/40 rounded-full"></div>
             <span className="text-xs text-muted-foreground">Sin planificaciones</span>
           </div>
         </div>
