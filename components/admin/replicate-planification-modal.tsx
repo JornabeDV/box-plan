@@ -1,20 +1,28 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Copy } from 'lucide-react'
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Copy, CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 interface ReplicatePlanificationModalProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onConfirm: (targetDate: Date, replaceExisting: boolean) => Promise<void>
-  sourceDate: Date | null
-  planificationCount: number
-  loading?: boolean
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: (targetDate: Date, replaceExisting: boolean) => Promise<void>;
+  sourceDate: Date | null;
+  planificationCount: number;
+  loading?: boolean;
 }
 
 export function ReplicatePlanificationModal({
@@ -23,38 +31,92 @@ export function ReplicatePlanificationModal({
   onConfirm,
   sourceDate,
   planificationCount,
-  loading = false
+  loading = false,
 }: ReplicatePlanificationModalProps) {
-  const [targetDate, setTargetDate] = useState<string>('')
-  const [replaceExisting, setReplaceExisting] = useState<'add' | 'replace'>('add')
+  const [targetDate, setTargetDate] = useState<Date | undefined>(undefined);
+  const [replaceExisting, setReplaceExisting] = useState<"add" | "replace">(
+    "add"
+  );
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const formatDate = (date: Date) => {
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  // Calcular días del mes para el calendario grande
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const daysInMonth = lastDay.getDate();
+  const startingDayOfWeek = (firstDay.getDay() + 6) % 7; // Lunes = 0
+
+  const weekDays = ["L", "M", "X", "J", "V", "S", "D"];
+  const monthNames = [
+    "Enero",
+    "Febrero",
+    "Marzo",
+    "Abril",
+    "Mayo",
+    "Junio",
+    "Julio",
+    "Agosto",
+    "Septiembre",
+    "Octubre",
+    "Noviembre",
+    "Diciembre",
+  ];
+
+  const goToPreviousMonth = () => {
+    setCurrentMonth(new Date(year, month - 1, 1));
+  };
+
+  const goToNextMonth = () => {
+    setCurrentMonth(new Date(year, month + 1, 1));
+  };
+
+  const isToday = (day: number) => {
+    const today = new Date();
+    const date = new Date(year, month, day);
+    return date.toDateString() === today.toDateString();
+  };
+
+  const isSelected = (day: number) => {
+    if (!targetDate) return false;
+    const date = new Date(year, month, day);
+    return date.toDateString() === targetDate.toDateString();
+  };
+
+  const handleDayClick = (day: number) => {
+    const date = new Date(year, month, day);
+    date.setHours(0, 0, 0, 0);
+    setTargetDate(date);
+    setCalendarOpen(false);
+  };
+
+  // Generar array de días
+  const days = [];
+  for (let i = 0; i < startingDayOfWeek; i++) {
+    days.push(null);
+  }
+  for (let day = 1; day <= daysInMonth; day++) {
+    days.push(day);
   }
 
   const handleSubmit = async () => {
-    if (!targetDate) return
+    if (!targetDate) return;
 
-    // Parsear la fecha manualmente para evitar problemas de zona horaria
-    // El formato es YYYY-MM-DD
-    const [year, month, day] = targetDate.split('-').map(Number)
-    const date = new Date(year, month - 1, day)
-    
-    await onConfirm(date, replaceExisting === 'replace')
-    
+    await onConfirm(targetDate, replaceExisting === "replace");
+
     // Resetear formulario
-    setTargetDate('')
-    setReplaceExisting('add')
-  }
-
-  const handleQuickDate = (days: number) => {
-    const date = new Date()
-    date.setDate(date.getDate() + days)
-    setTargetDate(formatDate(date))
-  }
+    setTargetDate(undefined);
+    setReplaceExisting("add");
+    setCalendarOpen(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -65,17 +127,17 @@ export function ReplicatePlanificationModal({
             Replicar Planificaciones
           </DialogTitle>
           <DialogDescription>
-            {planificationCount === 1 
-              ? 'Duplicar esta planificación a otro día'
-              : `Replicar ${planificationCount} planificaciones a otro día`
-            }
+            {planificationCount === 1
+              ? "Duplicar esta planificación a otro día"
+              : `Replicar ${planificationCount} planificaciones a otro día`}
             {sourceDate && (
               <span className="block mt-1 text-xs">
-                Desde: {sourceDate.toLocaleDateString('es-ES', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
+                Desde:{" "}
+                {sourceDate.toLocaleDateString("es-ES", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
                 })}
               </span>
             )}
@@ -84,71 +146,212 @@ export function ReplicatePlanificationModal({
 
         <div className="space-y-6 py-4">
           {/* Selector de fecha */}
-          <div className="space-y-2">
+          <div className="space-y-2 relative">
             <Label htmlFor="target-date">Fecha destino *</Label>
-            <Input
+            <Button
               id="target-date"
-              type="date"
-              value={targetDate}
-              onChange={(e) => setTargetDate(e.target.value)}
-              required
-            />
-            
-            {/* Botones rápidos */}
-            <div className="flex gap-2 flex-wrap mt-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleQuickDate(1)}
-                className="text-xs"
-              >
-                Mañana
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleQuickDate(7)}
-                className="text-xs"
-              >
-                En 7 días
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleQuickDate(14)}
-                className="text-xs"
-              >
-                En 14 días
-              </Button>
-            </div>
+              variant="outline"
+              type="button"
+              onClick={() => setCalendarOpen(!calendarOpen)}
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                !targetDate && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {targetDate ? (
+                format(targetDate, "PPP", { locale: es })
+              ) : (
+                <span>Seleccionar fecha</span>
+              )}
+            </Button>
+
+            {/* Calendario flotante */}
+            {calendarOpen && (
+              <div className="absolute top-full left-0 right-0 z-50 border rounded-lg p-2 sm:p-4 bg-card shadow-lg overflow-hidden">
+                <div className="space-y-2 sm:space-y-4 w-full">
+                  {/* Navegación del mes */}
+                  <div className="flex items-center justify-between">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={goToPreviousMonth}
+                      className="h-6 w-6 sm:h-10 sm:w-10 hover:bg-primary/10 hover:text-primary"
+                    >
+                      <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+                    </Button>
+
+                    <h3 className="text-sm sm:text-lg font-heading font-bold text-foreground">
+                      {monthNames[month]} {year}
+                    </h3>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={goToNextMonth}
+                      className="h-6 w-6 sm:h-10 sm:w-10 hover:bg-primary/10 hover:text-primary"
+                    >
+                      <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
+                    </Button>
+                  </div>
+
+                  {/* Días de la semana */}
+                  <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-2 w-full">
+                    {weekDays.map((day) => (
+                      <div
+                        key={day}
+                        className="text-center text-[10px] sm:text-xs font-bold text-muted-foreground py-0.5 sm:py-1 min-w-0"
+                      >
+                        {day}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Días del mes */}
+                  <div className="grid grid-cols-7 gap-0.5 sm:gap-1 w-full">
+                    {days.map((day, index) => {
+                      if (day === null) {
+                        return (
+                          <div
+                            key={`empty-${index}`}
+                            className="aspect-square min-h-[20px] sm:min-h-[32px]"
+                          />
+                        );
+                      }
+
+                      const isCurrentDay = isToday(day);
+                      const isSelectedDay = isSelected(day);
+
+                      return (
+                        <div
+                          key={`day-${day}`}
+                          className="aspect-square min-h-[20px] sm:min-h-[32px] min-w-0"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleDayClick(day)}
+                            className={cn(
+                              "w-full h-full flex items-center justify-center text-[10px] sm:text-xs font-semibold rounded-md sm:rounded-lg transition-all duration-200 p-0 sm:p-1",
+                              isSelectedDay
+                                ? "bg-primary text-primary-foreground shadow-md"
+                                : isCurrentDay
+                                ? "bg-primary/20 text-primary-foreground border border-primary sm:border-2"
+                                : "bg-background border border-muted-foreground/20 text-foreground hover:bg-accent/20 hover:border-accent/30"
+                            )}
+                          >
+                            {day}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Opciones de replicación */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <Label>Opciones</Label>
-            <RadioGroup value={replaceExisting} onValueChange={(value) => setReplaceExisting(value as 'add' | 'replace')}>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="add" id="add" />
-                <Label htmlFor="add" className="font-normal cursor-pointer">
-                  Agregar a fecha existente
-                  <span className="block text-xs text-muted-foreground mt-1">
-                    Las planificaciones se agregarán junto con las que ya existan
-                  </span>
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="replace" id="replace" />
-                <Label htmlFor="replace" className="font-normal cursor-pointer">
-                  Reemplazar planificaciones existentes
-                  <span className="block text-xs text-muted-foreground mt-1">
-                    Se eliminarán las planificaciones existentes antes de agregar las nuevas
-                  </span>
-                </Label>
-              </div>
-            </RadioGroup>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => setReplaceExisting("add")}
+                className={cn(
+                  "w-full text-left p-3 rounded-lg border-2 transition-all duration-200",
+                  replaceExisting === "add"
+                    ? "border-primary bg-primary/10"
+                    : "border-border bg-background hover:bg-accent/5 hover:border-accent/30"
+                )}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5">
+                    <div
+                      className={cn(
+                        "w-5 h-5 rounded border-2 flex items-center justify-center transition-all",
+                        replaceExisting === "add"
+                          ? "border-primary bg-primary"
+                          : "border-muted-foreground bg-background"
+                      )}
+                    >
+                      {replaceExisting === "add" && (
+                        <svg
+                          className="w-3 h-3 text-primary-foreground"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={3}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-sm">
+                      Agregar a fecha existente
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Las planificaciones se agregarán junto con las que ya
+                      existan
+                    </div>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setReplaceExisting("replace")}
+                className={cn(
+                  "w-full text-left p-3 rounded-lg border-2 transition-all duration-200",
+                  replaceExisting === "replace"
+                    ? "border-primary bg-primary/10"
+                    : "border-border bg-background hover:bg-accent/5 hover:border-accent/30"
+                )}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5">
+                    <div
+                      className={cn(
+                        "w-5 h-5 rounded border-2 flex items-center justify-center transition-all",
+                        replaceExisting === "replace"
+                          ? "border-primary bg-primary"
+                          : "border-muted-foreground bg-background"
+                      )}
+                    >
+                      {replaceExisting === "replace" && (
+                        <svg
+                          className="w-3 h-3 text-primary-foreground"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={3}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-sm">
+                      Reemplazar planificaciones existentes
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Se eliminarán las planificaciones existentes antes de
+                      agregar las nuevas
+                    </div>
+                  </div>
+                </div>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -156,18 +359,16 @@ export function ReplicatePlanificationModal({
           <Button
             variant="outline"
             onClick={() => {
-              onOpenChange(false)
-              setTargetDate('')
-              setReplaceExisting('add')
+              onOpenChange(false);
+              setTargetDate(undefined);
+              setReplaceExisting("add");
+              setCalendarOpen(false);
             }}
             disabled={loading}
           >
             Cancelar
           </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={loading || !targetDate}
-          >
+          <Button onClick={handleSubmit} disabled={loading || !targetDate}>
             {loading ? (
               <>
                 <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
@@ -183,5 +384,5 @@ export function ReplicatePlanificationModal({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
