@@ -5,16 +5,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { 
-  Plus, 
   Trash2, 
-  Edit, 
-  GripVertical,
-  Target,
-  Palette
+  Target
 } from 'lucide-react'
 
 interface Discipline {
@@ -48,6 +43,14 @@ interface DisciplineModalProps {
   onSubmit: (data: any) => Promise<{ error?: string }>
 }
 
+type LevelFormData = {
+  id?: string
+  name: string
+  description?: string
+  order_index: number
+  is_active: boolean
+}
+
 const PREDEFINED_COLORS = [
   '#3B82F6', // Blue
   '#EF4444', // Red
@@ -74,7 +77,7 @@ export function DisciplineModal({
     color: '#3B82F6',
     order_index: 0
   })
-  const [levels, setLevels] = useState<Omit<DisciplineLevel, 'discipline_id' | 'created_at' | 'updated_at'>[]>([])
+  const [levels, setLevels] = useState<LevelFormData[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingStep, setLoadingStep] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
@@ -178,29 +181,6 @@ export function DisciplineModal({
     })
   }
 
-  const moveLevel = (index: number, direction: 'up' | 'down') => {
-    setLevels(prev => {
-      const newLevels = [...prev]
-      const targetIndex = direction === 'up' ? index - 1 : index + 1
-      
-      // Validar que el índice objetivo esté dentro del rango
-      if (targetIndex < 0 || targetIndex >= newLevels.length) {
-        return prev // No hacer nada si está fuera de rango
-      }
-      
-      // Intercambiar elementos
-      const temp = newLevels[index]
-      newLevels[index] = newLevels[targetIndex]
-      newLevels[targetIndex] = temp
-      
-      // Actualizar order_index para todos los niveles
-      newLevels.forEach((level, i) => {
-        level.order_index = i
-      })
-      
-      return newLevels
-    })
-  }
 
 
   return (
@@ -245,6 +225,7 @@ export function DisciplineModal({
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Describe brevemente esta disciplina..."
                   rows={3}
+                  className='border bg-input border-border'
                 />
               </div>
 
@@ -256,7 +237,7 @@ export function DisciplineModal({
                       key={color}
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, color }))}
-                      className={`w-8 h-8 rounded-full border-2 ${
+                      className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 ${
                         formData.color === color ? 'border-foreground' : 'border-muted'
                       }`}
                       style={{ backgroundColor: color }}
@@ -267,7 +248,7 @@ export function DisciplineModal({
                       type="color"
                       value={formData.color}
                       onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
-                      className="w-8 h-8 rounded border"
+                      className="w-6 h-6 sm:w-8 sm:h-8 rounded border"
                     />
                     <span className="text-sm text-muted-foreground">Personalizado</span>
                   </div>
@@ -282,7 +263,6 @@ export function DisciplineModal({
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">Niveles de la Disciplina</CardTitle>
                 <Button type="button" onClick={addLevel} size="sm">
-                  <Plus className="w-4 h-4 mr-2" />
                   Agregar Nivel
                 </Button>
               </div>
@@ -298,38 +278,20 @@ export function DisciplineModal({
                 <div className="space-y-3">
                   {levels.map((level, index) => (
                     <div key={index} className="flex items-center gap-3 p-3 border rounded-lg">
-                      <div className="flex flex-col gap-1">
-                        <button
-                          type="button"
-                          onClick={() => moveLevel(index, 'up')}
-                          disabled={index === 0}
-                          className="p-1 hover:bg-muted rounded disabled:opacity-50"
-                          title="Mover hacia arriba"
-                        >
-                          <GripVertical className="w-4 h-4 rotate-180" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => moveLevel(index, 'down')}
-                          disabled={index === levels.length - 1}
-                          className="p-1 hover:bg-muted rounded disabled:opacity-50"
-                          title="Mover hacia abajo"
-                        >
-                          <GripVertical className="w-4 h-4" />
-                        </button>
-                      </div>
-                      
-                      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
+                      <div className="flex-1 space-y-3">
+                        <div className="space-y-2">
+                          <Label htmlFor={`level-name-${index}`}>Nombre del nivel</Label>
                           <Input
+                            id={`level-name-${index}`}
                             value={level.name}
                             onChange={(e) => updateLevel(index, 'name', e.target.value)}
                             placeholder="Nombre del nivel"
-                            required
                           />
                         </div>
-                        <div>
+                        <div className="space-y-2">
+                          <Label htmlFor={`level-description-${index}`}>Descripción</Label>
                           <Input
+                            id={`level-description-${index}`}
                             value={level.description}
                             onChange={(e) => updateLevel(index, 'description', e.target.value)}
                             placeholder="Descripción (opcional)"
