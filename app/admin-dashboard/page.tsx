@@ -268,6 +268,7 @@ export default function AdminDashboardPage() {
       }
 
       replicateModal.close()
+      dayModal.close()
       refreshDashboard()
 
       // Mostrar notificación
