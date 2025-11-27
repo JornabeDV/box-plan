@@ -11,10 +11,12 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select'
-import { Loader2, Target, CheckCircle } from 'lucide-react'
+import { Loader2, Target, CheckCircle, Lock } from 'lucide-react'
 import { useDisciplines, type Discipline, type DisciplineLevel } from '@/hooks/use-disciplines'
 import { useCurrentUserPreferences } from '@/hooks/use-current-user-preferences'
 import { useToast } from '@/hooks/use-toast'
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 
 interface PreferenceSelectorProps {
 	coachId: number | null
@@ -26,11 +28,15 @@ export function PreferenceSelector({ coachId, onPreferencesSaved }: PreferenceSe
 	const { disciplines, disciplineLevels, loading: disciplinesLoading } = useDisciplines(
 		coachId ? coachId.toString() : null
 	)
-	const { preferences, loading: preferencesLoading, updatePreferences } = useCurrentUserPreferences()
+	const { preferences, loading: preferencesLoading, updatePreferences, lockStatus } = useCurrentUserPreferences()
 	
 	const [selectedDisciplineId, setSelectedDisciplineId] = useState<number | null>(null)
 	const [selectedLevelId, setSelectedLevelId] = useState<number | null>(null)
 	const [saving, setSaving] = useState(false)
+
+	const isLocked = lockStatus?.isLocked ?? false
+	const hasChanges = selectedDisciplineId !== preferences?.preferredDisciplineId || 
+		selectedLevelId !== preferences?.preferredLevelId
 
 	// Cargar preferencias existentes cuando se carguen
 	useEffect(() => {
@@ -62,6 +68,15 @@ export function PreferenceSelector({ coachId, onPreferencesSaved }: PreferenceSe
 			toast({
 				title: 'Selección incompleta',
 				description: 'Por favor, selecciona una disciplina y un nivel',
+				variant: 'destructive'
+			})
+			return
+		}
+
+		if (isLocked && hasChanges) {
+			toast({
+				title: 'Cambio bloqueado',
+				description: lockStatus?.message || 'Ya has cambiado tus preferencias este mes',
 				variant: 'destructive'
 			})
 			return
@@ -129,6 +144,23 @@ export function PreferenceSelector({ coachId, onPreferencesSaved }: PreferenceSe
 				<CardDescription>
 					Selecciona tu disciplina y nivel para ver tus entrenamientos personalizados
 				</CardDescription>
+				{isLocked && lockStatus?.nextChangeDate && (
+					<div className="mt-2 p-3 bg-muted/50 rounded-lg border border-border">
+						<div className="flex items-start gap-2">
+							<Lock className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+							<div className="text-sm text-muted-foreground">
+								<p className="font-medium mb-1">Cambio bloqueado</p>
+								<p>{lockStatus.message}</p>
+								<p className="mt-1">
+									Podrás cambiar nuevamente el{' '}
+									<span className="font-semibold">
+										{format(new Date(lockStatus.nextChangeDate), "d 'de' MMMM, yyyy", { locale: es })}
+									</span>
+								</p>
+							</div>
+						</div>
+					</div>
+				)}
 			</CardHeader>
 			<CardContent className="space-y-6">
 				{/* Selección de Disciplina */}
@@ -139,6 +171,7 @@ export function PreferenceSelector({ coachId, onPreferencesSaved }: PreferenceSe
 					<Select
 						value={selectedDisciplineId?.toString() || ''}
 						onValueChange={handleDisciplineSelect}
+						disabled={isLocked}
 					>
 						<SelectTrigger id="discipline-select">
 							<SelectValue placeholder="Selecciona una disciplina" />
@@ -170,7 +203,7 @@ export function PreferenceSelector({ coachId, onPreferencesSaved }: PreferenceSe
 					<Select
 						value={selectedLevelId?.toString() || ''}
 						onValueChange={handleLevelSelect}
-						disabled={!selectedDisciplineId || availableLevels.length === 0}
+						disabled={isLocked || !selectedDisciplineId || availableLevels.length === 0}
 					>
 						<SelectTrigger id="level-select">
 							<SelectValue placeholder={
@@ -200,7 +233,7 @@ export function PreferenceSelector({ coachId, onPreferencesSaved }: PreferenceSe
 				<div className="pt-4 border-t border-border">
 					<Button
 						onClick={handleSave}
-						disabled={!selectedDisciplineId || !selectedLevelId || saving}
+						disabled={!selectedDisciplineId || !selectedLevelId || saving || (isLocked && hasChanges)}
 						className="w-full"
 						size="lg"
 					>
@@ -208,6 +241,11 @@ export function PreferenceSelector({ coachId, onPreferencesSaved }: PreferenceSe
 							<>
 								<Loader2 className="w-4 h-4 mr-2 animate-spin" />
 								Guardando...
+							</>
+						) : isLocked && hasChanges ? (
+							<>
+								<Lock className="w-4 h-4 mr-2" />
+								Cambio bloqueado
 							</>
 						) : (
 							<>

@@ -35,6 +35,7 @@ export function MonthlyCalendar({ onDateClick }: MonthlyCalendarProps) {
   
   // Días de la semana (lunes a domingo)
   const weekDays = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+  const weekDaysFull = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
   
   // Nombres de los meses
   const monthNames = [
@@ -150,7 +151,6 @@ export function MonthlyCalendar({ onDateClick }: MonthlyCalendarProps) {
           <CardTitle className="text-xl font-heading text-foreground">
             Calendario de Entrenamientos
           </CardTitle>
-          <p className="text-sm text-muted-foreground">Seguimiento mensual</p>
         </div>
         
         {/* Navegación del mes */}
@@ -159,9 +159,9 @@ export function MonthlyCalendar({ onDateClick }: MonthlyCalendarProps) {
             variant="ghost"
             size="icon"
             onClick={goToPreviousMonth}
-            className="hover:bg-primary/10 hover:text-primary"
+            className="w-8 h-8 md:w-16 md:h-16 border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-4 h-4 md:w-10 md:h-10" />
           </Button>
           
           <h3 className="text-2xl font-heading font-bold text-foreground">
@@ -172,9 +172,9 @@ export function MonthlyCalendar({ onDateClick }: MonthlyCalendarProps) {
             variant="ghost"
             size="icon"
             onClick={goToNextMonth}
-            className="hover:bg-primary/10 hover:text-primary"
+            className="w-8 h-8 md:w-16 md:h-16 border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300"
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-4 h-4 md:w-10 md:h-10" />
           </Button>
         </div>
         
@@ -194,9 +194,10 @@ export function MonthlyCalendar({ onDateClick }: MonthlyCalendarProps) {
       <CardContent className="pt-0">
         {/* Días de la semana */}
         <div className="grid grid-cols-7 gap-2 mb-4">
-          {weekDays.map((day) => (
+          {weekDays.map((day, index) => (
             <div key={day} className="text-center text-sm font-bold text-muted-foreground py-2">
-              {day}
+              <span className="md:hidden">{day}</span>
+              <span className="hidden md:inline">{weekDaysFull[index]}</span>
             </div>
           ))}
         </div>

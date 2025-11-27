@@ -6,7 +6,6 @@ import { prisma } from '@/lib/prisma'
  * 
  * Este endpoint debe ser llamado por un cron job diario
  * 
- * Seguridad: Verificar que la petición viene de Vercel Cron o usar un secret token
  */
 export async function GET(request: NextRequest) {
 	try {
