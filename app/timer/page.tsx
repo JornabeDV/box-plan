@@ -26,6 +26,7 @@ export default function TimerPage() {
     isPaused,
     currentRound,
     isWorkPhase,
+    countdown,
     getDisplayTime,
     getPhaseText,
     getPhaseColor,
@@ -93,6 +94,7 @@ export default function TimerPage() {
           phaseColor={getPhaseColor()}
           isRunning={isRunning}
           isPaused={isPaused}
+          countdown={countdown}
           onStart={handleStart}
           onPause={handlePause}
           onReset={handleReset}
