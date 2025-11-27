@@ -30,8 +30,8 @@
 
 **6 características principales:**
 
-1. **🎯 Planillas de Entrenamiento**
-   - "Más de 50 planillas especializadas"
+1. **🎯 Planificaciones de Entrenamiento**
+   - "Más de 50 planificaciones especializadas"
    - Icono: Target/FileText
 
 2. **📊 Seguimiento de Progreso**
@@ -220,7 +220,7 @@
 **Opción 3:** "Entrena Mejor. Mide tu Progreso. Alcanza tus Metas."
 
 ### Subheadline
-"Planillas especializadas, análisis avanzado, timer profesional y comunidad. Todo en un solo lugar."
+"Planificaciones especializadas, análisis avanzado, timer profesional y comunidad. Todo en un solo lugar."
 
 ### CTA Principal
 "Comenzar Gratis" / "Prueba 7 Días Gratis"

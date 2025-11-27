@@ -123,7 +123,7 @@ El modelo de negocio se basa en:
    - Dashboard personalizado
    - Registro de entrenamientos
    - Estadísticas personales
-   - Acceso a planillas según plan
+   - Acceso a planificaciones según plan
 
 ### Segmentación por Necesidades
 
@@ -144,7 +144,7 @@ El modelo de negocio se basa en:
 - Calendario mensual
 
 ### 2. **Sistema de Entrenamientos**
-- Planillas de entrenamiento categorizadas
+- c de entrenamiento categorizadas
 - Registro de workouts
 - Asignación por coaches (solo Pro/Elite)
 - Progreso histórico
@@ -180,7 +180,7 @@ El modelo de negocio se basa en:
 ### 1. **Especialización en CrossFit**
 - No es genérico, está enfocado específicamente en CrossFit
 - Timer con modos específicos (Tabata, AMRAP, etc.)
-- Planillas especializadas
+- planificaciones especializadas
 
 ### 2. **Flexibilidad de Planes**
 - Escalabilidad desde principiante hasta profesional
@@ -321,7 +321,7 @@ El modelo de negocio se basa en:
 ### Competencia
 - Apps genéricas de fitness (MyFitnessPal, Strava)
 - Apps de CrossFit (Wodify, BTWB)
-- Planillas en papel o Excel
+- planificaciones en papel o Excel
 
 ### Diferenciadores Clave
 - Precio competitivo
