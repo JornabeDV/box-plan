@@ -19,24 +19,26 @@ export function PlanificationHeader({
 
   return (
     <div className="mb-6 flex flex-col items-start">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => router.back()}
-        className="flex items-center gap-2 mb-4"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Volver
-      </Button>
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold">
-          {isToday ? "Planificación de Hoy" : "Planificación"}
-        </h1>
-        {!isToday && formattedDate && (
-          <p className="text-sm md:text-base text-zinc-400 font-medium mt-1">
-            {formattedDate}
-          </p>
-        )}
+      <div className="flex items-start justify-between w-full gap-2">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold">
+            {isToday ? "Planificación de Hoy" : "Planificación"}
+          </h1>
+          {!isToday && formattedDate && (
+            <p className="text-sm md:text-base text-zinc-400 font-medium mt-1">
+              {formattedDate}
+            </p>
+          )}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => router.push('/')}
+          className="flex items-center gap-2 shrink-0"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span className="hidden sm:inline">Volver</span>
+        </Button>
       </div>
     </div>
   );

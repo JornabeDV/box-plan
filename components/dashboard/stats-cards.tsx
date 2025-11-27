@@ -55,7 +55,15 @@ export function StatsCards() {
         setLoading(true)
         setError(null)
 
-        const response = await fetch('/api/planifications')
+        // Formatear la fecha de hoy como YYYY-MM-DD
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const year = today.getFullYear()
+        const month = String(today.getMonth() + 1).padStart(2, '0')
+        const day = String(today.getDate()).padStart(2, '0')
+        const dateString = `${year}-${month}-${day}`
+
+        const response = await fetch(`/api/planifications?date=${dateString}`)
         
         if (!response.ok) {
           throw new Error('Error al cargar la planificación')
@@ -185,7 +193,17 @@ export function StatsCards() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => router.push('/planification')}
+              onClick={() => {
+                // Formatear la fecha de hoy como YYYY-MM-DD
+                const today = new Date()
+                today.setHours(0, 0, 0, 0)
+                const year = today.getFullYear()
+                const month = String(today.getMonth() + 1).padStart(2, '0')
+                const day = String(today.getDate()).padStart(2, '0')
+                const dateString = `${year}-${month}-${day}`
+                
+                router.push(`/planification?date=${dateString}`)
+              }}
               className="flex items-center justify-center gap-2 w-full md:w-auto md:flex-shrink-0"
             >
               Ver detalle

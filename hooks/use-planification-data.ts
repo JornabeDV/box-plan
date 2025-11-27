@@ -56,6 +56,9 @@ export function usePlanificationData({ userId }: UsePlanificationDataProps) {
 		setLoading(true)
 		setError(null)
 		setPlanification(null)
+		// Resetear workouts existentes cuando cambia la planificación
+		setExistingWodWorkout(null)
+		setExistingStrengthWorkout(null)
 
 		fetch(`/api/planifications?date=${dateString}`)
 			.then(response => {
@@ -70,6 +73,8 @@ export function usePlanificationData({ userId }: UsePlanificationDataProps) {
 					fetchExistingWorkouts(data.data.id)
 				} else {
 					setPlanification(null)
+					setExistingWodWorkout(null)
+					setExistingStrengthWorkout(null)
 					if (data.message) {
 						setError(data.message)
 					}
@@ -79,6 +84,8 @@ export function usePlanificationData({ userId }: UsePlanificationDataProps) {
 				console.error('Error fetching planification:', err)
 				setError('Error al cargar la planificación')
 				setPlanification(null)
+				setExistingWodWorkout(null)
+				setExistingStrengthWorkout(null)
 			})
 			.finally(() => {
 				setLoading(false)
@@ -86,7 +93,11 @@ export function usePlanificationData({ userId }: UsePlanificationDataProps) {
 	}, [userId, searchParams])
 
 	const fetchExistingWorkouts = async (planificationId: string) => {
-		if (!userId || !planificationId) return
+		if (!userId || !planificationId) {
+			setExistingWodWorkout(null)
+			setExistingStrengthWorkout(null)
+			return
+		}
 
 		try {
 			const userIdStr = String(userId)
@@ -95,39 +106,73 @@ export function usePlanificationData({ userId }: UsePlanificationDataProps) {
 				const workouts = await response.json()
 				const planificationIdNum = parseInt(planificationId, 10)
 
+				console.log('Fetching workouts for planification:', {
+					planificationId,
+					planificationIdNum,
+					totalWorkouts: workouts.length,
+					workouts: workouts.map((w: any) => ({
+						id: w.id,
+						planificationId: w.planificationId || w.planification_id,
+						type: w.data?.type
+					}))
+				})
+
 				const wodWorkout = workouts.find((w: any) => {
-					const wPlanificationId = w.planification_id !== null && w.planification_id !== undefined
-						? Number(w.planification_id)
-						: null
+					// Prisma devuelve planificationId en camelCase
+					const wPlanificationId = w.planificationId !== null && w.planificationId !== undefined
+						? Number(w.planificationId)
+						: (w.planification_id !== null && w.planification_id !== undefined
+							? Number(w.planification_id)
+							: null)
 					return wPlanificationId === planificationIdNum && w.data?.type === 'wod_score'
 				})
 
 				const strengthWorkout = workouts.find((w: any) => {
-					const wPlanificationId = w.planification_id !== null && w.planification_id !== undefined
-						? Number(w.planification_id)
-						: null
+					// Prisma devuelve planificationId en camelCase
+					const wPlanificationId = w.planificationId !== null && w.planificationId !== undefined
+						? Number(w.planificationId)
+						: (w.planification_id !== null && w.planification_id !== undefined
+							? Number(w.planification_id)
+							: null)
 					return wPlanificationId === planificationIdNum && w.data?.type === 'strength_score'
+				})
+
+				console.log('Found workouts:', {
+					wodWorkout: wodWorkout ? {
+						id: wodWorkout.id,
+						duration_seconds: wodWorkout.duration_seconds
+					} : null,
+					strengthWorkout: strengthWorkout ? {
+						id: strengthWorkout.id,
+						weight: strengthWorkout.data?.weight
+					} : null
 				})
 
 				if (wodWorkout) {
 					setExistingWodWorkout({
 						id: String(wodWorkout.id),
-						duration_seconds: wodWorkout.duration_seconds,
-						completed_at: wodWorkout.completed_at
+						duration_seconds: wodWorkout.durationSeconds || wodWorkout.duration_seconds,
+						completed_at: wodWorkout.completedAt || wodWorkout.completed_at
 					})
+				} else {
+					setExistingWodWorkout(null)
 				}
 
 				if (strengthWorkout) {
 					setExistingStrengthWorkout({
 						id: String(strengthWorkout.id),
 						duration_seconds: null,
-						completed_at: strengthWorkout.completed_at,
+						completed_at: strengthWorkout.completedAt || strengthWorkout.completed_at,
 						weight: strengthWorkout.data?.weight || null
 					})
+				} else {
+					setExistingStrengthWorkout(null)
 				}
 			}
 		} catch (error) {
 			console.error('Error fetching existing workouts:', error)
+			setExistingWodWorkout(null)
+			setExistingStrengthWorkout(null)
 		}
 	}
 
