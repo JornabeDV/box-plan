@@ -1,25 +1,25 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { Header } from "@/components/layout/header"
-import { BottomNavigation } from "@/components/layout/bottom-navigation"
-import { useAuthWithRoles } from "@/hooks/use-auth-with-roles"
-import { useProfile } from "@/hooks/use-profile"
-import { useUserCoach } from "@/hooks/use-user-coach"
-import { TodaySection } from "@/components/dashboard/today-section"
-import { StatsCards } from "@/components/dashboard/stats-cards"
-import { ReviewsSection } from "@/components/home/reviews-section"
-import { CoachInfoCard } from "@/components/dashboard/coach-info-card"
-import { TrialCalendar } from "@/components/dashboard/trial-calendar"
-import { WhatsAppButton } from "@/components/dashboard/whatsapp-button"
-import { PreferenceSelector } from "@/components/dashboard/preference-selector"
-import { useCurrentUserPreferences } from "@/hooks/use-current-user-preferences"
-import { 
-  Loader2, 
-  Target, 
-  Calendar, 
-  Star, 
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Header } from "@/components/layout/header";
+import { BottomNavigation } from "@/components/layout/bottom-navigation";
+import { useAuthWithRoles } from "@/hooks/use-auth-with-roles";
+import { useProfile } from "@/hooks/use-profile";
+import { useUserCoach } from "@/hooks/use-user-coach";
+import { TodaySection } from "@/components/dashboard/today-section";
+import { StatsCards } from "@/components/dashboard/stats-cards";
+import { ReviewsSection } from "@/components/home/reviews-section";
+import { CoachInfoCard } from "@/components/dashboard/coach-info-card";
+import { TrialCalendar } from "@/components/dashboard/trial-calendar";
+import { WhatsAppButton } from "@/components/dashboard/whatsapp-button";
+import { PreferenceSelector } from "@/components/dashboard/preference-selector";
+import { useCurrentUserPreferences } from "@/hooks/use-current-user-preferences";
+import {
+  Loader2,
+  Target,
+  Calendar,
+  Star,
   TrendingUp,
   Timer,
   Users,
@@ -33,30 +33,48 @@ import {
   Clock,
   Weight,
   Trophy,
-  Settings
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { useToast } from "@/hooks/use-toast"
+  Settings,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { useToast } from "@/hooks/use-toast";
 
-export default function BoxPlanApp() {  
-  const [shouldRedirect, setShouldRedirect] = useState(false)
-  const [paymentStatusHandled, setPaymentStatusHandled] = useState(false)
-  const router = useRouter()
-  const { toast } = useToast()
-  const { user, loading: authLoading, isCoach } = useAuthWithRoles()
-  const { subscription, loading: profileLoading } = useProfile()
-  const { coach: userCoach, loading: coachLoading } = useUserCoach()
-  const { preferences, loading: preferencesLoading, refetch: refetchPreferences } = useCurrentUserPreferences()
-  
+export default function BoxPlanApp() {
+  const [shouldRedirect, setShouldRedirect] = useState(false);
+  const [paymentStatusHandled, setPaymentStatusHandled] = useState(false);
+  const router = useRouter();
+  const { toast } = useToast();
+  const { user, loading: authLoading, isCoach } = useAuthWithRoles();
+  const { subscription, loading: profileLoading } = useProfile();
+  const { coach: userCoach, loading: coachLoading } = useUserCoach();
+  const {
+    preferences,
+    loading: preferencesLoading,
+    refetch: refetchPreferences,
+  } = useCurrentUserPreferences();
+
   // Verificar si el usuario tiene suscripción activa
-  const hasActiveSubscription = subscription?.status === 'active'
-  
+  const hasActiveSubscription = subscription?.status === "active";
+
   // Verificar si el usuario tiene preferencias configuradas
-  const hasPreferences = preferences && preferences.preferredDisciplineId && preferences.preferredLevelId
-  
+  const hasPreferences =
+    preferences &&
+    preferences.preferredDisciplineId &&
+    preferences.preferredLevelId;
+
   // Frases motivacionales para usuarios con suscripción activa
   const motivationalQuotes = [
     "El único entrenamiento malo es el que no haces. ¡Vamos!",
@@ -70,67 +88,76 @@ export default function BoxPlanApp() {
     "La fuerza no viene de lo que puedes hacer, viene de superar lo que pensabas que no podías.",
     "El éxito es la suma de pequeños esfuerzos repetidos día tras día.",
     "No te detengas cuando estés cansado, detente cuando hayas terminado.",
-    "Tu competencia más grande eres tú mismo. ¡Vence a tu yo de ayer!"
-  ]
+    "Tu competencia más grande eres tú mismo. ¡Vence a tu yo de ayer!",
+  ];
 
   // Obtener una frase motivacional basada en el día del año para que cambie diariamente
   const getDailyMotivationalQuote = () => {
-    const today = new Date()
-    const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000)
-    return motivationalQuotes[dayOfYear % motivationalQuotes.length]
-  }
+    const today = new Date();
+    const dayOfYear = Math.floor(
+      (today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) /
+        86400000
+    );
+    return motivationalQuotes[dayOfYear % motivationalQuotes.length];
+  };
 
   // Manejar parámetros de pago después de redirección desde MercadoPago
   useEffect(() => {
-    if (paymentStatusHandled || typeof window === 'undefined') return
+    if (paymentStatusHandled || typeof window === "undefined") return;
 
-    const urlParams = new URLSearchParams(window.location.search)
-    const paymentStatus = urlParams.get('payment')
-    
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get("payment");
+
     if (paymentStatus && !paymentStatusHandled) {
-      setPaymentStatusHandled(true)
-      
-      if (paymentStatus === 'success') {
+      setPaymentStatusHandled(true);
+
+      if (paymentStatus === "success") {
         toast({
-          title: '¡Pago exitoso! 🎉',
-          description: 'Tu suscripción ha sido activada correctamente. Ya puedes disfrutar de todos los beneficios.',
-          variant: 'default',
-        })
+          title: "¡Pago exitoso! 🎉",
+          description:
+            "Tu suscripción ha sido activada correctamente. Ya puedes disfrutar de todos los beneficios.",
+          variant: "default",
+        });
         // Limpiar el parámetro de la URL
-        router.replace('/', { scroll: false })
-      } else if (paymentStatus === 'failure') {
+        router.replace("/", { scroll: false });
+      } else if (paymentStatus === "failure") {
         toast({
-          title: 'Pago fallido',
-          description: 'No se pudo procesar el pago. Por favor, intenta nuevamente o contacta con soporte.',
-          variant: 'destructive',
-        })
+          title: "Pago fallido",
+          description:
+            "No se pudo procesar el pago. Por favor, intenta nuevamente o contacta con soporte.",
+          variant: "destructive",
+        });
         // Limpiar el parámetro de la URL
-        router.replace('/', { scroll: false })
-      } else if (paymentStatus === 'pending') {
+        router.replace("/", { scroll: false });
+      } else if (paymentStatus === "pending") {
         toast({
-          title: 'Pago pendiente',
-          description: 'Tu pago está siendo procesado. Te notificaremos cuando se complete.',
-          variant: 'default',
-        })
+          title: "Pago pendiente",
+          description:
+            "Tu pago está siendo procesado. Te notificaremos cuando se complete.",
+          variant: "default",
+        });
         // Limpiar el parámetro de la URL
-        router.replace('/', { scroll: false })
+        router.replace("/", { scroll: false });
       }
     }
-  }, [paymentStatusHandled, toast, router])
+  }, [paymentStatusHandled, toast, router]);
 
   // Verificar si debe redirigir a login (después del mount)
   useEffect(() => {
     if (!authLoading && !user) {
-      const hasVisitedLogin = typeof window !== 'undefined' && localStorage.getItem('hasVisitedLogin')
-      const hasAccount = typeof window !== 'undefined' && localStorage.getItem('hasAccount')
-      
+      const hasVisitedLogin =
+        typeof window !== "undefined" &&
+        localStorage.getItem("hasVisitedLogin");
+      const hasAccount =
+        typeof window !== "undefined" && localStorage.getItem("hasAccount");
+
       // Si ya tiene cuenta o ha visitado login, redirigir a login directamente
       if (hasAccount || hasVisitedLogin) {
-        setShouldRedirect(true)
-        router.push('/login')
+        setShouldRedirect(true);
+        router.push("/login");
       }
     }
-  }, [authLoading, user, router])
+  }, [authLoading, user, router]);
 
   // Mostrar loading mientras se verifica la autenticación
   if (authLoading) {
@@ -141,7 +168,7 @@ export default function BoxPlanApp() {
           <span>Cargando...</span>
         </div>
       </div>
-    )
+    );
   }
 
   // Si debe redirigir, mostrar loading durante la redirección
@@ -153,7 +180,7 @@ export default function BoxPlanApp() {
           <span>Redirigiendo...</span>
         </div>
       </div>
-    )
+    );
   }
 
   // Si no hay usuario autenticado y es primera visita, mostrar landing page
@@ -161,7 +188,7 @@ export default function BoxPlanApp() {
     return (
       <div className="min-h-screen bg-background text-foreground">
         <Header />
-        
+
         <main className="w-full">
           {/* Hero Section */}
           <section className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-16 md:py-24">
@@ -180,35 +207,36 @@ export default function BoxPlanApp() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <h1 className="text-5xl md:text-7xl font-display tracking-wide">
                     Maximiza tu{" "}
-                    <span className="text-lime-400">Rendimiento</span>{" "}
-                    CrossFit
+                    <span className="text-lime-400">Rendimiento</span> CrossFit
                   </h1>
-                  
+
                   <p className="text-xl text-gray-300 max-w-xl">
-                    La plataforma completa para entrenar, medir y mejorar. Planillas especializadas, análisis avanzado, timer profesional y comunidad.
+                    La plataforma completa para entrenar, medir y mejorar.
+                    Planificaciones especializadas, análisis avanzado, timer
+                    profesional y comunidad.
                   </p>
-                  
+
                   <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                    <Button 
+                    <Button
                       onClick={() => {
-                        if (typeof window !== 'undefined') {
-                          localStorage.setItem('hasVisitedLogin', 'true')
+                        if (typeof window !== "undefined") {
+                          localStorage.setItem("hasVisitedLogin", "true");
                         }
-                        router.push('/login')
+                        router.push("/login");
                       }}
-                      size="xl" 
+                      size="xl"
                       variant="default"
                       className="touch-manipulation"
                     >
                       <Zap className="w-6 h-6" />
                       Comenzar Gratis
                     </Button>
-                    <Button 
-                      onClick={() => router.push('/pricing')}
-                      size="xl" 
+                    <Button
+                      onClick={() => router.push("/pricing")}
+                      size="xl"
                       variant="glass"
                       className="touch-manipulation"
                     >
@@ -216,7 +244,7 @@ export default function BoxPlanApp() {
                       <ArrowRight className="w-6 h-6" />
                     </Button>
                   </div>
-                  
+
                   {/* Social Proof */}
                   <div className="flex flex-wrap items-center gap-6 pt-4 text-sm text-gray-400">
                     <div className="flex items-center gap-2">
@@ -233,7 +261,7 @@ export default function BoxPlanApp() {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Right: Visual Placeholder - Hidden on mobile, shown on desktop */}
                 <div className="hidden lg:flex flex-1">
                   <div className="relative w-full max-w-md">
@@ -254,7 +282,7 @@ export default function BoxPlanApp() {
                 </div>
               </div>
             </div>
-            
+
             {/* Scroll Indicator */}
             <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
               <ChevronDown className="w-6 h-6 text-gray-400" />
@@ -267,76 +295,96 @@ export default function BoxPlanApp() {
               <div className="text-center mb-12">
                 <h2 className="text-3xl md:text-5xl font-display mb-4 tracking-wide">
                   Todo lo que necesitas para mejorar
-              </h2>
+                </h2>
                 <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                  Herramientas profesionales diseñadas específicamente para atletas CrossFit
-              </p>
-            </div>
-            
+                  Herramientas profesionales diseñadas específicamente para
+                  atletas CrossFit
+                </p>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
                 {[
                   {
                     icon: FileText,
-                    title: "Planillas de Entrenamiento",
-                    description: "Más de 50 planillas especializadas organizadas por categorías y niveles",
-                    color: "text-blue-400"
+                    title: "Planificaciones de Entrenamiento",
+                    description:
+                      "Más de 50 planificaciones especializadas organizadas por categorías y niveles",
+                    color: "text-blue-400",
                   },
                   {
                     icon: TrendingUp,
                     title: "Seguimiento de Progreso",
-                    description: "Análisis detallado de tu evolución con estadísticas y gráficos avanzados",
-                    color: "text-green-400"
+                    description:
+                      "Análisis detallado de tu evolución con estadísticas y gráficos avanzados",
+                    color: "text-green-400",
                   },
                   {
                     icon: Timer,
                     title: "Timer Profesional",
-                    description: "Tabata, AMRAP, EMOM, For Time y más modos de entrenamiento",
-                    color: "text-purple-400"
+                    description:
+                      "Tabata, AMRAP, EMOM, For Time y más modos de entrenamiento",
+                    color: "text-purple-400",
                   },
                   {
                     icon: Users,
                     title: "Comunidad",
-                    description: "Foro de discusión, leaderboard y motivación con otros atletas",
-                    color: "text-orange-400"
+                    description:
+                      "Foro de discusión, leaderboard y motivación con otros atletas",
+                    color: "text-orange-400",
                   },
                   {
                     icon: Calculator,
                     title: "Calculadora 1RM",
-                    description: "Calcula tu repetición máxima y optimiza tus porcentajes de entrenamiento",
-                    color: "text-red-400"
+                    description:
+                      "Calcula tu repetición máxima y optimiza tus porcentajes de entrenamiento",
+                    color: "text-red-400",
                   },
                   {
                     icon: Calendar,
                     title: "Planificación Avanzada",
-                    description: "Entrenamientos personalizados y planificación según tu plan",
-                    color: "text-yellow-400"
-                  }
+                    description:
+                      "Entrenamientos personalizados y planificación según tu plan",
+                    color: "text-yellow-400",
+                  },
                 ].map((feature, index) => {
                   const getGradientClass = (color: string) => {
                     const colorMap: Record<string, string> = {
-                      'text-blue-400': 'from-blue-400/20 to-blue-400/10',
-                      'text-green-400': 'from-green-400/20 to-green-400/10',
-                      'text-purple-400': 'from-purple-400/20 to-purple-400/10',
-                      'text-orange-400': 'from-orange-400/20 to-orange-400/10',
-                      'text-red-400': 'from-red-400/20 to-red-400/10',
-                      'text-yellow-400': 'from-yellow-400/20 to-yellow-400/10',
-                    }
-                    return colorMap[color] || 'from-gray-400/20 to-gray-400/10'
-                  }
-                  
+                      "text-blue-400": "from-blue-400/20 to-blue-400/10",
+                      "text-green-400": "from-green-400/20 to-green-400/10",
+                      "text-purple-400": "from-purple-400/20 to-purple-400/10",
+                      "text-orange-400": "from-orange-400/20 to-orange-400/10",
+                      "text-red-400": "from-red-400/20 to-red-400/10",
+                      "text-yellow-400": "from-yellow-400/20 to-yellow-400/10",
+                    };
+                    return colorMap[color] || "from-gray-400/20 to-gray-400/10";
+                  };
+
                   return (
-                    <Card key={index} className="hover:shadow-xl transition-all duration-300 hover:scale-105">
+                    <Card
+                      key={index}
+                      className="hover:shadow-xl transition-all duration-300 hover:scale-105"
+                    >
                       <CardHeader>
-                        <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${getGradientClass(feature.color)} flex items-center justify-center mb-4`}>
-                          <feature.icon className={`w-6 h-6 ${feature.color}`} />
+                        <div
+                          className={`w-12 h-12 rounded-lg bg-gradient-to-br ${getGradientClass(
+                            feature.color
+                          )} flex items-center justify-center mb-4`}
+                        >
+                          <feature.icon
+                            className={`w-6 h-6 ${feature.color}`}
+                          />
                         </div>
-                        <CardTitle className="font-heading text-lg">{feature.title}</CardTitle>
+                        <CardTitle className="font-heading text-lg">
+                          {feature.title}
+                        </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-muted-foreground">{feature.description}</p>
+                        <p className="text-muted-foreground">
+                          {feature.description}
+                        </p>
                       </CardContent>
                     </Card>
-                  )
+                  );
                 })}
               </div>
             </div>
@@ -344,7 +392,7 @@ export default function BoxPlanApp() {
 
           {/* Reviews Section */}
           <ReviewsSection className="bg-gradient-to-br from-gray-900/50 to-gray-800/50" />
-          
+
           {/* Stats Section */}
           <section className="py-12 bg-card/50">
             <div className="container mx-auto px-6">
@@ -353,7 +401,7 @@ export default function BoxPlanApp() {
                   { number: "5,000+", label: "Atletas Activos" },
                   { number: "10,000+", label: "Entrenamientos Registrados" },
                   { number: "4.9/5", label: "Valoración Promedio" },
-                  { number: "50+", label: "Planillas Disponibles" }
+                  { number: "50+", label: "Planificaciones Disponibles" },
                 ].map((stat, index) => (
                   <div key={index} className="space-y-2">
                     <div className="text-3xl md:text-4xl font-bold text-lime-400">
@@ -379,22 +427,41 @@ export default function BoxPlanApp() {
                   Desde principiantes hasta atletas avanzados y coaches
                 </p>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-8">
                 {[
-                  { name: "Básico", price: "$9.99", desc: "Perfecto para comenzar" },
-                  { name: "Intermedio", price: "$14.99", desc: "Para llevar tu entrenamiento más lejos" },
-                  { name: "Pro", price: "$29.99", desc: "Para atletas serios y coaches", popular: true }
+                  {
+                    name: "Básico",
+                    price: "$9.99",
+                    desc: "Perfecto para comenzar",
+                  },
+                  {
+                    name: "Intermedio",
+                    price: "$14.99",
+                    desc: "Para llevar tu entrenamiento más lejos",
+                  },
+                  {
+                    name: "Pro",
+                    price: "$29.99",
+                    desc: "Para atletas serios y coaches",
+                    popular: true,
+                  },
                 ].map((plan, index) => (
-                  <Card 
-                    key={index} 
-                    className={`${plan.popular ? 'ring-2 ring-purple-500 scale-105' : ''} hover:shadow-lg transition-all`}
+                  <Card
+                    key={index}
+                    className={`${
+                      plan.popular ? "ring-2 ring-purple-500 scale-105" : ""
+                    } hover:shadow-lg transition-all`}
                   >
                     <CardHeader className="text-center">
                       {plan.popular && (
-                        <Badge className="mb-2 bg-purple-600">Más Popular</Badge>
+                        <Badge className="mb-2 bg-purple-600">
+                          Más Popular
+                        </Badge>
                       )}
-                      <CardTitle className="text-2xl font-display">{plan.name}</CardTitle>
+                      <CardTitle className="text-2xl font-display">
+                        {plan.name}
+                      </CardTitle>
                       <CardDescription>{plan.desc}</CardDescription>
                       <div className="mt-4">
                         <span className="text-4xl font-bold">{plan.price}</span>
@@ -402,9 +469,9 @@ export default function BoxPlanApp() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <Button 
-                        onClick={() => router.push('/pricing')}
-                        className="w-full touch-manipulation" 
+                      <Button
+                        onClick={() => router.push("/pricing")}
+                        className="w-full touch-manipulation"
                         variant={plan.popular ? "premium" : "soft"}
                       >
                         Ver Detalles
@@ -414,17 +481,17 @@ export default function BoxPlanApp() {
                   </Card>
                 ))}
               </div>
-              
+
               <div className="text-center">
-              <Button 
-                  onClick={() => router.push('/pricing')}
+                <Button
+                  onClick={() => router.push("/pricing")}
                   variant="soft"
-                size="lg" 
+                  size="lg"
                   className="touch-manipulation"
-              >
+                >
                   Ver Todos los Planes y Precios
                   <ArrowRight className="w-5 h-5" />
-              </Button>
+                </Button>
                 <p className="text-sm text-muted-foreground mt-4">
                   <Shield className="w-4 h-4 inline mr-1" />
                   Prueba gratis 7 días, sin tarjeta de crédito
@@ -444,50 +511,78 @@ export default function BoxPlanApp() {
                   Respuestas a las dudas más comunes
                 </p>
               </div>
-              
+
               <Accordion type="single" collapsible className="space-y-4">
-                <AccordionItem value="trial" className="bg-card rounded-lg px-4">
+                <AccordionItem
+                  value="trial"
+                  className="bg-card rounded-lg px-4"
+                >
                   <AccordionTrigger className="hover:no-underline">
                     ¿Hay período de prueba gratuito?
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground">
-                    Sí, ofrecemos 7 días de prueba gratuita para todos los planes. Puedes explorar todas las funcionalidades sin compromiso. No necesitas tarjeta de crédito para empezar.
+                    Sí, ofrecemos 7 días de prueba gratuita para todos los
+                    planes. Puedes explorar todas las funcionalidades sin
+                    compromiso. No necesitas tarjeta de crédito para empezar.
                   </AccordionContent>
                 </AccordionItem>
-                
-                <AccordionItem value="cancel" className="bg-card rounded-lg px-4">
+
+                <AccordionItem
+                  value="cancel"
+                  className="bg-card rounded-lg px-4"
+                >
                   <AccordionTrigger className="hover:no-underline">
                     ¿Puedo cancelar cuando quiera?
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground">
-                    Absolutamente. Puedes cancelar tu suscripción en cualquier momento desde tu panel de usuario. No hay penalizaciones ni cargos ocultos. Tu acceso permanecerá activo hasta el final del período pagado.
+                    Absolutamente. Puedes cancelar tu suscripción en cualquier
+                    momento desde tu panel de usuario. No hay penalizaciones ni
+                    cargos ocultos. Tu acceso permanecerá activo hasta el final
+                    del período pagado.
                   </AccordionContent>
                 </AccordionItem>
-                
-                <AccordionItem value="payment" className="bg-card rounded-lg px-4">
+
+                <AccordionItem
+                  value="payment"
+                  className="bg-card rounded-lg px-4"
+                >
                   <AccordionTrigger className="hover:no-underline">
                     ¿Qué métodos de pago aceptan?
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground">
-                    Aceptamos todas las tarjetas de crédito y débito, transferencias bancarias y billeteras digitales a través de MercadoPago, el líder en pagos online en Latinoamérica.
+                    Aceptamos todas las tarjetas de crédito y débito,
+                    transferencias bancarias y billeteras digitales a través de
+                    MercadoPago, el líder en pagos online en Latinoamérica.
                   </AccordionContent>
                 </AccordionItem>
-                
-                <AccordionItem value="device" className="bg-card rounded-lg px-4">
+
+                <AccordionItem
+                  value="device"
+                  className="bg-card rounded-lg px-4"
+                >
                   <AccordionTrigger className="hover:no-underline">
                     ¿Funciona en móvil y web?
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground">
-                    Sí, nuestra plataforma es completamente responsive y funciona perfectamente en móviles, tablets y computadoras. También ofrecemos experiencia PWA (Progressive Web App) para instalar en tu teléfono.
+                    Sí, nuestra plataforma es completamente responsive y
+                    funciona perfectamente en móviles, tablets y computadoras.
+                    También ofrecemos experiencia PWA (Progressive Web App) para
+                    instalar en tu teléfono.
                   </AccordionContent>
                 </AccordionItem>
-                
-                <AccordionItem value="level" className="bg-card rounded-lg px-4">
+
+                <AccordionItem
+                  value="level"
+                  className="bg-card rounded-lg px-4"
+                >
                   <AccordionTrigger className="hover:no-underline">
                     ¿Necesito ser atleta avanzado?
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground">
-                    No, tenemos planes para todos los niveles. El plan Básico es perfecto para principiantes, y puedes ir escalando según tus necesidades. Todos nuestros planes incluyen herramientas útiles independientemente de tu nivel.
+                    No, tenemos planes para todos los niveles. El plan Básico es
+                    perfecto para principiantes, y puedes ir escalando según tus
+                    necesidades. Todos nuestros planes incluyen herramientas
+                    útiles independientemente de tu nivel.
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
@@ -501,26 +596,27 @@ export default function BoxPlanApp() {
                 ¿Listo para mejorar tu rendimiento?
               </h2>
               <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-                Únete a miles de atletas que ya están mejorando su entrenamiento CrossFit
+                Únete a miles de atletas que ya están mejorando su entrenamiento
+                CrossFit
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button 
+                <Button
                   onClick={() => {
-                    if (typeof window !== 'undefined') {
-                      localStorage.setItem('hasVisitedLogin', 'true')
+                    if (typeof window !== "undefined") {
+                      localStorage.setItem("hasVisitedLogin", "true");
                     }
-                    router.push('/login')
+                    router.push("/login");
                   }}
-                  size="xl" 
+                  size="xl"
                   variant="default"
                   className="touch-manipulation"
                 >
                   <Zap className="w-6 h-6" />
                   Comenzar Gratis Ahora
                 </Button>
-                <Button 
-                  onClick={() => router.push('/pricing')}
-                  size="xl" 
+                <Button
+                  onClick={() => router.push("/pricing")}
+                  size="xl"
                   variant="glass"
                   className="touch-manipulation"
                 >
@@ -535,7 +631,7 @@ export default function BoxPlanApp() {
           </section>
         </main>
       </div>
-    )
+    );
   }
 
   // Para coaches, mostrar botón para ir al dashboard
@@ -550,11 +646,12 @@ export default function BoxPlanApp() {
                 Bienvenido, Coach
               </h1>
               <p className="text-lg text-muted-foreground">
-                Accede a tu dashboard para gestionar tus estudiantes y planificaciones
+                Accede a tu dashboard para gestionar tus estudiantes y
+                planificaciones
               </p>
             </div>
             <Button
-              onClick={() => router.push('/admin-dashboard')}
+              onClick={() => router.push("/admin-dashboard")}
               size="lg"
               className="text-lg px-8 py-6"
             >
@@ -565,7 +662,7 @@ export default function BoxPlanApp() {
         </main>
         <BottomNavigation />
       </div>
-    )
+    );
   }
 
   // Para usuarios logueados, mostrar dashboard personalizado
@@ -579,18 +676,18 @@ export default function BoxPlanApp() {
           <div className="space-y-3">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-4">
               <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-                ¡Hola{user?.name ? `, ${user.name.split(' ')[0]}` : ''}! 👋
+                ¡Hola{user?.name ? `, ${user.name.split(" ")[0]}` : ""}! 👋
               </h1>
               <p className="text-muted-foreground text-base md:text-lg md:whitespace-nowrap">
-                {new Date().toLocaleDateString('es-ES', { 
-                  weekday: 'long', 
-                  day: 'numeric', 
-                  month: 'long' 
+                {new Date().toLocaleDateString("es-ES", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
                 })}
               </p>
             </div>
             {/* Frase motivacional - Para usuarios con suscripción activa */}
-            {!profileLoading && subscription?.status === 'active' && (
+            {!profileLoading && subscription?.status === "active" && (
               <p className="text-lime-400 text-base md:text-lg font-medium italic">
                 {getDailyMotivationalQuote()}
               </p>
@@ -609,25 +706,23 @@ export default function BoxPlanApp() {
             )}
             {/* Calendario de entrenamientos - Solo si tiene coach */}
             {!coachLoading && userCoach && (
-              <TrialCalendar 
+              <TrialCalendar
                 coachId={userCoach.id}
                 onDateClick={(date) => {
                   // Formatear fecha como YYYY-MM-DD
-                  const year = date.getFullYear()
-                  const month = String(date.getMonth() + 1).padStart(2, '0')
-                  const day = String(date.getDate()).padStart(2, '0')
-                  const dateString = `${year}-${month}-${day}`
-                  
+                  const year = date.getFullYear();
+                  const month = String(date.getMonth() + 1).padStart(2, "0");
+                  const day = String(date.getDate()).padStart(2, "0");
+                  const dateString = `${year}-${month}-${day}`;
+
                   // Redirigir a la página de planificación con la fecha
-                  router.push(`/planification?date=${dateString}`)
+                  router.push(`/planification?date=${dateString}`);
                 }}
               />
             )}
-            
+
             {/* Mostrar información del coach si tiene uno asignado */}
-            {!coachLoading && userCoach && (
-              <CoachInfoCard coach={userCoach} />
-            )}
+            {!coachLoading && userCoach && <CoachInfoCard coach={userCoach} />}
           </section>
         )}
 
@@ -639,16 +734,19 @@ export default function BoxPlanApp() {
         )}
 
         {/* Selector de preferencias - Solo para usuarios con suscripción activa sin preferencias */}
-        {user?.id && hasActiveSubscription && !preferencesLoading && !hasPreferences && (
-          <section>
-            <PreferenceSelector
-              coachId={userCoach?.id ?? null}
-              onPreferencesSaved={() => {
-                refetchPreferences()
-              }}
-            />
-          </section>
-        )}
+        {user?.id &&
+          hasActiveSubscription &&
+          !preferencesLoading &&
+          !hasPreferences && (
+            <section>
+              <PreferenceSelector
+                coachId={userCoach?.id ?? null}
+                onPreferencesSaved={() => {
+                  refetchPreferences();
+                }}
+              />
+            </section>
+          )}
 
         {/* Sección del día - Solo para usuarios con suscripción activa y con preferencias */}
         {user?.id && hasActiveSubscription && hasPreferences && (
@@ -672,7 +770,7 @@ export default function BoxPlanApp() {
                   <Button
                     variant="outline"
                     className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
-                    onClick={() => router.push('/progress')}
+                    onClick={() => router.push("/progress")}
                   >
                     <BarChart3 className="w-6 h-6" />
                     <span>Progreso</span>
@@ -680,7 +778,7 @@ export default function BoxPlanApp() {
                   <Button
                     variant="outline"
                     className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
-                    onClick={() => router.push('/log-rm')}
+                    onClick={() => router.push("/log-rm")}
                   >
                     <Weight className="w-6 h-6" />
                     <span>Carga RM</span>
@@ -688,7 +786,7 @@ export default function BoxPlanApp() {
                   <Button
                     variant="outline"
                     className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
-                    onClick={() => router.push('/ranking')}
+                    onClick={() => router.push("/ranking")}
                   >
                     <Trophy className="w-6 h-6" />
                     <span>Ranking</span>
@@ -702,22 +800,17 @@ export default function BoxPlanApp() {
         {/* Reviews Section - Al final del dashboard */}
         {user?.id && (
           <section>
-            <ReviewsSection 
-              variant="default" 
-            />
+            <ReviewsSection variant="default" />
           </section>
         )}
       </main>
 
       <BottomNavigation />
-      
+
       {/* Botón flotante de WhatsApp para contactar al coach */}
       {!coachLoading && userCoach && (
-        <WhatsAppButton 
-          phone={userCoach.phone} 
-          coachName={userCoach.name}
-        />
+        <WhatsAppButton phone={userCoach.phone} coachName={userCoach.name} />
       )}
     </div>
-  )
+  );
 }

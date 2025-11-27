@@ -353,7 +353,7 @@ export function UserCard({
         }
       }}
       title="Eliminar Usuario"
-      description={`¿Estás seguro de que quieres eliminar al usuario ${user.full_name || user.email}? Esta acción eliminará todos sus datos (suscripciones, preferencias, planillas asignadas, etc.) y no se puede deshacer.`}
+      description={`¿Estás seguro de que quieres eliminar al usuario ${user.full_name || user.email}? Esta acción eliminará todos sus datos (suscripciones, preferencias, planificaciones asignadas, etc.) y no se puede deshacer.`}
       confirmText="Eliminar"
       cancelText="Cancelar"
       variant="destructive"

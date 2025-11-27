@@ -41,7 +41,7 @@ export const PLANS: Plan[] = [
     monthlyPersonalizedClasses: 12,
     features: [
       '12 clases personalizadas por mes',
-      'Planillas de entrenamiento avanzadas',
+      'planificaciones de entrenamiento avanzadas',
       'Análisis de progreso detallado',
       'Records personales ilimitados',
       'Planificación mensual',
