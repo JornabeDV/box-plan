@@ -52,7 +52,7 @@ export async function PATCH(
 				orderBy: { orderIndex: 'asc' }
 			})
 
-			const existingLevelIds = new Set(existingLevels.map(l => l.id))
+			const existingLevelIds = new Set(existingLevels.map(l => l.id).filter((id): id is number => id !== null && id !== undefined))
 			const newLevelIds = new Set(
 				(levels as any[])
 					.filter((l: any) => l.id !== undefined && l.id !== null && l.id !== '')
@@ -69,6 +69,41 @@ export async function PATCH(
 			)
 
 			if (levelsToDelete.length > 0) {
+				// Verificar si hay usuarios con preferencias vinculadas a estos niveles
+				const usersWithLevelPreference = await prisma.userPreference.findMany({
+					where: {
+						preferredLevelId: { in: levelsToDelete }
+					},
+					select: {
+						userId: true,
+						preferredLevelId: true
+					}
+				})
+
+				// Si hay usuarios vinculados, no permitir la eliminación
+				if (usersWithLevelPreference.length > 0) {
+					const affectedLevelIds = [...new Set(usersWithLevelPreference.map(u => u.preferredLevelId))].filter((id): id is number => id !== null && id !== undefined)
+					const affectedLevels = await prisma.disciplineLevel.findMany({
+						where: {
+							id: { in: affectedLevelIds }
+						},
+						select: {
+							id: true,
+							name: true
+						}
+					})
+
+					const levelNames = affectedLevels.map(l => l.name).join(', ')
+					const totalUsers = new Set(usersWithLevelPreference.map(u => u.userId)).size
+
+					return NextResponse.json(
+						{
+							error: `No se pueden eliminar los niveles "${levelNames}" porque ${totalUsers} usuario${totalUsers !== 1 ? 's' : ''} tiene${totalUsers !== 1 ? 'n' : ''} estos niveles como preferencia. Por favor, actualiza las preferencias de los usuarios antes de eliminar.`
+						},
+						{ status: 400 }
+					)
+				}
+
 				// Primero actualizar planificaciones que referencian estos niveles
 				await prisma.planification.updateMany({
 					where: {
@@ -209,14 +244,51 @@ export async function DELETE(
 
 		const disciplineId = parseInt(params.id)
 
-		// Hard delete: eliminar físicamente de la base de datos
-		// Primero obtenemos los IDs de los niveles para actualizar las planificaciones
+		// Verificar si hay usuarios con preferencias vinculadas a esta disciplina
+		const usersWithDisciplinePreference = await prisma.userPreference.findMany({
+			where: {
+				preferredDisciplineId: disciplineId
+			},
+			select: {
+				userId: true
+			}
+		})
+
+		// Obtener los IDs de los niveles de esta disciplina
 		const levels = await prisma.disciplineLevel.findMany({
 			where: { disciplineId },
 			select: { id: true }
 		})
-		const levelIds = levels.map(l => l.id)
+		const levelIds = levels.map(l => l.id).filter((id): id is number => id !== null && id !== undefined)
 
+		// Verificar si hay usuarios con preferencias vinculadas a los niveles de esta disciplina
+		const usersWithLevelPreference = levelIds.length > 0
+			? await prisma.userPreference.findMany({
+					where: {
+						preferredLevelId: { in: levelIds }
+					},
+					select: {
+						userId: true
+					}
+				})
+			: []
+
+		// Si hay usuarios vinculados, no permitir la eliminación
+		if (usersWithDisciplinePreference.length > 0 || usersWithLevelPreference.length > 0) {
+			const totalUsers = new Set([
+				...usersWithDisciplinePreference.map(u => u.userId),
+				...usersWithLevelPreference.map(u => u.userId)
+			]).size
+
+			return NextResponse.json(
+				{
+					error: `No se puede eliminar esta disciplina porque ${totalUsers} usuario${totalUsers !== 1 ? 's' : ''} tiene${totalUsers !== 1 ? 'n' : ''} esta disciplina o sus niveles como preferencia. Por favor, actualiza las preferencias de los usuarios antes de eliminar.`
+				},
+				{ status: 400 }
+			)
+		}
+
+		// Hard delete: eliminar físicamente de la base de datos
 		await prisma.$transaction(async (tx) => {
 			// Actualizar planificaciones que referencian estos niveles
 			if (levelIds.length > 0) {
@@ -229,16 +301,16 @@ export async function DELETE(
 					}
 				})
 			}
-			// Eliminar los niveles físicamente
-			await tx.disciplineLevel.deleteMany({
-				where: { disciplineId }
-			})
 			// Actualizar planificaciones que referencian la disciplina
 			await tx.planification.updateMany({
 				where: { disciplineId },
 				data: {
 					disciplineId: null
 				}
+			})
+			// Eliminar los niveles físicamente
+			await tx.disciplineLevel.deleteMany({
+				where: { disciplineId }
 			})
 			// Eliminar la disciplina físicamente
 			await tx.discipline.delete({

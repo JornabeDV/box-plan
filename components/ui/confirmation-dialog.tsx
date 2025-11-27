@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import {
   AlertDialog,
@@ -9,20 +9,20 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Button } from '@/components/ui/button'
-import { AlertTriangle, CreditCard, Loader2 } from 'lucide-react'
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, CreditCard, Loader2 } from "lucide-react";
 
 interface ConfirmationDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onConfirm: () => void | Promise<void>
-  title: string
-  description: string
-  confirmText?: string
-  cancelText?: string
-  variant?: 'destructive' | 'default'
-  loading?: boolean
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void | Promise<void>;
+  title: string;
+  description: string;
+  confirmText?: string;
+  cancelText?: string | null;
+  variant?: "destructive" | "default";
+  loading?: boolean;
 }
 
 export function ConfirmationDialog({
@@ -31,31 +31,31 @@ export function ConfirmationDialog({
   onConfirm,
   title,
   description,
-  confirmText = 'Confirmar',
-  cancelText = 'Cancelar',
-  variant = 'destructive',
-  loading = false
+  confirmText = "Confirmar",
+  cancelText = "Cancelar",
+  variant = "destructive",
+  loading = false,
 }: ConfirmationDialogProps) {
   const handleConfirm = async () => {
-    const result = onConfirm()
-    // Si onConfirm retorna una Promise, esperarla
+    const result = onConfirm();
     if (result instanceof Promise) {
-      await result
+      await result;
     }
-    // El diálogo se cierra desde el componente padre si es necesario
-  }
+  };
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="sm:max-w-[425px]">
         <AlertDialogHeader>
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-full ${
-              variant === 'destructive' 
-                ? 'bg-destructive/10 text-destructive' 
-                : 'bg-primary/10 text-primary'
-            }`}>
-              {variant === 'destructive' ? (
+            <div
+              className={`p-2 rounded-full ${
+                variant === "destructive"
+                  ? "bg-destructive/10 text-destructive"
+                  : "bg-primary/10 text-primary"
+              }`}
+            >
+              {variant === "destructive" ? (
                 <AlertTriangle className="w-5 h-5" />
               ) : (
                 <CreditCard className="w-5 h-5" />
@@ -67,13 +67,15 @@ export function ConfirmationDialog({
             {description}
           </AlertDialogDescription>
         </AlertDialogHeader>
-        
+
         <AlertDialogFooter className="gap-2">
-          <AlertDialogCancel asChild>
-            <Button variant="outline" disabled={loading}>
-              {cancelText}
-            </Button>
-          </AlertDialogCancel>
+          {cancelText !== null && (
+            <AlertDialogCancel asChild>
+              <Button variant="outline" disabled={loading}>
+                {cancelText}
+              </Button>
+            </AlertDialogCancel>
+          )}
           <AlertDialogAction asChild>
             <Button
               variant={variant}
@@ -88,5 +90,5 @@ export function ConfirmationDialog({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  )
+  );
 }

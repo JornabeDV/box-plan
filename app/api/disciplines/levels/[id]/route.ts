@@ -119,6 +119,26 @@ export async function DELETE(
 			)
 		}
 
+		// Verificar si hay usuarios con preferencias vinculadas a este nivel
+		const usersWithLevelPreference = await prisma.userPreference.findMany({
+			where: {
+				preferredLevelId: levelId
+			},
+			select: {
+				userId: true
+			}
+		})
+
+		// Si hay usuarios vinculados, no permitir la eliminación
+		if (usersWithLevelPreference.length > 0) {
+			return NextResponse.json(
+				{
+					error: `No se puede eliminar este nivel porque ${usersWithLevelPreference.length} usuario${usersWithLevelPreference.length !== 1 ? 's' : ''} tiene${usersWithLevelPreference.length !== 1 ? 'n' : ''} este nivel como preferencia. Por favor, actualiza las preferencias de los usuarios antes de eliminar.`
+				},
+				{ status: 400 }
+			)
+		}
+
 		// Hard delete: eliminar físicamente de la base de datos
 		// Primero actualizamos las planificaciones que usan este nivel para que disciplineLevelId sea null
 		await prisma.$transaction([
