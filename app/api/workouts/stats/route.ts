@@ -26,29 +26,37 @@ export async function GET(request: NextRequest) {
       where: { userId: targetUserId },
       select: {
         completedAt: true,
-        durationSeconds: true
+        data: true
       },
       orderBy: { completedAt: 'desc' }
     })
 
+    // Filtrar solo scores (wod_score y strength_score)
+    const scores = workouts.filter((w) => {
+      if (!w.completedAt || !w.data) return false
+      const data = w.data as any
+      return data.type === 'wod_score' || data.type === 'strength_score'
+    })
+
+    const now = new Date()
+    const weekAgo = new Date(now)
+    weekAgo.setDate(weekAgo.getDate() - 7)
+    const monthAgo = new Date(now)
+    monthAgo.setDate(monthAgo.getDate() - 30)
+
     const stats = {
-      totalWorkouts: workouts.length,
-      thisWeek: workouts.filter((w) => {
+      totalScores: scores.length,
+      thisWeek: scores.filter((w) => {
         if (!w.completedAt) return false
-        const workoutDate = new Date(w.completedAt)
-        const weekAgo = new Date()
-        weekAgo.setDate(weekAgo.getDate() - 7)
-        return workoutDate >= weekAgo
+        const scoreDate = new Date(w.completedAt)
+        return scoreDate >= weekAgo
       }).length,
-      thisMonth: workouts.filter((w) => {
+      thisMonth: scores.filter((w) => {
         if (!w.completedAt) return false
-        const workoutDate = new Date(w.completedAt)
-        const monthAgo = new Date()
-        monthAgo.setDate(monthAgo.getDate() - 30)
-        return workoutDate >= monthAgo
+        const scoreDate = new Date(w.completedAt)
+        return scoreDate >= monthAgo
       }).length,
-      averageDuration: workouts.reduce((acc: number, w) => acc + (w.durationSeconds || 0), 0) / (workouts.length || 1),
-      streak: calculateStreak(workouts)
+      streak: calculateStreak(scores)
     }
 
     return NextResponse.json(stats)
@@ -58,19 +66,19 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function calculateStreak(workouts: { completedAt: Date | null }[]): number {
-  if (workouts.length === 0) return 0
+function calculateStreak(scores: { completedAt: Date | null }[]): number {
+  if (scores.length === 0) return 0
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  // Obtener fechas únicas de entrenamientos
-  const workoutDates = new Set<string>()
-  for (const workout of workouts) {
-    if (!workout.completedAt) continue
-    const workoutDate = new Date(workout.completedAt)
-    workoutDate.setHours(0, 0, 0, 0)
-    workoutDates.add(workoutDate.toISOString().split('T')[0])
+  // Obtener fechas únicas de scores registrados
+  const scoreDates = new Set<string>()
+  for (const score of scores) {
+    if (!score.completedAt) continue
+    const scoreDate = new Date(score.completedAt)
+    scoreDate.setHours(0, 0, 0, 0)
+    scoreDates.add(scoreDate.toISOString().split('T')[0])
   }
 
   // Calcular racha desde hoy hacia atrás
@@ -79,7 +87,7 @@ function calculateStreak(workouts: { completedAt: Date | null }[]): number {
   
   while (true) {
     const dateStr = currentDate.toISOString().split('T')[0]
-    if (workoutDates.has(dateStr)) {
+    if (scoreDates.has(dateStr)) {
       streak++
       currentDate.setDate(currentDate.getDate() - 1)
     } else {

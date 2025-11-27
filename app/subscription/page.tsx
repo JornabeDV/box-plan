@@ -1,38 +1,49 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Header } from "@/components/layout/header"
-import { BottomNavigation } from "@/components/layout/bottom-navigation"
-import { SubscriptionManagement } from "@/components/subscription/subscription-management"
-import { PlanSwitcher } from "@/components/subscription/plan-switcher"
-import { useSubscriptionManagement } from "@/hooks/use-subscription-management"
-import { useUserCoach } from "@/hooks/use-user-coach"
-import { CreditCard, History, Settings, CheckCircle, XCircle, Clock, Loader2, ArrowLeft } from "lucide-react"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Header } from "@/components/layout/header";
+import { BottomNavigation } from "@/components/layout/bottom-navigation";
+import { SubscriptionManagement } from "@/components/subscription/subscription-management";
+import { PlanSwitcher } from "@/components/subscription/plan-switcher";
+import { useSubscriptionManagement } from "@/hooks/use-subscription-management";
+import { useUserCoach } from "@/hooks/use-user-coach";
+import {
+  CreditCard,
+  History,
+  Settings,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Loader2,
+  ArrowLeft,
+} from "lucide-react";
 
 interface PaymentHistoryItem {
-  id: string
-  user_id: string
-  subscription_id: string | null
-  amount: number
-  currency: string
-  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
-  mercadopago_payment_id: string | null
-  payment_method: string | null
-  created_at: string
-  updated_at: string
+  id: string;
+  user_id: string;
+  subscription_id: string | null;
+  amount: number;
+  currency: string;
+  status: "pending" | "approved" | "rejected" | "cancelled";
+  mercadopago_payment_id: string | null;
+  payment_method: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export default function SubscriptionPage() {
-  const router = useRouter()
-  const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryItem[]>([])
-  const [loadingHistory, setLoadingHistory] = useState(false)
-  const { coach: userCoach } = useUserCoach()
-  
+  const router = useRouter();
+  const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryItem[]>(
+    []
+  );
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const { coach: userCoach } = useUserCoach();
+
   const {
     plans,
     currentSubscription,
@@ -44,86 +55,93 @@ export default function SubscriptionPage() {
     reactivateSubscription,
     renewSubscription,
     loadCurrentSubscription,
-    loadPlans
-  } = useSubscriptionManagement()
+    loadPlans,
+  } = useSubscriptionManagement();
 
   // Función para abrir WhatsApp con el coach
   const handleContactSupport = () => {
     if (!userCoach?.phone) {
-      return
+      return;
     }
 
     // Formatear el número de teléfono para WhatsApp
     const formatPhoneForWhatsApp = (phoneNumber: string): string => {
-      let cleaned = phoneNumber.replace(/[^\d+]/g, '')
-      
-      if (!cleaned.startsWith('+')) {
-        if (cleaned.startsWith('54')) {
-          cleaned = '+' + cleaned
+      let cleaned = phoneNumber.replace(/[^\d+]/g, "");
+
+      if (!cleaned.startsWith("+")) {
+        if (cleaned.startsWith("54")) {
+          cleaned = "+" + cleaned;
         } else {
-          cleaned = '+54' + cleaned
+          cleaned = "+54" + cleaned;
         }
       }
-      
-      return cleaned
-    }
 
-    const formattedPhone = formatPhoneForWhatsApp(userCoach.phone)
-    const message = `Hola ${userCoach.name || 'coach'}, necesito ayuda con mi suscripción en BoxPlan.`
-    
+      return cleaned;
+    };
+
+    const formattedPhone = formatPhoneForWhatsApp(userCoach.phone);
+    const message = `Hola ${
+      userCoach.name || "coach"
+    }, necesito ayuda con mi suscripción en BoxPlan.`;
+
     // Crear URL de WhatsApp
-    const whatsappUrl = `https://wa.me/${formattedPhone.replace(/\+/g, '')}?text=${encodeURIComponent(message)}`
-    
+    const whatsappUrl = `https://wa.me/${formattedPhone.replace(
+      /\+/g,
+      ""
+    )}?text=${encodeURIComponent(message)}`;
+
     // Abrir WhatsApp en una nueva ventana
-    window.open(whatsappUrl, '_blank')
-  }
+    window.open(whatsappUrl, "_blank");
+  };
 
   // Si no hay suscripción, mostrar planes por defecto, sino mostrar overview
   const [activeTab, setActiveTab] = useState<string>(() => {
     // El estado inicial se establecerá después de cargar
-    return "overview"
-  })
+    return "overview";
+  });
 
   // Actualizar el tab cuando se carga la suscripción
   useEffect(() => {
     if (!loading && !currentSubscription) {
-      setActiveTab("plans")
+      setActiveTab("plans");
     } else if (!loading && currentSubscription) {
-      setActiveTab("overview")
+      setActiveTab("overview");
     }
-  }, [loading, currentSubscription])
+  }, [loading, currentSubscription]);
 
   // Cargar historial de pagos
   const loadPaymentHistory = async () => {
-    setLoadingHistory(true)
+    setLoadingHistory(true);
     try {
-      const response = await fetch('/api/payment-history')
+      const response = await fetch("/api/payment-history");
       if (response.ok) {
-        const data = await response.json()
-        setPaymentHistory(data.paymentHistory || [])
+        const data = await response.json();
+        setPaymentHistory(data.paymentHistory || []);
       }
     } catch (error) {
-      console.error('Error loading payment history:', error)
+      console.error("Error loading payment history:", error);
     } finally {
-      setLoadingHistory(false)
+      setLoadingHistory(false);
     }
-  }
+  };
 
   useEffect(() => {
-    if (activeTab === 'history') {
-      loadPaymentHistory()
+    if (activeTab === "history") {
+      loadPaymentHistory();
     }
-  }, [activeTab])
+  }, [activeTab]);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground flex items-center justify-center">
         <div className="text-center space-y-4">
           <Loader2 className="w-8 h-8 animate-spin mx-auto" />
-          <p className="text-muted-foreground">Cargando gestión de suscripción...</p>
+          <p className="text-muted-foreground">
+            Cargando gestión de suscripción...
+          </p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -133,34 +151,49 @@ export default function SubscriptionPage() {
       <main className="container mx-auto px-6 py-8 pb-32">
         {/* Título */}
         <div className="mb-8">
-          <div className="flex items-center justify-between gap-4 mb-2">
-            <h1 className="text-2xl font-bold">Gestión de Suscripción</h1>
+          <div className="flex items-center gap-4 md:justify-between mb-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => router.push('/profile')}
-              className="flex items-center gap-2"
+              onClick={() => router.push("/profile")}
+              className="flex items-center gap-2 md:order-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              Volver
+              <span className="hidden sm:inline">Volver</span>
             </Button>
+            <h1 className="text-2xl font-bold md:order-1">
+              Gestión de Suscripción
+            </h1>
           </div>
           <p className="text-muted-foreground">
             Administra tu suscripción y plan de entrenamiento
           </p>
         </div>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="space-y-6"
+        >
           <TabsList className="grid w-full grid-cols-3 h-auto p-1 border border-input">
-            <TabsTrigger value="overview" className="flex items-center justify-center gap-1 sm:gap-2 h-9 text-xs sm:text-sm px-1 sm:px-2">
+            <TabsTrigger
+              value="overview"
+              className="flex items-center justify-center gap-1 sm:gap-2 h-9 text-xs sm:text-sm px-1 sm:px-2"
+            >
               <CreditCard className="w-3 h-3 sm:w-4 sm:h-4 hidden sm:block" />
               Resumen
             </TabsTrigger>
-            <TabsTrigger value="plans" className="flex items-center justify-center gap-1 sm:gap-2 h-9 text-xs sm:text-sm px-1 sm:px-2">
+            <TabsTrigger
+              value="plans"
+              className="flex items-center justify-center gap-1 sm:gap-2 h-9 text-xs sm:text-sm px-1 sm:px-2"
+            >
               <Settings className="w-3 h-3 sm:w-4 sm:h-4 hidden sm:block" />
               <span className="hidden sm:inline">Cambiar Plan</span>
               <span className="sm:hidden">Plan</span>
             </TabsTrigger>
-            <TabsTrigger value="history" className="flex items-center justify-center gap-1 sm:gap-2 h-9 text-xs sm:text-sm px-1 sm:px-2">
+            <TabsTrigger
+              value="history"
+              className="flex items-center justify-center gap-1 sm:gap-2 h-9 text-xs sm:text-sm px-1 sm:px-2"
+            >
               <History className="w-3 h-3 sm:w-4 sm:h-4 hidden sm:block" />
               Historial
             </TabsTrigger>
@@ -188,15 +221,24 @@ export default function SubscriptionPage() {
                     <CardContent>
                       <div className="space-y-2">
                         <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Próximo pago:</span>
+                          <span className="text-sm text-muted-foreground">
+                            Próximo pago:
+                          </span>
                           <span className="font-medium">
-                            ${currentSubscription.subscription_plans?.price?.toLocaleString() || '2,999'} ARS
+                            $
+                            {currentSubscription.subscription_plans?.price?.toLocaleString() ||
+                              "2,999"}{" "}
+                            ARS
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Fecha:</span>
+                          <span className="text-sm text-muted-foreground">
+                            Fecha:
+                          </span>
                           <span className="font-medium">
-                            {new Date(currentSubscription.current_period_end).toLocaleDateString('es-ES')}
+                            {new Date(
+                              currentSubscription.current_period_end
+                            ).toLocaleDateString("es-ES")}
                           </span>
                         </div>
                       </div>
@@ -211,9 +253,9 @@ export default function SubscriptionPage() {
                       <p className="text-sm text-muted-foreground">
                         ¿Necesitas ayuda con tu suscripción?
                       </p>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="w-full"
                         onClick={handleContactSupport}
                         disabled={!userCoach?.phone}
@@ -242,7 +284,9 @@ export default function SubscriptionPage() {
                     <CardContent className="pt-6">
                       <div className="text-center space-y-2">
                         <h2 className="text-2xl font-bold">Elige tu Plan</h2>
-                        <p className="text-muted-foreground">Cargando planes disponibles...</p>
+                        <p className="text-muted-foreground">
+                          Cargando planes disponibles...
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
@@ -258,7 +302,9 @@ export default function SubscriptionPage() {
                 <CardContent className="pt-6">
                   <div className="text-center space-y-4">
                     <Loader2 className="w-8 h-8 animate-spin mx-auto text-muted-foreground" />
-                    <p className="text-muted-foreground">Cargando planes disponibles...</p>
+                    <p className="text-muted-foreground">
+                      Cargando planes disponibles...
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -267,14 +313,14 @@ export default function SubscriptionPage() {
                 <CardContent className="pt-6">
                   <div className="text-center space-y-4">
                     <p className="text-destructive font-medium">{error}</p>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={async () => {
                         await Promise.all([
                           loadPlans(),
-                          loadCurrentSubscription()
-                        ])
+                          loadCurrentSubscription(),
+                        ]);
                       }}
                     >
                       Reintentar
@@ -284,19 +330,29 @@ export default function SubscriptionPage() {
               </Card>
             ) : plans.length > 0 ? (
               <PlanSwitcher
-                currentPlanId={currentSubscription?.plan_id || ''}
+                currentPlanId={currentSubscription?.plan_id || ""}
                 plans={plans}
                 onPlanSelect={changePlan}
                 loading={actionLoading}
                 showTitle={true}
-                title={currentSubscription ? "Cambiar Plan de Suscripción" : "Elige tu Plan"}
-                description={currentSubscription ? "Elige el plan que mejor se adapte a tus necesidades" : "Selecciona el plan que mejor se adapte a tus necesidades"}
+                title={
+                  currentSubscription
+                    ? "Cambiar Plan de Suscripción"
+                    : "Elige tu Plan"
+                }
+                description={
+                  currentSubscription
+                    ? "Elige el plan que mejor se adapte a tus necesidades"
+                    : "Selecciona el plan que mejor se adapte a tus necesidades"
+                }
               />
             ) : (
               <Card>
                 <CardContent className="pt-6">
                   <div className="text-center space-y-4">
-                    <p className="text-muted-foreground">No hay planes disponibles en este momento.</p>
+                    <p className="text-muted-foreground">
+                      No hay planes disponibles en este momento.
+                    </p>
                     <p className="text-sm text-muted-foreground">
                       Por favor, contacta al administrador o intenta más tarde.
                     </p>
@@ -320,70 +376,66 @@ export default function SubscriptionPage() {
             {(() => {
               const getStatusBadge = (status: string) => {
                 switch (status) {
-                  case 'approved':
+                  case "approved":
                     return (
                       <Badge className="bg-green-100 text-green-800">
                         <CheckCircle className="w-3 h-3 mr-1" />
                         Aprobado
                       </Badge>
-                    )
-                  case 'pending':
+                    );
+                  case "pending":
                     return (
                       <Badge className="bg-yellow-100 text-yellow-800">
                         <Clock className="w-3 h-3 mr-1" />
                         Pendiente
                       </Badge>
-                    )
-                  case 'rejected':
-                  case 'cancelled':
+                    );
+                  case "rejected":
+                  case "cancelled":
                     return (
                       <Badge className="bg-red-100 text-red-800">
                         <XCircle className="w-3 h-3 mr-1" />
-                        {status === 'rejected' ? 'Rechazado' : 'Cancelado'}
+                        {status === "rejected" ? "Rechazado" : "Cancelado"}
                       </Badge>
-                    )
+                    );
                   default:
-                    return (
-                      <Badge variant="outline">
-                        {status}
-                      </Badge>
-                    )
+                    return <Badge variant="outline">{status}</Badge>;
                 }
-              }
+              };
 
               const getPaymentMethodLabel = (method: string | null) => {
-                if (!method) return 'Método no especificado'
-                
+                if (!method) return "Método no especificado";
+
                 const methodMap: Record<string, string> = {
-                  'manual': 'Manual',
-                  'admin_assignment': 'Asignación Admin',
-                  'plan_change': 'Cambio de Plan',
-                  'mercadopago': 'Mercado Pago',
-                  'credit_card': 'Tarjeta de Crédito',
-                  'debit_card': 'Tarjeta de Débito',
-                  'bank_transfer': 'Transferencia Bancaria'
-                }
-                
-                return methodMap[method] || method
-              }
+                  manual: "Manual",
+                  admin_assignment: "Asignación Admin",
+                  plan_change: "Cambio de Plan",
+                  mercadopago: "Mercado Pago",
+                  credit_card: "Tarjeta de Crédito",
+                  debit_card: "Tarjeta de Débito",
+                  bank_transfer: "Transferencia Bancaria",
+                };
+
+                return methodMap[method] || method;
+              };
 
               const formatDate = (dateString: string) => {
                 try {
-                  const date = new Date(dateString)
+                  const date = new Date(dateString);
                   if (isNaN(date.getTime())) {
-                    return 'Fecha inválida'
+                    return "Fecha inválida";
                   }
-                  return date.toLocaleDateString('es-AR', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })
+                  return date.toLocaleDateString("es-AR", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  });
                 } catch (error) {
-                  return 'Fecha inválida'
+                  return "Fecha inválida";
                 }
-              }
+              };
 
               const renderPaymentItem = (payment: PaymentHistoryItem) => (
                 <div
@@ -410,7 +462,7 @@ export default function SubscriptionPage() {
                     {getStatusBadge(payment.status)}
                   </div>
                 </div>
-              )
+              );
 
               return (
                 <>
@@ -460,7 +512,7 @@ export default function SubscriptionPage() {
                     )}
                   </div>
                 </>
-              )
+              );
             })()}
           </TabsContent>
         </Tabs>
@@ -468,5 +520,5 @@ export default function SubscriptionPage() {
 
       <BottomNavigation />
     </div>
-  )
+  );
 }
