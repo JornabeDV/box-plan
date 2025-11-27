@@ -25,6 +25,7 @@ export function useTimer({
 	const [currentRound, setCurrentRound] = useState(1)
 	const [amrapInitialTime, setAmrapInitialTime] = useState(600)
 	const [isWorkPhase, setIsWorkPhase] = useState(true)
+	const [countdown, setCountdown] = useState<number | null>(null)
 	const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
 	// Inicializar tiempo de AMRAP cuando cambia el modo o el tiempo configurado
@@ -43,7 +44,34 @@ export function useTimer({
 	useEffect(() => {
 		if (isRunning && !isPaused) {
 			intervalRef.current = setInterval(() => {
+				// Manejar cuenta regresiva para todos los modos
+				if ((mode === 'normal' || mode === 'tabata' || mode === 'fortime' || mode === 'amrap' || mode === 'emom' || mode === 'otm') && countdown !== null && countdown > 0) {
+					setCountdown(prev => {
+						if (prev === null) return null
+						const newCountdown = prev - 1
+						if (newCountdown <= 0) {
+							setCountdown(null)
+							// Para AMRAP, establecer el tiempo inicial cuando termina la cuenta regresiva
+							if (mode === 'amrap') {
+								const amrapTimeNum = parseInt(amrapTime) || 10
+								const amrapTimeInSeconds = amrapTimeNum * 60
+								setTime(amrapTimeInSeconds)
+								setAmrapInitialTime(amrapTimeInSeconds)
+							} else {
+								setTime(0)
+							}
+						}
+						return newCountdown
+					})
+					return
+				}
+
 				setTime(prevTime => {
+					// Solo procesar tiempo si no hay cuenta regresiva activa
+					if (countdown !== null && countdown > 0) {
+						return prevTime
+					}
+
 					if (mode === 'amrap') {
 						const newTime = prevTime - 1
 						if (newTime <= 0) {
@@ -61,10 +89,17 @@ export function useTimer({
 						const totalWorkRest = workTimeNum + restTimeNum
 						const cycleTime = newTime % totalWorkRest
 
-						if (cycleTime === 0 && newTime > 0) {
-							setIsWorkPhase(!isWorkPhase)
+						// Determinar si estamos en fase de trabajo o descanso
+						// cycleTime 0 a workTimeNum-1: trabajo
+						// cycleTime workTimeNum a totalWorkRest-1: descanso
+						const shouldBeWorkPhase = cycleTime < workTimeNum
 
-							if (isWorkPhase) {
+						// Actualizar fase si cambió
+						if (shouldBeWorkPhase !== isWorkPhase) {
+							setIsWorkPhase(shouldBeWorkPhase)
+
+							// Incrementar ronda cuando empezamos una nueva fase de trabajo
+							if (shouldBeWorkPhase) {
 								setCurrentRound(prev => {
 									const newRound = prev + 1
 									const totalRoundsNum = parseInt(totalRounds) || 8
@@ -92,7 +127,7 @@ export function useTimer({
 				clearInterval(intervalRef.current)
 			}
 		}
-	}, [isRunning, isPaused, mode, workTime, restTime, totalRounds, isWorkPhase])
+	}, [isRunning, isPaused, mode, workTime, restTime, totalRounds, isWorkPhase, countdown])
 
 	const formatTime = (seconds: number) => {
 		const hours = Math.floor(seconds / 3600)
@@ -111,12 +146,29 @@ export function useTimer({
 			const restTimeNum = parseInt(restTime) || 10
 			const totalWorkRest = workTimeNum + restTimeNum
 			const cycleTime = time % totalWorkRest
-			return isWorkPhase ? workTimeNum - cycleTime : restTimeNum - cycleTime
+
+			if (isWorkPhase) {
+				// Tiempo restante en fase de trabajo
+				// cycleTime va de 0 a workTimeNum-1 durante el trabajo
+				if (cycleTime === 0) {
+					// Inicio de un nuevo ciclo completo o inicio del timer
+					return workTimeNum
+				}
+				return workTimeNum - cycleTime
+			} else {
+				// Tiempo restante en fase de descanso
+				// cycleTime va de workTimeNum a totalWorkRest-1 durante el descanso
+				return totalWorkRest - cycleTime
+			}
 		}
 		return time
 	}
 
 	const getDisplayTime = () => {
+		// Mostrar cuenta regresiva si está activa en cualquier modo
+		if ((mode === 'normal' || mode === 'tabata' || mode === 'fortime' || mode === 'amrap' || mode === 'emom' || mode === 'otm') && countdown !== null && countdown > 0) {
+			return formatTime(countdown)
+		}
 		if (mode === 'tabata') {
 			return formatTime(getCurrentPhaseTime())
 		}
@@ -127,6 +179,9 @@ export function useTimer({
 	}
 
 	const getPhaseText = () => {
+		if ((mode === 'normal' || mode === 'tabata' || mode === 'fortime' || mode === 'amrap' || mode === 'emom' || mode === 'otm') && countdown !== null && countdown > 0) {
+			return 'PREPARATE'
+		}
 		if (mode === 'tabata') {
 			return isWorkPhase ? 'TRABAJO' : 'DESCANSO'
 		}
@@ -135,17 +190,19 @@ export function useTimer({
 
 	const getPhaseColor = () => {
 		if (mode === 'tabata') {
-			return isWorkPhase ? 'text-primary' : 'text-secondary'
+			return isWorkPhase ? 'text-primary' : 'text-green-500'
 		}
 		return 'text-primary'
 	}
 
 	const handleStart = () => {
-		if (mode === 'amrap' && time === 0) {
-			const amrapTimeNum = parseInt(amrapTime) || 10
-			const amrapTimeInSeconds = amrapTimeNum * 60
-			setTime(amrapTimeInSeconds)
-			setAmrapInitialTime(amrapTimeInSeconds)
+		// Iniciar cuenta regresiva de 10 segundos para todos los modos
+		if ((mode === 'normal' || mode === 'tabata' || mode === 'fortime' || mode === 'amrap' || mode === 'emom' || mode === 'otm') && time === 0 && countdown === null) {
+			setCountdown(10)
+		}
+		// Para AMRAP sin cuenta regresiva (si ya se inició antes y se pausó), restaurar tiempo
+		if (mode === 'amrap' && time === 0 && countdown === null && amrapInitialTime > 0 && amrapInitialTime !== 600) {
+			setTime(amrapInitialTime)
 		}
 		setIsRunning(true)
 		setIsPaused(false)
@@ -164,6 +221,7 @@ export function useTimer({
 		} else {
 			setTime(0)
 		}
+		setCountdown(null)
 		setIsRunning(false)
 		setIsPaused(false)
 		setCurrentRound(1)
@@ -176,6 +234,7 @@ export function useTimer({
 		isPaused,
 		currentRound,
 		isWorkPhase,
+		countdown,
 		getDisplayTime,
 		getPhaseText,
 		getPhaseColor,
