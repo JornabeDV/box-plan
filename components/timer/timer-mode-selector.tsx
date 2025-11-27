@@ -27,13 +27,13 @@ export function TimerModeSelector({ mode, onModeChange }: TimerModeSelectorProps
 			</CardHeader>
 			<CardContent>
 				<Select value={mode} onValueChange={onModeChange}>
-					<SelectTrigger className="h-12 text-base w-full">
+					<SelectTrigger className="h-12 text-base w-full cursor-pointer">
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
 						{Object.entries(modeConfigs).map(([key, config]) => (
 							<SelectItem key={key} value={key}>
-								<div className="flex items-center gap-2">
+								<div className="flex items-center gap-2 cursor-pointer">
 									<config.icon className="w-5 h-5" />
 									<span className="text-base">{config.name}</span>
 								</div>

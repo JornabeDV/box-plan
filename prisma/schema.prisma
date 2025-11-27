@@ -203,10 +203,11 @@ model Subscription {
 }
 
 model UserPreference {
-  id                    Int      @id @default(autoincrement())
-  userId                Int      @unique @map("user_id")
+  id                    Int       @id @default(autoincrement())
+  userId                Int       @unique @map("user_id")
   preferredDisciplineId Int?      @map("preferred_discipline_id")
   preferredLevelId      Int?      @map("preferred_level_id")
+  lastPreferenceChangeDate DateTime? @map("last_preference_change_date")
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at")
 

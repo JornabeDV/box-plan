@@ -38,7 +38,8 @@ import {
   ArrowLeft,
   Edit,
   Loader2,
-  Target
+  Target,
+  Lock
 } from "lucide-react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
@@ -48,7 +49,7 @@ export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth()
   const { profile, updateProfile, loading: profileLoading } = useProfile()
   const { toast } = useToast()
-  const { preferences, loading: preferencesLoading, refetch: refetchPreferences, updatePreferences } = useCurrentUserPreferences()
+  const { preferences, loading: preferencesLoading, refetch: refetchPreferences, updatePreferences, lockStatus } = useCurrentUserPreferences()
   const { coach: userCoach, loading: coachLoading } = useUserCoach()
   const { disciplines, disciplineLevels, loading: disciplinesLoading } = useDisciplines(
     userCoach?.id ? userCoach.id.toString() : null
@@ -103,6 +104,19 @@ export default function ProfilePage() {
       toast({
         title: 'Selección incompleta',
         description: 'Por favor, selecciona una disciplina y un nivel',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    const isLocked = lockStatus?.isLocked ?? false
+    const hasChanges = selectedDisciplineId !== preferences?.preferredDisciplineId || 
+      selectedLevelId !== preferences?.preferredLevelId
+
+    if (isLocked && hasChanges) {
+      toast({
+        title: 'Cambio bloqueado',
+        description: lockStatus?.message || 'Ya has cambiado tus preferencias este mes',
         variant: 'destructive'
       })
       return
@@ -281,7 +295,7 @@ export default function ProfilePage() {
                 <CardTitle className="flex items-center gap-2 text-foreground">
                   <Target className="h-5 w-5" />
                   Preferencias de Entrenamiento
-                </CardTitle>
+                </CardTitle>                
               </CardHeader>
               <CardContent>
                 {preferencesLoading || coachLoading || disciplinesLoading ? (
@@ -289,6 +303,29 @@ export default function ProfilePage() {
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
                     <span className="ml-2 text-muted-foreground">Actualizando preferencias...</span>
                   </div>
+                ) : lockStatus?.isLocked ? (
+                  // Mostrar preferencias actuales cuando está bloqueado
+                  preferences && preferences.preferredDisciplineId && preferences.preferredLevelId ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Disciplina preferida</p>
+                        <p className="text-base font-semibold text-foreground">
+                          {preferences.discipline?.name || 'No especificada'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Nivel preferido</p>
+                        <p className="text-base font-semibold text-foreground">
+                          {preferences.level?.name || 'No especificado'}
+                        </p>
+                        {preferences.level?.description && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {preferences.level.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ) : null
                 ) : (
                   <div className="space-y-6">
                     {/* Mostrar preferencias actuales si existen */}
@@ -405,6 +442,21 @@ export default function ProfilePage() {
                             </>
                           )}
                         </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {lockStatus?.isLocked && lockStatus?.nextChangeDate && (
+                  <div className="p-3 bg-muted/50 rounded-lg mt-6 sm:mt-8 border border-border">
+                    <div className="flex items-start gap-2">
+                      <div className="text-sm text-muted-foreground">
+                        <p>{lockStatus.message}</p>
+                        <p className="mt-1">
+                          Podrás cambiar nuevamente el{' '}
+                          <span className="font-semibold">
+                            {format(new Date(lockStatus.nextChangeDate), "d 'de' MMMM, yyyy", { locale: es })}
+                          </span>
+                        </p>
                       </div>
                     </div>
                   </div>

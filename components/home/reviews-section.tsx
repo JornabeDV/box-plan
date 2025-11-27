@@ -129,11 +129,11 @@ export function ReviewsSection({
 							<CarouselContent className="-ml-2 md:-ml-4">
 								{displayReviews.map((review) => (
 									<CarouselItem key={review.id} className="pl-2 md:pl-4 basis-full md:basis-1/2 lg:basis-1/3">
-										<Card className="bg-card border hover:shadow-lg transition-all duration-300 h-full">
+										<Card className="h-full">
 											<CardContent className="p-4">
 												{/* Header con avatar y nombre */}
 												<div className="flex items-start gap-3 mb-3">
-													<Avatar className="h-10 w-10 bg-gradient-to-br from-primary to-accent">
+													<Avatar className="h-10 w-10 border border-lime-400">
 														<AvatarFallback className="text-white font-semibold text-xs">
 															{review.avatar}
 														</AvatarFallback>

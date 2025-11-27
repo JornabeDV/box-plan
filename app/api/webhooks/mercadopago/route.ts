@@ -203,6 +203,12 @@ async function createSubscriptionWithSplit({
       ]
     })
 
+    // Resetear lastPreferenceChangeDate para permitir cambio de preferencias en el nuevo período
+    await tx.userPreference.updateMany({
+      where: { userId },
+      data: { lastPreferenceChangeDate: null }
+    })
+
     return subscription
   })
 }
@@ -272,6 +278,12 @@ async function createDirectSubscription({
         ...(preferenceId && { mercadopagoPreferenceId: preferenceId }),
         paymentMethod: 'mercadopago'
       }
+    })
+
+    // Resetear lastPreferenceChangeDate para permitir cambio de preferencias en el nuevo período
+    await tx.userPreference.updateMany({
+      where: { userId },
+      data: { lastPreferenceChangeDate: null }
     })
 
     return subscription

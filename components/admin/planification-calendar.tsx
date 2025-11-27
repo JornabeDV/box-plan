@@ -38,6 +38,7 @@ export function PlanificationCalendar({
   
   // Días de la semana (lunes a domingo)
   const weekDays = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+  const weekDaysFull = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
   
   // Nombres de los meses
   const monthNames = [
@@ -152,7 +153,6 @@ export function PlanificationCalendar({
           <CardTitle className="text-xl font-heading text-foreground">
             Calendario de Planificaciones
           </CardTitle>
-          <p className="text-sm text-muted-foreground">Seguimiento mensual</p>
         </div>
         
         {/* Navegación del mes */}
@@ -196,9 +196,10 @@ export function PlanificationCalendar({
       <CardContent className="pt-0">
         {/* Días de la semana */}
         <div className="grid grid-cols-7 gap-2 mb-4">
-          {weekDays.map((day) => (
+          {weekDays.map((day, index) => (
             <div key={day} className="text-center text-sm font-bold text-muted-foreground py-2">
-              {day}
+              <span className="md:hidden">{day}</span>
+              <span className="hidden md:inline">{weekDaysFull[index]}</span>
             </div>
           ))}
         </div>

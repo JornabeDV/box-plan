@@ -8,6 +8,7 @@ export interface CurrentUserPreference {
 	userId: number
 	preferredDisciplineId: number | null
 	preferredLevelId: number | null
+	lastPreferenceChangeDate: string | null
 	createdAt: string
 	updatedAt: string
 	discipline?: {
@@ -22,10 +23,17 @@ export interface CurrentUserPreference {
 	}
 }
 
+export interface PreferenceLockStatus {
+	isLocked: boolean
+	nextChangeDate: string | null
+	message: string | null
+}
+
 export interface CurrentUserPreferencesState {
 	preferences: CurrentUserPreference | null
 	loading: boolean
 	error: string | null
+	lockStatus: PreferenceLockStatus | null
 }
 
 export function useCurrentUserPreferences() {
@@ -33,7 +41,8 @@ export function useCurrentUserPreferences() {
 	const [state, setState] = useState<CurrentUserPreferencesState>({
 		preferences: null,
 		loading: true,
-		error: null
+		error: null,
+		lockStatus: null
 	})
 
 	const fetchPreferences = async () => {
@@ -65,6 +74,7 @@ export function useCurrentUserPreferences() {
 					userId: data.userId || data.user_id,
 					preferredDisciplineId: data.preferredDisciplineId || data.preferred_discipline_id || data.discipline_id,
 					preferredLevelId: data.preferredLevelId || data.preferred_level_id || data.level_id,
+					lastPreferenceChangeDate: data.lastPreferenceChangeDate || data.last_preference_change_date || null,
 					createdAt: data.createdAt || data.created_at,
 					updatedAt: data.updatedAt || data.updated_at,
 					discipline: data.discipline_id ? {
@@ -79,9 +89,12 @@ export function useCurrentUserPreferences() {
 					} : undefined
 				}
 
-				setState(prev => ({ ...prev, loading: false, preferences }))
+				// Calcular estado de bloqueo
+				const lockStatus = await calculateLockStatus(preferences, session?.user?.id)
+
+				setState(prev => ({ ...prev, loading: false, preferences, lockStatus }))
 			} else {
-				setState(prev => ({ ...prev, loading: false, preferences: null }))
+				setState(prev => ({ ...prev, loading: false, preferences: null, lockStatus: null }))
 			}
 		} catch (error) {
 			console.error('Error fetching user preferences:', error)
@@ -113,7 +126,12 @@ export function useCurrentUserPreferences() {
 			})
 
 			if (!response.ok) {
-				throw new Error('Error al actualizar preferencias')
+				const errorData = await response.json().catch(() => ({}))
+				// Si es un error de bloqueo (403), retornar el mensaje específico
+				if (response.status === 403 && errorData.message) {
+					return { error: errorData.message, nextChangeDate: errorData.nextChangeDate || null }
+				}
+				throw new Error(errorData.error || errorData.message || 'Error al actualizar preferencias')
 			}
 
 			const data = await response.json()
@@ -126,6 +144,58 @@ export function useCurrentUserPreferences() {
 			const errorMessage = error instanceof Error ? error.message : 'Error al actualizar preferencias'
 			setState(prev => ({ ...prev, loading: false, error: errorMessage }))
 			return { error: errorMessage }
+		}
+	}
+
+	// Función auxiliar para calcular el estado de bloqueo
+	const calculateLockStatus = async (
+		preferences: CurrentUserPreference | null,
+		userId: string | undefined
+	): Promise<PreferenceLockStatus | null> => {
+		if (!preferences || !userId) {
+			return null
+		}
+
+		try {
+			// Obtener suscripción activa
+			const subscriptionResponse = await fetch('/api/subscription')
+			if (!subscriptionResponse.ok) {
+				return null
+			}
+
+			const subscription = await subscriptionResponse.json()
+			if (!subscription || subscription.status !== 'active') {
+				// Sin suscripción activa, no hay bloqueo
+				return {
+					isLocked: false,
+					nextChangeDate: null,
+					message: null
+				}
+			}
+
+			const lastChangeDate = preferences.lastPreferenceChangeDate
+				? new Date(preferences.lastPreferenceChangeDate)
+				: null
+			const periodStart = new Date(subscription.current_period_start)
+			const periodEnd = new Date(subscription.current_period_end)
+
+			// Si ya cambió las preferencias en el período actual, está bloqueado
+			if (lastChangeDate && lastChangeDate >= periodStart) {
+				return {
+					isLocked: true,
+					nextChangeDate: periodEnd.toISOString(),
+					message: 'Ya has cambiado tus preferencias este mes. Podrás cambiarlas nuevamente después de tu próximo pago.'
+				}
+			}
+
+			return {
+				isLocked: false,
+				nextChangeDate: null,
+				message: null
+			}
+		} catch (error) {
+			console.error('Error calculating lock status:', error)
+			return null
 		}
 	}
 

@@ -92,17 +92,59 @@ export async function PUT(request: NextRequest, { params }: { params: { userId: 
       )
     }
 
+    // Verificar si el usuario tiene una suscripción activa
+    const activeSubscription = await prisma.subscription.findFirst({
+      where: {
+        userId,
+        status: 'active'
+      },
+      orderBy: {
+        currentPeriodStart: 'desc'
+      }
+    })
+
+    // Obtener preferencias actuales para verificar bloqueo
+    const currentPreferences = await prisma.userPreference.findUnique({
+      where: { userId }
+    })
+
+    // Validar bloqueo mensual: solo se puede cambiar una vez por período de suscripción
+    if (activeSubscription && currentPreferences?.lastPreferenceChangeDate) {
+      const lastChangeDate = new Date(currentPreferences.lastPreferenceChangeDate)
+      const periodStart = new Date(activeSubscription.currentPeriodStart)
+
+      // Si ya cambió las preferencias en el período actual, bloquear
+      if (lastChangeDate >= periodStart) {
+        const nextPeriodStart = new Date(activeSubscription.currentPeriodEnd)
+        return NextResponse.json(
+          {
+            error: 'Ya has cambiado tus preferencias este mes',
+            message: 'Solo puedes cambiar tus preferencias una vez por período de suscripción. Podrás cambiarlas nuevamente después de tu próximo pago.',
+            nextChangeDate: nextPeriodStart.toISOString()
+          },
+          { status: 403 }
+        )
+      }
+    }
+
+    // Si no hay suscripción activa, permitir el cambio (usuarios sin suscripción)
+    // Si hay suscripción pero no ha cambiado en este período, permitir el cambio
+
+    const now = new Date()
+
     // Usar upsert para crear o actualizar
     const result = await prisma.userPreference.upsert({
       where: { userId },
       update: {
         preferredDisciplineId: preferredDisciplineIdNum,
-        preferredLevelId: preferredLevelIdNum
+        preferredLevelId: preferredLevelIdNum,
+        lastPreferenceChangeDate: now
       },
       create: {
         userId,
         preferredDisciplineId: preferredDisciplineIdNum,
-        preferredLevelId: preferredLevelIdNum
+        preferredLevelId: preferredLevelIdNum,
+        lastPreferenceChangeDate: now
       }
     })
 
