@@ -668,7 +668,7 @@ export default function BoxPlanApp() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <Button
                     variant="outline"
                     className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
@@ -676,14 +676,6 @@ export default function BoxPlanApp() {
                   >
                     <BarChart3 className="w-6 h-6" />
                     <span>Progreso</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
-                    onClick={() => router.push('/log-score')}
-                  >
-                    <Clock className="w-6 h-6" />
-                    <span>Carga de Score</span>
                   </Button>
                   <Button
                     variant="outline"

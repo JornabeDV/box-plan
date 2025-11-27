@@ -65,7 +65,7 @@ export function usePlanificationScores({
 						completed_at: completedAt
 					})
 					toast({
-						title: '¡Tiempo actualizado! 🎉',
+						title: '¡Tiempo actualizado!',
 						description: `Tiempo guardado: ${formatTime(workout.duration_seconds)}`,
 					})
 				}
@@ -79,7 +79,7 @@ export function usePlanificationScores({
 						completed_at: completedAt
 					})
 					toast({
-						title: '¡Tiempo guardado! 🎉',
+						title: '¡Tiempo guardado!',
 						description: `Tiempo registrado: ${formatTime(workout.duration_seconds)}`,
 					})
 				}
@@ -133,7 +133,7 @@ export function usePlanificationScores({
 						completed_at: result.completed_at || completedAt
 					})
 					toast({
-						title: '¡Peso actualizado! 🎉',
+						title: '¡Peso actualizado!',
 						description: `Peso guardado: ${updatedWeight} kg`,
 					})
 				}
@@ -149,7 +149,7 @@ export function usePlanificationScores({
 						weight: savedWeight
 					})
 					toast({
-						title: '¡Peso guardado! 🎉',
+						title: '¡Peso guardado!',
 						description: `Peso registrado: ${savedWeight} kg`,
 					})
 				}

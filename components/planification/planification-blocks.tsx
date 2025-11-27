@@ -35,7 +35,7 @@ export function PlanificationBlocks({
                   backgroundColor: disciplineColor || "hsl(var(--primary))",
                 }}
               >
-                {block.order || index + 1}
+                {index + 1}
               </span>
               {block.title}
             </CardTitle>

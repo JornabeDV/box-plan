@@ -231,7 +231,16 @@ export default function ProgresoPage() {
 								<p>No hay entrenamientos registrados aún</p>
 								<Button
 									className="mt-4"
-									onClick={() => router.push('/log-score')}
+									onClick={() => {
+										// Formatear la fecha de hoy como YYYY-MM-DD
+										const today = new Date()
+										today.setHours(0, 0, 0, 0)
+										const year = today.getFullYear()
+										const month = String(today.getMonth() + 1).padStart(2, '0')
+										const day = String(today.getDate()).padStart(2, '0')
+										const dateString = `${year}-${month}-${day}`
+										router.push(`/planification?date=${dateString}`)
+									}}
 								>
 									Cargar Primer Entrenamiento
 								</Button>

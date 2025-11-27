@@ -175,10 +175,15 @@ export async function GET(request: NextRequest) {
     }
     
     // Buscar planificaciones activas para la fecha especificada
-    // Crear fechas para el inicio y fin del día en hora local
+    // Usar la misma normalización que al guardar para evitar problemas de zona horaria
+    const normalizedDate = normalizeDateForArgentina(dateStr)
+    
+    // Crear rango para buscar: desde el inicio del día hasta el inicio del día siguiente
+    const startOfDay = normalizedDate
+    // Calcular el inicio del día siguiente en UTC (sumar 1 día y mantener el mismo offset de 3 horas)
     const [year, month, day] = dateStr.split('-').map(Number)
-    const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0)
-    const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999)
+    const nextDayStr = new Date(year, month - 1, day + 1).toISOString().split('T')[0]
+    const endOfDay = normalizeDateForArgentina(nextDayStr)
 
     const planification = await prisma.planification.findFirst({
       where: {
@@ -187,7 +192,7 @@ export async function GET(request: NextRequest) {
         disciplineLevelId: preferredLevelId,
         date: {
           gte: startOfDay,
-          lte: endOfDay
+          lt: endOfDay  // Menor que el inicio del día siguiente (excluye el día siguiente)
         }
       },
       select: {
