@@ -148,13 +148,12 @@ export function ReplicatePlanificationModal({
           {/* Selector de fecha */}
           <div className="space-y-2 relative">
             <Label htmlFor="target-date">Fecha destino *</Label>
-            <Button
+            <button
               id="target-date"
-              variant="outline"
               type="button"
               onClick={() => setCalendarOpen(!calendarOpen)}
               className={cn(
-                "w-full justify-start text-left font-normal",
+                "w-full flex items-center justify-start text-left font-normal border-2 border-lime-400/50 bg-transparent text-lime-400 hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] rounded-xl h-11 px-6 py-2.5",
                 !targetDate && "text-muted-foreground"
               )}
             >
@@ -164,11 +163,11 @@ export function ReplicatePlanificationModal({
               ) : (
                 <span>Seleccionar fecha</span>
               )}
-            </Button>
+            </button>
 
             {/* Calendario flotante */}
             {calendarOpen && (
-              <div className="absolute top-full left-0 right-0 z-50 border rounded-lg p-2 sm:p-4 bg-card shadow-lg overflow-hidden">
+              <div className="absolute top-full left-0 right-0 z-50 border rounded-lg p-2 sm:p-4 bg-card shadow-lg overflow-hidden mt-1 -mx-6 sm:mx-0">
                 <div className="space-y-2 sm:space-y-4 w-full">
                   {/* Navegación del mes */}
                   <div className="flex items-center justify-between">
@@ -231,7 +230,7 @@ export function ReplicatePlanificationModal({
                             type="button"
                             onClick={() => handleDayClick(day)}
                             className={cn(
-                              "w-full h-full flex items-center justify-center text-[10px] sm:text-xs font-semibold rounded-md sm:rounded-lg transition-all duration-200 p-0 sm:p-1",
+                              "w-full h-full flex items-center justify-center text-[10px] sm:text-xs font-semibold rounded-md sm:rounded-lg transition-all duration-200 p-0 sm:p-1 cursor-pointer",
                               isSelectedDay
                                 ? "bg-primary text-primary-foreground shadow-md"
                                 : isCurrentDay

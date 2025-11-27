@@ -135,20 +135,18 @@ export function PlanificationCalendar({
 
   // Manejar click en un día
   const handleDayClick = (day: number) => {
-    // No permitir crear planificaciones en días pasados
-    if (isPastDay(day)) {
-      return;
-    }
-
     const date = new Date(year, month, day);
     const dayPlanifications = getPlanificationsForDay(day);
 
     if (dayPlanifications.length > 0) {
-      // Si el día tiene planificaciones, mostrar modal de detalles
+      // Si el día tiene planificaciones, mostrar modal de detalles (permite ver/editar/eliminar/replicar)
       onViewDayPlanifications?.(date, dayPlanifications);
     } else {
-      // Si el día no tiene planificaciones, crear nueva
-      onDateClick(date);
+      // Si el día no tiene planificaciones, solo permitir crear si no es un día pasado
+      if (!isPastDay(day)) {
+        onDateClick(date);
+      }
+      // Si es un día pasado sin planificaciones, no hacer nada (no crear nuevas)
     }
   };
 
@@ -258,13 +256,13 @@ export function PlanificationCalendar({
                   className={`
                     w-full h-full flex items-center justify-center text-sm font-semibold rounded-xl transition-all duration-200 relative
                     ${
-                      isPast
+                      isPast && dayPlanifications.length === 0
                         ? "cursor-not-allowed opacity-50"
                         : "cursor-pointer"
                     }
                     ${
                       isPast && dayPlanifications.length > 0
-                        ? "bg-accent/10 text-accent border-2 border-accent/15"
+                        ? "bg-accent/20 text-accent hover:bg-accent/30 hover:scale-105 border-2 border-accent/30"
                         : isPast
                         ? "bg-background border border-muted-foreground/10 text-muted-foreground opacity-50"
                         : isCurrentDay

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -90,7 +90,18 @@ export function PlanificationDayModal({
     return { weekday, day, month, year };
   };
 
+  // Verificar si el día seleccionado es pasado
+  const isPastDate = (date: Date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const compareDate = new Date(date);
+    compareDate.setHours(0, 0, 0, 0);
+    return compareDate < today;
+  };
+
   if (!selectedDate) return null;
+
+  const isPast = isPastDate(selectedDate);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -125,10 +136,12 @@ export function PlanificationDayModal({
                 <p className="text-muted-foreground mb-4">
                   Este día no tiene planificaciones de entrenamiento
                 </p>
-                <Button onClick={() => onCreate(selectedDate)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Crear Planificación
-                </Button>
+                {!isPast && (
+                  <Button onClick={() => onCreate(selectedDate)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Crear Planificación
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ) : (
@@ -146,10 +159,15 @@ export function PlanificationDayModal({
                     <span className="sm:hidden">Replicar Todas</span>
                   </Button>
                 )}
-                <Button onClick={() => onCreate(selectedDate)} className="w-full sm:w-auto">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nueva Planificación
-                </Button>
+                {!isPast && (
+                  <Button
+                    onClick={() => onCreate(selectedDate)}
+                    className="w-full sm:w-auto"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nueva Planificación
+                  </Button>
+                )}
               </div>
 
               {/* Lista de planificaciones */}
@@ -213,20 +231,22 @@ export function PlanificationDayModal({
                               </TooltipContent>
                             </Tooltip>
                           )}
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => onEdit(planification)}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="z-[100]">
-                              <p>Editar planificación</p>
-                            </TooltipContent>
-                          </Tooltip>
+                          {!isPast && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => onEdit(planification)}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="z-[100]">
+                                <p>Editar planificación</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button

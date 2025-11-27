@@ -1,47 +1,53 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { useAuthWithRoles as useSimplifiedAuth } from '@/hooks/use-auth-with-roles'
-import { useDashboardData } from '@/hooks/use-dashboard-data'
-import { useDisciplines } from '@/hooks/use-disciplines'
-import { usePlanifications } from '@/hooks/use-planifications'
-import { useModalState } from '@/hooks/use-modal-state'
-import { useDashboardCRUD } from '@/hooks/use-dashboard-crud'
-import { useToast } from '@/hooks/use-toast'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
-  Plus, 
-  Users, 
-  BarChart3, 
+import { useState, useEffect } from "react";
+import { useAuthWithRoles as useSimplifiedAuth } from "@/hooks/use-auth-with-roles";
+import { useDashboardData } from "@/hooks/use-dashboard-data";
+import { useDisciplines } from "@/hooks/use-disciplines";
+import { usePlanifications } from "@/hooks/use-planifications";
+import { useModalState } from "@/hooks/use-modal-state";
+import { useDashboardCRUD } from "@/hooks/use-dashboard-crud";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Plus,
+  Users,
+  BarChart3,
   Calendar,
   Target,
-  DollarSign
-} from 'lucide-react'
-import { AdminStats } from '@/components/admin/admin-stats'
-import { UsersList } from '@/components/admin/users-list'
-import { DisciplineModal } from '@/components/admin/discipline-modal'
-import { DisciplinesList } from '@/components/admin/disciplines-list'
-import { PlanificationModal } from '@/components/admin/planification-modal'
-import { PlanificationCalendar } from '@/components/admin/planification-calendar'
-import { PlanificationDayModal } from '@/components/admin/planification-day-modal'
-import { ReplicatePlanificationModal } from '@/components/admin/replicate-planification-modal'
-import { SubscriptionPlansList } from '@/components/admin/subscription-plans-list'
-import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
-import { DashboardHeader } from '@/components/admin/dashboard/dashboard-header'
-import { TrialBanner } from '@/components/admin/dashboard/trial-banner'
-import { AccessRestricted } from '@/components/admin/dashboard/access-restricted'
-import { TrialExpired } from '@/components/admin/dashboard/trial-expired'
-import { LoadingScreen } from '@/components/admin/dashboard/loading-screen'
-import { MercadoPagoConnect } from '@/components/coach/mercadopago-connect'
+  DollarSign,
+} from "lucide-react";
+import { AdminStats } from "@/components/admin/admin-stats";
+import { UsersList } from "@/components/admin/users-list";
+import { DisciplineModal } from "@/components/admin/discipline-modal";
+import { DisciplinesList } from "@/components/admin/disciplines-list";
+import { PlanificationModal } from "@/components/admin/planification-modal";
+import { PlanificationCalendar } from "@/components/admin/planification-calendar";
+import { PlanificationDayModal } from "@/components/admin/planification-day-modal";
+import { ReplicatePlanificationModal } from "@/components/admin/replicate-planification-modal";
+import { SubscriptionPlansList } from "@/components/admin/subscription-plans-list";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { DashboardHeader } from "@/components/admin/dashboard/dashboard-header";
+import { TrialBanner } from "@/components/admin/dashboard/trial-banner";
+import { AccessRestricted } from "@/components/admin/dashboard/access-restricted";
+import { TrialExpired } from "@/components/admin/dashboard/trial-expired";
+import { LoadingScreen } from "@/components/admin/dashboard/loading-screen";
+import { MercadoPagoConnect } from "@/components/coach/mercadopago-connect";
 
 export default function AdminDashboardPage() {
-  const { user, coachProfile, loading: authLoading, isCoach, userRole } = useSimplifiedAuth()
-  const { toast } = useToast()
+  const {
+    user,
+    coachProfile,
+    loading: authLoading,
+    isCoach,
+    userRole,
+  } = useSimplifiedAuth();
+  const { toast } = useToast();
 
   // Usar coachId (convertir a string para los hooks)
-  const profileId = coachProfile?.id ? String(coachProfile.id) : null
-  
+  const profileId = coachProfile?.id ? String(coachProfile.id) : null;
+
   // Hook combinado que trae todos los datos en una sola petición
   const {
     disciplines: dashboardDisciplines,
@@ -51,255 +57,345 @@ export default function AdminDashboardPage() {
     subscriptionPlans: dashboardSubscriptionPlans,
     coachAccess: dashboardCoachAccess,
     loading: dashboardLoading,
-    refresh: refreshDashboard
-  } = useDashboardData(profileId)
+    refresh: refreshDashboard,
+  } = useDashboardData(profileId);
 
   // Hooks individuales solo para operaciones CRUD (no cargan datos iniciales)
-  const {
-    createDiscipline,
-    updateDiscipline,
-    deleteDiscipline,
-  } = useDisciplines(profileId)
+  const { createDiscipline, updateDiscipline, deleteDiscipline } =
+    useDisciplines(profileId);
 
-  const {
-    createPlanification,
-    updatePlanification,
-    deletePlanification
-  } = usePlanifications(profileId || undefined)
+  const { createPlanification, updatePlanification, deletePlanification } =
+    usePlanifications(profileId || undefined);
 
   // Usar datos del dashboard combinado
-  const disciplines = dashboardDisciplines
-  const planifications = dashboardPlanifications
-  const users = dashboardUsers
-  const coachAccess = dashboardCoachAccess ? {
-    hasAccess: dashboardCoachAccess.hasAccess,
-    isTrial: dashboardCoachAccess.isTrial,
-    trialEndsAt: dashboardCoachAccess.trialEndsAt ? new Date(dashboardCoachAccess.trialEndsAt) : null,
-    daysRemaining: dashboardCoachAccess.daysRemaining
-  } : null
+  const disciplines = dashboardDisciplines;
+  const planifications = dashboardPlanifications;
+  const users = dashboardUsers;
+  const coachAccess = dashboardCoachAccess
+    ? {
+        hasAccess: dashboardCoachAccess.hasAccess,
+        isTrial: dashboardCoachAccess.isTrial,
+        trialEndsAt: dashboardCoachAccess.trialEndsAt
+          ? new Date(dashboardCoachAccess.trialEndsAt)
+          : null,
+        daysRemaining: dashboardCoachAccess.daysRemaining,
+      }
+    : null;
 
   // Hooks para manejar modales
-  const disciplineModal = useModalState<any>()
-  const planificationModal = useModalState<any>()
-  const dayModal = useModalState<{ date: Date; planifications: any[] }>()
-  const deleteDialog = useModalState<any>()
-  const replicateModal = useModalState<{ planifications: any[]; sourceDate: Date | null }>()
+  const disciplineModal = useModalState<any>();
+  const planificationModal = useModalState<any>();
+  const dayModal = useModalState<{ date: Date; planifications: any[] }>();
+  const deleteDialog = useModalState<any>();
+  const deleteDisciplineDialog = useModalState<any>();
+  const deleteDisciplineErrorDialog = useModalState<{
+    discipline: any;
+    error: string;
+  }>();
+  const replicateModal = useModalState<{
+    planifications: any[];
+    sourceDate: Date | null;
+  }>();
 
   // Hook para operaciones CRUD con refresh automático
-  const { handleCRUDOperation } = useDashboardCRUD(refreshDashboard)
+  const { handleCRUDOperation } = useDashboardCRUD(refreshDashboard);
 
   // Estado para fecha seleccionada y planificaciones del día
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-  const [dayPlanifications, setDayPlanifications] = useState<any[]>([])
-  const [activeTab, setActiveTab] = useState('overview')
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [dayPlanifications, setDayPlanifications] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState("overview");
 
   // Detectar tab desde URL (para redirecciones de OAuth)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search)
-      const tabParam = params.get('tab')
-      if (tabParam && ['overview', 'disciplines', 'planning', 'users', 'plans'].includes(tabParam)) {
-        setActiveTab(tabParam)
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab");
+      if (
+        tabParam &&
+        ["overview", "disciplines", "planning", "users", "plans"].includes(
+          tabParam
+        )
+      ) {
+        setActiveTab(tabParam);
         // Limpiar URL después de establecer el tab
-        const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '')
-        window.history.replaceState({}, '', newUrl)
+        const newUrl =
+          window.location.pathname +
+          (params.toString() ? `?${params.toString()}` : "");
+        window.history.replaceState({}, "", newUrl);
       }
     }
-  }, [])
+  }, []);
 
   // Handlers para disciplinas
   const handleDisciplineSubmit = async (data: any) => {
     const operation = disciplineModal.selectedItem
       ? () => updateDiscipline({ ...data, id: disciplineModal.selectedItem.id })
-      : () => createDiscipline(data)
+      : () => createDiscipline(data);
 
-    return handleCRUDOperation(operation, () => disciplineModal.close())
-  }
+    return handleCRUDOperation(operation, () => disciplineModal.close());
+  };
 
   const handleEditDisciplineClick = (discipline: any) => {
-    disciplineModal.open(discipline)
-  }
+    disciplineModal.open(discipline);
+  };
 
-  const handleDeleteDiscipline = async (disciplineId: string) => {
-    await handleCRUDOperation(() => deleteDiscipline(disciplineId))
-  }
+  const handleDeleteDisciplineClick = async (discipline: any) => {
+    // Verificar si hay usuarios vinculados antes de mostrar el modal de confirmación
+    try {
+      const response = await fetch(`/api/disciplines/${discipline.id}/check`);
+
+      if (!response.ok) {
+        throw new Error("Error al verificar disciplina");
+      }
+
+      const data = await response.json();
+
+      if (!data.canDelete) {
+        // Mostrar modal de error
+        deleteDisciplineErrorDialog.open({
+          discipline,
+          error: `No se puede eliminar la disciplina "${
+            data.disciplineName
+          }" porque ${data.userCount} usuario${
+            data.userCount !== 1 ? "s" : ""
+          } tiene${
+            data.userCount !== 1 ? "n" : ""
+          } esta disciplina o sus niveles como preferencia. Por favor, actualiza las preferencias de los usuarios antes de eliminar.`,
+        });
+        return;
+      }
+
+      // Si no hay usuarios vinculados, mostrar el modal de confirmación
+      deleteDisciplineDialog.open(discipline);
+    } catch (err) {
+      console.error("Error checking discipline:", err);
+      // En caso de error, mostrar el modal de confirmación por seguridad
+      deleteDisciplineDialog.open(discipline);
+    }
+  };
+
+  const handleDeleteDisciplineConfirm = async () => {
+    if (deleteDisciplineDialog.selectedItem) {
+      const result = await handleCRUDOperation(
+        () => deleteDiscipline(deleteDisciplineDialog.selectedItem.id),
+        () => deleteDisciplineDialog.close()
+      );
+
+      if (result.error) {
+        toast({
+          title: "Error al eliminar disciplina",
+          description: result.error,
+          variant: "destructive",
+        });
+      }
+    }
+  };
 
   // Handlers para planificaciones
   const handleDateClick = (date: Date) => {
-    setSelectedDate(date)
-    planificationModal.open()
-  }
+    setSelectedDate(date);
+    planificationModal.open();
+  };
 
   const handleEditPlanification = (planification: any) => {
-    setSelectedDate(null)
-    planificationModal.open(planification)
-  }
+    setSelectedDate(null);
+    planificationModal.open(planification);
+  };
 
-  const handlePlanificationSubmit = async (data: any): Promise<{ error?: string }> => {
+  const handlePlanificationSubmit = async (
+    data: any
+  ): Promise<{ error?: string }> => {
     const operation = planificationModal.selectedItem
-      ? () => updatePlanification(planificationModal.selectedItem.id, data).then(r => ({ error: r.error || undefined }))
-      : () => createPlanification({ ...data, coach_id: profileId }).then(r => ({ error: r.error || undefined }))
+      ? () =>
+          updatePlanification(planificationModal.selectedItem.id, data).then(
+            (r) => ({ error: r.error || undefined })
+          )
+      : () =>
+          createPlanification({ ...data, coach_id: profileId }).then((r) => ({
+            error: r.error || undefined,
+          }));
 
     const result = await handleCRUDOperation(operation, () => {
-      planificationModal.close()
-      setSelectedDate(null)
-    })
-    
-    return { error: result.error || undefined }
-  }
+      planificationModal.close();
+      setSelectedDate(null);
+    });
+
+    return { error: result.error || undefined };
+  };
 
   const handleDeletePlanification = (planification: any) => {
-    deleteDialog.open(planification)
-  }
+    deleteDialog.open(planification);
+  };
 
   const handleDeleteConfirm = async () => {
     if (deleteDialog.selectedItem) {
       await handleCRUDOperation(
         () => deletePlanification(deleteDialog.selectedItem.id),
         () => deleteDialog.close()
-      )
+      );
     }
-  }
+  };
 
   const handleViewDayPlanifications = (date: Date, planifications: any[]) => {
-    setSelectedDate(date)
-    setDayPlanifications(planifications)
-    dayModal.open({ date, planifications })
-  }
+    setSelectedDate(date);
+    setDayPlanifications(planifications);
+    dayModal.open({ date, planifications });
+  };
 
   const handleCreateFromDay = (date: Date) => {
-    setSelectedDate(date)
-    dayModal.close()
-    planificationModal.open()
-  }
+    setSelectedDate(date);
+    dayModal.close();
+    planificationModal.open();
+  };
 
   const handleEditFromDay = (planification: any) => {
-    setSelectedDate(null)
-    dayModal.close()
-    planificationModal.open(planification)
-  }
+    setSelectedDate(null);
+    dayModal.close();
+    planificationModal.open(planification);
+  };
 
   const handleDeleteFromDay = async (planificationId: string) => {
     await handleCRUDOperation(
       () => deletePlanification(planificationId),
-      () => setDayPlanifications(prev => prev.filter(p => p.id !== planificationId))
-    )
-  }
+      () =>
+        setDayPlanifications((prev) =>
+          prev.filter((p) => p.id !== planificationId)
+        )
+    );
+  };
 
   // Handlers para replicar planificaciones
   const handleDuplicatePlanification = (planification: any) => {
     replicateModal.open({
       planifications: [planification],
-      sourceDate: selectedDate
-    })
-  }
+      sourceDate: selectedDate,
+    });
+  };
 
   const handleDuplicateAll = () => {
     replicateModal.open({
       planifications: dayPlanifications,
-      sourceDate: selectedDate
-    })
-  }
+      sourceDate: selectedDate,
+    });
+  };
 
-  const handleReplicateConfirm = async (targetDate: Date, replaceExisting: boolean) => {
-    if (!replicateModal.selectedItem) return
+  const handleReplicateConfirm = async (
+    targetDate: Date,
+    replaceExisting: boolean
+  ) => {
+    if (!replicateModal.selectedItem) return;
     if (!profileId) {
       toast({
-        title: 'Error',
-        description: 'No se pudo identificar el coach',
-        variant: 'destructive'
-      })
-      return
+        title: "Error",
+        description: "No se pudo identificar el coach",
+        variant: "destructive",
+      });
+      return;
     }
 
-    const planificationsToReplicate = replicateModal.selectedItem.planifications
+    const planificationsToReplicate =
+      replicateModal.selectedItem.planifications;
 
     // Función helper para normalizar fechas sin problemas de zona horaria
     const normalizeDate = (date: Date | string): string => {
-      if (typeof date === 'string') {
+      if (typeof date === "string") {
         // Si ya es string, tomar solo la parte de la fecha
-        return date.split('T')[0]
+        return date.split("T")[0];
       }
       // Crear fecha local sin timezone
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      return `${year}-${month}-${day}`
-    }
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    };
 
     try {
       // Formatear fecha destino usando normalización local
-      const targetDateString = normalizeDate(targetDate)
+      const targetDateString = normalizeDate(targetDate);
 
       // Si hay que reemplazar, primero eliminar las planificaciones existentes del día destino
       if (replaceExisting) {
-        const existingPlanifications = planifications.filter(p => {
-          const planDateString = normalizeDate(p.date)
-          return planDateString === targetDateString
-        })
+        const existingPlanifications = planifications.filter((p) => {
+          const planDateString = normalizeDate(p.date);
+          return planDateString === targetDateString;
+        });
 
         for (const existing of existingPlanifications) {
-          await deletePlanification(existing.id)
+          await deletePlanification(existing.id);
         }
       }
 
       // Duplicar cada planificación
-      let successCount = 0
-      let errorCount = 0
+      let successCount = 0;
+      let errorCount = 0;
 
       for (const planification of planificationsToReplicate) {
         const newPlanificationData = {
           coach_id: profileId,
-          discipline_id: planification.discipline_id || planification.disciplineId || planification.discipline?.id,
-          discipline_level_id: planification.discipline_level_id || planification.disciplineLevelId || planification.discipline_level?.id,
+          discipline_id:
+            planification.discipline_id ||
+            planification.disciplineId ||
+            planification.discipline?.id,
+          discipline_level_id:
+            planification.discipline_level_id ||
+            planification.disciplineLevelId ||
+            planification.discipline_level?.id,
           date: targetDateString,
           estimated_duration: planification.estimated_duration,
           blocks: planification.blocks || [],
           notes: planification.notes || null,
-          is_active: planification.is_active !== undefined ? planification.is_active : true
-        }
+          is_active:
+            planification.is_active !== undefined
+              ? planification.is_active
+              : true,
+        };
 
-        const result = await createPlanification(newPlanificationData)
+        const result = await createPlanification(newPlanificationData);
         if (result.error) {
-          errorCount++
+          errorCount++;
         } else {
-          successCount++
+          successCount++;
         }
       }
 
-      replicateModal.close()
-      dayModal.close()
-      refreshDashboard()
+      replicateModal.close();
+      dayModal.close();
+      refreshDashboard();
 
       // Mostrar notificación
       if (errorCount === 0) {
         toast({
-          title: 'Planificaciones replicadas',
-          description: `${successCount} planificación${successCount !== 1 ? 'es' : ''} replicada${successCount !== 1 ? 's' : ''} exitosamente`,
-        })
+          title: "Planificaciones replicadas",
+          description: `${successCount} planificación${
+            successCount !== 1 ? "es" : ""
+          } replicada${successCount !== 1 ? "s" : ""} exitosamente`,
+        });
       } else {
         toast({
-          title: 'Replicación parcial',
-          description: `${successCount} replicada${successCount !== 1 ? 's' : ''} exitosamente, ${errorCount} con error${errorCount !== 1 ? 'es' : ''}`,
-          variant: 'destructive'
-        })
+          title: "Replicación parcial",
+          description: `${successCount} replicada${
+            successCount !== 1 ? "s" : ""
+          } exitosamente, ${errorCount} con error${
+            errorCount !== 1 ? "es" : ""
+          }`,
+          variant: "destructive",
+        });
       }
     } catch (error) {
-      console.error('Error replicando planificaciones:', error)
+      console.error("Error replicando planificaciones:", error);
       toast({
-        title: 'Error',
-        description: 'Ocurrió un error al replicar las planificaciones',
-        variant: 'destructive'
-      })
+        title: "Error",
+        description: "Ocurrió un error al replicar las planificaciones",
+        variant: "destructive",
+      });
     }
-  }
+  };
 
   // El coachAccess ahora viene del hook combinado, no necesitamos este useEffect
 
-
   // Estados de carga y acceso
   if (authLoading) {
-    return <LoadingScreen />
+    return <LoadingScreen />;
   }
 
   if (!isCoach) {
@@ -310,11 +406,11 @@ export default function AdminDashboardPage() {
         businessName={coachProfile?.businessName}
         authLoading={authLoading}
       />
-    )
+    );
   }
 
   if (!dashboardLoading && coachAccess && !coachAccess.hasAccess) {
-    return <TrialExpired trialEndDate={coachAccess.trialEndsAt} />
+    return <TrialExpired trialEndDate={coachAccess.trialEndsAt} />;
   }
 
   return (
@@ -333,10 +429,14 @@ export default function AdminDashboardPage() {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="space-y-6"
+        >
           <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 gap-1 h-auto p-1">
-            <TabsTrigger 
-              value="overview" 
+            <TabsTrigger
+              value="overview"
               className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300 data-[state=active]:bg-lime-400/10 data-[state=active]:border-lime-400 data-[state=active]:shadow-[0_4px_15px_rgba(204,255,0,0.3)]"
             >
               <div className="flex flex-col items-center gap-1">
@@ -345,8 +445,8 @@ export default function AdminDashboardPage() {
                 <span className="sm:hidden text-xs">Resumen</span>
               </div>
             </TabsTrigger>
-            <TabsTrigger 
-              value="disciplines" 
+            <TabsTrigger
+              value="disciplines"
               className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300 data-[state=active]:bg-lime-400/10 data-[state=active]:border-lime-400 data-[state=active]:shadow-[0_4px_15px_rgba(204,255,0,0.3)]"
             >
               <div className="flex flex-col items-center gap-1">
@@ -355,8 +455,8 @@ export default function AdminDashboardPage() {
                 <span className="sm:hidden text-xs">Disciplinas</span>
               </div>
             </TabsTrigger>
-            <TabsTrigger 
-              value="planning" 
+            <TabsTrigger
+              value="planning"
               className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300 data-[state=active]:bg-lime-400/10 data-[state=active]:border-lime-400 data-[state=active]:shadow-[0_4px_15px_rgba(204,255,0,0.3)]"
             >
               <div className="flex flex-col items-center gap-1">
@@ -365,8 +465,8 @@ export default function AdminDashboardPage() {
                 <span className="sm:hidden text-xs">Planificación</span>
               </div>
             </TabsTrigger>
-            <TabsTrigger 
-              value="users" 
+            <TabsTrigger
+              value="users"
               className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300 data-[state=active]:bg-lime-400/10 data-[state=active]:border-lime-400 data-[state=active]:shadow-[0_4px_15px_rgba(204,255,0,0.3)]"
             >
               <div className="flex flex-col items-center gap-1">
@@ -375,8 +475,8 @@ export default function AdminDashboardPage() {
                 <span className="sm:hidden text-xs">Estudiantes</span>
               </div>
             </TabsTrigger>
-            <TabsTrigger 
-              value="plans" 
+            <TabsTrigger
+              value="plans"
               className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300 data-[state=active]:bg-lime-400/10 data-[state=active]:border-lime-400 data-[state=active]:shadow-[0_4px_15px_rgba(204,255,0,0.3)]"
             >
               <div className="flex flex-col items-center gap-1">
@@ -389,7 +489,7 @@ export default function AdminDashboardPage() {
 
           {/* Resumen Tab */}
           <TabsContent value="overview" className="space-y-6">
-            <AdminStats 
+            <AdminStats
               users={users}
               planifications={planifications}
               onTabChange={setActiveTab}
@@ -399,14 +499,14 @@ export default function AdminDashboardPage() {
           {/* Disciplinas Tab */}
           <TabsContent value="disciplines" className="space-y-6">
             <div className="flex items-start justify-between max-md:flex-col max-sm:gap-2 gap-4">
-              <div className='flex flex-col gap-2 items-start'>
+              <div className="flex flex-col gap-2 items-start">
                 <h2 className="text-2xl font-bold">Disciplinas</h2>
                 <p className="text-muted-foreground">
                   Gestiona las disciplinas y sus niveles de categorización
                 </p>
               </div>
               <div className="flex gap-2">
-                <Button 
+                <Button
                   onClick={() => disciplineModal.open()}
                   disabled={!profileId}
                 >
@@ -420,7 +520,7 @@ export default function AdminDashboardPage() {
               disciplines={disciplines}
               loading={dashboardLoading}
               onEdit={handleEditDisciplineClick}
-              onDelete={handleDeleteDiscipline}
+              onDelete={handleDeleteDisciplineClick}
             />
           </TabsContent>
 
@@ -429,7 +529,9 @@ export default function AdminDashboardPage() {
             <div className="flex flex-col gap-2 items-start">
               <h2 className="text-2xl font-bold">Planificaciones</h2>
               <p className="text-muted-foreground">
-                Gestiona las planificaciones de entrenamiento por disciplina y nivel. Haz clic en un día del calendario para crear una nueva planificación.
+                Gestiona las planificaciones de entrenamiento por disciplina y
+                nivel. Haz clic en un día del calendario para crear una nueva
+                planificación.
               </p>
             </div>
 
@@ -445,8 +547,8 @@ export default function AdminDashboardPage() {
 
           {/* Estudiantes Tab */}
           <TabsContent value="users" className="space-y-6">
-            <UsersList 
-              coachId={profileId} 
+            <UsersList
+              coachId={profileId}
               initialUsers={users}
               initialPlans={dashboardSubscriptionPlans}
               onRefresh={refreshDashboard}
@@ -457,23 +559,22 @@ export default function AdminDashboardPage() {
           <TabsContent value="plans" className="space-y-6">
             {/* Conexión con MercadoPago */}
             <MercadoPagoConnect coachId={coachProfile?.id} />
-            
+
             {/* Lista de Planes */}
             <div>
               <h2 className="text-2xl font-bold mb-4">Planes de Suscripción</h2>
               <p className="text-muted-foreground mb-6">
-                Gestiona los planes de suscripción disponibles para tus estudiantes
+                Gestiona los planes de suscripción disponibles para tus
+                estudiantes
               </p>
-              <SubscriptionPlansList 
+              <SubscriptionPlansList
                 initialPlans={dashboardSubscriptionPlans}
                 onRefresh={refreshDashboard}
               />
             </div>
           </TabsContent>
-
         </Tabs>
       </div>
-
 
       {/* Modal para crear/editar disciplina */}
       <DisciplineModal
@@ -487,9 +588,9 @@ export default function AdminDashboardPage() {
       <PlanificationModal
         open={planificationModal.isOpen}
         onOpenChange={(open: boolean) => {
-          planificationModal.handleOpenChange(open)
+          planificationModal.handleOpenChange(open);
           if (!open) {
-            setSelectedDate(null)
+            setSelectedDate(null);
           }
         }}
         planification={planificationModal.selectedItem}
@@ -502,10 +603,10 @@ export default function AdminDashboardPage() {
       <PlanificationDayModal
         open={dayModal.isOpen}
         onOpenChange={(open: boolean) => {
-          dayModal.handleOpenChange(open)
+          dayModal.handleOpenChange(open);
           if (!open) {
-            setSelectedDate(null)
-            setDayPlanifications([])
+            setSelectedDate(null);
+            setDayPlanifications([]);
           }
         }}
         selectedDate={selectedDate}
@@ -539,6 +640,34 @@ export default function AdminDashboardPage() {
         cancelText="Cancelar"
         variant="destructive"
       />
+
+      {/* Diálogo de confirmación para eliminar disciplina */}
+      <ConfirmationDialog
+        open={deleteDisciplineDialog.isOpen}
+        onOpenChange={deleteDisciplineDialog.handleOpenChange}
+        onConfirm={handleDeleteDisciplineConfirm}
+        title="Eliminar Disciplina"
+        description={`¿Estás seguro de que quieres eliminar la disciplina "${deleteDisciplineDialog.selectedItem?.name}"? Esta acción eliminará también todos sus niveles y no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="destructive"
+      />
+
+      {/* Diálogo de error al eliminar disciplina */}
+      <ConfirmationDialog
+        open={deleteDisciplineErrorDialog.isOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            deleteDisciplineErrorDialog.close();
+          }
+        }}
+        onConfirm={() => deleteDisciplineErrorDialog.close()}
+        title="No se puede eliminar la disciplina"
+        description={deleteDisciplineErrorDialog.selectedItem?.error || ""}
+        confirmText="Entendido"
+        cancelText={null}
+        variant="destructive"
+      />
     </div>
-  )
+  );
 }

@@ -190,7 +190,9 @@ export function useDisciplines(coachId: string | null) {
       })
 
       if (!response.ok) {
-        throw new Error('Error al eliminar disciplina')
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.error || 'Error al eliminar disciplina'
+        throw new Error(errorMessage)
       }
 
       setDisciplines(prev => prev.filter(d => d.id !== id))

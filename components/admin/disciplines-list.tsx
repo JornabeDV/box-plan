@@ -1,57 +1,73 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { 
-  Plus, 
-  Search, 
-  Edit, 
-  Trash2, 
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
+import {
+  Search,
+  Edit,
+  Trash2,
   Target,
   ChevronDown,
-  ChevronRight
-} from 'lucide-react'
-import { Discipline, DisciplineLevel } from '@/hooks/use-disciplines'
+  ChevronRight,
+} from "lucide-react";
+import { Discipline } from "@/hooks/use-disciplines";
 
 interface DisciplinesListProps {
-  disciplines: Discipline[]
-  loading?: boolean
-  onEdit: (discipline: Discipline) => void
-  onDelete: (disciplineId: string) => void
+  disciplines: Discipline[];
+  loading?: boolean;
+  onEdit: (discipline: Discipline) => void;
+  onDelete: (discipline: Discipline) => void;
 }
 
-export function DisciplinesList({ 
-  disciplines, 
-  loading = false, 
-  onEdit, 
-  onDelete
+export function DisciplinesList({
+  disciplines,
+  loading = false,
+  onEdit,
+  onDelete,
 }: DisciplinesListProps) {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [expandedDisciplines, setExpandedDisciplines] = useState<Set<string>>(new Set())
+  const [searchQuery, setSearchQuery] = useState("");
+  const [expandedDisciplines, setExpandedDisciplines] = useState<Set<string>>(
+    new Set()
+  );
 
   // Filtrar disciplinas según búsqueda
-  const filteredDisciplines = disciplines.filter(discipline => 
-    discipline.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    discipline.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    discipline.levels?.some(level => 
-      level.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  )
+  const filteredDisciplines = disciplines.filter(
+    (discipline) =>
+      discipline.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      discipline.description
+        ?.toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      discipline.levels?.some((level) =>
+        level.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+  );
 
   const toggleDiscipline = (disciplineId: string) => {
-    setExpandedDisciplines(prev => {
-      const newSet = new Set(prev)
+    setExpandedDisciplines((prev) => {
+      const newSet = new Set(prev);
       if (newSet.has(disciplineId)) {
-        newSet.delete(disciplineId)
+        newSet.delete(disciplineId);
       } else {
-        newSet.add(disciplineId)
+        newSet.add(disciplineId);
       }
-      return newSet
-    })
-  }
+      return newSet;
+    });
+  };
 
   if (loading) {
     return (
@@ -59,7 +75,7 @@ export function DisciplinesList({
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
         <p className="text-muted-foreground mt-2">Cargando disciplinas...</p>
       </div>
-    )
+    );
   }
 
   if (disciplines.length === 0) {
@@ -68,10 +84,12 @@ export function DisciplinesList({
         <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
         <h3 className="text-lg font-semibold mb-2">No hay disciplinas</h3>
         <p className="text-muted-foreground mb-4">
-          {searchQuery ? 'No se encontraron disciplinas con ese criterio.' : 'Crea tu primera disciplina.'}
+          {searchQuery
+            ? "No se encontraron disciplinas con ese criterio."
+            : "Crea tu primera disciplina."}
         </p>
       </div>
-    )
+    );
   }
 
   return (
@@ -90,14 +108,14 @@ export function DisciplinesList({
       {/* Lista de disciplinas */}
       <div className="space-y-3">
         {filteredDisciplines.map((discipline) => (
-          <Card 
-            key={discipline.id} 
+          <Card
+            key={discipline.id}
             className="hover:shadow-lg transition-shadow"
           >
             <CardHeader className="pb-3">
               {/* Header con título y color */}
               <div className="flex items-start gap-3 mb-3">
-                <div 
+                <div
                   className="w-5 h-5 rounded-full flex-shrink-0 mt-0.5"
                   style={{ backgroundColor: discipline.color }}
                 />
@@ -112,14 +130,14 @@ export function DisciplinesList({
                   )}
                 </div>
               </div>
-              
+
               {/* Footer con badges y botones */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary" className="text-xs">
                     {discipline.levels?.length || 0} niveles
                   </Badge>
-                  
+
                   {discipline.levels && discipline.levels.length > 0 && (
                     <Button
                       variant="ghost"
@@ -135,27 +153,39 @@ export function DisciplinesList({
                     </Button>
                   )}
                 </div>
-                
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onEdit(discipline)}
-                    className="h-8 w-8 p-0 text-destructive hover:text-destructive-foreground hover:bg-destructive"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onDelete(discipline.id)}
-                    className="h-8 w-8 p-0 text-destructive hover:text-destructive-foreground hover:bg-destructive"
-                    title="Eliminar disciplina"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
+
+                <TooltipProvider delayDuration={0}>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onEdit(discipline)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="z-[100]">
+                        <p>Editar disciplina</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onDelete(discipline)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="z-[100]">
+                        <p>Eliminar disciplina</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </TooltipProvider>
               </div>
             </CardHeader>
 
@@ -163,7 +193,9 @@ export function DisciplinesList({
             {expandedDisciplines.has(discipline.id) && discipline.levels && (
               <CardContent className="pt-0">
                 <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-muted-foreground mb-2">Niveles:</h4>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-2">
+                    Niveles:
+                  </h4>
                   {discipline.levels.map((level, index) => (
                     <div
                       key={level.id}
@@ -172,7 +204,9 @@ export function DisciplinesList({
                       <div className="flex-1">
                         <div className="font-medium">{level.name}</div>
                         {level.description && (
-                          <div className="text-sm text-muted-foreground">{level.description}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {level.description}
+                          </div>
                         )}
                       </div>
                       <Badge variant="outline" className="text-xs">
@@ -187,5 +221,5 @@ export function DisciplinesList({
         ))}
       </div>
     </div>
-  )
+  );
 }
