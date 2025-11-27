@@ -54,10 +54,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { planification_id, data, completed_at, duration_seconds } = body
 
+    // Convertir planification_id a número si existe
+    const planificationId = planification_id 
+      ? (typeof planification_id === 'string' ? parseInt(planification_id, 10) : planification_id)
+      : null
+
     const result = await prisma.workout.create({
       data: {
         userId,
-        planificationId: planification_id || null,
+        planificationId: planificationId,
         data: data || {},
         completedAt: completed_at ? new Date(completed_at) : null,
         durationSeconds: duration_seconds || null
