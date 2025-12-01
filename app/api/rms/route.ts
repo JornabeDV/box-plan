@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeUserId } from '@/lib/auth-helpers'
+import { studentHasFeature } from '@/lib/coach-plan-features'
 
 // GET /api/rms?userId=xxx
 export async function GET(request: NextRequest) {
@@ -41,6 +42,21 @@ export async function POST(request: NextRequest) {
 		const userId = normalizeUserId(session?.user?.id)
 		if (!userId) {
 			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+		}
+
+		// Verificar si el usuario tiene acceso a la carga de scores según el plan del coach
+		try {
+			const hasAccess = await studentHasFeature(userId, 'score_loading')
+			if (!hasAccess) {
+				return NextResponse.json(
+					{ error: 'Tu plan no incluye la funcionalidad de carga de Repeticiones Máximas (RM). Actualiza tu plan para acceder a esta funcionalidad.' },
+					{ status: 403 }
+				)
+			}
+		} catch (planError) {
+			// Si hay error al obtener el plan, loguear pero continuar con la creación
+			// (para no bloquear si hay un problema temporal con el sistema de planes)
+			console.error('Error al validar acceso a carga de RM:', planError)
 		}
 
 		const body = await request.json()
