@@ -7,6 +7,7 @@ import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { useAuthWithRoles } from "@/hooks/use-auth-with-roles";
 import { useProfile } from "@/hooks/use-profile";
 import { useUserCoach } from "@/hooks/use-user-coach";
+import { useCoachPlanFeatures } from "@/hooks/use-coach-plan-features";
 import { TodaySection } from "@/components/dashboard/today-section";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { ReviewsSection } from "@/components/home/reviews-section";
@@ -60,6 +61,16 @@ export default function BoxPlanApp() {
   const { user, loading: authLoading, isCoach } = useAuthWithRoles();
   const { subscription, loading: profileLoading } = useProfile();
   const { coach: userCoach, loading: coachLoading } = useUserCoach();
+  const { canUseWhatsApp, canLoadScores, canAccessScoreDatabase, loading: planFeaturesLoading } = useCoachPlanFeatures();
+  
+  // Verificar si tiene acceso a la funcionalidad de progreso
+  const hasProgressAccess = canLoadScores || canAccessScoreDatabase;
+  
+  // Verificar si tiene acceso a ranking (requiere base de datos de scores)
+  const hasRankingAccess = canAccessScoreDatabase;
+  
+  // Verificar si hay al menos un acceso rápido disponible
+  const hasAnyQuickAccess = hasProgressAccess || canLoadScores || hasRankingAccess;
   const {
     preferences,
     loading: preferencesLoading,
@@ -755,8 +766,8 @@ export default function BoxPlanApp() {
           </section>
         )}
 
-        {/* Accesos rápidos - Solo para usuarios con suscripción activa */}
-        {user?.id && hasActiveSubscription && (
+        {/* Accesos rápidos - Solo para usuarios con suscripción activa y que tengan al menos un acceso disponible */}
+        {user?.id && hasActiveSubscription && hasAnyQuickAccess && (
           <section>
             <Card>
               <CardHeader>
@@ -767,30 +778,36 @@ export default function BoxPlanApp() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <Button
-                    variant="outline"
-                    className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
-                    onClick={() => router.push("/progress")}
-                  >
-                    <BarChart3 className="w-6 h-6" />
-                    <span>Progreso</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
-                    onClick={() => router.push("/log-rm")}
-                  >
-                    <Weight className="w-6 h-6" />
-                    <span>Carga RM</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
-                    onClick={() => router.push("/ranking")}
-                  >
-                    <Trophy className="w-6 h-6" />
-                    <span>Ranking</span>
-                  </Button>
+                  {hasProgressAccess && (
+                    <Button
+                      variant="outline"
+                      className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
+                      onClick={() => router.push("/progress")}
+                    >
+                      <BarChart3 className="w-6 h-6" />
+                      <span>Progreso</span>
+                    </Button>
+                  )}
+                  {canLoadScores && (
+                    <Button
+                      variant="outline"
+                      className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
+                      onClick={() => router.push("/log-rm")}
+                    >
+                      <Weight className="w-6 h-6" />
+                      <span>Carga RM</span>
+                    </Button>
+                  )}
+                  {hasRankingAccess && (
+                    <Button
+                      variant="outline"
+                      className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
+                      onClick={() => router.push("/ranking")}
+                    >
+                      <Trophy className="w-6 h-6" />
+                      <span>Ranking</span>
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -808,7 +825,7 @@ export default function BoxPlanApp() {
       <BottomNavigation />
 
       {/* Botón flotante de WhatsApp para contactar al coach */}
-      {!coachLoading && userCoach && (
+      {!coachLoading && !planFeaturesLoading && userCoach && canUseWhatsApp && (
         <WhatsAppButton phone={userCoach.phone} coachName={userCoach.name} />
       )}
     </div>

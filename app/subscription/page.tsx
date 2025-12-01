@@ -12,6 +12,7 @@ import { SubscriptionManagement } from "@/components/subscription/subscription-m
 import { PlanSwitcher } from "@/components/subscription/plan-switcher";
 import { useSubscriptionManagement } from "@/hooks/use-subscription-management";
 import { useUserCoach } from "@/hooks/use-user-coach";
+import { useCoachPlanFeatures } from "@/hooks/use-coach-plan-features";
 import {
   CreditCard,
   History,
@@ -43,6 +44,7 @@ export default function SubscriptionPage() {
   );
   const [loadingHistory, setLoadingHistory] = useState(false);
   const { coach: userCoach } = useUserCoach();
+  const { canUseWhatsApp } = useCoachPlanFeatures();
 
   const {
     plans,
@@ -253,15 +255,17 @@ export default function SubscriptionPage() {
                       <p className="text-sm text-muted-foreground">
                         ¿Necesitas ayuda con tu suscripción?
                       </p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                        onClick={handleContactSupport}
-                        disabled={!userCoach?.phone}
-                      >
-                        Contactar Soporte
-                      </Button>
+                      {canUseWhatsApp && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={handleContactSupport}
+                          disabled={!userCoach?.phone}
+                        >
+                          Contactar Soporte
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
