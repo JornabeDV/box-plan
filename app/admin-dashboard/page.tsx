@@ -17,6 +17,7 @@ import {
   Calendar,
   Target,
   DollarSign,
+  Package,
 } from "lucide-react";
 import { AdminStats } from "@/components/admin/admin-stats";
 import { UsersList } from "@/components/admin/users-list";
@@ -34,6 +35,7 @@ import { AccessRestricted } from "@/components/admin/dashboard/access-restricted
 import { TrialExpired } from "@/components/admin/dashboard/trial-expired";
 import { LoadingScreen } from "@/components/admin/dashboard/loading-screen";
 import { MercadoPagoConnect } from "@/components/coach/mercadopago-connect";
+import { MyPlanSection } from "@/components/admin/dashboard/my-plan-section";
 
 export default function AdminDashboardPage() {
   const {
@@ -434,7 +436,7 @@ export default function AdminDashboardPage() {
           onValueChange={setActiveTab}
           className="space-y-6"
         >
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 gap-1 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 gap-1 h-auto p-1">
             <TabsTrigger
               value="overview"
               className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300 data-[state=active]:bg-lime-400/10 data-[state=active]:border-lime-400 data-[state=active]:shadow-[0_4px_15px_rgba(204,255,0,0.3)]"
@@ -483,6 +485,16 @@ export default function AdminDashboardPage() {
                 <DollarSign className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">Planes</span>
                 <span className="sm:hidden text-xs">Planes</span>
+              </div>
+            </TabsTrigger>
+            <TabsTrigger
+              value="my-plan"
+              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300 data-[state=active]:bg-lime-400/10 data-[state=active]:border-lime-400 data-[state=active]:shadow-[0_4px_15px_rgba(204,255,0,0.3)]"
+            >
+              <div className="flex flex-col items-center gap-1">
+                <Package className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Mi Plan</span>
+                <span className="sm:hidden text-xs">Mi Plan</span>
               </div>
             </TabsTrigger>
           </TabsList>
@@ -572,6 +584,17 @@ export default function AdminDashboardPage() {
                 onRefresh={refreshDashboard}
               />
             </div>
+          </TabsContent>
+
+          {/* Mi Plan Tab */}
+          <TabsContent value="my-plan" className="space-y-6">
+            <div className="flex flex-col gap-2 items-start">
+              <h2 className="text-2xl font-bold">Mi Plan</h2>
+              <p className="text-muted-foreground">
+                Información sobre tu plan actual y características disponibles
+              </p>
+            </div>
+            <MyPlanSection coachId={profileId} />
           </TabsContent>
         </Tabs>
       </div>
