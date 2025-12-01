@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isCoach, normalizeUserId } from '@/lib/auth-helpers'
+import { getCoachMaxDisciplines } from '@/lib/coach-plan-features'
 
 // GET /api/disciplines?coachId=xxx
 export async function GET(request: NextRequest) {
@@ -96,6 +97,41 @@ export async function POST(request: NextRequest) {
     
     if (isNaN(coachIdNumber)) {
       return NextResponse.json({ error: 'Invalid coach ID' }, { status: 400 })
+    }
+
+    // Validar límite de disciplinas según el plan del coach
+    try {
+      const maxDisciplines = await getCoachMaxDisciplines(coachIdNumber)
+      
+      // Si maxDisciplines es 0, significa que el coach no tiene plan activo
+      // En ese caso, no aplicamos límite (o podrías aplicar un límite por defecto)
+      if (maxDisciplines > 0 && maxDisciplines !== 999999) {
+        // Contar disciplinas activas actuales del coach
+        const currentDisciplinesCount = await prisma.discipline.count({
+          where: {
+            coachId: coachIdNumber,
+            isActive: true
+          }
+        })
+
+        // Verificar si ha alcanzado el límite
+        if (currentDisciplinesCount >= maxDisciplines) {
+          const planName = maxDisciplines === 1 
+            ? '1 disciplina' 
+            : `${maxDisciplines} disciplinas`
+          
+          return NextResponse.json(
+            { 
+              error: `Has alcanzado el límite de ${planName} de tu plan. Actualiza tu plan para crear más disciplinas.` 
+            },
+            { status: 403 }
+          )
+        }
+      }
+    } catch (planError) {
+      // Si hay error al obtener el plan, loguear pero continuar con la creación
+      // (para no bloquear si hay un problema temporal con el sistema de planes)
+      console.error('Error al validar límite de disciplinas:', planError)
     }
 
     // Crear disciplina con niveles en una transacción

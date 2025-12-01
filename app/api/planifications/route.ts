@@ -3,6 +3,11 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeUserId, isCoach } from '@/lib/auth-helpers'
 import { normalizeDateForArgentina } from '@/lib/utils'
+import { 
+	getCoachPlanificationWeeks, 
+	canCoachLoadMonthlyPlanifications,
+	canCoachLoadUnlimitedPlanifications 
+} from '@/lib/coach-plan-features'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -320,6 +325,78 @@ export async function POST(request: NextRequest) {
     // Normalizar la fecha
     const dateStr = typeof body.date === 'string' ? body.date : body.date.toISOString().split('T')[0]
     const normalizedDate = normalizeDateForArgentina(dateStr)
+
+    // Validar límite de días hacia adelante según el plan del coach
+    try {
+      const planificationWeeks = await getCoachPlanificationWeeks(coachId)
+      const canLoadMonthly = await canCoachLoadMonthlyPlanifications(coachId)
+      const canLoadUnlimited = await canCoachLoadUnlimitedPlanifications(coachId)
+
+      // Parsear la fecha de la planificación
+      const [year, month, day] = dateStr.split('-').map(Number)
+      const planificationDate = new Date(year, month - 1, day)
+      
+      // Obtener fecha de hoy (sin hora, solo fecha)
+      const today = new Date()
+      const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+      
+      // Calcular diferencia en días
+      const diffTime = planificationDate.getTime() - todayDate.getTime()
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+      // Validar según el tipo de plan
+      if (canLoadUnlimited) {
+        // Plan ELITE: sin límite, pero no puede crear en el pasado
+        if (diffDays < 0) {
+          return NextResponse.json(
+            { error: 'No puedes crear planificaciones en el pasado' },
+            { status: 403 }
+          )
+        }
+      } else if (canLoadMonthly) {
+        // Plan POWER: puede cargar hasta 1 mes adelante
+        const maxDays = 30
+        if (diffDays < 0) {
+          return NextResponse.json(
+            { error: 'No puedes crear planificaciones en el pasado' },
+            { status: 403 }
+          )
+        }
+        if (diffDays > maxDays) {
+          return NextResponse.json(
+            { error: `Tu plan solo permite cargar planificaciones hasta ${maxDays} días adelante` },
+            { status: 403 }
+          )
+        }
+      } else if (planificationWeeks > 0) {
+        // Plan START: solo puede cargar hasta X semanas adelante
+        const maxDays = planificationWeeks * 7
+        if (diffDays < 0) {
+          return NextResponse.json(
+            { error: 'No puedes crear planificaciones en el pasado' },
+            { status: 403 }
+          )
+        }
+        if (diffDays > maxDays) {
+          return NextResponse.json(
+            { error: `Tu plan solo permite cargar planificaciones hasta ${planificationWeeks} semana${planificationWeeks !== 1 ? 's' : ''} (${maxDays} días) adelante` },
+            { status: 403 }
+          )
+        }
+      } else {
+        // Sin plan o plan sin límite de semanas: solo puede cargar para hoy
+        if (diffDays !== 0) {
+          return NextResponse.json(
+            { error: 'Tu plan solo permite cargar planificaciones para el día actual' },
+            { status: 403 }
+          )
+        }
+      }
+    } catch (planError) {
+      // Si hay error al obtener el plan, loguear pero continuar con la creación
+      // (para no bloquear si hay un problema temporal con el sistema de planes)
+      console.error('Error al validar límite de planificación:', planError)
+    }
 
     // Los bloques se envían como "blocks" pero se guardan en "exercises" (campo JSON)
     const exercisesData = body.blocks || body.exercises || null

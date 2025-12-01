@@ -125,7 +125,8 @@ export function useDisciplines(coachId: string | null) {
       })
 
       if (!response.ok) {
-        throw new Error('Error al crear disciplina')
+        const errorData = await response.json().catch(() => ({ error: 'Error al crear disciplina' }))
+        throw new Error(errorData.error || 'Error al crear disciplina')
       }
 
       const newDiscipline = await response.json()
