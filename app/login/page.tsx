@@ -1,44 +1,61 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { LoginForm } from "@/components/auth/login-form"
-import { SignUpForm } from "@/components/auth/signup-form"
-import { ForgotPasswordForm } from "@/components/auth/forgot-password-form"
-import { useAuth } from "@/hooks/use-auth"
-import { Loader2 } from "lucide-react"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { LoginForm } from "@/components/auth/login-form";
+import { SignUpForm } from "@/components/auth/signup-form";
+import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
+import { useAuthWithRoles } from "@/hooks/use-auth-with-roles";
+import { Loader2 } from "lucide-react";
 
 /**
  * Página de Login/Registro
  * Maneja la autenticación de usuarios con NextAuth y Neon PostgreSQL
  */
 export default function LoginPage() {
-  const [mode, setMode] = useState<'login' | 'signup' | 'forgot-password'>('login')
-  const [loading, setLoading] = useState(true)
-  const router = useRouter()
-  const { user, loading: authLoading } = useAuth()
+  const [mode, setMode] = useState<"login" | "signup" | "forgot-password">(
+    "login"
+  );
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const {
+    user,
+    userRole,
+    isAdmin,
+    isCoach,
+    loading: authLoading,
+  } = useAuthWithRoles();
 
   // Redirigir si el usuario ya está autenticado
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading && user && userRole) {
+      // Verificar si hay un redirect param en la URL
+      const searchParams = new URLSearchParams(window.location.search);
+      const redirectParam = searchParams.get("redirect");
+
       // Redirigir según el rol del usuario
-      if (user.role === 'coach') {
-        router.push('/admin-dashboard')
+      if (isAdmin) {
+        router.push("/superadmin");
+      } else if (isCoach) {
+        router.push("/admin-dashboard");
+      } else if (redirectParam) {
+        router.push(redirectParam);
       } else {
-        router.push('/')
+        router.push("/");
       }
+    } else if (!authLoading && !user) {
+      setLoading(false);
     }
-    setLoading(false)
-  }, [user, authLoading, router])
+  }, [user, userRole, isAdmin, isCoach, authLoading, router]);
 
   const handleSuccess = () => {
     // La redirección se maneja en el useEffect según el rol
     // Este callback se ejecuta después del login exitoso
-  }
+  };
 
-  const switchToSignUp = () => setMode('signup')
-  const switchToLogin = () => setMode('login')
-  const switchToForgotPassword = () => setMode('forgot-password')
+  const switchToSignUp = () => setMode("signup");
+  const switchToLogin = () => setMode("login");
+  const switchToForgotPassword = () => setMode("forgot-password");
 
   if (loading || authLoading) {
     return (
@@ -48,7 +65,7 @@ export default function LoginPage() {
           <span>Cargando...</span>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -68,24 +85,22 @@ export default function LoginPage() {
       {/* Main Content */}
       <main className="flex items-center justify-center min-h-[calc(100vh-200px)] p-6">
         <div className="w-full max-w-md space-y-6">
-          {mode === 'login' ? (
-            <LoginForm 
+          {mode === "login" ? (
+            <LoginForm
               onSuccess={handleSuccess}
               onSwitchToSignUp={switchToSignUp}
               onForgotPassword={switchToForgotPassword}
             />
-          ) : mode === 'signup' ? (
-            <SignUpForm 
+          ) : mode === "signup" ? (
+            <SignUpForm
               onSuccess={handleSuccess}
               onSwitchToLogin={switchToLogin}
             />
           ) : (
-            <ForgotPasswordForm 
-              onBack={switchToLogin}
-            />
+            <ForgotPasswordForm onBack={switchToLogin} />
           )}
         </div>
       </main>
     </div>
-  )
+  );
 }
