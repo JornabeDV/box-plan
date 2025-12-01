@@ -44,16 +44,16 @@ export async function POST(request: NextRequest) {
 						role: 'coach'
 					}
 				},
-				coachProfile: {
-					create: {
-						businessName: businessName || null,
-						phone: phone || null,
-						address: address || null,
-						maxStudents: 10, // Valor por defecto (Starter)
-						commissionRate: 12.00, // Valor por defecto
-						trialEndsAt: trialEndsAt // Período de prueba de 7 días
+					coachProfile: {
+						create: {
+							businessName: businessName || null,
+							phone: phone || null,
+							address: address || null,
+							maxStudents: 10, // Valor por defecto (Plan Start)
+							commissionRate: 5.00, // Valor por defecto (Plan Start: 5%)
+							trialEndsAt: trialEndsAt // Período de prueba de 7 días
+						}
 					}
-				}
 			},
 			include: {
 				coachProfile: true,
