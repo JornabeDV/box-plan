@@ -63,6 +63,7 @@ export async function GET(request: NextRequest) {
 				businessName: relationship.coach.businessName,
 				phone: relationship.coach.phone,
 				address: relationship.coach.address,
+				logoUrl: relationship.coach.logoUrl,
 				joinedAt: relationship.joinedAt
 			},
 			relationship: {

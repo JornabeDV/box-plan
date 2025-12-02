@@ -315,6 +315,7 @@ model CoachProfile {
   businessName          String?   @map("business_name") @db.VarChar(255)
   phone                 String?   @db.VarChar(50)
   address               String?   @db.Text
+  logoUrl               String?   @map("logo_url") @db.VarChar(500)
   maxStudents           Int       @default(10) @map("max_students")
   currentStudentCount   Int       @default(0) @map("current_student_count")
   commissionRate        Decimal   @default(88.00) @map("commission_rate") @db.Decimal(5, 2) // % que recibe el COACH

@@ -12,6 +12,7 @@ interface Coach {
 	businessName: string | null
 	phone: string | null
 	address: string | null
+	logoUrl: string | null
 	joinedAt: string | Date
 }
 

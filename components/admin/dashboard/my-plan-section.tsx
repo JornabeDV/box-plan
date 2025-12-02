@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -16,11 +17,18 @@ import {
   Zap,
   Loader2,
   AlertCircle,
+  Info,
 } from "lucide-react";
 import { useCoachPlanFeatures } from "@/hooks/use-coach-plan-features";
 import Link from "next/link";
 import { useDisciplines } from "@/hooks/use-disciplines";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
+import { CoachLogoUploadInline } from "@/components/admin/coach-logo-upload-inline";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface MyPlanSectionProps {
   coachId: string | null;
@@ -191,14 +199,9 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Comisión */}
-          <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-            <div>
-              <p className="text-sm text-muted-foreground">
-                Comisión por Usuario
-              </p>
-              <p className="text-2xl font-bold">{planInfo.commissionRate}%</p>
-            </div>
+          {/* Logo del Coach */}
+          <div className="pb-4 border-b">
+            <CoachLogoUploadInline />
           </div>
 
           {/* Límites y Uso */}
@@ -260,7 +263,39 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
       {/* Características del Plan */}
       <Card>
         <CardHeader>
-          <CardTitle>Características Incluidas</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle>Características Incluidas</CardTitle>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lime-400"
+                >
+                  <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-lime-400 transition-colors" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent
+                side="top"
+                className="max-w-xs bg-black border-2 border-lime-400 text-white [&>svg]:hidden"
+              >
+                <style
+                  dangerouslySetInnerHTML={{
+                    __html: `
+                    [data-slot="tooltip-content"] svg {
+                      display: none !important;
+                    }
+                  `,
+                  }}
+                />
+                <div className="space-y-1">
+                  <p className="font-medium">Comisión por Usuario</p>
+                  <p className="text-sm opacity-90">
+                    {planInfo.commissionRate}%
+                  </p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </div>
           <p className="text-sm text-muted-foreground mt-1">
             {enabledFeatures.length} de {features.length} características
             disponibles
