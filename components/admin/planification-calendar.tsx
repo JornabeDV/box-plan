@@ -385,21 +385,30 @@ export function PlanificationCalendar({
                     <TooltipTrigger asChild>{dayContent}</TooltipTrigger>
                     <TooltipContent
                       side="top"
-                      className="max-w-xs bg-popover text-popover-foreground cursor-pointer [&>svg]:hidden"
+                      className="max-w-xs bg-black border-2 border-lime-400 text-white cursor-pointer [&>svg]:hidden"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         router.push("/pricing/coaches");
                       }}
                     >
+                      <style
+                        dangerouslySetInnerHTML={{
+                          __html: `
+                          [data-slot="tooltip-content"] svg {
+                            display: none !important;
+                          }
+                        `,
+                        }}
+                      />
                       <p className="text-xs font-medium">
                         {getBlockedMessage()}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-xs opacity-90 mt-1">
                         Actualiza tu plan para crear planificaciones más
                         adelante
                       </p>
-                      <p className="text-xs text-primary font-semibold mt-2 underline">
+                      <p className="text-xs text-lime-400 font-semibold mt-2 underline">
                         Ver planes disponibles
                       </p>
                     </TooltipContent>
