@@ -1,11 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Target, Clock, Calendar, Loader2, ArrowRight } from "lucide-react"
-import { useAuth } from "@/hooks/use-auth"
+import { Target, Clock, Calendar, ArrowRight } from "lucide-react"
+import { useTodayPlanification } from "@/hooks/use-today-planification"
 
 interface Planification {
   id: string
@@ -39,53 +38,34 @@ interface Planification {
  */
 export function StatsCards() {
   const router = useRouter()
-  const { user } = useAuth()
-  const [planification, setPlanification] = useState<Planification | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const fetchTodayPlanification = async () => {
-      if (!user?.id) {
-        setLoading(false)
-        return
-      }
-
-      try {
-        setLoading(true)
-        setError(null)
-
-        // Formatear la fecha de hoy como YYYY-MM-DD
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-        const year = today.getFullYear()
-        const month = String(today.getMonth() + 1).padStart(2, '0')
-        const day = String(today.getDate()).padStart(2, '0')
-        const dateString = `${year}-${month}-${day}`
-
-        const response = await fetch(`/api/planifications?date=${dateString}`)
-        
-        if (!response.ok) {
-          throw new Error('Error al cargar la planificación')
-        }
-
-        const data = await response.json()
-        
-        if (data.data) {
-          setPlanification(data.data)
-        } else {
-          setPlanification(null)
-        }
-      } catch (err) {
-        console.error('Error fetching today planification:', err)
-        setError('Error al cargar la planificación')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchTodayPlanification()
-  }, [user?.id])
+  const { planification, loading, error } = useTodayPlanification()
+  
+  // Adaptar la estructura de datos si es necesario
+  const adaptedPlanification = planification ? {
+    id: planification.id,
+    discipline_id: String(planification.disciplineId),
+    discipline_level_id: String(planification.disciplineLevelId),
+    date: planification.date,
+    estimated_duration: planification.estimatedDuration,
+    blocks: planification.blocks?.map((block, index) => ({
+      id: block.id,
+      title: block.name,
+      items: block.description ? [block.description] : [],
+      order: index
+    })) || [],
+    notes: planification.description,
+    discipline: planification.discipline ? {
+      id: planification.discipline.id,
+      name: planification.discipline.name,
+      color: planification.discipline.color,
+      icon: ''
+    } : undefined,
+    discipline_level: planification.disciplineLevel ? {
+      id: planification.disciplineLevel.id,
+      name: planification.disciplineLevel.name,
+      description: planification.disciplineLevel.description
+    } : undefined
+  } : null
 
   // Formatear la duración estimada
   const formatDuration = (minutes?: number) => {
@@ -98,39 +78,20 @@ export function StatsCards() {
 
   // Obtener el nombre del primer bloque o un resumen
   const getSessionSummary = () => {
-    if (!planification) return null
+    if (!adaptedPlanification) return null
     
-    if (planification.blocks && planification.blocks.length > 0) {
-      return planification.blocks[0].title
+    if (adaptedPlanification.blocks && adaptedPlanification.blocks.length > 0) {
+      return adaptedPlanification.blocks[0].title
     }
     
-    if (planification.notes) {
-      return planification.notes.substring(0, 50) + (planification.notes.length > 50 ? '...' : '')
+    if (adaptedPlanification.notes) {
+      return adaptedPlanification.notes.substring(0, 50) + (adaptedPlanification.notes.length > 50 ? '...' : '')
     }
     
     return 'Entrenamiento programado'
   }
 
-  if (loading) {
-    return (
-      <div className="mb-6">
-        <Card>
-          <CardContent className="p-4 md:p-5">
-            <div className="flex items-center gap-3 md:gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-secondary to-secondary/80 rounded-xl flex items-center justify-center shadow-lg shadow-secondary/25 flex-shrink-0">
-                <Loader2 className="w-6 h-6 text-secondary-foreground animate-spin" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-muted-foreground font-medium">Cargando...</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  if (!planification) {
+  if (!adaptedPlanification) {
     return (
       <div className="mb-6">
         <Card>
@@ -150,7 +111,7 @@ export function StatsCards() {
     )
   }
 
-  const duration = formatDuration(planification.estimated_duration)
+  const duration = formatDuration(adaptedPlanification.estimated_duration)
   const summary = getSessionSummary()
 
   return (
@@ -162,8 +123,8 @@ export function StatsCards() {
               <div 
                 className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0"
                 style={{
-                  background: planification.discipline?.color 
-                    ? `linear-gradient(to bottom right, ${planification.discipline.color}, ${planification.discipline.color}CC)`
+                  background: adaptedPlanification.discipline?.color 
+                    ? `linear-gradient(to bottom right, ${adaptedPlanification.discipline.color}, ${adaptedPlanification.discipline.color}CC)`
                     : 'linear-gradient(to bottom right, hsl(var(--secondary)), hsl(var(--secondary))CC)'
                 }}
               >
@@ -172,10 +133,10 @@ export function StatsCards() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-muted-foreground font-medium">Planificación de hoy</p>
                 <p className="font-bold text-base md:text-lg break-words">
-                  {planification.discipline?.name || 'Entrenamiento'}
-                  {planification.discipline_level && (
+                  {adaptedPlanification.discipline?.name || 'Entrenamiento'}
+                  {adaptedPlanification.discipline_level && (
                     <span className="block md:inline md:ml-1">
-                      {planification.discipline_level.name}
+                      {adaptedPlanification.discipline_level.name}
                     </span>
                   )}
                 </p>

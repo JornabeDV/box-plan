@@ -1,12 +1,26 @@
+import { memo, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { User, Timer, Calculator, Settings, Hash } from "lucide-react";
 import Link from "next/link";
 import { useAuthWithRoles } from "@/hooks/use-auth-with-roles";
 import { useCoachPlanFeatures } from "@/hooks/use-coach-plan-features";
 
-export function BottomNavigation() {
+export const BottomNavigation = memo(function BottomNavigation() {
   const { isAdmin, isCoach } = useAuthWithRoles();
-  const { canLoadScores } = useCoachPlanFeatures();
+  const { canLoadScores, loading: planFeaturesLoading } = useCoachPlanFeatures();
+  
+  // Memoizar los valores para evitar re-renders innecesarios
+  const showRMButton = useMemo(() => {
+    return !planFeaturesLoading && canLoadScores;
+  }, [planFeaturesLoading, canLoadScores]);
+  
+  const showCoachDashboard = useMemo(() => {
+    return isCoach;
+  }, [isCoach]);
+  
+  const showAdminDashboard = useMemo(() => {
+    return isAdmin && !isCoach;
+  }, [isAdmin, isCoach]);
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-muted border-t border-border">
@@ -44,7 +58,7 @@ export function BottomNavigation() {
           </Button>
         </Link>
 
-        {canLoadScores && (
+        {showRMButton && (
           <Link href="/log-rm" className="flex items-center justify-center">
             <Button
               variant="ghost"
@@ -57,7 +71,7 @@ export function BottomNavigation() {
           </Link>
         )}
 
-        {isCoach && (
+        {showCoachDashboard && (
           <Link
             href="/admin-dashboard"
             className="flex items-center justify-center"
@@ -72,7 +86,7 @@ export function BottomNavigation() {
           </Link>
         )}
 
-        {isAdmin && !isCoach && (
+        {showAdminDashboard && (
           <Link
             href="/admin-dashboard"
             className="flex items-center justify-center"
@@ -89,4 +103,4 @@ export function BottomNavigation() {
       </div>
     </nav>
   );
-}
+});
