@@ -153,15 +153,22 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
 
   const enabledFeatures = features.filter((f) => f.enabled);
 
+  // Ordenar características: habilitadas primero, luego deshabilitadas
+  const sortedFeatures = [...features].sort((a, b) => {
+    if (a.enabled && !b.enabled) return -1;
+    if (!a.enabled && b.enabled) return 1;
+    return 0;
+  });
+
   return (
     <div className="space-y-6">
       {/* Información del Plan */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="min-w-0 flex-1">
               <CardTitle className="text-2xl mb-2">Mi Plan</CardTitle>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <Badge
                   className={`text-lg px-3 py-1 ${
                     planInfo.planName === "elite"
@@ -191,11 +198,17 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
                 )}
               </div>
             </div>
-            <Link href="/pricing/coaches">
-              <Button variant="outline" size="sm">
-                Ver Planes
-              </Button>
-            </Link>
+            <div className="flex-shrink-0">
+              <Link href="/pricing/coaches">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full sm:w-auto"
+                >
+                  Ver Planes
+                </Button>
+              </Link>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -303,7 +316,7 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {features.map((feature) => {
+            {sortedFeatures.map((feature) => {
               const Icon = feature.icon;
               return (
                 <div

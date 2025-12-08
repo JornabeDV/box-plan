@@ -31,15 +31,10 @@ export async function GET(request: NextRequest) {
 			planInfo = await getStudentCoachPlan(userId)
 		}
 
-		if (!planInfo) {
-			return NextResponse.json(
-				{ error: 'No se encontró plan activo' },
-				{ status: 404 }
-			)
-		}
-
+		// Si no hay plan, devolver null en lugar de error 404
+		// Esto permite que usuarios sin coach no generen errores
 		return NextResponse.json({
-			planInfo: {
+			planInfo: planInfo ? {
 				planId: planInfo.planId,
 				planName: planInfo.planName,
 				displayName: planInfo.displayName,
@@ -48,7 +43,7 @@ export async function GET(request: NextRequest) {
 				commissionRate: planInfo.commissionRate,
 				isActive: planInfo.isActive,
 				isTrial: planInfo.isTrial
-			}
+			} : null
 		})
 	} catch (error) {
 		console.error('Error getting coach plan features:', error)

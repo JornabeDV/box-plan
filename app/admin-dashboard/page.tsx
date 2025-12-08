@@ -573,17 +573,10 @@ export default function AdminDashboardPage() {
             <MercadoPagoConnect coachId={coachProfile?.id} />
 
             {/* Lista de Planes */}
-            <div>
-              <h2 className="text-2xl font-bold mb-4">Planes de Suscripción</h2>
-              <p className="text-muted-foreground mb-6">
-                Gestiona los planes de suscripción disponibles para tus
-                estudiantes
-              </p>
-              <SubscriptionPlansList
-                initialPlans={dashboardSubscriptionPlans}
-                onRefresh={refreshDashboard}
-              />
-            </div>
+            <SubscriptionPlansList
+              initialPlans={dashboardSubscriptionPlans}
+              onRefresh={refreshDashboard}
+            />
           </TabsContent>
 
           {/* Mi Plan Tab */}
