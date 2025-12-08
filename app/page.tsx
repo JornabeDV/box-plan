@@ -52,6 +52,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
+import { MOTIVATIONAL_QUOTES } from "@/lib/constants";
 
 export default function BoxPlanApp() {
   const [shouldRedirect, setShouldRedirect] = useState(false);
@@ -61,16 +62,22 @@ export default function BoxPlanApp() {
   const { user, loading: authLoading, isCoach } = useAuthWithRoles();
   const { subscription, loading: profileLoading } = useProfile();
   const { coach: userCoach, loading: coachLoading } = useUserCoach();
-  const { canUseWhatsApp, canLoadScores, canAccessScoreDatabase, loading: planFeaturesLoading } = useCoachPlanFeatures();
-  
+  const {
+    canUseWhatsApp,
+    canLoadScores,
+    canAccessScoreDatabase,
+    loading: planFeaturesLoading,
+  } = useCoachPlanFeatures();
+
   // Verificar si tiene acceso a la funcionalidad de progreso
   const hasProgressAccess = canLoadScores || canAccessScoreDatabase;
-  
+
   // Verificar si tiene acceso a ranking (requiere base de datos de scores)
   const hasRankingAccess = canAccessScoreDatabase;
-  
+
   // Verificar si hay al menos un acceso rápido disponible
-  const hasAnyQuickAccess = hasProgressAccess || canLoadScores || hasRankingAccess;
+  const hasAnyQuickAccess =
+    hasProgressAccess || canLoadScores || hasRankingAccess;
   const {
     preferences,
     loading: preferencesLoading,
@@ -86,22 +93,6 @@ export default function BoxPlanApp() {
     preferences.preferredDisciplineId &&
     preferences.preferredLevelId;
 
-  // Frases motivacionales para usuarios con suscripción activa
-  const motivationalQuotes = [
-    "El único entrenamiento malo es el que no haces. ¡Vamos!",
-    "Cada repetición te acerca más a tu mejor versión.",
-    "La disciplina es el puente entre tus metas y tus logros.",
-    "Hoy no es el día para rendirse. ¡Sigue adelante! ",
-    "Tu cuerpo puede hacerlo. Es tu mente la que necesitas convencer.",
-    "El dolor es temporal, pero el orgullo es para siempre.",
-    "No esperes la motivación, crea la disciplina.",
-    "Cada día es una nueva oportunidad de superarte.",
-    "La fuerza no viene de lo que puedes hacer, viene de superar lo que pensabas que no podías.",
-    "El éxito es la suma de pequeños esfuerzos repetidos día tras día.",
-    "No te detengas cuando estés cansado, detente cuando hayas terminado.",
-    "Tu competencia más grande eres tú mismo. ¡Vence a tu yo de ayer!",
-  ];
-
   // Obtener una frase motivacional basada en el día del año para que cambie diariamente
   const getDailyMotivationalQuote = () => {
     const today = new Date();
@@ -109,7 +100,7 @@ export default function BoxPlanApp() {
       (today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) /
         86400000
     );
-    return motivationalQuotes[dayOfYear % motivationalQuotes.length];
+    return MOTIVATIONAL_QUOTES[dayOfYear % MOTIVATIONAL_QUOTES.length];
   };
 
   // Manejar parámetros de pago después de redirección desde MercadoPago
@@ -706,7 +697,7 @@ export default function BoxPlanApp() {
           </div>
         </section>
 
-        {/* Calendario de prueba y información del coach - Para usuarios sin suscripción */}
+        {/* Calendario de prueba - Para usuarios sin suscripción */}
         {user?.id && !hasActiveSubscription && !profileLoading && (
           <section className="space-y-6">
             {/* Frase motivacional - Para usuarios con coach sin suscripción */}
@@ -731,9 +722,6 @@ export default function BoxPlanApp() {
                 }}
               />
             )}
-
-            {/* Mostrar información del coach si tiene uno asignado */}
-            {!coachLoading && userCoach && <CoachInfoCard coach={userCoach} />}
           </section>
         )}
 
@@ -818,6 +806,13 @@ export default function BoxPlanApp() {
         {user?.id && (
           <section>
             <ReviewsSection variant="default" />
+          </section>
+        )}
+
+        {/* Información del coach - Al final del home */}
+        {user?.id && !coachLoading && userCoach && (
+          <section>
+            <CoachInfoCard coach={userCoach} />
           </section>
         )}
       </main>
