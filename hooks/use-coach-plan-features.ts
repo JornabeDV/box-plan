@@ -18,6 +18,7 @@ export interface CoachPlanFeatures {
 	virtual_wallet?: boolean
 	whatsapp_integration?: boolean
 	community_forum?: boolean
+	custom_motivational_quotes?: boolean
 }
 
 export interface CoachPlanInfo {

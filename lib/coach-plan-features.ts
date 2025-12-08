@@ -21,6 +21,7 @@ export interface CoachPlanFeatures {
 	virtual_wallet?: boolean // Para ELITE
 	whatsapp_integration?: boolean // Para POWER y ELITE
 	community_forum?: boolean // Para POWER y ELITE
+	custom_motivational_quotes?: boolean // Para POWER y ELITE
 }
 
 /**
@@ -267,4 +268,11 @@ export async function canCoachLoadScores(coachId: number): Promise<boolean> {
  */
 export async function canCoachAccessScoreDatabase(coachId: number): Promise<boolean> {
 	return coachHasFeature(coachId, 'score_database')
+}
+
+/**
+ * Verifica si el coach puede usar frases motivacionales personalizadas
+ */
+export async function canCoachUseCustomMotivationalQuotes(coachId: number): Promise<boolean> {
+	return coachHasFeature(coachId, 'custom_motivational_quotes')
 }

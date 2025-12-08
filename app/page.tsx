@@ -53,6 +53,7 @@ import {
 } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { MOTIVATIONAL_QUOTES } from "@/lib/constants";
+import { useCoachMotivationalQuotes } from "@/hooks/use-coach-motivational-quotes";
 
 export default function BoxPlanApp() {
   const [shouldRedirect, setShouldRedirect] = useState(false);
@@ -93,14 +94,24 @@ export default function BoxPlanApp() {
     preferences.preferredDisciplineId &&
     preferences.preferredLevelId;
 
+  // Obtener frases motivacionales del coach (si tiene coach)
+  const { quotes: coachQuotes, loading: coachQuotesLoading } = useCoachMotivationalQuotes();
+
   // Obtener una frase motivacional basada en el día del año para que cambie diariamente
   const getDailyMotivationalQuote = () => {
+    // Priorizar frases del coach si existen
+    const quotesToUse = coachQuotes.length > 0 ? coachQuotes : MOTIVATIONAL_QUOTES;
+    
+    if (quotesToUse.length === 0) {
+      return "¡Sigue adelante!";
+    }
+
     const today = new Date();
     const dayOfYear = Math.floor(
       (today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) /
         86400000
     );
-    return MOTIVATIONAL_QUOTES[dayOfYear % MOTIVATIONAL_QUOTES.length];
+    return quotesToUse[dayOfYear % quotesToUse.length];
   };
 
   // Manejar parámetros de pago después de redirección desde MercadoPago
