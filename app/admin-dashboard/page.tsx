@@ -44,6 +44,7 @@ export default function AdminDashboardPage() {
     loading: authLoading,
     isCoach,
     userRole,
+    sessionStatus,
   } = useSimplifiedAuth();
   const { toast } = useToast();
 
@@ -396,7 +397,13 @@ export default function AdminDashboardPage() {
   // El coachAccess ahora viene del hook combinado, no necesitamos este useEffect
 
   // Estados de carga y acceso
-  if (authLoading) {
+  // Si no hay sesión (logout o no autenticado), no mostrar nada (el redirect ya está en proceso)
+  if (sessionStatus === 'unauthenticated' || (!authLoading && !user)) {
+    return null;
+  }
+
+  // Mostrar loading solo una vez: durante authLoading o dashboardLoading inicial
+  if (authLoading || (dashboardLoading && !coachAccess)) {
     return <LoadingScreen />;
   }
 
@@ -411,7 +418,7 @@ export default function AdminDashboardPage() {
     );
   }
 
-  if (!dashboardLoading && coachAccess && !coachAccess.hasAccess) {
+  if (coachAccess && !coachAccess.hasAccess) {
     return <TrialExpired trialEndDate={coachAccess.trialEndsAt} />;
   }
 

@@ -106,17 +106,6 @@ export function usePlanificationData({ userId }: UsePlanificationDataProps) {
 				const workouts = await response.json()
 				const planificationIdNum = parseInt(planificationId, 10)
 
-				console.log('Fetching workouts for planification:', {
-					planificationId,
-					planificationIdNum,
-					totalWorkouts: workouts.length,
-					workouts: workouts.map((w: any) => ({
-						id: w.id,
-						planificationId: w.planificationId || w.planification_id,
-						type: w.data?.type
-					}))
-				})
-
 				const wodWorkout = workouts.find((w: any) => {
 					// Prisma devuelve planificationId en camelCase
 					const wPlanificationId = w.planificationId !== null && w.planificationId !== undefined
@@ -135,17 +124,6 @@ export function usePlanificationData({ userId }: UsePlanificationDataProps) {
 							? Number(w.planification_id)
 							: null)
 					return wPlanificationId === planificationIdNum && w.data?.type === 'strength_score'
-				})
-
-				console.log('Found workouts:', {
-					wodWorkout: wodWorkout ? {
-						id: wodWorkout.id,
-						duration_seconds: wodWorkout.duration_seconds
-					} : null,
-					strengthWorkout: strengthWorkout ? {
-						id: strengthWorkout.id,
-						weight: strengthWorkout.data?.weight
-					} : null
 				})
 
 				if (wodWorkout) {

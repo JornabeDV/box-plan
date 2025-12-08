@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { LoginForm } from "@/components/auth/login-form";
 import { SignUpForm } from "@/components/auth/signup-form";
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
@@ -16,8 +17,8 @@ export default function LoginPage() {
   const [mode, setMode] = useState<"login" | "signup" | "forgot-password">(
     "login"
   );
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { data: session, status: sessionStatus } = useSession();
   const {
     user,
     userRole,
@@ -28,25 +29,30 @@ export default function LoginPage() {
 
   // Redirigir si el usuario ya está autenticado
   useEffect(() => {
-    if (!authLoading && user && userRole) {
-      // Verificar si hay un redirect param en la URL
-      const searchParams = new URLSearchParams(window.location.search);
-      const redirectParam = searchParams.get("redirect");
+    // Si la sesión está autenticada (incluso si aún no tenemos el userRole), mostrar loading
+    // Esto evita el parpadeo del formulario después del login
+    if (sessionStatus === "authenticated" && session?.user) {
+      // Si ya tenemos el userRole, redirigir inmediatamente
+      if (!authLoading && user && userRole) {
+        // Verificar si hay un redirect param en la URL
+        const searchParams = new URLSearchParams(window.location.search);
+        const redirectParam = searchParams.get("redirect");
 
-      // Redirigir según el rol del usuario
-      if (isAdmin) {
-        router.push("/superadmin");
-      } else if (isCoach) {
-        router.push("/admin-dashboard");
-      } else if (redirectParam) {
-        router.push(redirectParam);
-      } else {
-        router.push("/");
+        // Redirigir según el rol del usuario
+        if (isAdmin) {
+          router.replace("/superadmin");
+        } else if (isCoach) {
+          router.replace("/admin-dashboard");
+        } else if (redirectParam) {
+          router.replace(redirectParam);
+        } else {
+          router.replace("/");
+        }
       }
-    } else if (!authLoading && !user) {
-      setLoading(false);
+      // Si aún no tenemos userRole pero hay sesión, mantener loading
+      // El hook useAuthWithRoles se encargará de cargar el rol
     }
-  }, [user, userRole, isAdmin, isCoach, authLoading, router]);
+  }, [sessionStatus, session, user, userRole, isAdmin, isCoach, authLoading, router]);
 
   const handleSuccess = () => {
     // La redirección se maneja en el useEffect según el rol
@@ -57,7 +63,12 @@ export default function LoginPage() {
   const switchToLogin = () => setMode("login");
   const switchToForgotPassword = () => setMode("forgot-password");
 
-  if (loading || authLoading) {
+  if (
+    sessionStatus === "loading" ||
+    (sessionStatus === "authenticated" && session?.user) ||
+    authLoading ||
+    (user && userRole)
+  ) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground flex items-center justify-center">
         <div className="flex items-center gap-2">

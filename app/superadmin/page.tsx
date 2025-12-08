@@ -27,7 +27,7 @@ import { SuperAdminHeader } from "@/components/superadmin/superadmin-header";
 import { useToast } from "@/hooks/use-toast";
 
 export default function SuperAdminPage() {
-  const { user, isAdmin, loading: authLoading } = useAuthWithRoles();
+  const { user, isAdmin, loading: authLoading, sessionStatus } = useAuthWithRoles();
   const { toast } = useToast();
   const [coaches, setCoaches] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -114,6 +114,11 @@ export default function SuperAdminPage() {
       description: "El plan del coach ha sido actualizado exitosamente",
     });
   };
+
+  // Si no hay sesión (logout o no autenticado), no mostrar nada (el redirect ya está en proceso)
+  if (sessionStatus === 'unauthenticated' || (!authLoading && !user)) {
+    return null;
+  }
 
   if (authLoading) {
     return (

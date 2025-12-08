@@ -181,6 +181,7 @@ export function useAuthWithRoles() {
     adminProfile,
     coachProfile,
     loading: status === 'loading' || loading,
+    sessionStatus: status,
     isAdmin,
     isUser,
     isCoach,

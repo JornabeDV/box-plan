@@ -24,10 +24,10 @@ interface CoachInfoCardProps {
 
 export function CoachInfoCard({ coach }: CoachInfoCardProps) {
   return (
-    <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-background to-accent/5">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <User className="w-5 h-5 text-primary" />
+          <User className="w-5 h-5" />
           Tu Coach
         </CardTitle>
       </CardHeader>
@@ -36,7 +36,7 @@ export function CoachInfoCard({ coach }: CoachInfoCardProps) {
         <div className="flex items-start gap-4">
           {/* Mostrar logo del coach si existe, sino imagen de perfil, sino icono por defecto */}
           {coach.logoUrl ? (
-            <div className="relative w-16 h-16 rounded-lg overflow-hidden border-2 border-primary/30 bg-background flex-shrink-0">
+            <div className="relative w-16 h-16 rounded-lg overflow-hidden border bg-background flex-shrink-0">
               <Image
                 src={coach.logoUrl}
                 alt={coach.businessName || coach.name}
@@ -50,7 +50,7 @@ export function CoachInfoCard({ coach }: CoachInfoCardProps) {
               />
             </div>
           ) : coach.image ? (
-            <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-primary/30">
+            <div className="relative w-16 h-16 rounded-full overflow-hidden border">
               <Image
                 src={coach.image}
                 alt={coach.name}
@@ -59,8 +59,8 @@ export function CoachInfoCard({ coach }: CoachInfoCardProps) {
               />
             </div>
           ) : (
-            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center border-2 border-primary/30">
-              <User className="w-8 h-8 text-primary" />
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center border">
+              <User className="w-8 h-8 text-muted-foreground" />
             </div>
           )}
           <div className="flex-1 space-y-2">
@@ -73,10 +73,7 @@ export function CoachInfoCard({ coach }: CoachInfoCardProps) {
                 </div>
               )}
             </div>
-            <Badge
-              variant="outline"
-              className="bg-primary/10 text-primary border-primary/30"
-            >
+            <Badge variant="outline">
               Coach Asignado
             </Badge>
           </div>
