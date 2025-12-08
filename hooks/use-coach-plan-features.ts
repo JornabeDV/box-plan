@@ -1,8 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { normalizeUserId } from '@/lib/auth-helpers'
+
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
+const getCacheKey = (userId: string | number) => `plan_features_${userId}`
 
 export interface CoachPlanFeatures {
 	dashboard_custom?: boolean
@@ -56,65 +59,206 @@ interface UseCoachPlanFeaturesReturn {
 export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 	const { data: session } = useSession()
 	const [planInfo, setPlanInfo] = useState<CoachPlanInfo | null>(null)
-	const [loading, setLoading] = useState(true)
+	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
+	
+	const lastUserIdRef = useRef<string | number | undefined>(undefined)
+	const fetchingRef = useRef(false)
+	const abortControllerRef = useRef<AbortController | null>(null)
 
-	const fetchPlanInfo = async () => {
+	// Función para leer del cache
+	const getCachedPlanInfo = useCallback((userId: string | number): CoachPlanInfo | null => {
+		if (typeof window === 'undefined') return null
+		
 		try {
+			const cachedData = localStorage.getItem(getCacheKey(userId))
+			if (!cachedData) return null
+			
+			const parsed = JSON.parse(cachedData)
+			const cacheAge = Date.now() - (parsed.timestamp || 0)
+			
+			if (cacheAge < CACHE_DURATION && parsed.planInfo) {
+				return parsed.planInfo
+			}
+		} catch (e) {
+			// Si hay error, limpiar cache corrupto
+			if (typeof window !== 'undefined') {
+				localStorage.removeItem(getCacheKey(userId))
+			}
+		}
+		
+		return null
+	}, [])
+
+	// Función para guardar en cache
+	const setCachedPlanInfo = useCallback((userId: string | number, data: CoachPlanInfo | null) => {
+		if (typeof window === 'undefined' || !data) return
+		
+		try {
+			localStorage.setItem(getCacheKey(userId), JSON.stringify({
+				planInfo: data,
+				timestamp: Date.now()
+			}))
+		} catch (e) {
+			console.error('Error saving plan features to cache:', e)
+		}
+	}, [])
+
+	// Función para limpiar estado
+	const clearState = useCallback(() => {
+		setPlanInfo(null)
+		setLoading(false)
+		setError(null)
+		lastUserIdRef.current = undefined
+		if (abortControllerRef.current) {
+			abortControllerRef.current.abort()
+			abortControllerRef.current = null
+		}
+	}, [])
+
+	const fetchPlanInfo = useCallback(async (userId: string | number, useCache = true) => {
+		// Evitar llamadas duplicadas
+		if (fetchingRef.current) {
+			return
+		}
+
+		// Intentar cargar desde cache primero
+		if (useCache) {
+			const cached = getCachedPlanInfo(userId)
+			if (cached) {
+				setPlanInfo(cached)
+				setLoading(false)
+				lastUserIdRef.current = userId
+				// Continuar para actualizar cache en background
+			} else {
+				setLoading(true)
+			}
+		} else {
 			setLoading(true)
+		}
+
+		try {
+			fetchingRef.current = true
 			setError(null)
 
-			const userId = normalizeUserId(session?.user?.id)
-			if (!userId) {
-				setPlanInfo(null)
-				setLoading(false)
-				return
+			// Cancelar request anterior si existe
+			if (abortControllerRef.current) {
+				abortControllerRef.current.abort()
 			}
 
-			// Determinar si es coach o estudiante
-			const response = await fetch('/api/coaches/plan-features')
+			// Crear nuevo AbortController
+			const abortController = new AbortController()
+			abortControllerRef.current = abortController
+
+			const response = await fetch('/api/coaches/plan-features', {
+				signal: abortController.signal
+			})
+
 			if (!response.ok) {
 				throw new Error('Error al obtener información del plan')
 			}
 
 			const data = await response.json()
-			setPlanInfo(data.planInfo)
-		} catch (err) {
+			
+			// Solo actualizar si no fue cancelado
+			if (!abortController.signal.aborted) {
+				setPlanInfo(data.planInfo)
+				setCachedPlanInfo(userId, data.planInfo)
+				lastUserIdRef.current = userId
+			}
+		} catch (err: any) {
+			// Ignorar errores de abort
+			if (err.name === 'AbortError') {
+				return
+			}
+			
 			console.error('Error fetching coach plan features:', err)
 			setError(err instanceof Error ? err.message : 'Error desconocido')
-			setPlanInfo(null)
+			
+			// Si hay error y no tenemos cache, limpiar estado
+			if (!getCachedPlanInfo(userId)) {
+				setPlanInfo(null)
+			}
 		} finally {
-			setLoading(false)
+			if (!abortControllerRef.current?.signal.aborted) {
+				setLoading(false)
+			}
+			fetchingRef.current = false
+			abortControllerRef.current = null
 		}
-	}
+	}, [getCachedPlanInfo, setCachedPlanInfo])
 
+	// Efecto principal
 	useEffect(() => {
-		if (session) {
-			fetchPlanInfo()
+		const userId = normalizeUserId(session?.user?.id)
+		
+		// Si no hay userId, limpiar estado
+		if (!userId) {
+			if (lastUserIdRef.current !== undefined) {
+				clearState()
+			}
+			return
 		}
-	}, [session])
+		
+		// Si el userId es el mismo y ya tenemos planInfo, no hacer nada
+		if (userId === lastUserIdRef.current && planInfo !== null) {
+			return
+		}
+		
+		// Si el userId cambió, hacer fetch
+		if (userId !== lastUserIdRef.current) {
+			fetchPlanInfo(userId, true)
+		}
+	}, [session?.user?.id, planInfo, fetchPlanInfo, clearState])
 
-	const hasFeature = (feature: keyof CoachPlanFeatures): boolean => {
-		if (!planInfo) return false
-		return planInfo.features[feature] === true
-	}
+	// Cleanup al desmontar
+	useEffect(() => {
+		return () => {
+			if (abortControllerRef.current) {
+				abortControllerRef.current.abort()
+			}
+		}
+	}, [])
+
+	const hasFeature = useCallback((feature: keyof CoachPlanFeatures): boolean => {
+		return planInfo?.features[feature] === true
+	}, [planInfo])
+
+	const refetch = useCallback(async () => {
+		const userId = normalizeUserId(session?.user?.id)
+		if (userId) {
+			await fetchPlanInfo(userId, false)
+		}
+	}, [session?.user?.id, fetchPlanInfo])
+
+	// Memoizar valores derivados para evitar recálculos
+	const maxDisciplines = planInfo?.features.max_disciplines || 0
+	const canLoadMonthlyPlanifications = planInfo?.features.planification_monthly === true || 
+	                                     planInfo?.features.planification_unlimited === true
+	const canLoadUnlimitedPlanifications = planInfo?.features.planification_unlimited === true
+	const planificationWeeks = planInfo?.features.planification_weeks || 0
+	const canUseMercadoPago = hasFeature('mercadopago_connection')
+	const canUseVirtualWallet = hasFeature('virtual_wallet')
+	const canUseWhatsApp = hasFeature('whatsapp_integration')
+	const canUseCommunityForum = hasFeature('community_forum')
+	const canLoadScores = hasFeature('score_loading')
+	const canAccessScoreDatabase = hasFeature('score_database')
 
 	return {
 		planInfo,
 		loading,
 		error,
 		hasFeature,
-		maxDisciplines: planInfo?.features.max_disciplines || 0,
-		canLoadMonthlyPlanifications: planInfo?.features.planification_monthly === true || 
-		                              planInfo?.features.planification_unlimited === true,
-		canLoadUnlimitedPlanifications: planInfo?.features.planification_unlimited === true,
-		planificationWeeks: planInfo?.features.planification_weeks || 0,
-		canUseMercadoPago: hasFeature('mercadopago_connection'),
-		canUseVirtualWallet: hasFeature('virtual_wallet'),
-		canUseWhatsApp: hasFeature('whatsapp_integration'),
-		canUseCommunityForum: hasFeature('community_forum'),
-		canLoadScores: hasFeature('score_loading'),
-		canAccessScoreDatabase: hasFeature('score_database'),
-		refetch: fetchPlanInfo
+		maxDisciplines,
+		canLoadMonthlyPlanifications,
+		canLoadUnlimitedPlanifications,
+		planificationWeeks,
+		canUseMercadoPago,
+		canUseVirtualWallet,
+		canUseWhatsApp,
+		canUseCommunityForum,
+		canLoadScores,
+		canAccessScoreDatabase,
+		refetch
 	}
 }

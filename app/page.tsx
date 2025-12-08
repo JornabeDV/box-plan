@@ -55,6 +55,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { MOTIVATIONAL_QUOTES } from "@/lib/constants";
 import { useCoachMotivationalQuotes } from "@/hooks/use-coach-motivational-quotes";
+import { useTodayPlanification } from "@/hooks/use-today-planification";
 
 export default function BoxPlanApp() {
   const [shouldRedirect, setShouldRedirect] = useState(false);
@@ -97,6 +98,14 @@ export default function BoxPlanApp() {
 
   // Obtener frases motivacionales del coach (si tiene coach)
   const { quotes: coachQuotes, loading: coachQuotesLoading } = useCoachMotivationalQuotes();
+  
+  // Obtener planificación de hoy (solo si tiene suscripción activa y preferencias)
+  // Solo cargar si tiene suscripción activa y preferencias para evitar llamadas innecesarias
+  const shouldLoadTodayPlanification = !authLoading && !profileLoading && !preferencesLoading && 
+                                        user?.id && hasActiveSubscription && hasPreferences;
+  const { planification: todayPlanification, loading: todayPlanificationLoading } = useTodayPlanification({
+    enabled: shouldLoadTodayPlanification
+  });
 
   // Obtener una frase motivacional basada en el día del año para que cambie diariamente
   const getDailyMotivationalQuote = () => {
@@ -180,8 +189,17 @@ export default function BoxPlanApp() {
     }
   }, [authLoading, user, router]);
 
+  // Calcular si estamos cargando datos críticos
+  // Solo esperar la planificación de hoy si tiene suscripción activa y preferencias
+  const isLoadingCriticalData = 
+    authLoading || 
+    profileLoading || 
+    preferencesLoading ||
+    (shouldLoadTodayPlanification && todayPlanificationLoading) ||
+    (isCoach && user?.id);
+
   // Mostrar loading mientras se verifica la autenticación o se redirige
-  if (authLoading || (isCoach && user?.id)) {
+  if (isLoadingCriticalData) {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="flex items-center gap-2">
