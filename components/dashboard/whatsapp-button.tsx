@@ -72,7 +72,7 @@ export function WhatsAppButton({
       type="button"
       onClick={handleWhatsAppClick}
       onKeyDown={handleKeyDown}
-      className={`fixed top-24 sm:top-32 right-6 z-50 h-14 w-14 rounded-full bg-[#25D366] hover:bg-[#20BA5A] text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center border-0 outline-none focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2 ${
+      className={`fixed top-24 sm:top-32 right-6 z-50 h-14 w-14 rounded-full bg-[#25D366] hover:bg-[#20BA5A] text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center border-0 outline-none focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2 cursor-pointer ${
         className || ""
       }`}
       aria-label="Contactar al coach por WhatsApp"

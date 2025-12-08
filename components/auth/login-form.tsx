@@ -35,7 +35,7 @@ export function LoginForm({
   const [loading, setLoading] = useState(false);
 
   const { signIn } = useAuth();
-  const { update: updateSession } = useSession();
+  const { data: session, update: updateSession } = useSession();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,22 +67,21 @@ export function LoginForm({
 
       if (error) {
         setError(error.message || "Email o contraseña incorrectos");
-      } else if (data) {
-        // Forzar actualización de la sesión para obtener el rol actualizado
-        await updateSession();
-        // Pequeño delay para asegurar que la sesión se actualice
-        setTimeout(() => {
-          onSuccess?.();
-          // La redirección se manejará en la página de login según el rol
-        }, 100);
-      } else {
-        // Si no hay error pero tampoco data, algo salió mal
-        setError("No se pudo iniciar sesión. Verifica tus credenciales.");
+        setLoading(false);
+        return;
       }
+
+      if (!data) {
+        setError("No se pudo iniciar sesión. Verifica tus credenciales.");
+        setLoading(false);
+        return;
+      }
+
+      await updateSession();
+      onSuccess?.();
     } catch (err) {
       console.error("Login error:", err);
       setError("Error inesperado. Intenta nuevamente.");
-    } finally {
       setLoading(false);
     }
   };

@@ -35,6 +35,7 @@ import {
   User,
   Mail,
   Calendar,
+  Phone,
   ArrowLeft,
   Edit,
   Loader2,
@@ -72,6 +73,7 @@ export default function ProfilePage() {
   const [formData, setFormData] = useState({
     full_name: profile?.full_name || "",
     avatar_url: profile?.avatar_url || "",
+    phone: profile?.phone || "",
   });
 
   // Actualizar formData cuando el perfil cambie
@@ -80,6 +82,7 @@ export default function ProfilePage() {
       setFormData({
         full_name: profile.full_name || "",
         avatar_url: profile.avatar_url || "",
+        phone: profile.phone || "",
       });
     }
   }, [profile]);
@@ -163,6 +166,7 @@ export default function ProfilePage() {
     setFormData({
       full_name: profile?.full_name || "",
       avatar_url: profile?.avatar_url || "",
+      phone: profile?.phone || "",
     });
     setIsEditModalOpen(true);
   };
@@ -173,6 +177,7 @@ export default function ProfilePage() {
       const result = await updateProfile({
         full_name: formData.full_name || null,
         avatar_url: formData.avatar_url || null,
+        phone: formData.phone || null,
       });
 
       if (result.error) {
@@ -297,6 +302,15 @@ export default function ProfilePage() {
                     {user?.email}
                   </span>
                 </div>
+                {profile?.phone && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Celular:</span>
+                    <span className="text-sm font-medium text-foreground">
+                      {profile.phone}
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
@@ -579,6 +593,18 @@ export default function ProfilePage() {
               <p className="text-xs text-muted-foreground">
                 Ingresa la URL de tu imagen de perfil
               </p>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="phone">Celular</Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="+54 9 11 1234-5678"
+                value={formData.phone}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
+              />
             </div>
           </div>
           <DialogFooter>

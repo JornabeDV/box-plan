@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
           email: true,
           name: true,
           image: true,
+          phone: true,
           createdAt: true,
           updatedAt: true
         }
@@ -31,6 +32,7 @@ export async function GET(request: NextRequest) {
         id: user.id,
         full_name: user.name || user.email,
         avatar_url: user.image,
+        phone: user.phone,
         created_at: user.createdAt,
         updated_at: user.updatedAt
       } : null
@@ -59,12 +61,13 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { full_name, avatar_url } = body
+    const { full_name, avatar_url, phone } = body
 
     // Preparar datos de actualización
     const updateData: any = {}
     if (full_name !== undefined) updateData.name = full_name
     if (avatar_url !== undefined) updateData.image = avatar_url
+    if (phone !== undefined) updateData.phone = phone
     
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'No hay campos para actualizar' }, { status: 400 })

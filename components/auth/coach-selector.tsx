@@ -93,7 +93,7 @@ export function CoachSelector({ userId, onSelect, onSkip }: CoachSelectorProps) 
 		<Card className="w-full max-w-2xl mx-auto">
 			<CardHeader className="text-center">
 				<CardTitle className="text-2xl font-bold">Selecciona tu Coach</CardTitle>
-				<CardDescription>
+				<CardDescription className="text-foreground/70">
 					Elige el coach que te acompañará en tu entrenamiento. Puedes cambiar más adelante si lo deseas.
 				</CardDescription>
 			</CardHeader>

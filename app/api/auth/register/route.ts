@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, password, name } = body
+    const { email, password, name, phone } = body
 
     if (!email || !password) {
       return NextResponse.json(
@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
         email,
         password: hashedPassword,
         name: name || email.split('@')[0],
+        phone: phone || null,
         roles: {
           create: {
             role: 'user'

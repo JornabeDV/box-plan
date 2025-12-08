@@ -12,6 +12,7 @@ import { TodaySection } from "@/components/dashboard/today-section";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { ReviewsSection } from "@/components/home/reviews-section";
 import { CoachInfoCard } from "@/components/dashboard/coach-info-card";
+import { CoachSelector } from "@/components/auth/coach-selector";
 import { TrialCalendar } from "@/components/dashboard/trial-calendar";
 import { WhatsAppButton } from "@/components/dashboard/whatsapp-button";
 import { PreferenceSelector } from "@/components/dashboard/preference-selector";
@@ -53,6 +54,7 @@ import {
 } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { MOTIVATIONAL_QUOTES } from "@/lib/constants";
+import { useCoachMotivationalQuotes } from "@/hooks/use-coach-motivational-quotes";
 
 export default function BoxPlanApp() {
   const [shouldRedirect, setShouldRedirect] = useState(false);
@@ -93,15 +95,32 @@ export default function BoxPlanApp() {
     preferences.preferredDisciplineId &&
     preferences.preferredLevelId;
 
+  // Obtener frases motivacionales del coach (si tiene coach)
+  const { quotes: coachQuotes, loading: coachQuotesLoading } = useCoachMotivationalQuotes();
+
   // Obtener una frase motivacional basada en el día del año para que cambie diariamente
   const getDailyMotivationalQuote = () => {
+    // Priorizar frases del coach si existen
+    const quotesToUse = coachQuotes.length > 0 ? coachQuotes : MOTIVATIONAL_QUOTES;
+    
+    if (quotesToUse.length === 0) {
+      return "¡Sigue adelante!";
+    }
+
     const today = new Date();
     const dayOfYear = Math.floor(
       (today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) /
         86400000
     );
-    return MOTIVATIONAL_QUOTES[dayOfYear % MOTIVATIONAL_QUOTES.length];
+    return quotesToUse[dayOfYear % quotesToUse.length];
   };
+
+  // Para coaches, redirigir automáticamente al dashboard
+  useEffect(() => {
+    if (!authLoading && isCoach && user?.id) {
+      router.replace("/admin-dashboard");
+    }
+  }, [authLoading, isCoach, user?.id, router]);
 
   // Manejar parámetros de pago después de redirección desde MercadoPago
   useEffect(() => {
@@ -161,8 +180,8 @@ export default function BoxPlanApp() {
     }
   }, [authLoading, user, router]);
 
-  // Mostrar loading mientras se verifica la autenticación
-  if (authLoading) {
+  // Mostrar loading mientras se verifica la autenticación o se redirige
+  if (authLoading || (isCoach && user?.id)) {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="flex items-center gap-2">
@@ -636,36 +655,6 @@ export default function BoxPlanApp() {
     );
   }
 
-  // Para coaches, mostrar botón para ir al dashboard
-  if (isCoach && user?.id) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground">
-        <Header />
-        <main className="container mx-auto px-4 py-8 pb-24">
-          <div className="max-w-2xl mx-auto text-center space-y-6">
-            <div className="space-y-4">
-              <h1 className="text-3xl md:text-4xl font-bold">
-                Bienvenido, Coach
-              </h1>
-              <p className="text-lg text-muted-foreground">
-                Accede a tu dashboard para gestionar tus estudiantes y
-                planificaciones
-              </p>
-            </div>
-            <Button
-              onClick={() => router.push("/admin-dashboard")}
-              size="lg"
-              className="text-lg px-8 py-6"
-            >
-              <Settings className="w-5 h-5 mr-2" />
-              Ir al Dashboard
-            </Button>
-          </div>
-        </main>
-        <BottomNavigation />
-      </div>
-    );
-  }
 
   // Para usuarios logueados, mostrar dashboard personalizado
   return (
@@ -765,35 +754,35 @@ export default function BoxPlanApp() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-2 md:gap-4">
                   {hasProgressAccess && (
                     <Button
                       variant="outline"
-                      className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
+                      className="flex flex-col items-center gap-1 md:gap-2 h-auto py-3 md:py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
                       onClick={() => router.push("/progress")}
                     >
-                      <BarChart3 className="w-6 h-6" />
-                      <span>Progreso</span>
+                      <BarChart3 className="w-4 h-4 md:w-6 md:h-6" />
+                      <span className="text-xs md:text-base">Progreso</span>
                     </Button>
                   )}
                   {canLoadScores && (
                     <Button
                       variant="outline"
-                      className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
+                      className="flex flex-col items-center gap-1 md:gap-2 h-auto py-3 md:py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
                       onClick={() => router.push("/log-rm")}
                     >
-                      <Weight className="w-6 h-6" />
-                      <span>Carga RM</span>
+                      <Weight className="w-4 h-4 md:w-6 md:h-6" />
+                      <span className="text-xs md:text-base">Carga RM</span>
                     </Button>
                   )}
                   {hasRankingAccess && (
                     <Button
                       variant="outline"
-                      className="flex flex-col items-center gap-2 h-auto py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
+                      className="flex flex-col items-center gap-1 md:gap-2 h-auto py-3 md:py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
                       onClick={() => router.push("/ranking")}
                     >
-                      <Trophy className="w-6 h-6" />
-                      <span>Ranking</span>
+                      <Trophy className="w-4 h-4 md:w-6 md:h-6" />
+                      <span className="text-xs md:text-base">Ranking</span>
                     </Button>
                   )}
                 </div>
@@ -802,17 +791,50 @@ export default function BoxPlanApp() {
           </section>
         )}
 
+        {/* Información del coach - Antes del carrusel de opiniones */}
+        {user?.id && !coachLoading && userCoach && (
+          <section>
+            <CoachInfoCard coach={userCoach} />
+          </section>
+        )}
+        
+        {/* Card para seleccionar coach si no tiene uno */}
+        {user?.id && !coachLoading && !userCoach && !isCoach && (
+          <section>
+            <CoachSelector
+              userId={user.id}
+              onSelect={async (coachId: number) => {
+                try {
+                  const response = await fetch("/api/coaches/select", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ coachId }),
+                  });
+
+                  if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || "Error al seleccionar el coach");
+                  }
+
+                  // Recargar la página para actualizar el estado
+                  window.location.reload();
+                } catch (error: any) {
+                  toast({
+                    title: "Error",
+                    description: error.message || "No se pudo seleccionar el coach",
+                    variant: "destructive",
+                  });
+                  throw error;
+                }
+              }}
+            />
+          </section>
+        )}
+
         {/* Reviews Section - Al final del dashboard */}
         {user?.id && (
           <section>
             <ReviewsSection variant="default" />
-          </section>
-        )}
-
-        {/* Información del coach - Al final del home */}
-        {user?.id && !coachLoading && userCoach && (
-          <section>
-            <CoachInfoCard coach={userCoach} />
           </section>
         )}
       </main>

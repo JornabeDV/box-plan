@@ -24,6 +24,7 @@ import Link from "next/link";
 import { useDisciplines } from "@/hooks/use-disciplines";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
 import { CoachLogoUploadInline } from "@/components/admin/coach-logo-upload-inline";
+import { MotivationalQuotesManager } from "@/components/admin/motivational-quotes-manager";
 import {
   Tooltip,
   TooltipContent,
@@ -35,7 +36,8 @@ interface MyPlanSectionProps {
 }
 
 export function MyPlanSection({ coachId }: MyPlanSectionProps) {
-  const { planInfo, loading, error, maxDisciplines } = useCoachPlanFeatures();
+  const { planInfo, loading, error, maxDisciplines, hasFeature } =
+    useCoachPlanFeatures();
   const { disciplines } = useDisciplines(coachId);
   const { users } = useDashboardData(coachId);
 
@@ -99,7 +101,9 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
       key: "planification_monthly",
       label: "Planificación Mensual",
       icon: Calendar,
-      enabled: planInfo.features.planification_monthly,
+      enabled:
+        planInfo.features.planification_monthly ||
+        planInfo.features.planification_unlimited,
     },
     {
       key: "planification_unlimited",
@@ -126,12 +130,6 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
       enabled: planInfo.features.mercadopago_connection,
     },
     {
-      key: "virtual_wallet",
-      label: "Billetera Virtual",
-      icon: CreditCard,
-      enabled: planInfo.features.virtual_wallet,
-    },
-    {
       key: "whatsapp_integration",
       label: "Integración WhatsApp",
       icon: MessageSquare,
@@ -148,6 +146,12 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
       label: "Cronómetro",
       icon: Zap,
       enabled: planInfo.features.timer,
+    },
+    {
+      key: "custom_motivational_quotes",
+      label: "Frases Motivacionales Personalizadas",
+      icon: MessageSquare,
+      enabled: planInfo.features.custom_motivational_quotes,
     },
   ];
 
@@ -346,6 +350,12 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Gestión de Frases Motivacionales */}
+      <MotivationalQuotesManager
+        coachId={coachId}
+        hasFeature={hasFeature("custom_motivational_quotes")}
+      />
     </div>
   );
 }

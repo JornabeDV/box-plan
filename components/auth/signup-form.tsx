@@ -27,6 +27,7 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
     email: '',
     password: '',
     confirmPassword: '',
+    phone: '',
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -72,6 +73,7 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
           email: formData.email,
           password: formData.password,
           name: formData.fullName || formData.email.split('@')[0],
+          phone: formData.phone || null,
         })
       })
 
@@ -171,36 +173,6 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
     }
   }
 
-  const handleSkipCoach = async () => {
-    if (!userId) return
-
-    try {
-      setSelectingCoach(true)
-      setError(null)
-
-      // Autenticar al usuario sin seleccionar coach
-      const signInResult = await signIn(formData.email, formData.password)
-      
-      if (signInResult.error) {
-        setError('Error al iniciar sesión. Por favor, inicia sesión manualmente.')
-        setSelectingCoach(false)
-        return
-      }
-
-      // Éxito - redirigir al dashboard
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('hasAccount', 'true')
-        localStorage.setItem('hasVisitedLogin', 'true')
-      }
-      
-      // Recargar la página para asegurar que la sesión esté disponible
-      window.location.href = '/'
-    } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión')
-      setSelectingCoach(false)
-    }
-  }
-
   // Mostrar selector de coach después del registro
   if (step === 'select-coach' && userId) {
     return (
@@ -208,7 +180,6 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
         <CoachSelector
           userId={userId}
           onSelect={handleSelectCoach}
-          onSkip={handleSkipCoach}
         />
           </div>
     )
@@ -254,6 +225,19 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
               value={formData.email}
               onChange={handleChange}
               required
+              disabled={loading}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone">Celular (Opcional)</Label>
+            <Input
+              id="phone"
+              name="phone"
+              type="tel"
+              placeholder="+54 9 11 1234-5678"
+              value={formData.phone}
+              onChange={handleChange}
               disabled={loading}
             />
           </div>

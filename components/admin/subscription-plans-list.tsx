@@ -51,10 +51,6 @@ export function SubscriptionPlansList({
       ...plan,
       price: Number(plan.price),
     }));
-    console.log(
-      "🔄 Actualizando displayPlans:",
-      updatedPlans.map((p) => `${p.name}: $${p.price}`)
-    );
     setDisplayPlans(updatedPlans);
   }, [plans, updateTrigger]);
 
