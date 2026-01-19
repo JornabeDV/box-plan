@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { normalizeUserId } from '@/lib/auth-helpers'
 
-const CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
+const CACHE_DURATION = 5 * 60 * 1000
 const getCacheKey = (userId: string | number) => `plan_features_${userId}`
 
 export interface CoachPlanFeatures {
@@ -54,7 +54,7 @@ interface UseCoachPlanFeaturesReturn {
 }
 
 /**
- * Hook para obtener y usar las funcionalidades del plan del coach
+ * Hook to obtain and use the functionalities of the coach's plan
  */
 export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 	const { data: session } = useSession()
@@ -66,7 +66,6 @@ export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 	const fetchingRef = useRef(false)
 	const abortControllerRef = useRef<AbortController | null>(null)
 
-	// Función para leer del cache
 	const getCachedPlanInfo = useCallback((userId: string | number): CoachPlanInfo | null => {
 		if (typeof window === 'undefined') return null
 		
@@ -81,7 +80,6 @@ export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 				return parsed.planInfo
 			}
 		} catch (e) {
-			// Si hay error, limpiar cache corrupto
 			if (typeof window !== 'undefined') {
 				localStorage.removeItem(getCacheKey(userId))
 			}
@@ -90,7 +88,6 @@ export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 		return null
 	}, [])
 
-	// Función para guardar en cache
 	const setCachedPlanInfo = useCallback((userId: string | number, data: CoachPlanInfo | null) => {
 		if (typeof window === 'undefined' || !data) return
 		
@@ -104,7 +101,6 @@ export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 		}
 	}, [])
 
-	// Función para limpiar estado
 	const clearState = useCallback(() => {
 		setPlanInfo(null)
 		setLoading(false)
@@ -117,19 +113,16 @@ export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 	}, [])
 
 	const fetchPlanInfo = useCallback(async (userId: string | number, useCache = true) => {
-		// Evitar llamadas duplicadas
 		if (fetchingRef.current) {
 			return
 		}
 
-		// Intentar cargar desde cache primero
 		if (useCache) {
 			const cached = getCachedPlanInfo(userId)
 			if (cached) {
 				setPlanInfo(cached)
 				setLoading(false)
 				lastUserIdRef.current = userId
-				// Continuar para actualizar cache en background
 			} else {
 				setLoading(true)
 			}
@@ -141,12 +134,10 @@ export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 			fetchingRef.current = true
 			setError(null)
 
-			// Cancelar request anterior si existe
 			if (abortControllerRef.current) {
 				abortControllerRef.current.abort()
 			}
 
-			// Crear nuevo AbortController
 			const abortController = new AbortController()
 			abortControllerRef.current = abortController
 
@@ -160,14 +151,14 @@ export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 
 			const data = await response.json()
 			
-			// Solo actualizar si no fue cancelado
 			if (!abortController.signal.aborted) {
 				setPlanInfo(data.planInfo)
-				setCachedPlanInfo(userId, data.planInfo)
+				if (data.planInfo) {
+					setCachedPlanInfo(userId, data.planInfo)
+				}
 				lastUserIdRef.current = userId
 			}
 		} catch (err: any) {
-			// Ignorar errores de abort
 			if (err.name === 'AbortError') {
 				return
 			}
@@ -175,7 +166,6 @@ export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 			console.error('Error fetching coach plan features:', err)
 			setError(err instanceof Error ? err.message : 'Error desconocido')
 			
-			// Si hay error y no tenemos cache, limpiar estado
 			if (!getCachedPlanInfo(userId)) {
 				setPlanInfo(null)
 			}
@@ -188,11 +178,9 @@ export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 		}
 	}, [getCachedPlanInfo, setCachedPlanInfo])
 
-	// Efecto principal
 	useEffect(() => {
 		const userId = normalizeUserId(session?.user?.id)
 		
-		// Si no hay userId, limpiar estado
 		if (!userId) {
 			if (lastUserIdRef.current !== undefined) {
 				clearState()
@@ -200,18 +188,15 @@ export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 			return
 		}
 		
-		// Si el userId es el mismo y ya tenemos planInfo, no hacer nada
 		if (userId === lastUserIdRef.current && planInfo !== null) {
 			return
 		}
 		
-		// Si el userId cambió, hacer fetch
 		if (userId !== lastUserIdRef.current) {
 			fetchPlanInfo(userId, true)
 		}
 	}, [session?.user?.id, planInfo, fetchPlanInfo, clearState])
 
-	// Cleanup al desmontar
 	useEffect(() => {
 		return () => {
 			if (abortControllerRef.current) {
@@ -231,7 +216,6 @@ export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 		}
 	}, [session?.user?.id, fetchPlanInfo])
 
-	// Memoizar valores derivados para evitar recálculos
 	const maxDisciplines = planInfo?.features.max_disciplines || 0
 	const canLoadMonthlyPlanifications = planInfo?.features.planification_monthly === true || 
 	                                     planInfo?.features.planification_unlimited === true

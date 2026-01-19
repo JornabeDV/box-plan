@@ -115,7 +115,7 @@ export default function AdminDashboardPage() {
       const tabParam = params.get("tab");
       if (
         tabParam &&
-        ["overview", "disciplines", "planning", "users", "plans"].includes(
+        ["overview", "disciplines", "planning", "users", "plans", "my-plan"].includes(
           tabParam
         )
       ) {
@@ -128,6 +128,17 @@ export default function AdminDashboardPage() {
       }
     }
   }, []);
+
+  // Debug: Log cuando cambia el tab activo
+  useEffect(() => {
+    console.log("Active tab changed to:", activeTab);
+  }, [activeTab]);
+
+  // Handler para cambiar tab con debug
+  const handleTabChange = (value: string) => {
+    console.log("Tab change requested:", value);
+    setActiveTab(value);
+  };
 
   // Handlers para disciplinas
   const handleDisciplineSubmit = async (data: any) => {
@@ -440,7 +451,7 @@ export default function AdminDashboardPage() {
       <div className="container mx-auto px-4 py-8">
         <Tabs
           value={activeTab}
-          onValueChange={setActiveTab}
+          onValueChange={handleTabChange}
           className="space-y-6"
         >
           <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 gap-1 h-auto p-1">

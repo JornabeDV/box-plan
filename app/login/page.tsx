@@ -63,6 +63,12 @@ export default function LoginPage() {
   const switchToLogin = () => setMode("login");
   const switchToForgotPassword = () => setMode("forgot-password");
 
+  // Si es coach y está autenticado, no mostrar loader (el dashboard tiene su propio loader)
+  // Solo redirigir inmediatamente
+  if (isCoach && sessionStatus === "authenticated" && session?.user) {
+    return null;
+  }
+
   if (
     sessionStatus === "loading" ||
     (sessionStatus === "authenticated" && session?.user) ||

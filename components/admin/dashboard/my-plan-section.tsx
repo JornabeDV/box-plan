@@ -41,6 +41,11 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
   const { disciplines } = useDisciplines(coachId);
   const { users } = useDashboardData(coachId);
 
+  // Debug: Log para verificar que el componente se está renderizando
+  useEffect(() => {
+    console.log("MyPlanSection rendered with:", { coachId, loading, error, planInfo: !!planInfo });
+  }, [coachId, loading, error, planInfo]);
+
   if (loading) {
     return (
       <Card>
@@ -51,7 +56,8 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
     );
   }
 
-  if (error || !planInfo) {
+  // Si hay error, mostrar mensaje de error
+  if (error) {
     return (
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12">
@@ -60,11 +66,38 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
             Error al cargar información del plan
           </h3>
           <p className="text-muted-foreground">
-            {error || "No se pudo obtener la información del plan"}
+            {error}
           </p>
         </CardContent>
       </Card>
     );
+  }
+
+  // Si no hay planInfo pero tampoco hay error, el coach no tiene plan activo
+  if (!planInfo && !loading) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <AlertCircle className="w-12 h-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold mb-2">
+            No tienes un plan activo
+          </h3>
+          <p className="text-muted-foreground mb-4">
+            Para acceder a las funcionalidades del dashboard, necesitas activar un plan de suscripción.
+          </p>
+          <Link href="/pricing/coaches">
+            <Button variant="default">
+              Ver Planes Disponibles
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // TypeScript guard: si llegamos aquí y no hay planInfo, no deberíamos continuar
+  if (!planInfo) {
+    return null;
   }
 
   const currentDisciplines = disciplines?.length || 0;
