@@ -9,28 +9,29 @@ datasource db {
 }
 
 model User {
-  id                   Int                        @id @default(autoincrement())
-  email                String                     @unique @db.VarChar(255)
-  password             String                     @db.VarChar(255)
-  name                 String?                    @db.VarChar(255)
-  image                String?                    @db.VarChar(255)
-  phone                String?                    @db.VarChar(20)
-  emailVerified        DateTime?                  @map("email_verified")
-  createdAt            DateTime                   @default(now()) @map("created_at")
-  updatedAt            DateTime                   @default(now()) @updatedAt @map("updated_at")
-  roles                UserRole[]
-  accounts             Account[]
-  sessions             Session[]
-  adminProfile         AdminProfile?
-  userPreferences      UserPreference?
-  subscriptions        Subscription[]
-  workouts             Workout[]
-  rmRecords            RMRecord[]
-  userProgress         UserProgress[]
-  paymentHistory       PaymentHistory[]
-  coachProfile         CoachProfile?
-  studentRelationships CoachStudentRelationship[] @relation("StudentRelationships")
-  adminAssignments     AdminUserAssignment[]
+  id                         Int                        @id @default(autoincrement())
+  email                      String                     @unique @db.VarChar(255)
+  password                   String                     @db.VarChar(255)
+  name                       String?                    @db.VarChar(255)
+  image                      String?                    @db.VarChar(255)
+  phone                      String?                    @db.VarChar(20)
+  emailVerified              DateTime?                  @map("email_verified")
+  createdAt                  DateTime                   @default(now()) @map("created_at")
+  updatedAt                  DateTime                   @default(now()) @updatedAt @map("updated_at")
+  roles                      UserRole[]
+  accounts                   Account[]
+  sessions                   Session[]
+  adminProfile               AdminProfile?
+  userPreferences            UserPreference?
+  subscriptions              Subscription[]
+  workouts                   Workout[]
+  rmRecords                  RMRecord[]
+  userProgress               UserProgress[]
+  paymentHistory             PaymentHistory[]
+  coachProfile               CoachProfile?
+  studentRelationships       CoachStudentRelationship[] @relation("StudentRelationships")
+  adminAssignments           AdminUserAssignment[]
+  personalizedPlanifications Planification[]            @relation("PersonalizedPlanifications")
 
   @@map("users")
 }
@@ -203,23 +204,28 @@ model UserPreference {
 }
 
 model Planification {
-  id                Int              @id @default(autoincrement())
-  disciplineId      Int?             @map("discipline_id")
-  disciplineLevelId Int?             @map("discipline_level_id")
-  coachId           Int              @map("coach_id")
-  date              DateTime         @db.Date
-  title             String?          @db.VarChar(255)
+  id                Int      @id @default(autoincrement())
+  disciplineId      Int?     @map("discipline_id")
+  disciplineLevelId Int?     @map("discipline_level_id")
+  coachId           Int      @map("coach_id")
+  date              DateTime @db.Date
+  title             String?  @db.VarChar(255)
   description       String?
   exercises         Json?
   notes             String?
-  isCompleted       Boolean          @default(false) @map("is_completed")
-  createdAt         DateTime         @default(now()) @map("created_at")
-  updatedAt         DateTime         @default(now()) @updatedAt @map("updated_at")
-  discipline        Discipline?      @relation(fields: [disciplineId], references: [id])
-  disciplineLevel   DisciplineLevel? @relation(fields: [disciplineLevelId], references: [id])
-  coach             CoachProfile     @relation(fields: [coachId], references: [id])
-  workouts          Workout[]
-  userProgress      UserProgress[]
+  isCompleted       Boolean  @default(false) @map("is_completed")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
+  isPersonalized    Boolean  @default(false) @map("is_personalized")
+  targetUserId      Int?     @map("target_user_id")
+
+  discipline      Discipline?      @relation(fields: [disciplineId], references: [id])
+  disciplineLevel DisciplineLevel? @relation(fields: [disciplineLevelId], references: [id])
+  coach           CoachProfile     @relation(fields: [coachId], references: [id])
+  targetUser      User?            @relation("PersonalizedPlanifications", fields: [targetUserId], references: [id])
+
+  workouts     Workout[]
+  userProgress UserProgress[]
 
   @@map("planifications")
 }
@@ -313,7 +319,7 @@ model CoachProfile {
   commissions            CoachCommission[]
   subscriptionPlans      SubscriptionPlan[]
   planifications         Planification[]
-  motivationalQuotes    CoachMotivationalQuote[]
+  motivationalQuotes     CoachMotivationalQuote[]
 
   @@map("coach_profiles")
 }

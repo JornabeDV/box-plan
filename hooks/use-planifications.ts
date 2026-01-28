@@ -20,6 +20,14 @@ export interface Planification {
   is_active: boolean
   created_at: string
   updated_at: string
+  // Campos de personalización
+  is_personalized: boolean
+  target_user_id: string | null
+  target_user?: {
+    id: string
+    name: string
+    email: string
+  } | null
   // Relaciones
   discipline?: {
     id: string

@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Plus, X, Clock, FileText, Target, Trash2, Pencil, Check } from 'lucide-react'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Plus, X, Clock, FileText, Target, Trash2, Pencil, Check, Users } from 'lucide-react'
 import { useDisciplines } from '@/hooks/use-disciplines'
 
 interface Block {
@@ -32,6 +33,14 @@ interface Planification {
   blocks?: Block[]
   notes?: string
   is_active?: boolean
+  is_personalized?: boolean
+  target_user_id?: string | null
+}
+
+interface Student {
+  id: string
+  name: string
+  email: string
 }
 
 interface PlanificationModalProps {
@@ -40,6 +49,7 @@ interface PlanificationModalProps {
   planification?: Planification | null
   selectedDate?: Date | null
   coachId?: string | null
+  students?: Student[]
   onSubmit: (data: Omit<Planification, 'id' | 'coach_id'>) => Promise<{ error?: string }>
 }
 
@@ -49,6 +59,7 @@ export function PlanificationModal({
   planification, 
   selectedDate,
   coachId,
+  students = [],
   onSubmit 
 }: PlanificationModalProps) {
   const { disciplines, disciplineLevels, loading: disciplinesLoading, fetchDisciplines } = useDisciplines(coachId || null)
@@ -59,6 +70,9 @@ export function PlanificationModal({
     estimated_duration: '',
     notes: ''
   })
+  
+  const [isPersonalized, setIsPersonalized] = useState(false)
+  const [selectedStudent, setSelectedStudent] = useState<string>('')
   
   const [blocks, setBlocks] = useState<Block[]>([])
   const [blockTitle, setBlockTitle] = useState('')
@@ -119,6 +133,9 @@ export function PlanificationModal({
         // Manejar bloques desde blocks o exercises
         const blocksToSet = planification.blocks || planificationAny.exercises || []
         setBlocks(Array.isArray(blocksToSet) ? blocksToSet : [])
+        // Cargar datos de personalización si existen
+        setIsPersonalized(planification.is_personalized || false)
+        setSelectedStudent(planification.target_user_id || '')
       } else {
         setFormData({
           discipline_id: '',
@@ -127,6 +144,8 @@ export function PlanificationModal({
           notes: ''
         })
         setBlocks([])
+        setIsPersonalized(false)
+        setSelectedStudent('')
       }
       setBlockTitle('')
       setBlockItem('')
@@ -244,14 +263,23 @@ export function PlanificationModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!formData.discipline_id) {
-      setError('Debe seleccionar una disciplina')
+    // Validar planificación personalizada
+    if (isPersonalized && !selectedStudent) {
+      setError('Debes seleccionar un estudiante para planificaciones personalizadas')
       return
     }
-    
-    if (!formData.discipline_level_id) {
-      setError('Debe seleccionar un nivel de disciplina')
-      return
+
+    // Validar campos requeridos (solo para generales)
+    if (!isPersonalized) {
+      if (!formData.discipline_id) {
+        setError('Debe seleccionar una disciplina')
+        return
+      }
+      
+      if (!formData.discipline_level_id) {
+        setError('Debe seleccionar un nivel de disciplina')
+        return
+      }
     }
 
     if (!selectedDate && !planification) {
@@ -284,13 +312,15 @@ export function PlanificationModal({
       }
 
       const submitData = {
-        discipline_id: formData.discipline_id,
-        discipline_level_id: formData.discipline_level_id,
+        discipline_id: formData.discipline_id || undefined,
+        discipline_level_id: formData.discipline_level_id || undefined,
         date: planification?.date || getLocalDateString(selectedDate!),
         estimated_duration: formData.estimated_duration ? parseInt(formData.estimated_duration) : undefined,
         blocks: blocks,
         notes: formData.notes.trim() || undefined,
-        is_active: true
+        is_active: true,
+        is_personalized: isPersonalized,
+        target_user_id: isPersonalized ? selectedStudent : null
       }
 
 
@@ -360,9 +390,58 @@ export function PlanificationModal({
           {/* Información básica */}
           {hasDisciplines && (
             <div className="space-y-6">
+              {/* Tipo de planificación */}
+              <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                <Label className="text-base font-semibold">Tipo de Planificación</Label>
+                <RadioGroup 
+                  value={isPersonalized ? "personalized" : "general"}
+                  onValueChange={(val) => {
+                    setIsPersonalized(val === "personalized")
+                    if (val === "general") {
+                      setSelectedStudent('')
+                    }
+                  }}
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="general" id="general" />
+                    <Label htmlFor="general" className="font-normal cursor-pointer flex items-center gap-2">
+                      <Target className="w-4 h-4" />
+                      General (Todos los estudiantes con esta disciplina/nivel)
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="personalized" id="personalized" />
+                    <Label htmlFor="personalized" className="font-normal cursor-pointer flex items-center gap-2">
+                      <Users className="w-4 h-4" />
+                      Personalizada (Solo para un estudiante específico)
+                    </Label>
+                  </div>
+                </RadioGroup>
+                
+                {/* Selector de estudiante si es personalizada */}
+                {isPersonalized && (
+                  <div className="space-y-2 mt-3">
+                    <Label htmlFor="student">Estudiante *</Label>
+                    <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar estudiante..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {students.map((student) => (
+                          <SelectItem key={student.id} value={student.id}>
+                            {student.name} ({student.email})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="discipline">Disciplina *</Label>
+                  <Label htmlFor="discipline">Disciplina {!isPersonalized && '*'}</Label>
                   <Select
                     value={formData.discipline_id}
                     onValueChange={(value) => handleInputChange('discipline_id', value)}
@@ -388,7 +467,7 @@ export function PlanificationModal({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="level">Nivel *</Label>
+                  <Label htmlFor="level">Nivel {!isPersonalized && '*'}</Label>
                   <Select
                     value={formData.discipline_level_id}
                     onValueChange={(value) => handleInputChange('discipline_level_id', value)}

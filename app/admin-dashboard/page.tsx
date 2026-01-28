@@ -630,6 +630,11 @@ export default function AdminDashboardPage() {
         planification={planificationModal.selectedItem}
         selectedDate={selectedDate}
         coachId={profileId}
+        students={users.map(user => ({
+          id: String(user.id),
+          name: user.name,
+          email: user.email
+        }))}
         onSubmit={handlePlanificationSubmit}
       />
 
