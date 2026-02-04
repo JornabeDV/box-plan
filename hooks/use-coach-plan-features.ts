@@ -113,16 +113,22 @@ export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 	}, [])
 
 	const fetchPlanInfo = useCallback(async (userId: string | number, useCache = true) => {
+		console.log('[useCoachPlanFeatures] fetchPlanInfo called', { userId, useCache, fetching: fetchingRef.current })
+		
 		if (fetchingRef.current) {
+			console.log('[useCoachPlanFeatures] Already fetching, returning')
 			return
 		}
 
 		if (useCache) {
 			const cached = getCachedPlanInfo(userId)
+			console.log('[useCoachPlanFeatures] Cache check:', { cached: !!cached })
 			if (cached) {
 				setPlanInfo(cached)
 				setLoading(false)
 				lastUserIdRef.current = userId
+				console.log('[useCoachPlanFeatures] Using cached data')
+				return
 			} else {
 				setLoading(true)
 			}
@@ -141,6 +147,7 @@ export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 			const abortController = new AbortController()
 			abortControllerRef.current = abortController
 
+			console.log('[useCoachPlanFeatures] Fetching from API...')
 			const response = await fetch('/api/coaches/plan-features', {
 				signal: abortController.signal
 			})
@@ -150,8 +157,10 @@ export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 			}
 
 			const data = await response.json()
+			console.log('[useCoachPlanFeatures] API response:', { planInfo: data.planInfo ? data.planInfo.planName : null })
 			
 			if (!abortController.signal.aborted) {
+				console.log('[useCoachPlanFeatures] Setting planInfo:', data.planInfo)
 				setPlanInfo(data.planInfo)
 				if (data.planInfo) {
 					setCachedPlanInfo(userId, data.planInfo)
@@ -160,6 +169,7 @@ export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 			}
 		} catch (err: any) {
 			if (err.name === 'AbortError') {
+				console.log('[useCoachPlanFeatures] Request aborted')
 				return
 			}
 			
@@ -170,16 +180,16 @@ export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 				setPlanInfo(null)
 			}
 		} finally {
-			if (!abortControllerRef.current?.signal.aborted) {
-				setLoading(false)
-			}
+			setLoading(false)
 			fetchingRef.current = false
 			abortControllerRef.current = null
+			console.log('[useCoachPlanFeatures] Fetch complete')
 		}
 	}, [getCachedPlanInfo, setCachedPlanInfo])
 
 	useEffect(() => {
 		const userId = normalizeUserId(session?.user?.id)
+		console.log('[useCoachPlanFeatures] Effect triggered', { userId, lastUserId: lastUserIdRef.current, planInfo: planInfo ? planInfo.planName : null })
 		
 		if (!userId) {
 			if (lastUserIdRef.current !== undefined) {
@@ -188,11 +198,14 @@ export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 			return
 		}
 		
-		if (userId === lastUserIdRef.current && planInfo !== null) {
+		// Si el userId cambió, siempre hacer fetch
+		if (userId !== lastUserIdRef.current) {
+			fetchPlanInfo(userId, true)
 			return
 		}
 		
-		if (userId !== lastUserIdRef.current) {
+		// Si es el mismo userId pero no hay planInfo, hacer fetch
+		if (userId === lastUserIdRef.current && planInfo === null) {
 			fetchPlanInfo(userId, true)
 		}
 	}, [session?.user?.id, planInfo, fetchPlanInfo, clearState])

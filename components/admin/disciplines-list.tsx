@@ -42,7 +42,7 @@ export function DisciplinesList({
 }: DisciplinesListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedDisciplines, setExpandedDisciplines] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
 
   // Filtrar disciplinas según búsqueda
@@ -53,8 +53,8 @@ export function DisciplinesList({
         ?.toLowerCase()
         .includes(searchQuery.toLowerCase()) ||
       discipline.levels?.some((level) =>
-        level.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+        level.name.toLowerCase().includes(searchQuery.toLowerCase()),
+      ),
   );
 
   const toggleDiscipline = (disciplineId: string) => {
@@ -100,8 +100,8 @@ export function DisciplinesList({
         <Input
           placeholder="Buscar disciplinas o niveles..."
           value={searchQuery}
+          className="pl-10 text-sm md:text-base placeholder:text-sm md:placeholder:text-base"
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
         />
       </div>
 
@@ -110,9 +110,9 @@ export function DisciplinesList({
         {filteredDisciplines.map((discipline) => (
           <Card
             key={discipline.id}
-            className="hover:shadow-lg transition-shadow"
+            className="hover:shadow-lg transition-shadow max-sm:py-3"
           >
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-0">
               {/* Header con título y color */}
               <div className="flex items-start gap-3 mb-3">
                 <div

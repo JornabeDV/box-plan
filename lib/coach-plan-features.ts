@@ -42,12 +42,16 @@ export interface CoachPlanInfo {
  * Obtiene el plan activo del coach con sus características
  */
 export async function getCoachActivePlan(coachId: number): Promise<CoachPlanInfo | null> {
+	console.log('[getCoachActivePlan] Buscando plan para coachId:', coachId)
+	
 	const coachProfile = await prisma.coachProfile.findUnique({
 		where: { id: coachId },
 		include: {
 			subscriptions: {
 				where: {
-					status: 'active'
+					status: {
+						in: ['active', 'Active', 'ACTIVE']
+					}
 				},
 				orderBy: {
 					currentPeriodEnd: 'desc'
@@ -61,8 +65,11 @@ export async function getCoachActivePlan(coachId: number): Promise<CoachPlanInfo
 	})
 
 	if (!coachProfile) {
+		console.log('[getCoachActivePlan] No se encontró coachProfile para id:', coachId)
 		return null
 	}
+
+	console.log('[getCoachActivePlan] CoachProfile encontrado. Suscripciones activas:', coachProfile.subscriptions.length)
 
 	// Si tiene suscripción activa, usar ese plan
 	if (coachProfile.subscriptions.length > 0) {
@@ -70,9 +77,22 @@ export async function getCoachActivePlan(coachId: number): Promise<CoachPlanInfo
 		const plan = subscription.plan
 		const now = new Date()
 
-		if (subscription.currentPeriodEnd > now) {
+		// Comparar solo por fecha (sin hora) para evitar problemas de zona horaria
+		const periodEndDate = new Date(subscription.currentPeriodEnd.getFullYear(), subscription.currentPeriodEnd.getMonth(), subscription.currentPeriodEnd.getDate())
+		const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+		
+		console.log('[getCoachActivePlan] Suscripción encontrada:', {
+			id: subscription.id,
+			currentPeriodEnd: subscription.currentPeriodEnd,
+			periodEndDate: periodEndDate,
+			nowDate: nowDate,
+			isValid: periodEndDate >= nowDate
+		})
+
+		if (periodEndDate >= nowDate) {
 			const features = plan.features as CoachPlanFeatures || {}
 			
+			console.log('[getCoachActivePlan] Retornando plan:', plan.name)
 			return {
 				planId: plan.id,
 				planName: plan.name,
@@ -83,7 +103,11 @@ export async function getCoachActivePlan(coachId: number): Promise<CoachPlanInfo
 				isActive: true,
 				isTrial: false
 			}
+		} else {
+			console.log('[getCoachActivePlan] Suscripción expirada. periodEndDate:', periodEndDate, 'nowDate:', nowDate)
 		}
+	} else {
+		console.log('[getCoachActivePlan] No hay suscripciones activas. Verificando trial...')
 	}
 
 	// Si está en período de prueba, usar plan START por defecto
@@ -96,6 +120,13 @@ export async function getCoachActivePlan(coachId: number): Promise<CoachPlanInfo
 		const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 		const trialDate = new Date(trialEndsAt.getFullYear(), trialEndsAt.getMonth(), trialEndsAt.getDate())
 
+		console.log('[getCoachActivePlan] Verificando trial:', {
+			trialEndsAt: coachProfile.trialEndsAt,
+			nowDate: nowDate,
+			trialDate: trialDate,
+			isValid: trialDate >= nowDate
+		})
+
 		if (trialDate >= nowDate) {
 			// Obtener plan START como plan por defecto del trial
 			const startPlan = await prisma.coachPlanType.findUnique({
@@ -105,6 +136,7 @@ export async function getCoachActivePlan(coachId: number): Promise<CoachPlanInfo
 			if (startPlan) {
 				const features = startPlan.features as CoachPlanFeatures || {}
 				
+				console.log('[getCoachActivePlan] Retornando plan START de trial')
 				return {
 					planId: startPlan.id,
 					planName: startPlan.name,
@@ -119,6 +151,7 @@ export async function getCoachActivePlan(coachId: number): Promise<CoachPlanInfo
 		}
 	}
 
+	console.log('[getCoachActivePlan] No se encontró plan activo ni trial válido')
 	return null
 }
 
