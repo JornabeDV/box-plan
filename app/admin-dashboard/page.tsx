@@ -115,9 +115,14 @@ export default function AdminDashboardPage() {
       const tabParam = params.get("tab");
       if (
         tabParam &&
-        ["overview", "disciplines", "planning", "users", "plans", "my-plan"].includes(
-          tabParam
-        )
+        [
+          "overview",
+          "disciplines",
+          "planning",
+          "users",
+          "plans",
+          "my-plan",
+        ].includes(tabParam)
       ) {
         setActiveTab(tabParam);
         // Limpiar URL después de establecer el tab
@@ -129,14 +134,8 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
-  // Debug: Log cuando cambia el tab activo
-  useEffect(() => {
-    console.log("Active tab changed to:", activeTab);
-  }, [activeTab]);
-
   // Handler para cambiar tab con debug
   const handleTabChange = (value: string) => {
-    console.log("Tab change requested:", value);
     setActiveTab(value);
   };
 
@@ -192,7 +191,7 @@ export default function AdminDashboardPage() {
     if (deleteDisciplineDialog.selectedItem) {
       const result = await handleCRUDOperation(
         () => deleteDiscipline(deleteDisciplineDialog.selectedItem.id),
-        () => deleteDisciplineDialog.close()
+        () => deleteDisciplineDialog.close(),
       );
 
       if (result.error) {
@@ -217,12 +216,12 @@ export default function AdminDashboardPage() {
   };
 
   const handlePlanificationSubmit = async (
-    data: any
+    data: any,
   ): Promise<{ error?: string }> => {
     const operation = planificationModal.selectedItem
       ? () =>
           updatePlanification(planificationModal.selectedItem.id, data).then(
-            (r) => ({ error: r.error || undefined })
+            (r) => ({ error: r.error || undefined }),
           )
       : () =>
           createPlanification({ ...data, coach_id: profileId }).then((r) => ({
@@ -245,7 +244,7 @@ export default function AdminDashboardPage() {
     if (deleteDialog.selectedItem) {
       await handleCRUDOperation(
         () => deletePlanification(deleteDialog.selectedItem.id),
-        () => deleteDialog.close()
+        () => deleteDialog.close(),
       );
     }
   };
@@ -273,8 +272,8 @@ export default function AdminDashboardPage() {
       () => deletePlanification(planificationId),
       () =>
         setDayPlanifications((prev) =>
-          prev.filter((p) => p.id !== planificationId)
-        )
+          prev.filter((p) => p.id !== planificationId),
+        ),
     );
   };
 
@@ -295,7 +294,7 @@ export default function AdminDashboardPage() {
 
   const handleReplicateConfirm = async (
     targetDate: Date,
-    replaceExisting: boolean
+    replaceExisting: boolean,
   ) => {
     if (!replicateModal.selectedItem) return;
     if (!profileId) {
@@ -362,6 +361,8 @@ export default function AdminDashboardPage() {
             planification.is_active !== undefined
               ? planification.is_active
               : true,
+          is_personalized: false,
+          target_user_id: null,
         };
 
         const result = await createPlanification(newPlanificationData);
@@ -409,7 +410,7 @@ export default function AdminDashboardPage() {
 
   // Estados de carga y acceso
   // Si no hay sesión (logout o no autenticado), no mostrar nada (el redirect ya está en proceso)
-  if (sessionStatus === 'unauthenticated' || (!authLoading && !user)) {
+  if (sessionStatus === "unauthenticated" || (!authLoading && !user)) {
     return null;
   }
 
@@ -630,10 +631,10 @@ export default function AdminDashboardPage() {
         planification={planificationModal.selectedItem}
         selectedDate={selectedDate}
         coachId={profileId}
-        students={users.map(user => ({
+        students={users.map((user) => ({
           id: String(user.id),
           name: user.name,
-          email: user.email
+          email: user.email,
         }))}
         onSubmit={handlePlanificationSubmit}
       />

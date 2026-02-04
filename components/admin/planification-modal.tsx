@@ -404,7 +404,7 @@ export function PlanificationModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-2xl h-screen sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg px-4 pb-6 pt-0 sm:px-6">
+      <DialogContent className="max-w-2xl h-screen sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg">
         <DialogHeader className="pb-6">
           <DialogTitle className="flex items-center gap-2">
             <Target className="w-5 h-5" />
@@ -445,59 +445,42 @@ export function PlanificationModal({
           {/* Información básica */}
           {hasDisciplines && (
             <div className="space-y-6">
-              <div className="space-y-4 rounded-lg border border-border px-4 py-4 bg-muted">
-                <Label className="text-base font-semibold">Tipo de Planificación</Label>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label
-                    className={`flex items-center gap-3 rounded-lg border px-4 py-3 transition ${
-                      !isPersonalized
-                        ? "border-primary/60 bg-primary/5 text-foreground"
-                        : "border-border bg-background"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="planType"
-                      value="general"
-                      checked={!isPersonalized}
-                      onChange={() => {
-                        setIsPersonalized(false)
-                        setSelectedStudent("")
-                      }}
-                      className="h-4 w-4 accent-primary"
-                    />
-                    <div className="flex flex-col text-sm">
-                      <span className="font-semibold">General</span>
-                      <span className="text-muted-foreground text-xs">
-                        Todos los estudiantes con esta disciplina/nivel
-                      </span>
-                    </div>
-                  </label>
-                  <label
-                    className={`flex items-center gap-3 rounded-lg border px-4 py-3 transition ${
-                      isPersonalized
-                        ? "border-primary/60 bg-primary/5 text-foreground"
-                        : "border-border bg-background"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="planType"
-                      value="personalized"
-                      checked={isPersonalized}
-                      onChange={() => setIsPersonalized(true)}
-                      className="h-4 w-4 accent-primary"
-                    />
-                    <div className="flex flex-col text-sm">
-                      <span className="font-semibold">Personalizada</span>
-                      <span className="text-muted-foreground text-xs">
-                        Solo para un estudiante específico
-                      </span>
-                    </div>
-                  </label>
-                </div>
+              {/* Tipo de planificación */}
+                <Label className="text-base font-semibold">
+                  Tipo de Planificación
+                </Label>
+                <Select
+                  value={isPersonalized ? "personalized" : "general"}
+                  onValueChange={(val) => {
+                    setIsPersonalized(val === "personalized");
+                    if (val === "general") {
+                      setSelectedStudent("");
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Seleccionar tipo de planificación..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">
+                      <div className="flex items-center gap-2">
+                        <Target className="w-4 h-4" />
+                        General (Todos los estudiantes con esta
+                        disciplina/nivel)
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="personalized">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        Personalizada (Solo para un estudiante específico)
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Selector de estudiante si es personalizada */}
                 {isPersonalized && (
-                  <div className="space-y-2">
+                  <div className="space-y-2 mt-3">
                     <Label htmlFor="student">Estudiante *</Label>
                     <Select
                       value={selectedStudent}
@@ -516,7 +499,6 @@ export function PlanificationModal({
                     </Select>
                   </div>
                 )}
-              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -810,7 +792,6 @@ export function PlanificationModal({
                 onChange={(e) => handleInputChange("notes", e.target.value)}
                 placeholder="Notas importantes, consideraciones especiales, etc..."
                 rows={3}
-                className="placeholder:text-sm border border-border bg-input"
               />
             </div>
           )}
@@ -823,7 +804,7 @@ export function PlanificationModal({
           )}
 
           {/* Botones */}
-          <div className="flex flex-col gap-3 pt-4 border-t sm:flex-row sm:justify-end">
+          <div className="flex justify-end gap-3 pt-4 border-t">
             <Button
               type="button"
               variant="outline"

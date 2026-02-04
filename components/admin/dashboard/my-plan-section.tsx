@@ -41,11 +41,6 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
   const { disciplines } = useDisciplines(coachId);
   const { users } = useDashboardData(coachId);
 
-  // Debug: Log para verificar que el componente se está renderizando
-  useEffect(() => {
-    console.log("MyPlanSection rendered with:", { coachId, loading, error, planInfo: !!planInfo });
-  }, [coachId, loading, error, planInfo]);
-
   if (loading) {
     return (
       <Card>

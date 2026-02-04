@@ -15,7 +15,7 @@ import { Loader2 } from "lucide-react";
  */
 export default function LoginPage() {
   const [mode, setMode] = useState<"login" | "signup" | "forgot-password">(
-    "login"
+    "login",
   );
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
@@ -52,7 +52,16 @@ export default function LoginPage() {
       // Si aún no tenemos userRole pero hay sesión, mantener loading
       // El hook useAuthWithRoles se encargará de cargar el rol
     }
-  }, [sessionStatus, session, user, userRole, isAdmin, isCoach, authLoading, router]);
+  }, [
+    sessionStatus,
+    session,
+    user,
+    userRole,
+    isAdmin,
+    isCoach,
+    authLoading,
+    router,
+  ]);
 
   const handleSuccess = () => {
     // La redirección se maneja en el useEffect según el rol
@@ -86,7 +95,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground">
+    <div className="min-h-[100dvh] flex flex-col bg-gradient-to-br from-background via-background to-card text-foreground">
       {/* Header */}
       <header className="relative overflow-hidden bg-gradient-to-r from-card via-card/95 to-primary/10 border-b border-primary/20 backdrop-blur-sm">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5"></div>
@@ -100,7 +109,7 @@ export default function LoginPage() {
       </header>
 
       {/* Main Content */}
-      <main className="flex items-center justify-center min-h-[calc(100vh-200px)] p-6">
+      <main className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-md space-y-6">
           {mode === "login" ? (
             <LoginForm
