@@ -559,7 +559,7 @@ export default function AdminDashboardPage() {
           <TabsContent value="planning" className="space-y-6">
             <div className="flex flex-col gap-2 items-start">
               <h2 className="text-2xl font-bold">Planificaciones</h2>
-              <p className="text-muted-foreground">
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Gestiona las planificaciones de entrenamiento por disciplina y
                 nivel. Haz clic en un día del calendario para crear una nueva
                 planificación.

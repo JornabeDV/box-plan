@@ -404,13 +404,12 @@ export function PlanificationModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-screen sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg">
-        <DialogHeader className="pb-6">
+      <DialogContent className="w-full max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg p-4 sm:p-6">
+        <DialogHeader className="pb-0">
           <DialogTitle className="flex items-center gap-2">
-            <Target className="w-5 h-5" />
             {planification ? "Editar Planificación" : "Nueva Planificación"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-left">
             {planification
               ? "Modifica los detalles de la planificación"
               : `Planificación para ${selectedDate?.toLocaleDateString(
@@ -446,59 +445,64 @@ export function PlanificationModal({
           {hasDisciplines && (
             <div className="space-y-6">
               {/* Tipo de planificación */}
-                <Label className="text-base font-semibold">
-                  Tipo de Planificación
-                </Label>
-                <Select
-                  value={isPersonalized ? "personalized" : "general"}
-                  onValueChange={(val) => {
-                    setIsPersonalized(val === "personalized");
-                    if (val === "general") {
-                      setSelectedStudent("");
-                    }
-                  }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Seleccionar tipo de planificación..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="general">
-                      <div className="flex items-center gap-2">
-                        <Target className="w-4 h-4" />
-                        General (Todos los estudiantes con esta
-                        disciplina/nivel)
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="personalized">
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4" />
-                        Personalizada (Solo para un estudiante específico)
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+              <Label className="text-base font-semibold">
+                Tipo de Planificación
+              </Label>
+              <Select
+                value={isPersonalized ? "personalized" : "general"}
+                onValueChange={(val) => {
+                  setIsPersonalized(val === "personalized");
+                  if (val === "general") {
+                    setSelectedStudent("");
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Seleccionar tipo de planificación..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">
+                    <div className="flex items-center gap-2 whitespace-normal">
+                      <Target className="w-4 h-4 flex-shrink-0" />
+                      <span className="break-words">
+                        General (Todos los estudiantes)
+                      </span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="personalized">
+                    <div className="flex items-center gap-2 whitespace-normal">
+                      <Users className="w-4 h-4 flex-shrink-0" />
+                      <span className="break-words">
+                        Personalizada (Un estudiante)
+                      </span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
 
-                {/* Selector de estudiante si es personalizada */}
-                {isPersonalized && (
-                  <div className="space-y-2 mt-3">
-                    <Label htmlFor="student">Estudiante *</Label>
-                    <Select
-                      value={selectedStudent}
-                      onValueChange={setSelectedStudent}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Seleccionar estudiante..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {students.map((student) => (
-                          <SelectItem key={student.id} value={student.id}>
-                            {student.name} ({student.email})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+              {/* Selector de estudiante si es personalizada */}
+              {isPersonalized && (
+                <div className="space-y-2 mt-3">
+                  <Label htmlFor="student">Estudiante *</Label>
+                  <Select
+                    value={selectedStudent}
+                    onValueChange={setSelectedStudent}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Seleccionar estudiante..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {students.map((student) => (
+                        <SelectItem key={student.id} value={student.id}>
+                          <span className="truncate block max-w-[250px]">
+                            {student.name}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -589,8 +593,8 @@ export function PlanificationModal({
                   >
                     <div className="space-y-3">
                       {/* Título del bloque */}
-                      <div className="flex items-center gap-3">
-                        <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="w-5 h-5 sm:w-6 sm:h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
                           {index + 1}
                         </div>
                         <Input
@@ -599,21 +603,21 @@ export function PlanificationModal({
                             updateBlockTitle(block.id, e.target.value)
                           }
                           placeholder="Título del bloque (ej: Entrada en calor)"
-                          className="font-medium"
+                          className="font-medium min-w-0 text-sm md:text-base placeholder:text-sm md:placeholder:text-base"
                         />
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => removeBlock(block.id)}
-                          className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
+                          className="text-destructive hover:text-destructive-foreground hover:bg-destructive flex-shrink-0"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
 
                       {/* Incisos del bloque */}
-                      <div className="ml-9 space-y-2">
+                      <div className="ml-6 sm:ml-9 space-y-2">
                         {block.items.map((item, itemIndex) => {
                           const isEditing =
                             editingItem?.blockId === block.id &&
@@ -628,6 +632,7 @@ export function PlanificationModal({
                               {isEditing ? (
                                 <>
                                   <Input
+                                    className="text-sm flex-1 h-8 font-medium min-w-0 text-sm md:text-base placeholder:text-sm md:placeholder:text-base"
                                     value={editingItemValue}
                                     onChange={(e) =>
                                       setEditingItemValue(e.target.value)
@@ -641,7 +646,6 @@ export function PlanificationModal({
                                         cancelEditingItem();
                                       }
                                     }}
-                                    className="text-sm flex-1 h-8"
                                     autoFocus
                                   />
                                   <Button
@@ -708,13 +712,13 @@ export function PlanificationModal({
                         {/* Agregar inciso */}
                         <div className="flex gap-2">
                           <Input
+                            className="text-sm min-w-0 font-medium text-sm md:text-base placeholder:text-sm md:placeholder:text-base h-auto"
                             value={currentBlockId === block.id ? blockItem : ""}
                             onChange={(e) => {
                               setCurrentBlockId(block.id);
                               setBlockItem(e.target.value);
                             }}
                             placeholder="Agregar inciso..."
-                            className="text-sm"
                             onKeyPress={(e) => {
                               if (e.key === "Enter") {
                                 e.preventDefault();
@@ -730,6 +734,7 @@ export function PlanificationModal({
                             disabled={
                               !blockItem.trim() || currentBlockId !== block.id
                             }
+                            className="flex-shrink-0"
                           >
                             <Plus className="w-3 h-3" />
                           </Button>
@@ -763,18 +768,21 @@ export function PlanificationModal({
               {/* Agregar nuevo bloque */}
               <div className="flex gap-2">
                 <Input
+                
                   value={blockTitle}
                   onChange={(e) => setBlockTitle(e.target.value)}
                   placeholder="Título del nuevo bloque..."
                   onKeyPress={(e) =>
                     e.key === "Enter" && (e.preventDefault(), addBlock())
                   }
+                  className="min-w-0 h-auto text-sm md:text-base placeholder:text-sm md:placeholder:text-base"
                 />
                 <Button
                   type="button"
                   onClick={addBlock}
                   disabled={!blockTitle.trim()}
                   size="sm"
+                  className="flex-shrink-0"
                 >
                   <Plus className="w-4 h-4" />
                 </Button>
@@ -792,6 +800,7 @@ export function PlanificationModal({
                 onChange={(e) => handleInputChange("notes", e.target.value)}
                 placeholder="Notas importantes, consideraciones especiales, etc..."
                 rows={3}
+                className="text-sm md:text-base placeholder:text-sm md:placeholder:text-base border border-color bg-input"
               />
             </div>
           )}
@@ -804,12 +813,13 @@ export function PlanificationModal({
           )}
 
           {/* Botones */}
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={loading}
+              className="w-full sm:w-auto"
             >
               Cancelar
             </Button>
@@ -821,6 +831,7 @@ export function PlanificationModal({
                 !formData.discipline_id ||
                 !formData.discipline_level_id
               }
+              className="w-full sm:w-auto"
             >
               {loading
                 ? "Guardando..."

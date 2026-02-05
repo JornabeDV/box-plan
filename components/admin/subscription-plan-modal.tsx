@@ -1,38 +1,58 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
-import { useSubscriptionPlans, SubscriptionPlan } from '@/hooks/use-subscription-plans'
-import { Plus, X } from 'lucide-react'
+import { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import {
+  useSubscriptionPlans,
+  SubscriptionPlan,
+} from "@/hooks/use-subscription-plans";
+import { Plus, X } from "lucide-react";
 
 interface SubscriptionPlanModalProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  plan?: SubscriptionPlan | null
-  onPlanUpdated?: () => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  plan?: SubscriptionPlan | null;
+  onPlanUpdated?: () => void;
 }
 
-export function SubscriptionPlanModal({ open, onOpenChange, plan, onPlanUpdated }: SubscriptionPlanModalProps) {
-  const { createPlan, updatePlan } = useSubscriptionPlans()
-  const [loading, setLoading] = useState(false)
-  
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    currency: 'ARS',
-    interval: 'month',
-    features: [] as string[],
-    is_active: true
-  })
+export function SubscriptionPlanModal({
+  open,
+  onOpenChange,
+  plan,
+  onPlanUpdated,
+}: SubscriptionPlanModalProps) {
+  const { createPlan, updatePlan } = useSubscriptionPlans();
+  const [loading, setLoading] = useState(false);
 
-  const [newFeature, setNewFeature] = useState('')
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    price: "",
+    currency: "ARS",
+    interval: "month",
+    features: [] as string[],
+    is_active: true,
+  });
+
+  const [newFeature, setNewFeature] = useState("");
 
   // Reset form when modal opens/closes or plan changes
   useEffect(() => {
@@ -40,37 +60,46 @@ export function SubscriptionPlanModal({ open, onOpenChange, plan, onPlanUpdated 
       if (plan) {
         setFormData({
           name: plan.name,
-          description: plan.description || '',
+          description: plan.description || "",
           price: plan.price.toString(),
           currency: plan.currency,
           interval: plan.interval,
           features: Array.isArray(plan.features) ? plan.features : [],
-          is_active: plan.is_active
-        })
+          is_active: plan.is_active,
+        });
       } else {
         setFormData({
-          name: '',
-          description: '',
-          price: '',
-          currency: 'ARS',
-          interval: 'month',
+          name: "",
+          description: "",
+          price: "",
+          currency: "ARS",
+          interval: "month",
           features: [],
-          is_active: true
-        })
+          is_active: true,
+        });
       }
-      setNewFeature('')
+      setNewFeature("");
     }
-  }, [open, plan?.id, plan?.price, plan?.name, plan?.description, plan?.currency, plan?.interval, plan?.is_active])
+  }, [
+    open,
+    plan?.id,
+    plan?.price,
+    plan?.name,
+    plan?.description,
+    plan?.currency,
+    plan?.interval,
+    plan?.is_active,
+  ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     if (!formData.name || !formData.price) {
-      return
+      return;
     }
 
-    setLoading(true)
-    
+    setLoading(true);
+
     try {
       const planData = {
         name: formData.name,
@@ -79,54 +108,56 @@ export function SubscriptionPlanModal({ open, onOpenChange, plan, onPlanUpdated 
         currency: formData.currency,
         interval: formData.interval,
         features: formData.features,
-        is_active: formData.is_active
-      }
+        is_active: formData.is_active,
+      };
 
-      let result
+      let result;
       if (plan) {
-        result = await updatePlan(plan.id, planData)
+        result = await updatePlan(plan.id, planData);
       } else {
-        result = await createPlan(planData)
+        result = await createPlan(planData);
       }
 
       if (result.success) {
         // El estado ya se actualizó en updatePlan, solo cerrar el modal
-        onOpenChange(false)
+        onOpenChange(false);
         if (onPlanUpdated) {
-          onPlanUpdated()
+          onPlanUpdated();
         }
       }
     } catch (error) {
-      console.error('Error saving plan:', error)
+      console.error("Error saving plan:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleAddFeature = () => {
     if (newFeature.trim()) {
       setFormData({
         ...formData,
-        features: [...formData.features, newFeature.trim()]
-      })
-      setNewFeature('')
+        features: [...formData.features, newFeature.trim()],
+      });
+      setNewFeature("");
     }
-  }
+  };
 
   const handleRemoveFeature = (index: number) => {
     setFormData({
       ...formData,
-      features: formData.features.filter((_, i) => i !== index)
-    })
-  }
+      features: formData.features.filter((_, i) => i !== index),
+    });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-full max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg">
         <DialogHeader>
-          <DialogTitle>{plan ? 'Editar Plan' : 'Crear Plan'}</DialogTitle>
+          <DialogTitle>{plan ? "Editar Plan" : "Crear Plan"}</DialogTitle>
           <DialogDescription>
-            {plan ? 'Modifica los detalles del plan de suscripción' : 'Crea un nuevo plan de suscripción'}
+            {plan
+              ? "Modifica los detalles del plan de suscripción"
+              : "Crea un nuevo plan de suscripción"}
           </DialogDescription>
         </DialogHeader>
 
@@ -137,8 +168,11 @@ export function SubscriptionPlanModal({ open, onOpenChange, plan, onPlanUpdated 
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
               placeholder="Ej: Básico, Intermedio, Pro"
+              className="text-sm md:text-base placeholder:text-sm md:placeholder:text-base"
               required
             />
           </div>
@@ -149,8 +183,11 @@ export function SubscriptionPlanModal({ open, onOpenChange, plan, onPlanUpdated 
             <Textarea
               id="description"
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               placeholder="Descripción del plan"
+              className="text-sm md:text-base placeholder:text-sm md:placeholder:text-base border border-color bg-input"
               rows={3}
             />
           </div>
@@ -165,7 +202,9 @@ export function SubscriptionPlanModal({ open, onOpenChange, plan, onPlanUpdated 
                 step="0.01"
                 min="0"
                 value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, price: e.target.value })
+                }
                 placeholder="25000"
                 required
               />
@@ -174,15 +213,17 @@ export function SubscriptionPlanModal({ open, onOpenChange, plan, onPlanUpdated 
               <Label htmlFor="currency">Moneda *</Label>
               <Select
                 value={formData.currency}
-                onValueChange={(value) => setFormData({ ...formData, currency: value })}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, currency: value })
+                }
               >
-                <SelectTrigger id="currency">
+                <SelectTrigger id="currency" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ARS">ARS - Peso Argentino</SelectItem>
-                  <SelectItem value="USD">USD - Dólar</SelectItem>
-                  <SelectItem value="EUR">EUR - Euro</SelectItem>
+                  <SelectItem value="ARS">ARS</SelectItem>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="EUR">EUR</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -193,7 +234,9 @@ export function SubscriptionPlanModal({ open, onOpenChange, plan, onPlanUpdated 
             <Label htmlFor="interval">Intervalo *</Label>
             <Select
               value={formData.interval}
-              onValueChange={(value) => setFormData({ ...formData, interval: value })}
+              onValueChange={(value) =>
+                setFormData({ ...formData, interval: value })
+              }
             >
               <SelectTrigger id="interval">
                 <SelectValue />
@@ -214,20 +257,28 @@ export function SubscriptionPlanModal({ open, onOpenChange, plan, onPlanUpdated 
                 onChange={(e) => setNewFeature(e.target.value)}
                 placeholder="Agregar característica..."
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    handleAddFeature()
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddFeature();
                   }
                 }}
+                className="text-sm md:text-base placeholder:text-sm md:placeholder:text-base h-auto"
               />
-              <Button type="button" onClick={handleAddFeature} variant="outline">
+              <Button
+                type="button"
+                onClick={handleAddFeature}
+                variant="outline"
+              >
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
             {formData.features.length > 0 && (
               <div className="space-y-2 mt-2">
                 {formData.features.map((feature, index) => (
-                  <div key={index} className="flex items-center gap-2 bg-muted p-2 rounded">
+                  <div
+                    key={index}
+                    className="flex items-center gap-2 bg-muted px-2 rounded border border-color bg-input"
+                  >
                     <span className="flex-1 text-sm">{feature}</span>
                     <Button
                       type="button"
@@ -254,21 +305,27 @@ export function SubscriptionPlanModal({ open, onOpenChange, plan, onPlanUpdated 
             <Switch
               id="is_active"
               checked={formData.is_active}
-              onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+              onCheckedChange={(checked) =>
+                setFormData({ ...formData, is_active: checked })
+              }
             />
           </div>
 
           {/* Botones */}
           <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               Cancelar
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Guardando...' : plan ? 'Actualizar' : 'Crear'}
+              {loading ? "Guardando..." : plan ? "Actualizar" : "Crear"}
             </Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

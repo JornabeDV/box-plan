@@ -120,13 +120,13 @@ export function ReplicatePlanificationModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
+      <DialogContent className="w-full max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg">
+        <DialogHeader className="pr-0 h-auto">
           <DialogTitle className="flex items-center gap-2">
             <Copy className="w-5 h-5" />
             Replicar Planificaciones
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-left">
             {planificationCount === 1
               ? "Duplicar esta planificación a otro día"
               : `Replicar ${planificationCount} planificaciones a otro día`}
@@ -161,7 +161,7 @@ export function ReplicatePlanificationModal({
               {targetDate ? (
                 format(targetDate, "PPP", { locale: es })
               ) : (
-                <span>Seleccionar fecha</span>
+                <span className="text-sm md:text-base placeholder:text-sm md:placeholder:text-base">Seleccionar fecha</span>
               )}
             </button>
 
