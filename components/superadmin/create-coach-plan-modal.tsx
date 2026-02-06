@@ -34,7 +34,6 @@ const DEFAULT_FEATURES = {
   score_loading: false,
   score_database: false,
   mercadopago_connection: false,
-  virtual_wallet: false,
   whatsapp_integration: false,
   community_forum: false,
   custom_motivational_quotes: false,

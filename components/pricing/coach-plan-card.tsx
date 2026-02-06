@@ -180,8 +180,8 @@ export function CoachPlanCard({
         features.score_database &&
           "Base de datos con las cargas de score de cada uno de tus alumnos",
         features.max_disciplines === 999999 && "Disciplinas ilimitadas",
-        features.virtual_wallet &&
-          "Conexión con billetera virtual para efectuar pagos",
+        features.mercadopago_connection &&
+          "Conexión con Mercado Pago para efectuar pagos",
         features.whatsapp_integration && "Vinculación con WhatsApp",
         features.community_forum && "Foro para comunidad",
         features.timer && "Cronómetro con tiempos de entrenamiento",
@@ -225,7 +225,7 @@ export function CoachPlanCard({
       {hasTrialPeriod && !currentPlan && (
         <div className="absolute -top-3 right-4 z-10">
           <Badge className="bg-green-600 text-white px-3 py-1">
-            <Zap className="w-3 h-3 mr-1" />7 días gratis
+            <Zap className="w-3 h-3 mr-1" />30 días gratis
           </Badge>
         </div>
       )}
@@ -276,7 +276,7 @@ export function CoachPlanCard({
           </div>
           {hasTrialPeriod && (
             <p className="text-sm font-semibold text-green-600 dark:text-green-400 mt-2">
-              ✨ Prueba 7 días gratis
+              ✨ Prueba 30 días gratis
             </p>
           )}
           <p className="text-sm text-muted-foreground mt-1">

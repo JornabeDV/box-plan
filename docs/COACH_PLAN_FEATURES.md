@@ -205,7 +205,6 @@ const handleAddDiscipline = () => {
 - `canCoachLoadUnlimitedPlanifications(coachId)` - Verifica si puede cargar sin límite
 - `getCoachPlanificationWeeks(coachId)` - Obtiene semanas permitidas (START)
 - `canCoachUseMercadoPago(coachId)` - Verifica acceso a MercadoPago
-- `canCoachUseVirtualWallet(coachId)` - Verifica acceso a billetera virtual
 - `canCoachUseWhatsApp(coachId)` - Verifica acceso a WhatsApp
 - `canCoachUseCommunityForum(coachId)` - Verifica acceso a foro
 - `canCoachLoadScores(coachId)` - Verifica si puede cargar scores

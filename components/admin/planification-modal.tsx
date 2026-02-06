@@ -768,7 +768,6 @@ export function PlanificationModal({
               {/* Agregar nuevo bloque */}
               <div className="flex gap-2">
                 <Input
-                
                   value={blockTitle}
                   onChange={(e) => setBlockTitle(e.target.value)}
                   placeholder="Título del nuevo bloque..."

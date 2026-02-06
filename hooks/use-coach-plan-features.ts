@@ -7,18 +7,21 @@ import { normalizeUserId } from '@/lib/auth-helpers'
 const CACHE_DURATION = 5 * 60 * 1000
 const getCacheKey = (userId: string | number) => `plan_features_${userId}`
 
+export type PlanificationAccess = 'daily' | 'monthly' | 'unlimited'
+
 export interface CoachPlanFeatures {
 	dashboard_custom?: boolean
-	daily_planification?: boolean
-	planification_weeks?: number
-	planification_monthly?: boolean
+	/** Tipo de acceso a planificación: 'daily' | 'monthly' | 'unlimited' */
+	planification_access?: PlanificationAccess
+	/** @deprecated Usar planification_access */
 	planification_unlimited?: boolean
+	/** @deprecated Usar planification_access */
+	planification_monthly?: boolean
 	max_disciplines?: number
 	timer?: boolean
 	score_loading?: boolean
 	score_database?: boolean
 	mercadopago_connection?: boolean
-	virtual_wallet?: boolean
 	whatsapp_integration?: boolean
 	community_forum?: boolean
 	custom_motivational_quotes?: boolean
@@ -28,9 +31,12 @@ export interface CoachPlanInfo {
 	planId: number
 	planName: string
 	displayName: string
+	slug: string
 	features: CoachPlanFeatures
 	maxStudents: number
 	commissionRate: number
+	maxStudentPlans: number
+	maxStudentPlanTier: string
 	isActive: boolean
 	isTrial: boolean
 }
@@ -41,16 +47,39 @@ interface UseCoachPlanFeaturesReturn {
 	error: string | null
 	hasFeature: (feature: keyof CoachPlanFeatures) => boolean
 	maxDisciplines: number
+	/** Acceso a planificación: 'daily' | 'monthly' | 'unlimited' */
+	planificationAccess: PlanificationAccess
 	canLoadMonthlyPlanifications: boolean
 	canLoadUnlimitedPlanifications: boolean
+	/** @deprecated Usar planificationAccess */
 	planificationWeeks: number
 	canUseMercadoPago: boolean
-	canUseVirtualWallet: boolean
 	canUseWhatsApp: boolean
 	canUseCommunityForum: boolean
 	canLoadScores: boolean
 	canAccessScoreDatabase: boolean
+	/** Cantidad máxima de planes de alumnos que puede crear */
+	maxStudentPlans: number
+	/** Tier máximo de plan de alumno permitido */
+	maxStudentPlanTier: string
 	refetch: () => Promise<void>
+}
+
+/**
+ * Obtiene el tipo de acceso a planificación del plan
+ */
+function getPlanificationAccess(features: CoachPlanFeatures | undefined): PlanificationAccess {
+	if (!features) return 'daily'
+	
+	// Si tiene el nuevo campo, usarlo
+	if (features.planification_access) {
+		return features.planification_access
+	}
+	console.log("features", features)
+	// Sino, mapear desde campos legacy
+	if (features.planification_unlimited) return 'unlimited'
+	if (features.planification_monthly) return 'monthly'
+	return 'daily'
 }
 
 export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
@@ -218,16 +247,17 @@ export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 	}, [session?.user?.id])
 
 	const maxDisciplines = planInfo?.features.max_disciplines || 0
-	const canLoadMonthlyPlanifications = planInfo?.features.planification_monthly === true || 
-	                                     planInfo?.features.planification_unlimited === true
-	const canLoadUnlimitedPlanifications = planInfo?.features.planification_unlimited === true
-	const planificationWeeks = planInfo?.features.planification_weeks || 0
+	const planificationAccess = getPlanificationAccess(planInfo?.features)
+	const canLoadMonthlyPlanifications = planificationAccess === 'monthly' || planificationAccess === 'unlimited'
+	const canLoadUnlimitedPlanifications = planificationAccess === 'unlimited'
+	const planificationWeeks = planificationAccess === 'daily' ? 1 : 0
 	const canUseMercadoPago = hasFeature('mercadopago_connection')
-	const canUseVirtualWallet = hasFeature('virtual_wallet')
 	const canUseWhatsApp = hasFeature('whatsapp_integration')
 	const canUseCommunityForum = hasFeature('community_forum')
 	const canLoadScores = hasFeature('score_loading')
 	const canAccessScoreDatabase = hasFeature('score_database')
+	const maxStudentPlans = planInfo?.maxStudentPlans || 2
+	const maxStudentPlanTier = planInfo?.maxStudentPlanTier || 'basic'
 
 	return {
 		planInfo,
@@ -235,15 +265,17 @@ export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 		error,
 		hasFeature,
 		maxDisciplines,
+		planificationAccess,
 		canLoadMonthlyPlanifications,
 		canLoadUnlimitedPlanifications,
 		planificationWeeks,
 		canUseMercadoPago,
-		canUseVirtualWallet,
 		canUseWhatsApp,
 		canUseCommunityForum,
 		canLoadScores,
 		canAccessScoreDatabase,
+		maxStudentPlans,
+		maxStudentPlanTier,
 		refetch
 	}
 }

@@ -3,6 +3,13 @@
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface PredefinedFeaturesSectionProps {
   features: Record<string, any>;
@@ -11,26 +18,84 @@ interface PredefinedFeaturesSectionProps {
 
 const BOOLEAN_FEATURES = [
   { key: "dashboard_custom", label: "Dashboard Personalizado" },
-  { key: "daily_planification", label: "Planificación Diaria" },
-  { key: "planification_monthly", label: "Planificación Mensual" },
-  { key: "planification_unlimited", label: "Planificación Ilimitada" },
   { key: "score_loading", label: "Carga de Scores" },
   { key: "score_database", label: "Base de Datos de Scores" },
   { key: "mercadopago_connection", label: "Conexión MercadoPago" },
-  { key: "virtual_wallet", label: "Billetera Virtual" },
   { key: "whatsapp_integration", label: "Integración WhatsApp" },
   { key: "community_forum", label: "Foro de Comunidad" },
   { key: "timer", label: "Cronómetro" },
+];
+
+const PLANIFICATION_OPTIONS = [
+  { value: "daily", label: "Diaria", description: "Solo el día de hoy" },
+  { value: "monthly", label: "Mensual", description: "Todo el mes actual" },
+  {
+    value: "unlimited",
+    label: "Ilimitada",
+    description: "Acceso histórico completo",
+  },
 ];
 
 export function PredefinedFeaturesSection({
   features,
   onFeatureChange,
 }: PredefinedFeaturesSectionProps) {
+  // Obtener el valor actual de planificación (nuevo o legacy)
+  const getPlanificationAccess = (): string => {
+    if (features.planification_access) {
+      return features.planification_access;
+    }
+    // Mapear desde valores legacy
+    if (features.planification_unlimited) return "unlimited";
+    if (features.planification_monthly) return "monthly";
+    return "daily";
+  };
+
+  const handlePlanificationChange = (value: string) => {
+    // Guardar el nuevo campo
+    onFeatureChange("planification_access", value);
+
+    // También actualizar los campos legacy para compatibilidad
+    onFeatureChange("daily_planification", value === "daily");
+    onFeatureChange("planification_monthly", value === "monthly");
+    onFeatureChange("planification_unlimited", value === "unlimited");
+    onFeatureChange("planification_weeks", value === "daily" ? 1 : 0);
+  };
+
+  const currentAccess = getPlanificationAccess();
+
   return (
     <div className="space-y-4 border-t pt-4">
       <Label className="text-base font-semibold">Características</Label>
 
+      {/* Selector de tipo de planificación */}
+      <div className="space-y-2 bg-muted/50 p-4 rounded-lg">
+        <Label htmlFor="planification_access" className="font-medium">
+          Acceso a Planificación
+        </Label>
+        <Select value={currentAccess} onValueChange={handlePlanificationChange}>
+          <SelectTrigger id="planification_access" className="w-full">
+            <SelectValue placeholder="Selecciona el tipo de acceso" />
+          </SelectTrigger>
+          <SelectContent>
+            {PLANIFICATION_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                <div className="flex flex-col">
+                  <span>{option.label}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {option.description}
+                  </span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          Define qué tanto acceso tienen los alumnos a las planificaciones
+        </p>
+      </div>
+
+      {/* Features booleanas */}
       <div className="grid grid-cols-2 gap-4">
         {BOOLEAN_FEATURES.map((feature) => (
           <div key={feature.key} className="flex items-center justify-between">
@@ -47,22 +112,7 @@ export function PredefinedFeaturesSection({
       </div>
 
       {/* Características numéricas */}
-      <div className="grid grid-cols-2 gap-4 mt-4">
-        <div className="space-y-2">
-          <Label htmlFor="planification_weeks">Semanas de Planificación</Label>
-          <Input
-            id="planification_weeks"
-            type="number"
-            value={features.planification_weeks || 0}
-            onChange={(e) =>
-              onFeatureChange(
-                "planification_weeks",
-                parseInt(e.target.value) || 0
-              )
-            }
-            placeholder="0 si no aplica"
-          />
-        </div>
+      <div className="grid grid-cols-1 gap-4 mt-4">
         <div className="space-y-2">
           <Label htmlFor="max_disciplines">Máximo de Disciplinas</Label>
           <Input

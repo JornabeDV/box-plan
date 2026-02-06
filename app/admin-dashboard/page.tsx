@@ -27,7 +27,7 @@ import { PlanificationModal } from "@/components/admin/planification-modal";
 import { PlanificationCalendar } from "@/components/admin/planification-calendar";
 import { PlanificationDayModal } from "@/components/admin/planification-day-modal";
 import { ReplicatePlanificationModal } from "@/components/admin/replicate-planification-modal";
-import { SubscriptionPlansList } from "@/components/admin/subscription-plans-list";
+import { StudentPlansManager } from "@/components/coach/student-plans-manager";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { DashboardHeader } from "@/components/admin/dashboard/dashboard-header";
 import { TrialBanner } from "@/components/admin/dashboard/trial-banner";
@@ -591,11 +591,8 @@ export default function AdminDashboardPage() {
             {/* Conexión con MercadoPago */}
             <MercadoPagoConnect coachId={coachProfile?.id} />
 
-            {/* Lista de Planes */}
-            <SubscriptionPlansList
-              initialPlans={dashboardSubscriptionPlans}
-              onRefresh={refreshDashboard}
-            />
+            {/* Crear y gestionar planes para alumnos */}
+            <StudentPlansManager />
           </TabsContent>
 
           {/* Mi Plan Tab */}

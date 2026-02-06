@@ -150,12 +150,15 @@ model DisciplineLevel {
 }
 
 model SubscriptionPlan {
-  id            Int            @id @default(autoincrement())
-  name          String         @db.VarChar(255)
-  description   String?
-  price         Decimal        @db.Decimal(10, 2)
-  currency      String         @default("ARS") @db.VarChar(10)
-  interval      String         @default("month") @db.VarChar(20)
+  id                  Int     @id @default(autoincrement())
+  name                String  @db.VarChar(255)
+  description         String?
+  price               Decimal @db.Decimal(10, 2)
+  currency            String  @default("ARS") @db.VarChar(10)
+  interval            String  @default("month") @db.VarChar(20)
+  tier                String  @default("basic") @db.VarChar(20)
+  planificationAccess String  @default("daily") @map("planification_access") @db.VarChar(20)
+
   features      Json?
   isActive      Boolean        @default(true) @map("is_active")
   planType      String?        @default("student") @map("plan_type") @db.VarChar(20)
@@ -338,18 +341,21 @@ model CoachMotivationalQuote {
 }
 
 model CoachPlanType {
-  id             Int                 @id @default(autoincrement())
-  name           String              @unique @db.VarChar(50)
-  displayName    String              @map("display_name") @db.VarChar(100)
-  minStudents    Int                 @map("min_students")
-  maxStudents    Int                 @map("max_students")
-  basePrice      Decimal             @map("base_price") @db.Decimal(10, 2)
-  commissionRate Decimal             @map("commission_rate") @db.Decimal(5, 2)
-  features       Json?
-  isActive       Boolean             @default(true) @map("is_active")
-  createdAt      DateTime            @default(now()) @map("created_at")
-  updatedAt      DateTime            @default(now()) @updatedAt @map("updated_at")
-  subscriptions  CoachSubscription[]
+  id                 Int                 @id @default(autoincrement())
+  slug               String              @unique @db.VarChar(20)
+  name               String              @unique @db.VarChar(50)
+  displayName        String              @map("display_name") @db.VarChar(100)
+  minStudents        Int                 @map("min_students")
+  maxStudents        Int                 @map("max_students")
+  basePrice          Decimal             @map("base_price") @db.Decimal(10, 2)
+  commissionRate     Decimal             @map("commission_rate") @db.Decimal(5, 2)
+  maxStudentPlans    Int                 @default(2) @map("max_student_plans")
+  maxStudentPlanTier String              @default("basic") @map("max_student_plan_tier") @db.VarChar(20)
+  features           Json?
+  isActive           Boolean             @default(true) @map("is_active")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @default(now()) @updatedAt @map("updated_at")
+  subscriptions      CoachSubscription[]
 
   @@map("coach_plan_types")
 }

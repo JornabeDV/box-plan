@@ -193,7 +193,7 @@ export function SubscriptionPlanModal({
           </div>
 
           {/* Precio y Moneda */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 mb-2 sm:mb-2">
             <div className="space-y-2">
               <Label htmlFor="price">Precio *</Label>
               <Input
@@ -206,6 +206,7 @@ export function SubscriptionPlanModal({
                   setFormData({ ...formData, price: e.target.value })
                 }
                 placeholder="25000"
+                className="h-[44px] text-sm md:text-base placeholder:text-sm md:placeholder:text-base"
                 required
               />
             </div>

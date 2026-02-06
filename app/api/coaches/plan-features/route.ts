@@ -48,9 +48,12 @@ export async function GET(request: NextRequest) {
 				planId: planInfo.planId,
 				planName: planInfo.planName,
 				displayName: planInfo.displayName,
+				slug: planInfo.slug,
 				features: planInfo.features,
 				maxStudents: planInfo.maxStudents,
 				commissionRate: planInfo.commissionRate,
+				maxStudentPlans: planInfo.maxStudentPlans,
+				maxStudentPlanTier: planInfo.maxStudentPlanTier,
 				isActive: planInfo.isActive,
 				isTrial: planInfo.isTrial
 			} : null

@@ -12,7 +12,6 @@ const PREDEFINED_FEATURES = [
   "score_loading",
   "score_database",
   "mercadopago_connection",
-  "virtual_wallet",
   "whatsapp_integration",
   "community_forum",
   "timer",

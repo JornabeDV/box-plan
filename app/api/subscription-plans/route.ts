@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isCoach, normalizeUserId } from '@/lib/auth-helpers'
+import { getPlanificationAccess, type StudentPlanTier } from '@/lib/coach-plan-features'
 
 // GET /api/subscription-plans
 export async function GET(request: NextRequest) {
@@ -50,6 +51,8 @@ export async function GET(request: NextRequest) {
         price: true,
         currency: true,
         interval: true,
+        tier: true,
+        planificationAccess: true,
         features: true,
         isActive: true,
         coachId: true
@@ -62,7 +65,7 @@ export async function GET(request: NextRequest) {
       ...plan,
       is_active: plan.isActive,
       features: typeof plan.features === 'string' ? JSON.parse(plan.features) : plan.features,
-      is_popular: plan.name === 'Pro'
+      is_popular: plan.tier === 'premium' || plan.tier === 'vip'
     }))
 
     const response = NextResponse.json(formattedPlans)
@@ -85,7 +88,15 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/subscription-plans - Crear nuevo plan (solo para admins)
+// Niveles de tier para comparación
+const TIER_LEVELS: Record<StudentPlanTier, number> = {
+  'basic': 1,
+  'standard': 2,
+  'premium': 3,
+  'vip': 4
+}
+
+// POST /api/subscription-plans - Crear nuevo plan (solo para coaches)
 export async function POST(request: NextRequest) {
   try {
     const session = await auth()
@@ -104,8 +115,61 @@ export async function POST(request: NextRequest) {
 
     const coachId = authCheck.profile.id
 
+    // Obtener el plan activo del coach
+    const coachProfile = await prisma.coachProfile.findUnique({
+      where: { id: coachId },
+      include: {
+        subscriptions: {
+          where: {
+            status: { in: ['active', 'Active', 'ACTIVE'] }
+          },
+          orderBy: { currentPeriodEnd: 'desc' },
+          take: 1,
+          include: { plan: true }
+        }
+      }
+    })
+
+    if (!coachProfile || coachProfile.subscriptions.length === 0) {
+      return NextResponse.json(
+        { error: 'No tienes un plan de coach activo' },
+        { status: 403 }
+      )
+    }
+
+    const coachPlan = coachProfile.subscriptions[0].plan
+
+    // ==========================================
+    // VALIDACIÓN 1: Cantidad máxima de planes
+    // ==========================================
+    const currentPlansCount = await prisma.subscriptionPlan.count({
+      where: { coachId }
+    })
+
+    if (currentPlansCount >= coachPlan.maxStudentPlans) {
+      return NextResponse.json(
+        { 
+          error: 'Límite de planes alcanzado',
+          message: `Tu plan ${coachPlan.name} permite crear hasta ${coachPlan.maxStudentPlans} planes. Has creado ${currentPlansCount}.`,
+          current: currentPlansCount,
+          limit: coachPlan.maxStudentPlans,
+          canUpgrade: coachPlan.slug !== 'elite'
+        },
+        { status: 403 }
+      )
+    }
+
     const body = await request.json()
-    const { name, description, price, currency, interval, features, is_active = true } = body
+    const { 
+      name, 
+      description, 
+      price, 
+      currency, 
+      interval, 
+      tier = 'basic',
+      features = {},
+      is_active = true 
+    } = body
 
     if (!name || !price || !currency || !interval) {
       return NextResponse.json(
@@ -114,6 +178,96 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // ==========================================
+    // VALIDACIÓN 2: Tier del plan
+    // ==========================================
+    const requestedTier = tier as StudentPlanTier
+    const coachMaxTier = coachPlan.maxStudentPlanTier as StudentPlanTier
+
+    if (TIER_LEVELS[requestedTier] > TIER_LEVELS[coachMaxTier]) {
+      return NextResponse.json(
+        { 
+          error: 'Tier no permitido',
+          message: `Tu plan ${coachPlan.displayName} solo permite crear planes de tipo "${coachMaxTier}" o inferior.`,
+          requestedTier,
+          allowedTier: coachMaxTier
+        },
+        { status: 403 }
+      )
+    }
+
+    // ==========================================
+    // VALIDACIÓN 3: Features solicitadas
+    // ==========================================
+    const coachFeatures = coachPlan.features as Record<string, any> || {}
+    const validationErrors: string[] = []
+
+    // Validar WhatsApp
+    if (features.whatsappSupport && !coachFeatures.whatsapp_integration) {
+      validationErrors.push('No puedes ofrecer soporte por WhatsApp sin tenerlo en tu plan.')
+    }
+
+    // Validar Comunidad
+    if (features.communityAccess && !coachFeatures.community_forum) {
+      validationErrors.push('No puedes ofrecer acceso a la comunidad sin tener el foro habilitado.')
+    }
+
+    // Validar Scores/Progreso
+    if (features.progressTracking && !coachFeatures.score_loading) {
+      validationErrors.push('No puedes ofrecer seguimiento de progreso sin tener carga de scores.')
+    }
+
+    // Validar Leaderboard
+    if (features.leaderboardAccess && !coachFeatures.score_database) {
+      validationErrors.push('No puedes ofrecer ranking sin tener base de datos de scores.')
+    }
+
+    // Validar Videos (si el coach no tiene almacenamiento de videos)
+    if (features.videoLibrary && !coachFeatures.video_library) {
+      validationErrors.push('No puedes ofrecer biblioteca de videos sin tener el feature habilitado.')
+    }
+
+    // Validar Live Streaming
+    if (features.liveStreaming && !coachFeatures.live_streaming) {
+      validationErrors.push('No puedes ofrecer live streaming sin tenerlo habilitado en tu plan.')
+    }
+
+    if (validationErrors.length > 0) {
+      return NextResponse.json(
+        { 
+          error: 'Features no permitidas',
+          messages: validationErrors
+        },
+        { status: 403 }
+      )
+    }
+
+    // ==========================================
+    // ASIGNAR: Planificación (heredada del coach)
+    // ==========================================
+    const planificationAccess = getPlanificationAccess(coachFeatures)
+
+    // Construir features finales (solo las permitidas)
+    const finalFeatures = {
+      // Features condicionales (solo si el coach las tiene y las solicitó)
+      whatsappSupport: coachFeatures.whatsapp_integration && features.whatsappSupport,
+      communityAccess: coachFeatures.community_forum && features.communityAccess,
+      progressTracking: coachFeatures.score_loading && features.progressTracking,
+      leaderboardAccess: coachFeatures.score_database && features.leaderboardAccess,
+      videoLibrary: coachFeatures.video_library && features.videoLibrary,
+      liveStreaming: coachFeatures.live_streaming && features.liveStreaming,
+      
+      // // Features libres (no dependen del plan del coach)
+      // nutritionPlan: features.nutritionPlan || false,
+      // prioritySupport: features.prioritySupport || false,
+      // groupClasses: features.groupClasses || false,
+      // achievements: features.achievements || false,
+      
+      // El coach siempre tiene timer
+      timerAccess: true
+    }
+
+    // Crear el plan
     const plan = await prisma.subscriptionPlan.create({
       data: {
         name,
@@ -121,9 +275,11 @@ export async function POST(request: NextRequest) {
         price,
         currency,
         interval,
-        features: features || [],
+        tier: requestedTier,
+        planificationAccess,
+        features: finalFeatures,
         isActive: is_active,
-        coachId: coachId // Asociar el plan al coach
+        coachId: coachId
       }
     })
 
@@ -135,17 +291,24 @@ export async function POST(request: NextRequest) {
       price: Number(plan.price),
       currency: plan.currency,
       interval: plan.interval,
+      tier: plan.tier,
+      planificationAccess: plan.planificationAccess,
       features: plan.features,
       is_active: plan.isActive,
       created_at: plan.createdAt.toISOString(),
       updated_at: plan.updatedAt.toISOString()
     }
 
-    return NextResponse.json(serializedPlan)
+    return NextResponse.json({
+      success: true,
+      plan: serializedPlan,
+      remainingPlans: coachPlan.maxStudentPlans - (currentPlansCount + 1)
+    })
+
   } catch (error: any) {
     console.error('Error creating subscription plan:', error)
     return NextResponse.json(
-      { error: 'Error al crear el plan' },
+      { error: 'Error al crear el plan', message: error.message },
       { status: 500 }
     )
   }

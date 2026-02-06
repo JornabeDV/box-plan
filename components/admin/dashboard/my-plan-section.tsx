@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -19,7 +18,10 @@ import {
   AlertCircle,
   Info,
 } from "lucide-react";
-import { useCoachPlanFeatures } from "@/hooks/use-coach-plan-features";
+import {
+  useCoachPlanFeatures,
+  type PlanificationAccess,
+} from "@/hooks/use-coach-plan-features";
 import Link from "next/link";
 import { useDisciplines } from "@/hooks/use-disciplines";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
@@ -36,8 +38,14 @@ interface MyPlanSectionProps {
 }
 
 export function MyPlanSection({ coachId }: MyPlanSectionProps) {
-  const { planInfo, loading, error, maxDisciplines, hasFeature } =
-    useCoachPlanFeatures();
+  const {
+    planInfo,
+    loading,
+    error,
+    maxDisciplines,
+    planificationAccess,
+    hasFeature,
+  } = useCoachPlanFeatures();
   const { disciplines } = useDisciplines(coachId);
   const { users } = useDashboardData(coachId);
 
@@ -60,9 +68,7 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
           <h3 className="text-lg font-semibold mb-2">
             Error al cargar información del plan
           </h3>
-          <p className="text-muted-foreground">
-            {error}
-          </p>
+          <p className="text-muted-foreground">{error}</p>
         </CardContent>
       </Card>
     );
@@ -78,12 +84,11 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
             No tienes un plan activo
           </h3>
           <p className="text-muted-foreground mb-4">
-            Para acceder a las funcionalidades del dashboard, necesitas activar un plan de suscripción.
+            Para acceder a las funcionalidades del dashboard, necesitas activar
+            un plan de suscripción.
           </p>
           <Link href="/pricing/coaches">
-            <Button variant="default">
-              Ver Planes Disponibles
-            </Button>
+            <Button variant="default">Ver Planes Disponibles</Button>
           </Link>
         </CardContent>
       </Card>
@@ -111,6 +116,20 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
       ? Math.min((currentStudents / maxStudents) * 100, 100)
       : 0;
 
+  // Helper para obtener label de planificación
+  const getPlanificationLabel = (access: PlanificationAccess) => {
+    switch (access) {
+      case "daily":
+        return "Planificación Diaria";
+      case "monthly":
+        return "Planificación Mensual";
+      case "unlimited":
+        return "Planificación Ilimitada";
+      default:
+        return "Planificación";
+    }
+  };
+
   // Características del plan
   const features = [
     {
@@ -120,24 +139,10 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
       enabled: planInfo.features.dashboard_custom,
     },
     {
-      key: "daily_planification",
-      label: "Planificación Diaria",
+      key: "planification_access",
+      label: getPlanificationLabel(planificationAccess),
       icon: Calendar,
-      enabled: planInfo.features.daily_planification,
-    },
-    {
-      key: "planification_monthly",
-      label: "Planificación Mensual",
-      icon: Calendar,
-      enabled:
-        planInfo.features.planification_monthly ||
-        planInfo.features.planification_unlimited,
-    },
-    {
-      key: "planification_unlimited",
-      label: "Planificación Ilimitada",
-      icon: Calendar,
-      enabled: planInfo.features.planification_unlimited,
+      enabled: true, // Siempre habilitado, muestra el tipo de acceso
     },
     {
       key: "score_loading",
@@ -206,8 +211,8 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
                     planInfo.planName === "elite"
                       ? "bg-yellow-500"
                       : planInfo.planName === "power"
-                      ? "bg-purple-500"
-                      : "bg-blue-500"
+                        ? "bg-purple-500"
+                        : "bg-blue-500"
                   }`}
                 >
                   {planInfo.displayName}
@@ -287,21 +292,20 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
           </div>
 
           {/* Planificación */}
-          {planInfo.features.planification_weeks &&
-            planInfo.features.planification_weeks > 0 && (
-              <div className="p-4 bg-muted rounded-lg">
-                <div className="flex items-center gap-2 mb-1">
-                  <Calendar className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">
-                    Semanas de Planificación
-                  </span>
-                </div>
-                <p className="text-lg font-semibold">
-                  {planInfo.features.planification_weeks} semana
-                  {planInfo.features.planification_weeks !== 1 ? "s" : ""}
-                </p>
-              </div>
-            )}
+          <div className="p-4 bg-muted rounded-lg">
+            <div className="flex items-center gap-2 mb-1">
+              <Calendar className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-medium">
+                Acceso a Planificación
+              </span>
+            </div>
+            <p className="text-lg font-semibold capitalize">
+              {planificationAccess === "daily" && "Diaria (solo hoy)"}
+              {planificationAccess === "monthly" && "Mensual (mes completo)"}
+              {planificationAccess === "unlimited" &&
+                "Ilimitada (histórico completo)"}
+            </p>
+          </div>
         </CardContent>
       </Card>
 
