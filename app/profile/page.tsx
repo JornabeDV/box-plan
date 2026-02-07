@@ -535,9 +535,9 @@ export default function ProfilePage() {
                   <div className="p-3 bg-muted/50 rounded-lg mt-6 sm:mt-8 border border-border">
                     <div className="flex items-start gap-2">
                       <div className="text-sm text-muted-foreground">
-                        <p>{lockStatus.message}</p>
-                        <p className="mt-1">
-                          Podrás cambiar nuevamente el{" "}
+                        {/* <p>{lockStatus.message}</p> */}
+                        <p>
+                          Podrás cambiar de disciplina nuevamente el{" "}
                           <span className="font-semibold">
                             {format(
                               new Date(lockStatus.nextChangeDate),

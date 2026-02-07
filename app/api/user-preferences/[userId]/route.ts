@@ -108,18 +108,22 @@ export async function PUT(request: NextRequest, { params }: { params: { userId: 
       where: { userId }
     })
 
-    // Validar bloqueo mensual: solo se puede cambiar una vez por período de suscripción
-    if (activeSubscription && currentPreferences?.lastPreferenceChangeDate) {
+    // Validar bloqueo mensual: solo se aplica al cambiar DISCIPLINA
+    // Cambiar el nivel siempre está permitido
+    const isChangingDiscipline = preferredDisciplineIdNum !== null && 
+      currentPreferences?.preferredDisciplineId !== preferredDisciplineIdNum
+    
+    if (isChangingDiscipline && activeSubscription && currentPreferences?.lastPreferenceChangeDate) {
       const lastChangeDate = new Date(currentPreferences.lastPreferenceChangeDate)
       const periodStart = new Date(activeSubscription.currentPeriodStart)
 
-      // Si ya cambió las preferencias en el período actual, bloquear
+      // Si ya cambió la disciplina en el período actual, bloquear
       if (lastChangeDate >= periodStart) {
         const nextPeriodStart = new Date(activeSubscription.currentPeriodEnd)
         return NextResponse.json(
           {
-            error: 'Ya has cambiado tus preferencias este mes',
-            message: 'Solo puedes cambiar tus preferencias una vez por período de suscripción. Podrás cambiarlas nuevamente después de tu próximo pago.',
+            error: 'Ya has cambiado tu disciplina este mes',
+            message: 'Solo puedes cambiar tu disciplina una vez por período de suscripción. Podrás cambiarla nuevamente después de tu próximo pago.',
             nextChangeDate: nextPeriodStart.toISOString()
           },
           { status: 403 }
@@ -132,13 +136,16 @@ export async function PUT(request: NextRequest, { params }: { params: { userId: 
 
     const now = new Date()
 
+    // Solo actualizar lastPreferenceChangeDate si cambia la disciplina
+    const shouldUpdateChangeDate = isChangingDiscipline || !currentPreferences
+
     // Usar upsert para crear o actualizar
     const result = await prisma.userPreference.upsert({
       where: { userId },
       update: {
         preferredDisciplineId: preferredDisciplineIdNum,
         preferredLevelId: preferredLevelIdNum,
-        lastPreferenceChangeDate: now
+        lastPreferenceChangeDate: shouldUpdateChangeDate ? now : undefined
       },
       create: {
         userId,

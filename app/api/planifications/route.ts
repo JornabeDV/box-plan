@@ -158,14 +158,39 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    if (!preference || !preference.preferredDisciplineId || !preference.preferredLevelId) {
+    // Obtener nivel del query param (para cuando el usuario cambia el filtro)
+    const levelIdParam = searchParams.get('levelId')
+    let selectedLevelId: number | null = null
+
+    if (levelIdParam) {
+      selectedLevelId = parseInt(levelIdParam, 10)
+      if (isNaN(selectedLevelId)) {
+        selectedLevelId = null
+      }
+    }
+
+    // Si no hay nivel seleccionado en query param, usar el de preferencias
+    const preferredLevelId = selectedLevelId ?? preference?.preferredLevelId ?? null
+    const preferredDisciplineId = preference?.preferredDisciplineId ?? null
+
+    // Si no hay disciplina configurada, no podemos mostrar planificaciones
+    if (!preferredDisciplineId) {
       return NextResponse.json({ 
         data: null,
+        needsPreference: true,
         message: 'El usuario no tiene preferencias configuradas (discipline y level)'
       })
     }
 
-    const { preferredDisciplineId, preferredLevelId } = preference
+    // Si no hay nivel seleccionado (ni en query ni en preferencias), indicar que se necesita seleccionar
+    if (!preferredLevelId) {
+      return NextResponse.json({ 
+        data: null,
+        needsLevel: true,
+        disciplineId: preferredDisciplineId,
+        message: 'El usuario necesita seleccionar un nivel para ver las planificaciones'
+      })
+    }
 
     // Obtener la fecha del query param o usar hoy
     const dateParam = searchParams.get('date')
@@ -308,6 +333,7 @@ export async function GET(request: NextRequest) {
     if (!planification) {
       return NextResponse.json({ 
         data: null,
+        disciplineId: preferredDisciplineId,
         message: `No hay planificación para ${dateParam ? 'esa fecha' : 'hoy'} con tu disciplina y nivel`
       })
     }

@@ -240,7 +240,7 @@ export function SubscriptionStatus() {
             <Button
               variant="outline"
               size="sm"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 hidden"
               onClick={handleContactCoach}
             >
               <span className="hidden sm:inline">Gestionar Suscripción</span>
