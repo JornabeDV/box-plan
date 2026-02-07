@@ -603,7 +603,7 @@ export function PlanificationModal({
                             updateBlockTitle(block.id, e.target.value)
                           }
                           placeholder="Título del bloque (ej: Entrada en calor)"
-                          className="font-medium min-w-0 text-sm md:text-base placeholder:text-sm md:placeholder:text-base"
+                          className="font-medium min-w-0 text-sm placeholder:text-sm"
                         />
                         <Button
                           type="button"
@@ -632,7 +632,7 @@ export function PlanificationModal({
                               {isEditing ? (
                                 <>
                                   <Input
-                                    className="text-sm flex-1 h-8 font-medium min-w-0 text-sm md:text-base placeholder:text-sm md:placeholder:text-base"
+                                    className="text-sm flex-1 h-8 font-medium min-w-0 text-sm placeholder:text-sm"
                                     value={editingItemValue}
                                     onChange={(e) =>
                                       setEditingItemValue(e.target.value)
@@ -712,7 +712,7 @@ export function PlanificationModal({
                         {/* Agregar inciso */}
                         <div className="flex gap-2">
                           <Input
-                            className="text-sm min-w-0 font-medium text-sm md:text-base placeholder:text-sm md:placeholder:text-base h-auto"
+                            className="text-sm min-w-0 font-medium text-sm placeholder:text-sm h-auto"
                             value={currentBlockId === block.id ? blockItem : ""}
                             onChange={(e) => {
                               setCurrentBlockId(block.id);
@@ -774,7 +774,7 @@ export function PlanificationModal({
                   onKeyPress={(e) =>
                     e.key === "Enter" && (e.preventDefault(), addBlock())
                   }
-                  className="min-w-0 h-auto text-sm md:text-base placeholder:text-sm md:placeholder:text-base"
+                  className="min-w-0 h-auto text-sm placeholder:text-sm"
                 />
                 <Button
                   type="button"
@@ -799,7 +799,7 @@ export function PlanificationModal({
                 onChange={(e) => handleInputChange("notes", e.target.value)}
                 placeholder="Notas importantes, consideraciones especiales, etc..."
                 rows={3}
-                className="text-sm md:text-base placeholder:text-sm md:placeholder:text-base border border-color bg-input"
+                className="text-sm placeholder:text-sm border border-color bg-input"
               />
             </div>
           )}

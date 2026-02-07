@@ -529,10 +529,10 @@ export default function AdminDashboardPage() {
 
           {/* Disciplinas Tab */}
           <TabsContent value="disciplines" className="space-y-6">
-            <div className="flex items-start justify-between max-md:flex-col max-sm:gap-2 gap-4">
+            <div className="flex items-start justify-between max-md:flex-col max-sm:gap-2 gap-4 max-sm:mb-3">
               <div className="flex flex-col gap-2 items-start">
                 <h2 className="text-2xl font-bold">Disciplinas</h2>
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground sm:text-base text-sm">
                   Gestiona las disciplinas y sus niveles de categorización
                 </p>
               </div>
@@ -589,17 +589,15 @@ export default function AdminDashboardPage() {
           {/* Planes Tab */}
           <TabsContent value="plans" className="space-y-6">
             {/* Conexión con MercadoPago */}
-            <MercadoPagoConnect coachId={coachProfile?.id} />
-
-            {/* Crear y gestionar planes para alumnos */}
             <StudentPlansManager />
+            <MercadoPagoConnect coachId={coachProfile?.id} />
           </TabsContent>
 
           {/* Mi Plan Tab */}
           <TabsContent value="my-plan" className="space-y-6">
             <div className="flex flex-col gap-2 items-start">
               <h2 className="text-2xl font-bold">Mi Plan</h2>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground text-sm sm:text-base">
                 Información sobre tu plan actual y características disponibles
               </p>
             </div>

@@ -75,7 +75,7 @@ function getPlanificationAccess(features: CoachPlanFeatures | undefined): Planif
 	if (features.planification_access) {
 		return features.planification_access
 	}
-	console.log("features", features)
+
 	// Sino, mapear desde campos legacy
 	if (features.planification_unlimited) return 'unlimited'
 	if (features.planification_monthly) return 'monthly'

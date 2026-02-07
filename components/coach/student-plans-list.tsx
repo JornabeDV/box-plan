@@ -13,18 +13,9 @@ import {
   Trophy,
   Target,
   CheckCircle2,
-  Trash2,
-  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CoachPlanInfo } from "@/hooks/use-coach-plan-features";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@radix-ui/react-dialog";
-import { DialogHeader } from "../ui/dialog";
 
 interface StudentPlan {
   id: number;
@@ -78,7 +69,6 @@ export function StudentPlansList({
   onDeletePlan,
 }: StudentPlansListProps) {
   const [selectedPlan, setSelectedPlan] = useState<StudentPlan | null>(null);
-  const [planToDelete, setPlanToDelete] = useState<StudentPlan | null>(null);
 
   if (!coachPlan) {
     return (
@@ -203,7 +193,7 @@ export function StudentPlansList({
 
                 <CardContent className="space-y-4">
                   {/* Precio */}
-                  <div className="flex items-baseline gap-1">
+                  <div className="flex items-baseline gap-1 mb-2">
                     <span className="text-3xl font-bold">
                       {formatPrice(plan.price, plan.currency)}
                     </span>
@@ -213,7 +203,7 @@ export function StudentPlansList({
                   </div>
 
                   {/* Planificación */}
-                  <div className="flex items-center gap-2 text-sm">
+                  <div className="flex items-center gap-2 text-sm mb-2">
                     <Calendar className="w-4 h-4 text-muted-foreground" />
                     <span className="capitalize">
                       {plan.planificationAccess === "daily" &&
@@ -239,7 +229,7 @@ export function StudentPlansList({
                     <p className="text-xs text-muted-foreground mb-2">
                       Incluye:
                     </p>
-                    <div className="flex flex-wrap gap-1">
+                    <div className="grid grid-cols-2 gap-1">
                       {Object.entries(plan.features || {})
                         .filter(([_, value]) => value === true)
                         .slice(0, 4)
@@ -263,7 +253,7 @@ export function StudentPlansList({
 
                   {/* Botones de acción */}
                 </CardContent>
-                <div className="flex gap-2 px-6">
+                <div className="flex flex-col sm:flex-row gap-2 px-3 sm:px-6">
                   {onEditPlan && (
                     <Button
                       variant="outline"
@@ -276,11 +266,10 @@ export function StudentPlansList({
                   {onDeletePlan && (
                     <Button
                       variant="outline"
-                      size="icon"
-                      className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                      onClick={() => setPlanToDelete(plan)}
+                      className="flex-1 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                      onClick={() => onDeletePlan(plan)}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      Eliminar
                     </Button>
                   )}
                 </div>
@@ -290,45 +279,7 @@ export function StudentPlansList({
         </div>
       )}
 
-      {/* Diálogo de confirmación para eliminar */}
-      <Dialog open={!!planToDelete} onOpenChange={() => setPlanToDelete(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-destructive" />
-              ¿Eliminar plan?
-            </DialogTitle>
-            <DialogDescription>
-              Estás por eliminar el plan <strong>"{planToDelete?.name}"</strong>
-              . Esta acción no se puede deshacer.
-              {planToDelete?._count &&
-                planToDelete._count.subscriptions > 0 && (
-                  <span className="block mt-2 text-destructive">
-                    ⚠️ Este plan tiene {planToDelete._count.subscriptions}{" "}
-                    suscriptor(es) activos.
-                  </span>
-                )}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-3 mt-4">
-            <Button variant="outline" onClick={() => setPlanToDelete(null)}>
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                if (planToDelete && onDeletePlan) {
-                  onDeletePlan(planToDelete);
-                  setPlanToDelete(null);
-                }
-              }}
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Eliminar Plan
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+
     </div>
   );
 }

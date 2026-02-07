@@ -111,7 +111,7 @@ export function CoachSelector({ userId, onSelect, onSkip }: CoachSelectorProps) 
 						placeholder="Buscar por nombre..."
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
-						className="pl-10"
+						className="pl-10 text-sm placeholder:text-sm"
 					/>
 				</div>
 

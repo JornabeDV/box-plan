@@ -136,6 +136,7 @@ export function CoachSignUpForm({ onSuccess, onSwitchToLogin }: CoachSignUpFormP
 							name="fullName"
 							type="text"
 							placeholder="Tu nombre completo"
+              className="text-sm placeholder:text-sm"
 							value={formData.fullName}
 							onChange={handleChange}
 							required
@@ -150,6 +151,7 @@ export function CoachSignUpForm({ onSuccess, onSwitchToLogin }: CoachSignUpFormP
 							name="email"
 							type="email"
 							placeholder="tu@email.com"
+              className="text-sm placeholder:text-sm"
 							value={formData.email}
 							onChange={handleChange}
 							required
@@ -164,6 +166,7 @@ export function CoachSignUpForm({ onSuccess, onSwitchToLogin }: CoachSignUpFormP
 							name="businessName"
 							type="text"
 							placeholder="Ej: CrossFit Box"
+              className="text-sm placeholder:text-sm"
 							value={formData.businessName}
 							onChange={handleChange}
 							disabled={loading}
@@ -177,6 +180,7 @@ export function CoachSignUpForm({ onSuccess, onSwitchToLogin }: CoachSignUpFormP
 							name="phone"
 							type="tel"
 							placeholder="+54 9 11 1234-5678"
+              className="text-sm placeholder:text-sm"
 							value={formData.phone}
 							onChange={handleChange}
 							disabled={loading}
@@ -190,6 +194,7 @@ export function CoachSignUpForm({ onSuccess, onSwitchToLogin }: CoachSignUpFormP
 							name="address"
 							type="text"
 							placeholder="Dirección de tu box/gimnasio"
+							className="text-sm placeholder:text-sm"
 							value={formData.address}
 							onChange={handleChange}
 							disabled={loading}
@@ -204,6 +209,7 @@ export function CoachSignUpForm({ onSuccess, onSwitchToLogin }: CoachSignUpFormP
 								name="password"
 								type={showPassword ? 'text' : 'password'}
 								placeholder="Mínimo 6 caracteres"
+								className="text-sm placeholder:text-sm"
 								value={formData.password}
 								onChange={handleChange}
 								required
@@ -234,6 +240,7 @@ export function CoachSignUpForm({ onSuccess, onSwitchToLogin }: CoachSignUpFormP
 								name="confirmPassword"
 								type={showConfirmPassword ? 'text' : 'password'}
 								placeholder="Confirma tu contraseña"
+								className="text-sm placeholder:text-sm"
 								value={formData.confirmPassword}
 								onChange={handleChange}
 								required

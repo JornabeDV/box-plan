@@ -267,8 +267,8 @@ export function MotivationalQuotesManager({
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="min-w-0 flex-1">
-              <CardTitle className="flex items-center gap-2">
+            <div className="min-w-0 flex flex-col gap-3">
+              <CardTitle className="flex items-center gap-2 leading-tight">
                 <MessageSquare className="h-5 w-5" />
                 Frases Motivacionales Personalizadas
               </CardTitle>
@@ -291,14 +291,10 @@ export function MotivationalQuotesManager({
         </CardHeader>
         <CardContent>
           {quotes.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground mb-4">
+            <div className="text-center">
+              <p className="text-sm sm:text-base text-muted-foreground mb-4">
                 No has creado ninguna frase motivacional aún
               </p>
-              <Button onClick={handleCreate}>
-                <Plus className="h-4 w-4 mr-2" />
-                Crear primera frase
-              </Button>
             </div>
           ) : (
             <div className="space-y-3">
@@ -354,7 +350,7 @@ export function MotivationalQuotesManager({
 
       {/* Modal para crear/editar */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg">
           <DialogHeader>
             <DialogTitle>
               {selectedQuote ? "Editar Frase" : "Nueva Frase Motivacional"}
@@ -373,6 +369,7 @@ export function MotivationalQuotesManager({
                   setFormData({ ...formData, quote: e.target.value })
                 }
                 placeholder="Ej: El único entrenamiento malo es el que no haces. ¡Vamos!"
+                className="text-sm placeholder:text-sm border border-border bg-input"
                 rows={3}
                 maxLength={500}
               />
@@ -409,7 +406,7 @@ export function MotivationalQuotesManager({
               <Label htmlFor="isActive">Activa</Label>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="max-sm:flex-col">
             <Button
               variant="outline"
               onClick={() => setIsModalOpen(false)}

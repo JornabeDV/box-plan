@@ -100,7 +100,7 @@ export function DisciplinesList({
         <Input
           placeholder="Buscar disciplinas o niveles..."
           value={searchQuery}
-          className="pl-10 text-sm md:text-base placeholder:text-sm md:placeholder:text-base"
+          className="pl-10 text-sm placeholder:text-sm"
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>

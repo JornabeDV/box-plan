@@ -98,8 +98,8 @@ export function UserCard({
 
   return (
     <>
-    <Card className="overflow-hidden">
-      <CardHeader>
+    <Card className="overflow-hidden max-sm:py-3 gap-3 sm:gap-6">
+      <CardHeader className='max-sm:px-3'>
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div className="flex items-center space-x-3 min-w-0 flex-1">
             <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
@@ -152,7 +152,7 @@ export function UserCard({
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className='max-sm:px-3'>
         <div className="space-y-2">
           <div className="flex items-center text-sm text-muted-foreground">
             <Calendar className="h-4 w-4 mr-2" />
@@ -203,7 +203,7 @@ export function UserCard({
           )}
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-4 pt-4 border-t">
-          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-between">
             {!user.has_subscription ? (
               plans.length > 0 ? (
                 <Button

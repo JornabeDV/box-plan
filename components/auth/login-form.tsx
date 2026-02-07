@@ -115,7 +115,7 @@ export function LoginForm({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="text-sm md:text-base placeholder:text-sm md:placeholder:text-base"
+              className="text-sm placeholder:text-sm"
               disabled={loading}
             />
           </div>
@@ -131,7 +131,7 @@ export function LoginForm({
                 placeholder="Tu contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="text-sm md:text-base placeholder:text-sm md:placeholder:text-base"
+                className="text-sm placeholder:text-sm"
                 required
                 disabled={loading}
               />

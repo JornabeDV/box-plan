@@ -203,11 +203,10 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="min-w-0 flex-1">
-              <CardTitle className="text-2xl mb-2">Mi Plan</CardTitle>
+            <div className="min-w-0 flex sm:flex-col max-sm:items-start max-sm:justify-between">
               <div className="flex flex-wrap items-center gap-3">
                 <Badge
-                  className={`text-lg px-3 py-1 ${
+                  className={`text-sm sm:text-base px-2 sm:px-3 py-1 ${
                     planInfo.planName === "elite"
                       ? "bg-yellow-500"
                       : planInfo.planName === "power"
@@ -228,7 +227,7 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
                 {planInfo.isActive && !planInfo.isTrial && (
                   <Badge
                     variant="outline"
-                    className="text-green-600 border-green-600"
+                    className="text-green-600 border-green-600 text-sm sm:text-base px-2 sm:px-3 py-1"
                   >
                     Activo
                   </Badge>
@@ -248,7 +247,7 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 px-3 md:px-6">
           {/* Logo del Coach */}
           <div className="pb-4 border-b">
             <CoachLogoUploadInline />
@@ -292,7 +291,7 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
           </div>
 
           {/* Planificación */}
-          <div className="p-4 bg-muted rounded-lg">
+          <div className="bg-muted rounded-lg">
             <div className="flex items-center gap-2 mb-1">
               <Calendar className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm font-medium">
@@ -345,7 +344,7 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
               </TooltipContent>
             </Tooltip>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground">
             {enabledFeatures.length} de {features.length} características
             disponibles
           </p>

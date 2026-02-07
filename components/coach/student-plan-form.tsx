@@ -209,7 +209,7 @@ export function StudentPlanForm({
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
                 }
-                className="text-sm md:text-base placeholder:text-sm md:placeholder:text-base"
+                className="text-sm placeholder:text-sm"
                 placeholder="Ej: Plan Pro Mensual"
                 disabled={!isEditing && !canCreateMore}
               />
@@ -230,7 +230,7 @@ export function StudentPlanForm({
                   })
                 }
                 placeholder="10000"
-                className="text-sm md:text-base placeholder:text-sm md:placeholder:text-base"
+                className="text-sm placeholder:text-sm"
                 disabled={!isEditing && !canCreateMore}
               />
             </div>
@@ -283,7 +283,7 @@ export function StudentPlanForm({
               }
               placeholder="Describe qué incluye este plan..."
               rows={3}
-              className="border border-border bg-input text-sm md:text-base placeholder:text-sm md:placeholder:text-base"
+              className="border border-border bg-input text-sm placeholder:text-sm"
               disabled={!canCreateMore}
             />
           </div>

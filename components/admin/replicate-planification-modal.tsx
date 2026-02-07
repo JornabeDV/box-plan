@@ -161,7 +161,7 @@ export function ReplicatePlanificationModal({
               {targetDate ? (
                 format(targetDate, "PPP", { locale: es })
               ) : (
-                <span className="text-sm md:text-base placeholder:text-sm md:placeholder:text-base">Seleccionar fecha</span>
+                <span className="text-sm placeholder:text-sm">Seleccionar fecha</span>
               )}
             </button>
 

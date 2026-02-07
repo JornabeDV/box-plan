@@ -13,6 +13,7 @@ import { StudentPlansList } from "./student-plans-list";
 import { StudentPlanForm, type StudentPlanFormData } from "./student-plan-form";
 import { useCoachPlanFeatures } from "@/hooks/use-coach-plan-features";
 import { Loader2 } from "lucide-react";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 interface StudentPlan {
   id: number;
@@ -31,7 +32,6 @@ interface StudentPlan {
 }
 
 export function StudentPlansManager() {
-  console.log("StudentPlansManager RENDER");
   const {
     planInfo,
     loading: planLoading,
@@ -41,9 +41,9 @@ export function StudentPlansManager() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingPlan, setEditingPlan] = useState<StudentPlan | null>(null);
-
-  console.log("planInfo:", planInfo);
-  console.log("planLoading:", planLoading);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [planToDelete, setPlanToDelete] = useState<StudentPlan | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Cargar planes existentes
   useEffect(() => {
@@ -53,10 +53,8 @@ export function StudentPlansManager() {
   const loadPlans = async () => {
     try {
       const response = await fetch("/api/subscription-plans");
-      console.log("API Response status:", response.status);
       if (response.ok) {
         const data = await response.json();
-        console.log("API Data:", data);
         setPlans(data);
       } else {
         console.error("API Error:", await response.text());
@@ -148,11 +146,22 @@ export function StudentPlansManager() {
     setEditingPlan(null);
   };
 
-  const handleDeletePlan = async (plan: StudentPlan) => {
+  const handleDeletePlan = (plan: StudentPlan) => {
+    setPlanToDelete(plan);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!planToDelete) return;
+
+    setDeleting(true);
     try {
-      const response = await fetch(`/api/subscription-plans/${plan.id}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `/api/subscription-plans/${planToDelete.id}`,
+        {
+          method: "DELETE",
+        },
+      );
 
       const data = await response.json();
 
@@ -164,9 +173,11 @@ export function StudentPlansManager() {
 
       toast({
         title: "Plan eliminado",
-        description: `El plan "${plan.name}" ha sido eliminado exitosamente.`,
+        description: `El plan "${planToDelete.name}" ha sido eliminado exitosamente.`,
       });
 
+      setShowDeleteDialog(false);
+      setPlanToDelete(null);
       loadPlans(); // Recargar lista
     } catch (error: any) {
       toast({
@@ -174,6 +185,8 @@ export function StudentPlansManager() {
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -185,25 +198,30 @@ export function StudentPlansManager() {
     );
   }
 
+  // Filtrar solo planes activos para el conteo y visualización
+  const activePlans = plans.filter((plan) => plan.isActive);
+  const activePlansCount = activePlans.length;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Planes para Alumnos</h2>
-          <p className="text-muted-foreground">
+      <div className="flex max-sm:flex-col items-center justify-between gap-4 mb-4">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-2xl font-bold">Planes para alumnos</h2>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Crea y gestiona los planes de suscripción que ofreces a tus alumnos
           </p>
         </div>
         <Button
           onClick={() => setShowForm(true)}
-          disabled={plans.length >= maxStudentPlans}
+          disabled={activePlansCount >= maxStudentPlans}
+          className="max-sm:w-full"
         >
           Crear Nuevo Plan
         </Button>
       </div>
 
       <StudentPlansList
-        plans={plans}
+        plans={activePlans}
         coachPlan={planInfo}
         onCreatePlan={() => setShowForm(true)}
         onEditPlan={handleOpenEdit}
@@ -220,13 +238,30 @@ export function StudentPlansManager() {
           </DialogHeader>
           <StudentPlanForm
             coachPlan={planInfo}
-            currentPlansCount={plans.length}
+            currentPlansCount={activePlansCount}
             editingPlan={editingPlan}
             onSubmit={editingPlan ? handleEditPlan : handleCreatePlan}
             onCancel={handleCloseForm}
           />
         </DialogContent>
       </Dialog>
+
+      {/* Diálogo de confirmación para eliminar */}
+      <ConfirmationDialog
+        open={showDeleteDialog}
+        onOpenChange={(open) => {
+          if (!deleting) {
+            setShowDeleteDialog(open);
+          }
+        }}
+        onConfirm={confirmDelete}
+        title="Eliminar Plan"
+        description={`¿Estás seguro de que quieres eliminar el plan "${planToDelete?.name}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="destructive"
+        loading={deleting}
+      />
     </div>
   );
 }

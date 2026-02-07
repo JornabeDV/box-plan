@@ -44,18 +44,12 @@ export async function GET(request: NextRequest) {
 
     const plans = await prisma.subscriptionPlan.findMany({
       where: whereClause,
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        price: true,
-        currency: true,
-        interval: true,
-        tier: true,
-        planificationAccess: true,
-        features: true,
-        isActive: true,
-        coachId: true
+      include: {
+        _count: {
+          select: {
+            subscriptions: true
+          }
+        }
       },
       orderBy: { price: 'asc' }
     })

@@ -172,7 +172,7 @@ export function SubscriptionPlanModal({
                 setFormData({ ...formData, name: e.target.value })
               }
               placeholder="Ej: Básico, Intermedio, Pro"
-              className="text-sm md:text-base placeholder:text-sm md:placeholder:text-base"
+              className="text-sm placeholder:text-sm"
               required
             />
           </div>
@@ -187,7 +187,7 @@ export function SubscriptionPlanModal({
                 setFormData({ ...formData, description: e.target.value })
               }
               placeholder="Descripción del plan"
-              className="text-sm md:text-base placeholder:text-sm md:placeholder:text-base border border-color bg-input"
+              className="text-sm placeholder:text-sm border border-color bg-input"
               rows={3}
             />
           </div>
@@ -206,7 +206,7 @@ export function SubscriptionPlanModal({
                   setFormData({ ...formData, price: e.target.value })
                 }
                 placeholder="25000"
-                className="h-[44px] text-sm md:text-base placeholder:text-sm md:placeholder:text-base"
+                className="h-[44px] text-sm placeholder:text-sm"
                 required
               />
             </div>
@@ -263,7 +263,7 @@ export function SubscriptionPlanModal({
                     handleAddFeature();
                   }
                 }}
-                className="text-sm md:text-base placeholder:text-sm md:placeholder:text-base h-auto"
+                className="text-sm placeholder:text-sm h-auto"
               />
               <Button
                 type="button"

@@ -275,7 +275,7 @@ export function DisciplineModal({
                 <Input
                   id="name"
                   value={formData.name}
-                  className="text-sm md:text-base placeholder:text-sm md:placeholder:text-base"
+                  className="text-sm placeholder:text-sm"
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, name: e.target.value }))
                   }
@@ -297,7 +297,7 @@ export function DisciplineModal({
                   }
                   placeholder="Describe brevemente esta disciplina..."
                   rows={3}
-                  className="border bg-input border-border text-sm md:text-base placeholder:text-sm md:placeholder:text-base"
+                  className="border bg-input border-border text-sm placeholder:text-sm"
                 />
               </div>
 
@@ -376,7 +376,7 @@ export function DisciplineModal({
                           <Input
                             id={`level-name-${index}`}
                             value={level.name}
-                            className="text-sm md:text-base placeholder:text-sm md:placeholder:text-base"
+                            className="text-sm placeholder:text-sm"
                             onChange={(e) =>
                               updateLevel(index, "name", e.target.value)
                             }
@@ -390,7 +390,7 @@ export function DisciplineModal({
                           <Input
                             id={`level-description-${index}`}
                             value={level.description}
-                            className="text-sm md:text-base placeholder:text-sm md:placeholder:text-base"
+                            className="text-sm placeholder:text-sm"
                             onChange={(e) =>
                               updateLevel(index, "description", e.target.value)
                             }
