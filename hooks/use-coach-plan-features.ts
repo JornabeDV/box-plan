@@ -7,16 +7,18 @@ import { normalizeUserId } from '@/lib/auth-helpers'
 const CACHE_DURATION = 5 * 60 * 1000
 const getCacheKey = (userId: string | number) => `plan_features_${userId}`
 
-export type PlanificationAccess = 'daily' | 'monthly' | 'unlimited'
+export type PlanificationAccess = 'weekly' | 'monthly' | 'unlimited'
 
 export interface CoachPlanFeatures {
 	dashboard_custom?: boolean
-	/** Tipo de acceso a planificación: 'daily' | 'monthly' | 'unlimited' */
+	/** Tipo de acceso a planificación: 'weekly' | 'monthly' | 'unlimited' */
 	planification_access?: PlanificationAccess
 	/** @deprecated Usar planification_access */
 	planification_unlimited?: boolean
 	/** @deprecated Usar planification_access */
 	planification_monthly?: boolean
+	/** @deprecated Usar planification_access */
+	weekly_planification?: boolean
 	max_disciplines?: number
 	timer?: boolean
 	score_loading?: boolean
@@ -47,7 +49,7 @@ interface UseCoachPlanFeaturesReturn {
 	error: string | null
 	hasFeature: (feature: keyof CoachPlanFeatures) => boolean
 	maxDisciplines: number
-	/** Acceso a planificación: 'daily' | 'monthly' | 'unlimited' */
+	/** Acceso a planificación: 'weekly' | 'monthly' | 'unlimited' */
 	planificationAccess: PlanificationAccess
 	canLoadMonthlyPlanifications: boolean
 	canLoadUnlimitedPlanifications: boolean
@@ -69,17 +71,19 @@ interface UseCoachPlanFeaturesReturn {
  * Obtiene el tipo de acceso a planificación del plan
  */
 function getPlanificationAccess(features: CoachPlanFeatures | undefined): PlanificationAccess {
-	if (!features) return 'daily'
+	if (!features) return 'weekly'
 	
 	// Si tiene el nuevo campo, usarlo
 	if (features.planification_access) {
 		return features.planification_access
 	}
 
-	// Sino, mapear desde campos legacy
+	// Sino, mapear desde campos legacy (daily se convierte a weekly)
 	if (features.planification_unlimited) return 'unlimited'
 	if (features.planification_monthly) return 'monthly'
-	return 'daily'
+	if (features.weekly_planification) return 'weekly'
+	// daily legacy se convierte a weekly
+	return 'weekly'
 }
 
 export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
@@ -250,7 +254,7 @@ export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 	const planificationAccess = getPlanificationAccess(planInfo?.features)
 	const canLoadMonthlyPlanifications = planificationAccess === 'monthly' || planificationAccess === 'unlimited'
 	const canLoadUnlimitedPlanifications = planificationAccess === 'unlimited'
-	const planificationWeeks = planificationAccess === 'daily' ? 1 : 0
+	const planificationWeeks = planificationAccess === 'weekly' ? 1 : 0
 	const canUseMercadoPago = hasFeature('mercadopago_connection')
 	const canUseWhatsApp = hasFeature('whatsapp_integration')
 	const canUseCommunityForum = hasFeature('community_forum')

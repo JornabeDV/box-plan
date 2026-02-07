@@ -27,7 +27,7 @@ const BOOLEAN_FEATURES = [
 ];
 
 const PLANIFICATION_OPTIONS = [
-  { value: "daily", label: "Diaria", description: "Solo el día de hoy" },
+  { value: "weekly", label: "Semanal", description: "Solo la semana actual" },
   { value: "monthly", label: "Mensual", description: "Todo el mes actual" },
   {
     value: "unlimited",
@@ -45,10 +45,10 @@ export function PredefinedFeaturesSection({
     if (features.planification_access) {
       return features.planification_access;
     }
-    // Mapear desde valores legacy
+    // Mapear desde valores legacy (daily se convierte a weekly)
     if (features.planification_unlimited) return "unlimited";
     if (features.planification_monthly) return "monthly";
-    return "daily";
+    return "weekly";
   };
 
   const handlePlanificationChange = (value: string) => {
@@ -56,10 +56,10 @@ export function PredefinedFeaturesSection({
     onFeatureChange("planification_access", value);
 
     // También actualizar los campos legacy para compatibilidad
-    onFeatureChange("daily_planification", value === "daily");
+    onFeatureChange("weekly_planification", value === "weekly");
     onFeatureChange("planification_monthly", value === "monthly");
     onFeatureChange("planification_unlimited", value === "unlimited");
-    onFeatureChange("planification_weeks", value === "daily" ? 1 : 0);
+    onFeatureChange("planification_weeks", value === "weekly" ? 1 : 0);
   };
 
   const currentAccess = getPlanificationAccess();
@@ -69,9 +69,9 @@ export function PredefinedFeaturesSection({
       <Label className="text-base font-semibold">Características</Label>
 
       {/* Selector de tipo de planificación */}
-      <div className="space-y-2 bg-muted/50 p-4 rounded-lg">
+      <div className="space-y-2 bg-muted/50 p-4 rounded-lg border border-border">
         <Label htmlFor="planification_access" className="font-medium">
-          Acceso a Planificación
+          Acceso a calendario para planificar
         </Label>
         <Select value={currentAccess} onValueChange={handlePlanificationChange}>
           <SelectTrigger id="planification_access" className="w-full">
@@ -80,7 +80,7 @@ export function PredefinedFeaturesSection({
           <SelectContent>
             {PLANIFICATION_OPTIONS.map((option) => (
               <SelectItem key={option.value} value={option.value}>
-                <div className="flex flex-col">
+                <div className="flex flex-col items-start">
                   <span>{option.label}</span>
                   <span className="text-xs text-muted-foreground">
                     {option.description}
@@ -90,13 +90,10 @@ export function PredefinedFeaturesSection({
             ))}
           </SelectContent>
         </Select>
-        <p className="text-xs text-muted-foreground">
-          Define qué tanto acceso tienen los alumnos a las planificaciones
-        </p>
       </div>
 
       {/* Features booleanas */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {BOOLEAN_FEATURES.map((feature) => (
           <div key={feature.key} className="flex items-center justify-between">
             <Label htmlFor={feature.key}>{feature.label}</Label>

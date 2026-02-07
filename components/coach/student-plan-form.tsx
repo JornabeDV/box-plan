@@ -312,8 +312,8 @@ export function StudentPlanForm({
         </div>
 
         <p className="text-sm text-muted-foreground">
-          {planificationAccess === "daily" &&
-            "📅 Diaria - Los alumnos ven solo el día de hoy"}
+          {planificationAccess === "weekly" &&
+            "📅 Semanal - Los alumnos ven la semana actual"}
           {planificationAccess === "monthly" &&
             "📆 Mensual - Los alumnos ven todo el mes"}
           {planificationAccess === "unlimited" &&

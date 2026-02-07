@@ -141,8 +141,8 @@ export function CoachPlanCard({
     if (planName === "start") {
       return [
         ...baseFeatures,
-        features.daily_planification &&
-          "Planificación diaria (con una semana para cargar)",
+        features.weekly_planification &&
+          "Planificación semanal (con una semana para cargar)",
         features.max_disciplines &&
           `Hasta ${features.max_disciplines} disciplinas`,
         features.timer && "Cronómetro con tiempos de entrenamiento",
@@ -153,9 +153,8 @@ export function CoachPlanCard({
     if (planName === "power") {
       return [
         ...baseFeatures,
-        features.daily_planification &&
-          features.planification_monthly &&
-          "Planificación diaria con cargas mensuales",
+        features.planification_monthly &&
+          "Planificación mensual (30 días para cargar)",
         features.score_loading && "Carga de score por alumno",
         features.score_database &&
           "Base de datos con las cargas de score de cada uno de tus alumnos",
@@ -173,9 +172,8 @@ export function CoachPlanCard({
     if (planName === "elite") {
       return [
         ...baseFeatures,
-        features.daily_planification &&
-          features.planification_unlimited &&
-          "Planificación diaria con cargas sin límite",
+        features.planification_unlimited &&
+          "Planificación ilimitada (sin límite de días)",
         features.score_loading && "Carga de score por alumno",
         features.score_database &&
           "Base de datos con las cargas de score de cada uno de tus alumnos",

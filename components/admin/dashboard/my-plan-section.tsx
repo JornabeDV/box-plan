@@ -119,8 +119,8 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
   // Helper para obtener label de planificación
   const getPlanificationLabel = (access: PlanificationAccess) => {
     switch (access) {
-      case "daily":
-        return "Planificación Diaria";
+      case "weekly":
+        return "Planificación Semanal";
       case "monthly":
         return "Planificación Mensual";
       case "unlimited":
@@ -299,7 +299,7 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
               </span>
             </div>
             <p className="text-lg font-semibold capitalize">
-              {planificationAccess === "daily" && "Diaria (solo hoy)"}
+              {planificationAccess === "weekly" && "Semanal (semana actual)"}
               {planificationAccess === "monthly" && "Mensual (mes completo)"}
               {planificationAccess === "unlimited" &&
                 "Ilimitada (histórico completo)"}

@@ -157,7 +157,7 @@ model SubscriptionPlan {
   currency            String  @default("ARS") @db.VarChar(10)
   interval            String  @default("month") @db.VarChar(20)
   tier                String  @default("basic") @db.VarChar(20)
-  planificationAccess String  @default("daily") @map("planification_access") @db.VarChar(20)
+  planificationAccess String  @default("weekly") @map("planification_access") @db.VarChar(20)
 
   features      Json?
   isActive      Boolean        @default(true) @map("is_active")

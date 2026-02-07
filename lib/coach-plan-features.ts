@@ -7,7 +7,7 @@ import { prisma } from './prisma'
 /**
  * Tipo de acceso a planificación para alumnos
  */
-export type PlanificationAccess = 'daily' | 'monthly' | 'unlimited'
+export type PlanificationAccess = 'weekly' | 'monthly' | 'unlimited'
 
 /**
  * Tier de planes de alumnos que puede crear un coach
@@ -24,14 +24,14 @@ export type CoachPlanSlug = 'start' | 'power' | 'elite'
  */
 export interface CoachPlanFeatures {
 	dashboard_custom?: boolean
-	/** Tipo de acceso a planificación: 'daily' | 'monthly' | 'unlimited' */
+	/** Tipo de acceso a planificación: 'weekly' | 'monthly' | 'unlimited' */
 	planification_access?: PlanificationAccess
 	/** @deprecated Usar planification_access */
 	planification_unlimited?: boolean
 	/** @deprecated Usar planification_access */
 	planification_monthly?: boolean
 	/** @deprecated Usar planification_access */
-	daily_planification?: boolean
+	weekly_planification?: boolean
 	/** @deprecated Usar planification_access */
 	planification_weeks?: number
 	max_disciplines?: number // 2 para START, 3 para POWER, 999999 para ELITE
@@ -68,8 +68,8 @@ export interface CoachPlanInfo {
 function mapLegacyPlanification(features: CoachPlanFeatures): PlanificationAccess {
 	if (features.planification_unlimited) return 'unlimited'
 	if (features.planification_monthly) return 'monthly'
-	if (features.daily_planification || features.planification_weeks === 1) return 'daily'
-	return 'daily' // default
+	if (features.weekly_planification || features.planification_weeks === 1) return 'weekly'
+	return 'weekly' // default
 }
 
 /**
@@ -80,8 +80,13 @@ export function getPlanificationAccess(features: CoachPlanFeatures): Planificati
 	if (features.planification_access) {
 		return features.planification_access
 	}
-	// Sino, mapear desde campos legacy
-	return mapLegacyPlanification(features)
+	// Sino, mapear desde campos legacy (daily se mapea a weekly)
+	if (features.planification_unlimited) return 'unlimited'
+	if (features.planification_monthly) return 'monthly'
+	if (features.weekly_planification || features.planification_weeks === 1) return 'weekly'
+	// daily legacy se convierte a weekly
+	if (features.daily_planification) return 'weekly'
+	return 'weekly' // default
 }
 
 /**
@@ -309,7 +314,7 @@ export async function getCoachPlanificationAccess(coachId: number): Promise<Plan
 	const planInfo = await getCoachActivePlan(coachId)
 	
 	if (!planInfo) {
-		return 'daily'
+		return 'weekly'
 	}
 
 	return getPlanificationAccess(planInfo.features)
@@ -367,9 +372,9 @@ export async function getCoachPlanificationWeeks(coachId: number): Promise<numbe
 		return 0
 	}
 
-	// Para compatibilidad hacia atrás, devolver 1 si es acceso diario
+	// Para compatibilidad hacia atrás, devolver 1 si es acceso semanal
 	const access = getPlanificationAccess(planInfo.features)
-	return access === 'daily' ? 1 : 0
+	return access === 'weekly' ? 1 : 0
 }
 
 /**

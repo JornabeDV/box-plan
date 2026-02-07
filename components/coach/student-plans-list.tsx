@@ -206,8 +206,8 @@ export function StudentPlansList({
                   <div className="flex items-center gap-2 text-sm mb-2">
                     <Calendar className="w-4 h-4 text-muted-foreground" />
                     <span className="capitalize">
-                      {plan.planificationAccess === "daily" &&
-                        "Planificación Diaria"}
+                      {plan.planificationAccess === "weekly" &&
+                        "Planificación Semanal"}
                       {plan.planificationAccess === "monthly" &&
                         "Planificación Mensual"}
                       {plan.planificationAccess === "unlimited" &&

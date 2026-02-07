@@ -62,7 +62,8 @@ const handlers = [
         displayName: 'Plan Básico',
         features: {
           dashboard_custom: true,
-          daily_planification: true,
+          weekly_planification: true,
+          planification_access: 'weekly',
           score_loading: false,
           max_disciplines: 3
         },
