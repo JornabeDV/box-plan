@@ -27,6 +27,8 @@ interface CoachPlansListProps {
   onRefresh: () => void;
 }
 
+const MAX_PLANS = 3;
+
 export function CoachPlansList({
   plans,
   loading,
@@ -74,6 +76,8 @@ export function CoachPlansList({
     }
   };
 
+  const plansLimitReached = plans.length >= MAX_PLANS;
+
   if (loading) {
     return (
       <Card>
@@ -114,18 +118,20 @@ export function CoachPlansList({
       {plans.map((plan) => (
         <Card key={plan.id}>
           <CardHeader>
-            <div className="flex items-start justify-between">
+            <div className="flex  items-start justify-between">
               <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
+                <div className="flex sm:items-center gap-2 sm:gap-3 max-sm:flex-col">
                   <CardTitle className="text-xl">{plan.displayName}</CardTitle>
-                  <Badge className={getPlanBadgeColor(plan.name)}>
-                    {plan.name.toUpperCase()}
-                  </Badge>
-                  {plan.isActive ? (
-                    <Badge className="bg-green-500">Activo</Badge>
-                  ) : (
-                    <Badge variant="outline">Inactivo</Badge>
-                  )}
+                  <div className="flex gap-2">
+                    <Badge className={getPlanBadgeColor(plan.name)}>
+                      {plan.name.toUpperCase()}
+                    </Badge>
+                    {plan.isActive ? (
+                      <Badge className="bg-green-500">Activo</Badge>
+                    ) : (
+                      <Badge variant="outline">Inactivo</Badge>
+                    )}
+                  </div>
                 </div>
               </div>
               <Button
@@ -139,7 +145,7 @@ export function CoachPlansList({
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-1">
                 <div className="text-sm font-medium text-muted-foreground">
                   Estudiantes
@@ -194,8 +200,17 @@ export function CoachPlansList({
       ))}
 
       {/* Botón para crear plan */}
-      <div className="flex justify-end">
-        <Button onClick={() => setShowCreateModal(true)}>
+      <div className="flex items-center justify-end gap-3">
+        {plansLimitReached && (
+          <span className="text-sm text-muted-foreground">
+            Máx. {MAX_PLANS} planes
+          </span>
+        )}
+
+        <Button
+          onClick={() => setShowCreateModal(true)}
+          disabled={plansLimitReached}
+        >
           <Plus className="w-4 h-4 mr-2" />
           Crear Plan
         </Button>

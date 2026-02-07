@@ -81,14 +81,16 @@ export function CoachesList({
           <CardHeader>
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <CardTitle className="text-xl">
+                <div className="flex max-sm:flex-col sm:items-center gap-2 sm:gap-3 mb-2">
+                  <CardTitle className="text-xl truncate">
                     {coach.businessName || coach.name || "Sin nombre"}
                   </CardTitle>
-                  {getStatusBadge(coach.accessStatus)}
-                  {getPlanBadge(coach.plan)}
+                  <div className="flex gap-2">
+                    {getStatusBadge(coach.accessStatus)}
+                    {getPlanBadge(coach.plan)}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                <div className="flex flex-wrap gap-2 sm:gap-4 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Mail className="w-4 h-4" />
                     {coach.email}
@@ -116,7 +118,7 @@ export function CoachesList({
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4">
               {coach.subscription && (
                 <div className="space-y-1">
                   <div className="text-sm font-medium text-muted-foreground">
@@ -127,7 +129,7 @@ export function CoachesList({
                     {format(
                       new Date(coach.subscription.currentPeriodStart),
                       "dd/MM/yyyy",
-                      { locale: es }
+                      { locale: es },
                     )}
                   </div>
                   <div className="text-sm">
@@ -135,7 +137,7 @@ export function CoachesList({
                     {format(
                       new Date(coach.subscription.currentPeriodEnd),
                       "dd/MM/yyyy",
-                      { locale: es }
+                      { locale: es },
                     )}
                   </div>
                 </div>

@@ -98,7 +98,7 @@ export function EditCoachPlanModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Plan: {plan.displayName}</DialogTitle>
           <DialogDescription>
