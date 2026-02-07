@@ -4,8 +4,9 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Loader2, Settings } from "lucide-react";
+import { Edit, Loader2, Settings, Plus } from "lucide-react";
 import { EditCoachPlanModal } from "./edit-coach-plan-modal";
+import { CreateCoachPlanModal } from "./create-coach-plan-modal";
 import { useToast } from "@/hooks/use-toast";
 
 interface CoachPlan {
@@ -16,6 +17,7 @@ interface CoachPlan {
   maxStudents: number;
   basePrice: number;
   commissionRate: number;
+  maxStudentPlans: number;
   features: any;
   isActive: boolean;
 }
@@ -26,6 +28,8 @@ interface CoachPlansListProps {
   onRefresh: () => void;
 }
 
+const MAX_PLANS = 3;
+
 export function CoachPlansList({
   plans,
   loading,
@@ -34,6 +38,7 @@ export function CoachPlansList({
   const { toast } = useToast();
   const [selectedPlan, setSelectedPlan] = useState<CoachPlan | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const handleEditPlan = (plan: CoachPlan) => {
     setSelectedPlan(plan);
@@ -50,6 +55,15 @@ export function CoachPlansList({
     });
   };
 
+  const handlePlanCreated = () => {
+    setShowCreateModal(false);
+    onRefresh();
+    toast({
+      title: "Plan creado",
+      description: "El plan ha sido creado exitosamente",
+    });
+  };
+
   const getPlanBadgeColor = (planName: string) => {
     switch (planName.toLowerCase()) {
       case "start":
@@ -63,6 +77,8 @@ export function CoachPlansList({
     }
   };
 
+  const plansLimitReached = plans.length >= MAX_PLANS;
+
   if (loading) {
     return (
       <Card>
@@ -75,15 +91,26 @@ export function CoachPlansList({
 
   if (plans.length === 0) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <Settings className="w-12 h-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No hay planes</h3>
-          <p className="text-muted-foreground">
-            No se encontraron planes de coaches.
-          </p>
-        </CardContent>
-      </Card>
+      <>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Settings className="w-12 h-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No hay planes</h3>
+            <p className="text-muted-foreground mb-4">
+              No se encontraron planes de coaches.
+            </p>
+            <Button onClick={() => setShowCreateModal(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Crear Plan
+            </Button>
+          </CardContent>
+        </Card>
+        <CreateCoachPlanModal
+          open={showCreateModal}
+          onOpenChange={setShowCreateModal}
+          onSuccess={handlePlanCreated}
+        />
+      </>
     );
   }
 
@@ -92,18 +119,20 @@ export function CoachPlansList({
       {plans.map((plan) => (
         <Card key={plan.id}>
           <CardHeader>
-            <div className="flex items-start justify-between">
+            <div className="flex  items-start justify-between">
               <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
+                <div className="flex sm:items-center gap-2 sm:gap-3 max-sm:flex-col">
                   <CardTitle className="text-xl">{plan.displayName}</CardTitle>
-                  <Badge className={getPlanBadgeColor(plan.name)}>
-                    {plan.name.toUpperCase()}
-                  </Badge>
-                  {plan.isActive ? (
-                    <Badge className="bg-green-500">Activo</Badge>
-                  ) : (
-                    <Badge variant="outline">Inactivo</Badge>
-                  )}
+                  <div className="flex gap-2">
+                    <Badge className={getPlanBadgeColor(plan.name)}>
+                      {plan.name.toUpperCase()}
+                    </Badge>
+                    {plan.isActive ? (
+                      <Badge className="bg-green-500">Activo</Badge>
+                    ) : (
+                      <Badge variant="outline">Inactivo</Badge>
+                    )}
+                  </div>
                 </div>
               </div>
               <Button
@@ -117,7 +146,7 @@ export function CoachPlansList({
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
               <div className="space-y-1">
                 <div className="text-sm font-medium text-muted-foreground">
                   Estudiantes
@@ -155,12 +184,20 @@ export function CoachPlansList({
               </div>
               <div className="space-y-1">
                 <div className="text-sm font-medium text-muted-foreground">
+                  Planes de Alumnos
+                </div>
+                <div className="text-sm font-semibold">
+                  {plan.maxStudentPlans || 2}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-sm font-medium text-muted-foreground">
                   Características
                 </div>
                 <div className="text-sm">
                   {plan.features && typeof plan.features === "object"
                     ? Object.keys(plan.features).filter(
-                        (key) => plan.features[key] === true
+                        (key) => plan.features[key] === true,
                       ).length
                     : 0}{" "}
                   activas
@@ -170,6 +207,30 @@ export function CoachPlansList({
           </CardContent>
         </Card>
       ))}
+
+      {/* Botón para crear plan */}
+      <div className="flex items-center justify-end gap-3">
+        {plansLimitReached && (
+          <span className="text-sm text-muted-foreground">
+            Máx. {MAX_PLANS} planes
+          </span>
+        )}
+
+        <Button
+          onClick={() => setShowCreateModal(true)}
+          disabled={plansLimitReached}
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Crear Plan
+        </Button>
+      </div>
+
+      {/* Modal para crear plan */}
+      <CreateCoachPlanModal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+        onSuccess={handlePlanCreated}
+      />
 
       {/* Modal para editar plan */}
       {showEditModal && selectedPlan && (

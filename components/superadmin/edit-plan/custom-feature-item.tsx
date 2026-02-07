@@ -33,7 +33,7 @@ export function CustomFeatureItem({
 
   return (
     <div className="flex items-center gap-2 p-3 border rounded-lg">
-      <div className="flex-1 grid grid-cols-3 gap-2">
+      <div className="flex-1 grid grid-cols-[3fr_1fr_1fr] gap-2">
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">Nombre</Label>
           <div className="text-sm font-medium">{featureKey}</div>

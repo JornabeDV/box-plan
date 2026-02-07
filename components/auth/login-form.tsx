@@ -92,9 +92,6 @@ export function LoginForm({
         <CardTitle className="text-2xl font-bold text-white">
           Iniciar Sesión
         </CardTitle>
-        <CardDescription className="text-gray-400">
-          Ingresa a tu cuenta de Box Plan
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -118,6 +115,7 @@ export function LoginForm({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              className="text-sm placeholder:text-sm"
               disabled={loading}
             />
           </div>
@@ -133,6 +131,7 @@ export function LoginForm({
                 placeholder="Tu contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="text-sm placeholder:text-sm"
                 required
                 disabled={loading}
               />

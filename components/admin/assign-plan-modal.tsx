@@ -112,12 +112,9 @@ export function AssignPlanModal({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-md">
+			<DialogContent className="sm:max-w-md max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg">
 				<DialogHeader>
 					<DialogTitle>Asignar Plan de Suscripción</DialogTitle>
-					<DialogDescription>
-						Asignar un plan de suscripción a {user.full_name || user.email}
-					</DialogDescription>
 				</DialogHeader>
 
 				<form onSubmit={handleSubmit} className="space-y-4">
@@ -204,7 +201,7 @@ export function AssignPlanModal({
 					)}
 
 					{/* Botones de acción */}
-					<div className="flex justify-end gap-2 pt-4">
+					<div className="flex max-sm:flex-col justify-end gap-2 pt-4">
 						<Button
 							type="button"
 							variant="outline"

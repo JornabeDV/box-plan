@@ -140,14 +140,14 @@ export function ChangePlanModal({
               <SelectTrigger>
                 <SelectValue placeholder="Selecciona un plan" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="w-full">
                 {plans.map((plan) => (
-                  <SelectItem key={plan.id} value={plan.id.toString()}>
-                    {plan.displayName} -{" "}
-                    {plan.maxStudents === 999999
-                      ? "Ilimitados"
-                      : `Hasta ${plan.maxStudents}`}{" "}
-                    estudiantes - {plan.commissionRate}% comisión
+                  <SelectItem
+                    key={plan.id}
+                    value={plan.id.toString()}
+                    className="w-full"
+                  >
+                    {plan.displayName}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -163,6 +163,7 @@ export function ChangePlanModal({
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 required
+                className="text-sm placeholder:text-sm"
               />
             </div>
             <div className="space-y-2">
@@ -173,20 +174,23 @@ export function ChangePlanModal({
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 required
+                className="text-sm placeholder:text-sm"
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex gap-2 pt-4 w-full">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={loading}
+              className="flex-1"
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading}>
+
+            <Button type="submit" disabled={loading} className="flex-1">
               {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Actualizar Plan
             </Button>

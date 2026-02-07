@@ -27,7 +27,7 @@ import { PlanificationModal } from "@/components/admin/planification-modal";
 import { PlanificationCalendar } from "@/components/admin/planification-calendar";
 import { PlanificationDayModal } from "@/components/admin/planification-day-modal";
 import { ReplicatePlanificationModal } from "@/components/admin/replicate-planification-modal";
-import { SubscriptionPlansList } from "@/components/admin/subscription-plans-list";
+import { StudentPlansManager } from "@/components/coach/student-plans-manager";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { DashboardHeader } from "@/components/admin/dashboard/dashboard-header";
 import { TrialBanner } from "@/components/admin/dashboard/trial-banner";
@@ -115,9 +115,14 @@ export default function AdminDashboardPage() {
       const tabParam = params.get("tab");
       if (
         tabParam &&
-        ["overview", "disciplines", "planning", "users", "plans"].includes(
-          tabParam
-        )
+        [
+          "overview",
+          "disciplines",
+          "planning",
+          "users",
+          "plans",
+          "my-plan",
+        ].includes(tabParam)
       ) {
         setActiveTab(tabParam);
         // Limpiar URL después de establecer el tab
@@ -128,6 +133,11 @@ export default function AdminDashboardPage() {
       }
     }
   }, []);
+
+  // Handler para cambiar tab con debug
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
 
   // Handlers para disciplinas
   const handleDisciplineSubmit = async (data: any) => {
@@ -181,7 +191,7 @@ export default function AdminDashboardPage() {
     if (deleteDisciplineDialog.selectedItem) {
       const result = await handleCRUDOperation(
         () => deleteDiscipline(deleteDisciplineDialog.selectedItem.id),
-        () => deleteDisciplineDialog.close()
+        () => deleteDisciplineDialog.close(),
       );
 
       if (result.error) {
@@ -206,12 +216,12 @@ export default function AdminDashboardPage() {
   };
 
   const handlePlanificationSubmit = async (
-    data: any
+    data: any,
   ): Promise<{ error?: string }> => {
     const operation = planificationModal.selectedItem
       ? () =>
           updatePlanification(planificationModal.selectedItem.id, data).then(
-            (r) => ({ error: r.error || undefined })
+            (r) => ({ error: r.error || undefined }),
           )
       : () =>
           createPlanification({ ...data, coach_id: profileId }).then((r) => ({
@@ -234,7 +244,7 @@ export default function AdminDashboardPage() {
     if (deleteDialog.selectedItem) {
       await handleCRUDOperation(
         () => deletePlanification(deleteDialog.selectedItem.id),
-        () => deleteDialog.close()
+        () => deleteDialog.close(),
       );
     }
   };
@@ -262,8 +272,8 @@ export default function AdminDashboardPage() {
       () => deletePlanification(planificationId),
       () =>
         setDayPlanifications((prev) =>
-          prev.filter((p) => p.id !== planificationId)
-        )
+          prev.filter((p) => p.id !== planificationId),
+        ),
     );
   };
 
@@ -284,7 +294,7 @@ export default function AdminDashboardPage() {
 
   const handleReplicateConfirm = async (
     targetDate: Date,
-    replaceExisting: boolean
+    replaceExisting: boolean,
   ) => {
     if (!replicateModal.selectedItem) return;
     if (!profileId) {
@@ -351,6 +361,8 @@ export default function AdminDashboardPage() {
             planification.is_active !== undefined
               ? planification.is_active
               : true,
+          is_personalized: false,
+          target_user_id: null,
         };
 
         const result = await createPlanification(newPlanificationData);
@@ -398,7 +410,7 @@ export default function AdminDashboardPage() {
 
   // Estados de carga y acceso
   // Si no hay sesión (logout o no autenticado), no mostrar nada (el redirect ya está en proceso)
-  if (sessionStatus === 'unauthenticated' || (!authLoading && !user)) {
+  if (sessionStatus === "unauthenticated" || (!authLoading && !user)) {
     return null;
   }
 
@@ -440,7 +452,7 @@ export default function AdminDashboardPage() {
       <div className="container mx-auto px-4 py-8">
         <Tabs
           value={activeTab}
-          onValueChange={setActiveTab}
+          onValueChange={handleTabChange}
           className="space-y-6"
         >
           <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 gap-1 h-auto p-1">
@@ -517,10 +529,10 @@ export default function AdminDashboardPage() {
 
           {/* Disciplinas Tab */}
           <TabsContent value="disciplines" className="space-y-6">
-            <div className="flex items-start justify-between max-md:flex-col max-sm:gap-2 gap-4">
+            <div className="flex items-start justify-between max-md:flex-col max-sm:gap-2 gap-4 max-sm:mb-3">
               <div className="flex flex-col gap-2 items-start">
                 <h2 className="text-2xl font-bold">Disciplinas</h2>
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground sm:text-base text-sm">
                   Gestiona las disciplinas y sus niveles de categorización
                 </p>
               </div>
@@ -547,7 +559,7 @@ export default function AdminDashboardPage() {
           <TabsContent value="planning" className="space-y-6">
             <div className="flex flex-col gap-2 items-start">
               <h2 className="text-2xl font-bold">Planificaciones</h2>
-              <p className="text-muted-foreground">
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Gestiona las planificaciones de entrenamiento por disciplina y
                 nivel. Haz clic en un día del calendario para crear una nueva
                 planificación.
@@ -577,20 +589,15 @@ export default function AdminDashboardPage() {
           {/* Planes Tab */}
           <TabsContent value="plans" className="space-y-6">
             {/* Conexión con MercadoPago */}
+            <StudentPlansManager />
             <MercadoPagoConnect coachId={coachProfile?.id} />
-
-            {/* Lista de Planes */}
-            <SubscriptionPlansList
-              initialPlans={dashboardSubscriptionPlans}
-              onRefresh={refreshDashboard}
-            />
           </TabsContent>
 
           {/* Mi Plan Tab */}
           <TabsContent value="my-plan" className="space-y-6">
             <div className="flex flex-col gap-2 items-start">
               <h2 className="text-2xl font-bold">Mi Plan</h2>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground text-sm sm:text-base">
                 Información sobre tu plan actual y características disponibles
               </p>
             </div>
@@ -619,6 +626,11 @@ export default function AdminDashboardPage() {
         planification={planificationModal.selectedItem}
         selectedDate={selectedDate}
         coachId={profileId}
+        students={users.map((user) => ({
+          id: String(user.id),
+          name: user.name,
+          email: user.email,
+        }))}
         onSubmit={handlePlanificationSubmit}
       />
 

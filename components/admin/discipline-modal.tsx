@@ -107,7 +107,7 @@ export function DisciplineModal({
           description: level.description || "",
           order_index: level.order_index,
           is_active: level.is_active,
-        })) || []
+        })) || [],
       );
     } else {
       setFormData({
@@ -127,7 +127,7 @@ export function DisciplineModal({
 
     setLoading(true);
     setLoadingStep(
-      isRetry ? "Reintentando operación..." : "Preparando datos..."
+      isRetry ? "Reintentando operación..." : "Preparando datos...",
     );
     setError(null);
 
@@ -138,7 +138,7 @@ export function DisciplineModal({
       };
 
       setLoadingStep(
-        discipline ? "Actualizando disciplina..." : "Creando disciplina..."
+        discipline ? "Actualizando disciplina..." : "Creando disciplina...",
       );
 
       const result = (await onSubmit(submitData)) as { error?: string };
@@ -182,8 +182,8 @@ export function DisciplineModal({
   const updateLevel = (index: number, field: string, value: string) => {
     setLevels((prev) =>
       prev.map((level, i) =>
-        i === index ? { ...level, [field]: value } : level
-      )
+        i === index ? { ...level, [field]: value } : level,
+      ),
     );
   };
 
@@ -214,7 +214,7 @@ export function DisciplineModal({
             data.userCount
           } usuario${data.userCount !== 1 ? "s" : ""} tiene${
             data.userCount !== 1 ? "n" : ""
-          } este nivel como preferencia. Por favor, actualiza las preferencias de los usuarios antes de eliminar.`
+          } este nivel como preferencia. Por favor, actualiza las preferencias de los usuarios antes de eliminar.`,
         );
         return;
       }
@@ -226,7 +226,7 @@ export function DisciplineModal({
       // En caso de error, mostrar el modal de confirmación por seguridad
       setLevelToDelete({ index, level });
       setDeleteLevelError(
-        "Error al verificar si el nivel puede ser eliminado. Por favor, intenta nuevamente."
+        "Error al verificar si el nivel puede ser eliminado. Por favor, intenta nuevamente.",
       );
     }
   };
@@ -250,9 +250,8 @@ export function DisciplineModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl h-screen sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg m-0 sm:m-4">
-        <DialogHeader className="pb-6">
-          <DialogTitle className="flex items-center gap-2">
-            <Target className="w-5 h-5 text-primary" />
+        <DialogHeader className="pb-0 pr-0">
+          <DialogTitle className="flex max-sm:justify-center items-center gap-2">
             {discipline ? "Editar Disciplina" : "Crear Nueva Disciplina"}
           </DialogTitle>
           <DialogDescription>
@@ -276,6 +275,7 @@ export function DisciplineModal({
                 <Input
                   id="name"
                   value={formData.name}
+                  className="text-sm placeholder:text-sm"
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, name: e.target.value }))
                   }
@@ -297,7 +297,7 @@ export function DisciplineModal({
                   }
                   placeholder="Describe brevemente esta disciplina..."
                   rows={3}
-                  className="border bg-input border-border"
+                  className="border bg-input border-border text-sm placeholder:text-sm"
                 />
               </div>
 
@@ -376,6 +376,7 @@ export function DisciplineModal({
                           <Input
                             id={`level-name-${index}`}
                             value={level.name}
+                            className="text-sm placeholder:text-sm"
                             onChange={(e) =>
                               updateLevel(index, "name", e.target.value)
                             }
@@ -389,6 +390,7 @@ export function DisciplineModal({
                           <Input
                             id={`level-description-${index}`}
                             value={level.description}
+                            className="text-sm placeholder:text-sm"
                             onChange={(e) =>
                               updateLevel(index, "description", e.target.value)
                             }

@@ -29,6 +29,7 @@ import {
   FileText,
   CheckCircle,
   Copy,
+  Users,
 } from "lucide-react";
 import { Planification } from "@/hooks/use-planifications";
 
@@ -180,6 +181,12 @@ export function PlanificationDayModal({
                     <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-3 sm:gap-0">
                       <div className="space-y-2 flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
+                          {planification.is_personalized && (
+                            <Badge variant="secondary" className="text-xs bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30">
+                              <Users className="w-3 h-3 mr-1" />
+                              {planification.target_user?.name?.split(' ')[0] || 'Personalizada'}
+                            </Badge>
+                          )}
                           {planification.discipline && (
                             <Badge
                               style={{

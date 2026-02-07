@@ -93,9 +93,9 @@ export function StatsCards() {
 
   if (!adaptedPlanification) {
     return (
-      <div className="mb-6">
+      <div className="mb-0">
         <Card>
-          <CardContent className="p-4 md:p-5">
+          <CardContent>
             <div className="flex items-center gap-3 md:gap-4">
               <div className="w-12 h-12 bg-gradient-to-br from-secondary to-secondary/80 rounded-xl flex items-center justify-center shadow-lg shadow-secondary/25 flex-shrink-0">
                 <Calendar className="w-6 h-6 text-secondary-foreground" />

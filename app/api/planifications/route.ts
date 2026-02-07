@@ -60,6 +60,13 @@ export async function GET(request: NextRequest) {
               name: true,
               description: true
             }
+          },
+          targetUser: {
+            select: {
+              id: true,
+              name: true,
+              email: true
+            }
           }
         },
         orderBy: {
@@ -92,6 +99,13 @@ export async function GET(request: NextRequest) {
           notes: p.notes,
           is_active: !p.isCompleted,
           is_completed: p.isCompleted,
+          is_personalized: p.isPersonalized || false,
+          target_user_id: p.targetUserId ? String(p.targetUserId) : null,
+          target_user: p.targetUser ? {
+            id: String(p.targetUser.id),
+            name: p.targetUser.name,
+            email: p.targetUser.email
+          } : null,
           created_at: p.createdAt.toISOString(),
           updated_at: p.updatedAt.toISOString(),
           discipline: p.discipline ? {
@@ -144,14 +158,39 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    if (!preference || !preference.preferredDisciplineId || !preference.preferredLevelId) {
+    // Obtener nivel del query param (para cuando el usuario cambia el filtro)
+    const levelIdParam = searchParams.get('levelId')
+    let selectedLevelId: number | null = null
+
+    if (levelIdParam) {
+      selectedLevelId = parseInt(levelIdParam, 10)
+      if (isNaN(selectedLevelId)) {
+        selectedLevelId = null
+      }
+    }
+
+    // Si no hay nivel seleccionado en query param, usar el de preferencias
+    const preferredLevelId = selectedLevelId ?? preference?.preferredLevelId ?? null
+    const preferredDisciplineId = preference?.preferredDisciplineId ?? null
+
+    // Si no hay disciplina configurada, no podemos mostrar planificaciones
+    if (!preferredDisciplineId) {
       return NextResponse.json({ 
         data: null,
+        needsPreference: true,
         message: 'El usuario no tiene preferencias configuradas (discipline y level)'
       })
     }
 
-    const { preferredDisciplineId, preferredLevelId } = preference
+    // Si no hay nivel seleccionado (ni en query ni en preferencias), indicar que se necesita seleccionar
+    if (!preferredLevelId) {
+      return NextResponse.json({ 
+        data: null,
+        needsLevel: true,
+        disciplineId: preferredDisciplineId,
+        message: 'El usuario necesita seleccionar un nivel para ver las planificaciones'
+      })
+    }
 
     // Obtener la fecha del query param o usar hoy
     const dateParam = searchParams.get('date')
@@ -190,14 +229,15 @@ export async function GET(request: NextRequest) {
     const nextDayStr = new Date(year, month - 1, day + 1).toISOString().split('T')[0]
     const endOfDay = normalizeDateForArgentina(nextDayStr)
 
-    const planification = await prisma.planification.findFirst({
+    // PASO 1: Buscar planificación PERSONALIZADA para este usuario
+    const personalizedPlanification = await prisma.planification.findFirst({
       where: {
         coachId: coachId,
-        disciplineId: preferredDisciplineId,
-        disciplineLevelId: preferredLevelId,
+        targetUserId: userId,
+        isPersonalized: true,
         date: {
           gte: startOfDay,
-          lt: endOfDay  // Menor que el inicio del día siguiente (excluye el día siguiente)
+          lt: endOfDay
         }
       },
       select: {
@@ -211,6 +251,8 @@ export async function GET(request: NextRequest) {
         exercises: true,
         notes: true,
         isCompleted: true,
+        isPersonalized: true,
+        targetUserId: true,
         createdAt: true,
         updatedAt: true,
         discipline: {
@@ -226,14 +268,72 @@ export async function GET(request: NextRequest) {
             name: true,
             description: true
           }
+        },
+        targetUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
         }
       },
       orderBy: { date: 'asc' }
     })
 
+    // Si hay personalizada, usarla con prioridad
+    let planification = personalizedPlanification
+
+    // PASO 2: Si no hay personalizada, buscar planificación GENERAL
+    if (!planification) {
+      planification = await prisma.planification.findFirst({
+        where: {
+          coachId: coachId,
+          disciplineId: preferredDisciplineId,
+          disciplineLevelId: preferredLevelId,
+          isPersonalized: false, // Explícitamente buscar NO personalizadas
+          date: {
+            gte: startOfDay,
+            lt: endOfDay
+          }
+        },
+        select: {
+          id: true,
+          disciplineId: true,
+          disciplineLevelId: true,
+          coachId: true,
+          date: true,
+          title: true,
+          description: true,
+          exercises: true,
+          notes: true,
+          isCompleted: true,
+          isPersonalized: true,
+          targetUserId: true,
+          createdAt: true,
+          updatedAt: true,
+          discipline: {
+            select: {
+              id: true,
+              name: true,
+              color: true
+            }
+          },
+          disciplineLevel: {
+            select: {
+              id: true,
+              name: true,
+              description: true
+            }
+          }
+        },
+        orderBy: { date: 'asc' }
+      })
+    }
+
     if (!planification) {
       return NextResponse.json({ 
         data: null,
+        disciplineId: preferredDisciplineId,
         message: `No hay planificación para ${dateParam ? 'esa fecha' : 'hoy'} con tu disciplina y nivel`
       })
     }
@@ -247,6 +347,13 @@ export async function GET(request: NextRequest) {
       ...planification,
       blocks: blocksData, // Agregar blocks para compatibilidad con el frontend
       exercises: exercisesData, // Mantener exercises también
+      is_personalized: planification.isPersonalized || false,
+      target_user_id: planification.targetUserId ? String(planification.targetUserId) : null,
+      target_user: (planification as any).targetUser ? {
+        id: String((planification as any).targetUser.id),
+        name: (planification as any).targetUser.name,
+        email: (planification as any).targetUser.email
+      } : null,
       discipline: planification.discipline ? {
         id: planification.discipline.id,
         name: planification.discipline.name,
@@ -289,19 +396,81 @@ export async function POST(request: NextRequest) {
     const coachId = authCheck.profile.id
     const body = await request.json()
 
-    // Validar campos requeridos
-    if (!body.discipline_id) {
+    // Nuevos campos para planificaciones personalizadas
+    const isPersonalized = body.is_personalized || false
+    const targetUserId = body.target_user_id || null
+
+    // Validación para planificaciones personalizadas
+    if (isPersonalized && !targetUserId) {
       return NextResponse.json(
-        { error: 'ID de disciplina requerido' },
+        { error: 'target_user_id es requerido para planificaciones personalizadas' },
         { status: 400 }
       )
     }
 
-    if (!body.discipline_level_id) {
-      return NextResponse.json(
-        { error: 'ID de nivel de disciplina requerido' },
-        { status: 400 }
-      )
+    // Si es personalizada, validar que el usuario sea estudiante del coach
+    if (isPersonalized && targetUserId) {
+      const targetUserIdNum = typeof targetUserId === 'string' ? parseInt(targetUserId, 10) : targetUserId
+      
+      if (isNaN(targetUserIdNum)) {
+        return NextResponse.json(
+          { error: 'target_user_id inválido' },
+          { status: 400 }
+        )
+      }
+
+      const relationship = await prisma.coachStudentRelationship.findFirst({
+        where: {
+          coachId: coachId,
+          studentId: targetUserIdNum,
+          status: 'active'
+        }
+      })
+
+      if (!relationship) {
+        return NextResponse.json(
+          { error: 'El usuario especificado no es tu estudiante' },
+          { status: 403 }
+        )
+      }
+
+      // Validar que no exista ya una planificación personalizada para ese usuario en esa fecha
+      const dateStr = typeof body.date === 'string' ? body.date : body.date.toISOString().split('T')[0]
+      const normalizedDate = normalizeDateForArgentina(dateStr)
+      
+      const existingPersonalized = await prisma.planification.findFirst({
+        where: {
+          coachId: coachId,
+          targetUserId: targetUserIdNum,
+          isPersonalized: true,
+          date: normalizedDate
+        }
+      })
+
+      if (existingPersonalized) {
+        return NextResponse.json(
+          { error: 'Ya existe una planificación personalizada para este usuario en esta fecha' },
+          { status: 409 }
+        )
+      }
+    }
+
+    // Validar campos requeridos
+    // Para personalizadas, disciplina y nivel son opcionales
+    if (!isPersonalized) {
+      if (!body.discipline_id) {
+        return NextResponse.json(
+          { error: 'ID de disciplina requerido' },
+          { status: 400 }
+        )
+      }
+
+      if (!body.discipline_level_id) {
+        return NextResponse.json(
+          { error: 'ID de nivel de disciplina requerido' },
+          { status: 400 }
+        )
+      }
     }
 
     if (!body.date) {
@@ -312,12 +481,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Preparar datos para crear
-    const disciplineIdNum = typeof body.discipline_id === 'string' ? parseInt(body.discipline_id, 10) : body.discipline_id
-    const disciplineLevelIdNum = typeof body.discipline_level_id === 'string' ? parseInt(body.discipline_level_id, 10) : body.discipline_level_id
+    const disciplineIdNum = body.discipline_id ? (typeof body.discipline_id === 'string' ? parseInt(body.discipline_id, 10) : body.discipline_id) : null
+    const disciplineLevelIdNum = body.discipline_level_id ? (typeof body.discipline_level_id === 'string' ? parseInt(body.discipline_level_id, 10) : body.discipline_level_id) : null
 
-    if (isNaN(disciplineIdNum) || isNaN(disciplineLevelIdNum)) {
+    if (disciplineIdNum && isNaN(disciplineIdNum)) {
       return NextResponse.json(
-        { error: 'IDs de disciplina o nivel inválidos' },
+        { error: 'ID de disciplina inválido' },
+        { status: 400 }
+      )
+    }
+
+    if (disciplineLevelIdNum && isNaN(disciplineLevelIdNum)) {
+      return NextResponse.json(
+        { error: 'ID de nivel de disciplina inválido' },
         { status: 400 }
       )
     }
@@ -402,6 +578,8 @@ export async function POST(request: NextRequest) {
     const exercisesData = body.blocks || body.exercises || null
 
     // Crear la planificación
+    const targetUserIdNum = targetUserId ? (typeof targetUserId === 'string' ? parseInt(targetUserId, 10) : targetUserId) : null
+    
     const created = await prisma.planification.create({
       data: {
         coachId: coachId,
@@ -412,7 +590,9 @@ export async function POST(request: NextRequest) {
         description: body.description || null,
         exercises: exercisesData ? JSON.parse(JSON.stringify(exercisesData)) : null,
         notes: body.notes || null,
-        isCompleted: body.is_completed || false
+        isCompleted: body.is_completed || false,
+        isPersonalized: isPersonalized,
+        targetUserId: targetUserIdNum
       },
       include: {
         discipline: {
@@ -427,6 +607,13 @@ export async function POST(request: NextRequest) {
             id: true,
             name: true,
             description: true
+          }
+        },
+        targetUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true
           }
         }
       }
@@ -447,8 +634,8 @@ export async function POST(request: NextRequest) {
     const transformed = {
       id: String(created.id),
       coach_id: String(created.coachId),
-      discipline_id: String(created.disciplineId),
-      discipline_level_id: String(created.disciplineLevelId),
+      discipline_id: created.disciplineId ? String(created.disciplineId) : null,
+      discipline_level_id: created.disciplineLevelId ? String(created.disciplineLevelId) : null,
       date: normalizedDateString,
       title: created.title,
       description: created.description,
@@ -457,6 +644,13 @@ export async function POST(request: NextRequest) {
       notes: created.notes,
       is_active: !created.isCompleted,
       is_completed: created.isCompleted,
+      is_personalized: created.isPersonalized || false,
+      target_user_id: created.targetUserId ? String(created.targetUserId) : null,
+      target_user: created.targetUser ? {
+        id: String(created.targetUser.id),
+        name: created.targetUser.name,
+        email: created.targetUser.email
+      } : null,
       created_at: created.createdAt.toISOString(),
       updated_at: created.updatedAt.toISOString(),
       discipline: created.discipline ? {

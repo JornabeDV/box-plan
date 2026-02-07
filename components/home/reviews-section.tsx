@@ -103,10 +103,10 @@ export function ReviewsSection({
   const useCarousel = variant === "default";
 
   return (
-    <section className={cn("py-8 md:py-12", className)}>
-      <div className="container mx-auto px-4">
+    <section>
+      <div className="container mx-auto sm:px-4">
         {showTitle && (
-          <div className="text-center mb-6">
+          <div className="text-center mb-2 sm:mb-3">
             <h2 className="text-xl md:text-2xl font-bold mb-2">
               Lo que dicen nuestros atletas
             </h2>
@@ -117,7 +117,7 @@ export function ReviewsSection({
         )}
 
         {useCarousel ? (
-          <div className="max-w-6xl mx-auto px-4 md:px-6">
+          <div className="max-w-6xl mx-auto">
             <Carousel
               opts={{
                 align: "start",

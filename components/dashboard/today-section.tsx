@@ -23,7 +23,7 @@ export function TodaySection() {
 
   return (
     <section>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-3">
         <div>
           <h2 className="text-2xl font-bold text-balance">
             Hoy, {new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}

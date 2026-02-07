@@ -26,6 +26,7 @@ interface CoachPlan {
   maxStudents: number;
   basePrice: number;
   commissionRate: number;
+  maxStudentPlans: number;
   features: any;
   isActive: boolean;
 }
@@ -66,6 +67,7 @@ export function EditCoachPlanModal({
           maxStudents: formData.maxStudents,
           basePrice: formData.basePrice,
           commissionRate: formData.commissionRate,
+          maxStudentPlans: formData.maxStudentPlans,
           features: formData.features,
           isActive: formData.isActive,
         }),
@@ -98,7 +100,7 @@ export function EditCoachPlanModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Plan: {plan.displayName}</DialogTitle>
           <DialogDescription>
@@ -114,6 +116,7 @@ export function EditCoachPlanModal({
             minStudents={formData.minStudents}
             maxStudents={formData.maxStudents}
             commissionRate={formData.commissionRate}
+            maxStudentPlans={formData.maxStudentPlans}
             onChange={updateField}
           />
 

@@ -2,6 +2,76 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
+// GET /api/disciplines/[id]
+export async function GET(
+	request: NextRequest,
+	{ params }: { params: { id: string } }
+) {
+	try {
+		const session = await auth()
+		if (!session?.user?.id) {
+			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+		}
+
+		const disciplineId = parseInt(params.id)
+		if (isNaN(disciplineId)) {
+			return NextResponse.json({ error: 'Invalid discipline ID' }, { status: 400 })
+		}
+
+		// Obtener disciplina con sus niveles
+		const discipline = await prisma.discipline.findFirst({
+			where: {
+				id: disciplineId,
+				isActive: true
+			},
+			include: {
+				levels: {
+					where: { isActive: true },
+					orderBy: { orderIndex: 'asc' }
+				}
+			}
+		})
+
+		if (!discipline) {
+			return NextResponse.json(
+				{ error: 'Disciplina no encontrada' },
+				{ status: 404 }
+			)
+		}
+
+		// Transformar al formato esperado por el frontend
+		const transformedDiscipline = {
+			id: String(discipline.id),
+			name: discipline.name,
+			description: discipline.description || undefined,
+			color: discipline.color,
+			order_index: discipline.orderIndex,
+			is_active: discipline.isActive,
+			coach_id: String(discipline.coachId),
+			created_at: discipline.createdAt.toISOString(),
+			updated_at: discipline.updatedAt.toISOString(),
+			levels: discipline.levels.map(level => ({
+				id: level.id,
+				discipline_id: String(level.disciplineId),
+				name: level.name,
+				description: level.description || undefined,
+				order_index: level.orderIndex,
+				is_active: level.isActive,
+				created_at: level.createdAt.toISOString(),
+				updated_at: level.updatedAt.toISOString()
+			}))
+		}
+
+		return NextResponse.json(transformedDiscipline)
+	} catch (error) {
+		console.error('Error fetching discipline:', error)
+		return NextResponse.json(
+			{ error: 'Error al obtener la disciplina' },
+			{ status: 500 }
+		)
+	}
+}
+
 // PATCH /api/disciplines/[id]
 export async function PATCH(
 	request: NextRequest,

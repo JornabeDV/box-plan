@@ -1,28 +1,34 @@
-'use client'
+"use client";
 
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Search } from 'lucide-react'
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Search } from "lucide-react";
 
 interface SubscriptionPlan {
-  id: string
-  name: string
-  description: string | null
-  price: number
-  currency: string
-  interval: string
-  features: any
-  is_active: boolean
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  currency: string;
+  interval: string;
+  features: any;
+  is_active: boolean;
 }
 
 interface UserFiltersProps {
-  searchQuery: string
-  onSearchChange: (query: string) => void
-  selectedPlan: string
-  onPlanChange: (plan: string) => void
-  selectedStatus: string
-  onStatusChange: (status: string) => void
-  plans: SubscriptionPlan[]
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+  selectedPlan: string;
+  onPlanChange: (plan: string) => void;
+  selectedStatus: string;
+  onStatusChange: (status: string) => void;
+  plans: SubscriptionPlan[];
 }
 
 export function UserFilters({
@@ -32,7 +38,7 @@ export function UserFilters({
   onPlanChange,
   selectedStatus,
   onStatusChange,
-  plans
+  plans,
 }: UserFiltersProps) {
   return (
     <div className="flex flex-col sm:flex-row gap-4">
@@ -42,7 +48,7 @@ export function UserFilters({
           placeholder="Buscar usuarios por nombre o email..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-10"
+          className="pl-10 text-sm placeholder:text-sm"
         />
       </div>
       <Select value={selectedPlan} onValueChange={onPlanChange}>
@@ -73,5 +79,5 @@ export function UserFilters({
         </SelectContent>
       </Select>
     </div>
-  )
+  );
 }

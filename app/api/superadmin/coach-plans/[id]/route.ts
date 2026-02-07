@@ -49,6 +49,7 @@ export async function PATCH(
 			maxStudents,
 			basePrice,
 			commissionRate,
+			maxStudentPlans,
 			features,
 			isActive
 		} = body
@@ -72,6 +73,7 @@ export async function PATCH(
 		if (maxStudents !== undefined) updateData.maxStudents = maxStudents
 		if (basePrice !== undefined) updateData.basePrice = basePrice
 		if (commissionRate !== undefined) updateData.commissionRate = commissionRate
+		if (maxStudentPlans !== undefined) updateData.maxStudentPlans = maxStudentPlans
 		if (features !== undefined) updateData.features = features
 		if (isActive !== undefined) updateData.isActive = isActive
 
@@ -91,6 +93,7 @@ export async function PATCH(
 				maxStudents: updatedPlan.maxStudents,
 				basePrice: Number(updatedPlan.basePrice),
 				commissionRate: Number(updatedPlan.commissionRate),
+				maxStudentPlans: updatedPlan.maxStudentPlans,
 				features: updatedPlan.features,
 				isActive: updatedPlan.isActive
 			}

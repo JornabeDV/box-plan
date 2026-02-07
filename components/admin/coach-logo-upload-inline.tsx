@@ -43,7 +43,7 @@ export function CoachLogoUploadInline() {
   };
 
   const handleFileSelect = async (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -194,7 +194,7 @@ export function CoachLogoUploadInline() {
             src={logoUrl}
             alt="Logo del coach"
             fill
-            className="object-contain p-2"
+            className="object-cover"
             onError={() => {
               toast({
                 title: "Error al cargar imagen",
@@ -225,7 +225,7 @@ export function CoachLogoUploadInline() {
       {/* Información y controles */}
       <div className="flex-1 flex flex-col gap-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex flex-col items-start gap-1 min-w-0">
             <span className="text-sm font-medium">Logo</span>
             {logoUrl && (
               <span className="text-xs text-muted-foreground whitespace-nowrap">

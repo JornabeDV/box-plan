@@ -129,8 +129,8 @@ export function SubscriptionPlansList({
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <h2 className="text-2xl font-bold">Planes de Suscripción</h2>
-            <p className="text-muted-foreground">
+            <h2 className="text-lg sm:text-2xl font-bold">Planes de Suscripción</h2>
+            <p className="text-muted-foreground text-sm sm:text-base">
               Gestiona los planes de suscripción disponibles para los usuarios
             </p>
           </div>
@@ -146,7 +146,7 @@ export function SubscriptionPlansList({
         {memoizedPlans.length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
-              <p className="text-muted-foreground mb-4">
+              <p className="text-sm sm:text-base text-muted-foreground mb-4">
                 No hay planes de suscripción creados
               </p>
               <Button onClick={handleCreatePlan}>

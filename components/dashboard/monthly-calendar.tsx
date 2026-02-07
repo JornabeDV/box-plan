@@ -269,18 +269,18 @@ export function MonthlyCalendar({ onDateClick }: MonthlyCalendarProps) {
         </div>
 
         {/* Leyenda */}
-        <div className="flex items-center justify-center gap-6 mt-6 pt-4 border-t border-border">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between sm:justify-center gap-2 sm:gap-6 mt-6 pt-4 border-t border-border">
+          <div className="flex items-center gap-1 sm:gap-2">
             <div className="w-3 h-3 bg-primary rounded-full"></div>
             <span className="text-xs text-muted-foreground">Hoy</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <div className="w-3 h-3 bg-accent/20 border-2 border-accent/30 rounded-full"></div>
             <span className="text-xs text-muted-foreground">
               Días de entrenamiento
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <div className="w-3 h-3 bg-background border-2 border-muted-foreground/40 rounded-full"></div>
             <span className="text-xs text-muted-foreground">Día libre</span>
           </div>

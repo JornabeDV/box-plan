@@ -8,6 +8,7 @@ interface CoachPlan {
 	maxStudents: number
 	basePrice: number
 	commissionRate: number
+	maxStudentPlans: number
 	features: any
 	isActive: boolean
 }
@@ -18,6 +19,7 @@ interface PlanFormData {
 	maxStudents: number
 	basePrice: number
 	commissionRate: number
+	maxStudentPlans: number
 	features: Record<string, any>
 	isActive: boolean
 }
@@ -29,6 +31,7 @@ export function usePlanForm(plan: CoachPlan | null, isOpen: boolean) {
 		maxStudents: 10,
 		basePrice: 0,
 		commissionRate: 0,
+		maxStudentPlans: 2,
 		features: {},
 		isActive: true
 	})
@@ -44,6 +47,7 @@ export function usePlanForm(plan: CoachPlan | null, isOpen: boolean) {
 				maxStudents: plan.maxStudents,
 				basePrice: plan.basePrice,
 				commissionRate: plan.commissionRate,
+				maxStudentPlans: plan.maxStudentPlans ?? 2,
 				features,
 				isActive: plan.isActive
 			})

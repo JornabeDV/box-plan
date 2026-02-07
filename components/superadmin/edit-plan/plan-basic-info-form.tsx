@@ -9,6 +9,7 @@ interface PlanBasicInfoFormProps {
   minStudents: number;
   maxStudents: number;
   commissionRate: number;
+  maxStudentPlans: number;
   onChange: (field: string, value: string | number) => void;
 }
 
@@ -18,6 +19,7 @@ export function PlanBasicInfoForm({
   minStudents,
   maxStudents,
   commissionRate,
+  maxStudentPlans,
   onChange,
 }: PlanBasicInfoFormProps) {
   const handleMaxStudentsChange = (value: string) => {
@@ -32,7 +34,7 @@ export function PlanBasicInfoForm({
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="displayName">Nombre para Mostrar</Label>
           <Input
@@ -40,6 +42,7 @@ export function PlanBasicInfoForm({
             value={displayName}
             onChange={(e) => onChange("displayName", e.target.value)}
             required
+            className="text-sm placeholder:text-sm"
           />
         </div>
         <div className="space-y-2">
@@ -48,6 +51,7 @@ export function PlanBasicInfoForm({
             id="basePrice"
             type="number"
             step="0.01"
+            className="text-sm placeholder:text-sm"
             value={basePrice}
             onChange={(e) =>
               onChange("basePrice", parseFloat(e.target.value) || 0)
@@ -57,12 +61,13 @@ export function PlanBasicInfoForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="minStudents">Estudiantes Mínimos</Label>
           <Input
             id="minStudents"
             type="number"
+            className="text-sm placeholder:text-sm"
             value={minStudents}
             onChange={(e) =>
               onChange("minStudents", parseInt(e.target.value) || 1)
@@ -75,6 +80,7 @@ export function PlanBasicInfoForm({
           <Input
             id="maxStudents"
             type="number"
+            className="text-sm placeholder:text-sm"
             value={maxStudents === 999999 ? "" : maxStudents}
             onChange={(e) => handleMaxStudentsChange(e.target.value)}
             placeholder="999999 para ilimitados"
@@ -96,6 +102,21 @@ export function PlanBasicInfoForm({
             }
             required
           />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="maxStudentPlans">Máx. Planes de Estudiantes</Label>
+          <Input
+            id="maxStudentPlans"
+            type="number"
+            value={maxStudentPlans}
+            onChange={(e) =>
+              onChange("maxStudentPlans", parseInt(e.target.value) || 0)
+            }
+            required
+          />
+          <p className="text-xs text-muted-foreground">
+            Cantidad de planes de suscripción que el coach puede crear
+          </p>
         </div>
       </div>
     </>

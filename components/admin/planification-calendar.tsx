@@ -21,7 +21,7 @@ interface PlanificationCalendarProps {
   onDeletePlanification?: (planificationId: string) => void;
   onViewDayPlanifications?: (
     date: Date,
-    planifications: Planification[]
+    planifications: Planification[],
   ) => void;
 }
 
@@ -136,12 +136,12 @@ export function PlanificationCalendar({
     const todayDate = new Date(
       today.getFullYear(),
       today.getMonth(),
-      today.getDate()
+      today.getDate(),
     );
     const compareDate = new Date(
       date.getFullYear(),
       date.getMonth(),
-      date.getDate()
+      date.getDate(),
     );
     return compareDate < todayDate;
   };
@@ -151,7 +151,7 @@ export function PlanificationCalendar({
     const todayDate = new Date(
       today.getFullYear(),
       today.getMonth(),
-      today.getDate()
+      today.getDate(),
     );
 
     if (canLoadUnlimitedPlanifications) {
@@ -178,12 +178,12 @@ export function PlanificationCalendar({
     const compareDate = new Date(
       date.getFullYear(),
       date.getMonth(),
-      date.getDate()
+      date.getDate(),
     );
     const todayDate = new Date(
       today.getFullYear(),
       today.getMonth(),
-      today.getDate()
+      today.getDate(),
     );
 
     // Si es pasado, no está bloqueado por esta razón (ya tiene su propia lógica)
@@ -256,7 +256,7 @@ export function PlanificationCalendar({
   }
 
   return (
-    <Card className="max-sm:gap-3">
+    <Card className="max-sm:gap-3 max-sm:py-3">
       <CardHeader className="pb-4">
         {/* Título y descripción */}
         <div className="text-center mb-4">
@@ -345,16 +345,16 @@ export function PlanificationCalendar({
                     isPast && dayPlanifications.length > 0
                       ? "bg-accent/20 text-accent hover:bg-accent/30 hover:scale-105 border-2 border-accent/30"
                       : isPast
-                      ? "bg-background border border-muted-foreground/10 text-muted-foreground opacity-50"
-                      : isBlocked && dayPlanifications.length === 0
-                      ? "bg-background border-2 border-dashed border-muted-foreground/30 text-muted-foreground opacity-50"
-                      : isBlocked && dayPlanifications.length > 0
-                      ? "bg-accent/20 text-accent hover:bg-accent/30 hover:scale-105 border-2 border-accent/30"
-                      : isCurrentDay
-                      ? "bg-primary text-primary-foreground shadow-accent animate-pulse-glow"
-                      : dayPlanifications.length > 0
-                      ? "bg-accent/20 text-accent hover:bg-accent/30 hover:scale-105 border-2 border-accent/30"
-                      : "bg-background border border-muted-foreground/20 text-muted-foreground hover:bg-muted/50"
+                        ? "bg-background border border-muted-foreground/10 text-muted-foreground opacity-50"
+                        : isBlocked && dayPlanifications.length === 0
+                          ? "bg-background border-2 border-dashed border-muted-foreground/30 text-muted-foreground opacity-50"
+                          : isBlocked && dayPlanifications.length > 0
+                            ? "bg-accent/20 text-accent hover:bg-accent/30 hover:scale-105 border-2 border-accent/30"
+                            : isCurrentDay
+                              ? "bg-primary text-primary-foreground shadow-accent animate-pulse-glow"
+                              : dayPlanifications.length > 0
+                                ? "bg-accent/20 text-accent hover:bg-accent/30 hover:scale-105 border-2 border-accent/30"
+                                : "bg-background border border-muted-foreground/20 text-muted-foreground hover:bg-muted/50"
                   }
                 `}
                 onClick={() => handleDayClick(day)}

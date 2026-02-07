@@ -184,7 +184,7 @@ export function useCurrentUserPreferences() {
 				return {
 					isLocked: true,
 					nextChangeDate: periodEnd.toISOString(),
-					message: 'Ya has cambiado tus preferencias este mes. Podrás cambiarlas nuevamente después de tu próximo pago.'
+					message: 'Ya has cambiado tus preferencias este mes.Solo puedes cambiar tu disciplina una vez por período de suscripción  Podrás cambiarlas nuevamente después de tu próximo pago.'
 				}
 			}
 

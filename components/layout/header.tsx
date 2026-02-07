@@ -14,32 +14,20 @@ export function Header({}: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 bg-muted/95 backdrop-blur-md border-b border-border/50 shadow-sm">
       <div className="flex items-center justify-between p-4 md:p-6">
-        <div className="flex items-center gap-3 md:gap-4">
+        <a
+          className="flex items-center gap-3 md:gap-4 cursor-pointer"
+          href="/profile"
+        >
           <div className="relative group">
             {/* Glow effect */}
             <div className="absolute inset-0 bg-lime-400/20 blur-xl rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
-            {/* Logo container - Mostrar logo del coach si existe, sino logo genérico */}
-            {coach?.logoUrl ? (
-              <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-xl overflow-hidden border-2 border-lime-400/30 bg-background shadow-lg shadow-lime-400/10 group-hover:shadow-lime-400/20 transition-all duration-300">
-                <Image
-                  src={coach.logoUrl}
-                  alt={coach.businessName || coach.name}
-                  fill
-                  className="object-contain p-1"
-                  onError={() => {
-                    // Si falla el logo, no hacer nada (se mantendrá el contenedor vacío)
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="relative bg-gradient-to-br from-gray-800 to-gray-900 border border-lime-400/30 rounded-2xl p-2 shadow-lg shadow-lime-400/10 group-hover:shadow-lime-400/20 transition-all duration-300">
-                <Hash className="w-5 h-5 md:w-6 md:h-6 text-lime-400" />
-              </div>
-            )}
+            <div className="relative flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-xl bg-linear-to-br from-gray-800 to-gray-900 border border-lime-400/30 text-lime-400 font-bold text-base md:text-2xl shadow-lg shadow-lime-400/10 group-hover:shadow-lime-400/20 transition-all duration-300">
+              {user?.name?.[0].toUpperCase() || "U"}
+            </div>
 
             {/* Pulse indicator */}
-            <div className="absolute -top-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-gradient-to-br from-lime-400 to-green-500 rounded-full shadow-[0_0_10px_rgba(204,255,0,0.6)] animate-pulse"></div>
+            <div className="absolute -top-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-linear-to-br from-lime-400 to-green-500 rounded-full shadow-[0_0_10px_rgba(204,255,0,0.6)] animate-pulse"></div>
           </div>
 
           <div className="min-w-0 flex-1">
@@ -50,7 +38,7 @@ export function Header({}: HeaderProps) {
               {user?.name ? `Hola, ${user.name}` : "Tu entrenamiento de hoy"}
             </p>
           </div>
-        </div>
+        </a>
 
         <div className="flex items-center gap-2 md:gap-3">
           {isCoach && (

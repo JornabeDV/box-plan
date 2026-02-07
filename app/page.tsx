@@ -679,9 +679,9 @@ export default function BoxPlanApp() {
     <div className="min-h-screen bg-background text-foreground">
       <Header />
 
-      <main className="p-6 space-y-8 pb-32 max-w-6xl mx-auto">
+      <main className="p-6 space-y-8 pb-28flex items-center justify-center gap-6 mt-6 pt-4 border-t border-border max-w-6xl mx-auto">
         {/* Saludo personalizado */}
-        <section>
+        <section className="mb-3 sm:mb-8">
           <div className="space-y-3">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-4">
               <h1 className="text-3xl md:text-4xl font-bold text-foreground">
@@ -734,7 +734,7 @@ export default function BoxPlanApp() {
 
         {/* Estadísticas rápidas - Solo para usuarios con suscripción activa */}
         {user?.id && hasActiveSubscription && (
-          <section>
+          <section className="mb-3 sm:mb-8">
             <StatsCards />
           </section>
         )}
@@ -756,14 +756,14 @@ export default function BoxPlanApp() {
 
         {/* Sección del día - Solo para usuarios con suscripción activa y con preferencias */}
         {user?.id && hasActiveSubscription && hasPreferences && (
-          <section>
+          <section className="mb-3 sm:mb-8">
             <TodaySection />
           </section>
         )}
 
         {/* Accesos rápidos - Solo para usuarios con suscripción activa y que tengan al menos un acceso disponible */}
         {user?.id && hasActiveSubscription && hasAnyQuickAccess && (
-          <section>
+          <section className="mb-3 sm:mb-8">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -811,14 +811,14 @@ export default function BoxPlanApp() {
 
         {/* Información del coach - Antes del carrusel de opiniones */}
         {user?.id && !coachLoading && userCoach && (
-          <section>
+          <section className="mb-3 sm:mb-8">
             <CoachInfoCard coach={userCoach} />
           </section>
         )}
         
         {/* Card para seleccionar coach si no tiene uno */}
         {user?.id && !coachLoading && !userCoach && !isCoach && (
-          <section>
+          <section className="mb-3 sm:mb-8">
             <CoachSelector
               userId={user.id}
               onSelect={async (coachId: number) => {
@@ -851,7 +851,7 @@ export default function BoxPlanApp() {
 
         {/* Reviews Section - Al final del dashboard */}
         {user?.id && (
-          <section>
+          <section className="mb-3 sm:mb-8">
             <ReviewsSection variant="default" />
           </section>
         )}

@@ -12,6 +12,14 @@ export interface Planification {
 		notes?: string
 	}>
 	notes?: string
+	// Campos de personalización
+	is_personalized?: boolean
+	target_user_id?: string | null
+	target_user?: {
+		id: string
+		name: string
+		email: string
+	} | null
 	discipline?: {
 		id: string
 		name: string

@@ -10,7 +10,7 @@ Este documento explica cómo funciona el sistema de validación de funcionalidad
    - Hasta 10 alumnos
    - Comisión 5%
    - Dashboard personalizado
-   - Planificación diaria (1 semana para cargar)
+   - Planificación semanal (1 semana para cargar)
    - Hasta 2 disciplinas
    - Cronómetro
 
@@ -18,7 +18,7 @@ Este documento explica cómo funciona el sistema de validación de funcionalidad
    - Hasta 30 alumnos
    - Comisión 3%
    - Dashboard personalizado
-   - Planificación diaria con cargas mensuales
+   - Planificación mensual (30 días para cargar)
    - Carga de score por alumno
    - Base de datos de scores
    - Hasta 3 disciplinas
@@ -31,7 +31,7 @@ Este documento explica cómo funciona el sistema de validación de funcionalidad
    - Alumnos ilimitados
    - Comisión 2%
    - Dashboard personalizado
-   - Planificación diaria con cargas sin límite
+   - Planificación ilimitada (sin límite de días)
    - Carga de score por alumno
    - Base de datos de scores
    - Disciplinas ilimitadas
@@ -66,7 +66,7 @@ if (currentDisciplines.length >= maxDisciplines && !currentDisciplines.some(d =>
 }
 ```
 
-### Ejemplo: Validar límite de semanas para cargar planificaciones (Plan START)
+### Ejemplo: Validar límite de semanas para cargar planificaciones (Plan START - Semanal)
 
 ```typescript
 import { getCoachPlanificationWeeks, canCoachLoadMonthlyPlanifications } from '@/lib/coach-plan-features'
@@ -75,7 +75,7 @@ const coachId = authCheck.profile.id
 const planificationWeeks = await getCoachPlanificationWeeks(coachId)
 
 if (planificationWeeks > 0) {
-  // Plan START: solo puede cargar hasta X semanas adelante
+  // Plan START (semanal): solo puede cargar hasta X semanas adelante
   const maxDate = new Date()
   maxDate.setDate(maxDate.getDate() + (planificationWeeks * 7))
   
@@ -86,13 +86,13 @@ if (planificationWeeks > 0) {
     )
   }
 } else if (!(await canCoachLoadMonthlyPlanifications(coachId))) {
-  // Si no tiene planificación mensual ni ilimitada, solo puede cargar para hoy
-  const today = new Date()
-  const planificationDate = new Date(body.date)
+  // Si no tiene planificación mensual ni ilimitada, usa semanal por defecto
+  const maxDate = new Date()
+  maxDate.setDate(maxDate.getDate() + 7) // 1 semana por defecto
   
-  if (planificationDate.toDateString() !== today.toDateString()) {
+  if (new Date(body.date) > maxDate) {
     return NextResponse.json(
-      { error: 'Tu plan solo permite cargar planificaciones para el día actual' },
+      { error: 'Tu plan solo permite cargar planificaciones hasta 1 semana adelante' },
       { status: 403 }
     )
   }
@@ -205,7 +205,6 @@ const handleAddDiscipline = () => {
 - `canCoachLoadUnlimitedPlanifications(coachId)` - Verifica si puede cargar sin límite
 - `getCoachPlanificationWeeks(coachId)` - Obtiene semanas permitidas (START)
 - `canCoachUseMercadoPago(coachId)` - Verifica acceso a MercadoPago
-- `canCoachUseVirtualWallet(coachId)` - Verifica acceso a billetera virtual
 - `canCoachUseWhatsApp(coachId)` - Verifica acceso a WhatsApp
 - `canCoachUseCommunityForum(coachId)` - Verifica acceso a foro
 - `canCoachLoadScores(coachId)` - Verifica si puede cargar scores
@@ -241,8 +240,9 @@ Obtiene las funcionalidades del plan del coach (o del coach del estudiante si es
     "displayName": "Plan Start",
     "features": {
       "dashboard_custom": true,
-      "daily_planification": true,
+      "weekly_planification": true,
       "planification_weeks": 1,
+      "planification_access": "weekly",
       "max_disciplines": 2,
       "timer": true
     },

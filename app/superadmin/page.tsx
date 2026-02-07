@@ -12,6 +12,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Users,
   BarChart3,
   Search,
@@ -27,7 +34,12 @@ import { SuperAdminHeader } from "@/components/superadmin/superadmin-header";
 import { useToast } from "@/hooks/use-toast";
 
 export default function SuperAdminPage() {
-  const { user, isAdmin, loading: authLoading, sessionStatus } = useAuthWithRoles();
+  const {
+    user,
+    isAdmin,
+    loading: authLoading,
+    sessionStatus,
+  } = useAuthWithRoles();
   const { toast } = useToast();
   const [coaches, setCoaches] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -50,7 +62,7 @@ export default function SuperAdminPage() {
       if (statusFilter !== "all") params.append("status", statusFilter);
 
       const response = await fetch(
-        `/api/superadmin/coaches?${params.toString()}`
+        `/api/superadmin/coaches?${params.toString()}`,
       );
       if (!response.ok) {
         throw new Error("Error al cargar coaches");
@@ -116,7 +128,7 @@ export default function SuperAdminPage() {
   };
 
   // Si no hay sesión (logout o no autenticado), no mostrar nada (el redirect ya está en proceso)
-  if (sessionStatus === 'unauthenticated' || (!authLoading && !user)) {
+  if (sessionStatus === "unauthenticated" || (!authLoading && !user)) {
     return null;
   }
 
@@ -204,40 +216,42 @@ export default function SuperAdminPage() {
                 <CardTitle>Filtros</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                     <Input
                       placeholder="Buscar por email, nombre o negocio..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
+                      className="pl-10 text-sm placeholder:text-sm"
                     />
                   </div>
-									<select
-										value={planFilter}
-										onChange={(e) => setPlanFilter(e.target.value)}
-										className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-									>
-										<option value="all">Todos los planes</option>
-										{coachPlans.map((plan) => (
-											<option key={plan.id} value={plan.name}>
-												{plan.displayName}
-											</option>
-										))}
-										<option value="no_plan">Sin plan</option>
-									</select>
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                  >
-                    <option value="all">Todos los estados</option>
-                    <option value="active">Activos</option>
-                    <option value="trial">En prueba</option>
-                    <option value="expired">Expirados</option>
-                    <option value="inactive">Inactivos</option>
-                  </select>
+                  <Select value={planFilter} onValueChange={setPlanFilter}>
+                    <SelectTrigger className="w-full sm:w-48">
+                      <SelectValue placeholder="Filtrar por plan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los planes</SelectItem>
+                      {coachPlans.map((plan) => (
+                        <SelectItem key={plan.id} value={plan.name}>
+                          {plan.displayName}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="no_plan">Sin plan</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full sm:w-48">
+                      <SelectValue placeholder="Filtrar por estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los estados</SelectItem>
+                      <SelectItem value="active">Activos</SelectItem>
+                      <SelectItem value="trial">En prueba</SelectItem>
+                      <SelectItem value="expired">Expirados</SelectItem>
+                      <SelectItem value="inactive">Inactivos</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
             </Card>
@@ -253,9 +267,9 @@ export default function SuperAdminPage() {
 
           {/* Plans Tab */}
           <TabsContent value="plans" className="space-y-6">
-            <div className="flex flex-col gap-2 items-start">
+            <div className="flex flex-col gap-2 items-start mb-3">
               <h2 className="text-2xl font-bold">Planes de Coaches</h2>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground text-sm sm:text-base">
                 Gestiona los planes disponibles para coaches (START, POWER,
                 ELITE)
               </p>

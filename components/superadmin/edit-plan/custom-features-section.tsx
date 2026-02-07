@@ -6,18 +6,18 @@ import { AddCustomFeatureForm } from "./add-custom-feature-form";
 
 const PREDEFINED_FEATURES = [
   "dashboard_custom",
-  "daily_planification",
+  "weekly_planification",
   "planification_monthly",
   "planification_unlimited",
   "score_loading",
   "score_database",
   "mercadopago_connection",
-  "virtual_wallet",
   "whatsapp_integration",
   "community_forum",
   "timer",
   "planification_weeks",
   "max_disciplines",
+  "planification_access",
 ];
 
 interface CustomFeaturesSectionProps {
