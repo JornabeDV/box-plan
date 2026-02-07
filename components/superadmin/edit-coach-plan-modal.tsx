@@ -26,6 +26,7 @@ interface CoachPlan {
   maxStudents: number;
   basePrice: number;
   commissionRate: number;
+  maxStudentPlans: number;
   features: any;
   isActive: boolean;
 }
@@ -66,6 +67,7 @@ export function EditCoachPlanModal({
           maxStudents: formData.maxStudents,
           basePrice: formData.basePrice,
           commissionRate: formData.commissionRate,
+          maxStudentPlans: formData.maxStudentPlans,
           features: formData.features,
           isActive: formData.isActive,
         }),
@@ -114,6 +116,7 @@ export function EditCoachPlanModal({
             minStudents={formData.minStudents}
             maxStudents={formData.maxStudents}
             commissionRate={formData.commissionRate}
+            maxStudentPlans={formData.maxStudentPlans}
             onChange={updateField}
           />
 

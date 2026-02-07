@@ -17,6 +17,7 @@ interface CoachPlan {
   maxStudents: number;
   basePrice: number;
   commissionRate: number;
+  maxStudentPlans: number;
   features: any;
   isActive: boolean;
 }
@@ -145,7 +146,7 @@ export function CoachPlansList({
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
               <div className="space-y-1">
                 <div className="text-sm font-medium text-muted-foreground">
                   Estudiantes
@@ -179,6 +180,14 @@ export function CoachPlansList({
                 </div>
                 <div className="text-sm font-semibold">
                   {plan.commissionRate}%
+                </div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-sm font-medium text-muted-foreground">
+                  Planes de Alumnos
+                </div>
+                <div className="text-sm font-semibold">
+                  {plan.maxStudentPlans || 2}
                 </div>
               </div>
               <div className="space-y-1">

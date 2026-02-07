@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
 			maxStudents: plan.maxStudents,
 			basePrice: Number(plan.basePrice),
 			commissionRate: Number(plan.commissionRate),
+			maxStudentPlans: plan.maxStudentPlans,
 			features: plan.features,
 			isActive: plan.isActive,
 			createdAt: plan.createdAt.toISOString(),
@@ -99,6 +100,7 @@ export async function POST(request: NextRequest) {
 			maxStudents,
 			basePrice,
 			commissionRate,
+			maxStudentPlans,
 			features,
 			isActive
 		} = body
@@ -132,6 +134,7 @@ export async function POST(request: NextRequest) {
 				maxStudents: maxStudents ?? 999999,
 				basePrice: basePrice ?? 0,
 				commissionRate: commissionRate ?? 0,
+				maxStudentPlans: maxStudentPlans ?? 2,
 				features: features ?? {},
 				isActive: isActive ?? true
 			}
@@ -147,6 +150,7 @@ export async function POST(request: NextRequest) {
 				maxStudents: newPlan.maxStudents,
 				basePrice: Number(newPlan.basePrice),
 				commissionRate: Number(newPlan.commissionRate),
+				maxStudentPlans: newPlan.maxStudentPlans,
 				features: newPlan.features,
 				isActive: newPlan.isActive,
 				createdAt: newPlan.createdAt.toISOString(),

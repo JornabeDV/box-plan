@@ -25,7 +25,7 @@ interface CreateCoachPlanModalProps {
 
 const DEFAULT_FEATURES = {
   dashboard_custom: false,
-  daily_planification: false,
+  weekly_planification: false,
   planification_weeks: 0,
   planification_monthly: false,
   planification_unlimited: false,
@@ -53,6 +53,7 @@ export function CreateCoachPlanModal({
     maxStudents: number;
     basePrice: number;
     commissionRate: number;
+    maxStudentPlans: number;
     features: Record<string, any>;
     isActive: boolean;
   }>({
@@ -62,6 +63,7 @@ export function CreateCoachPlanModal({
     maxStudents: 999999,
     basePrice: 0,
     commissionRate: 0,
+    maxStudentPlans: 2,
     features: { ...DEFAULT_FEATURES },
     isActive: true,
   });
@@ -121,6 +123,7 @@ export function CreateCoachPlanModal({
           maxStudents: formData.maxStudents,
           basePrice: formData.basePrice,
           commissionRate: formData.commissionRate,
+          maxStudentPlans: formData.maxStudentPlans,
           features: formData.features,
           isActive: formData.isActive,
         }),
@@ -144,6 +147,7 @@ export function CreateCoachPlanModal({
         maxStudents: 999999,
         basePrice: 0,
         commissionRate: 0,
+        maxStudentPlans: 2,
         features: { ...DEFAULT_FEATURES },
         isActive: true,
       });

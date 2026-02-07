@@ -9,6 +9,7 @@ interface PlanBasicInfoFormProps {
   minStudents: number;
   maxStudents: number;
   commissionRate: number;
+  maxStudentPlans: number;
   onChange: (field: string, value: string | number) => void;
 }
 
@@ -18,6 +19,7 @@ export function PlanBasicInfoForm({
   minStudents,
   maxStudents,
   commissionRate,
+  maxStudentPlans,
   onChange,
 }: PlanBasicInfoFormProps) {
   const handleMaxStudentsChange = (value: string) => {
@@ -100,6 +102,21 @@ export function PlanBasicInfoForm({
             }
             required
           />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="maxStudentPlans">Máx. Planes de Estudiantes</Label>
+          <Input
+            id="maxStudentPlans"
+            type="number"
+            value={maxStudentPlans}
+            onChange={(e) =>
+              onChange("maxStudentPlans", parseInt(e.target.value) || 0)
+            }
+            required
+          />
+          <p className="text-xs text-muted-foreground">
+            Cantidad de planes de suscripción que el coach puede crear
+          </p>
         </div>
       </div>
     </>

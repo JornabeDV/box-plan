@@ -28,7 +28,8 @@ describe('useCoachPlanFeatures', () => {
         displayName: 'Plan Pro',
         features: {
           dashboard_custom: true,
-          daily_planification: true,
+          weekly_planification: true,
+          planification_access: 'weekly',
           score_loading: true,
           score_database: true,
           mercadopago_connection: true,
@@ -74,7 +75,8 @@ describe('useCoachPlanFeatures', () => {
         displayName: 'Plan Básico',
         features: {
           dashboard_custom: true,
-          daily_planification: true,
+          weekly_planification: true,
+          planification_access: 'weekly',
           score_loading: false,
           max_disciplines: 5,
         },
@@ -116,7 +118,8 @@ describe('useCoachPlanFeatures', () => {
         displayName: 'Plan Básico',
         features: {
           dashboard_custom: true,
-          daily_planification: true,
+          weekly_planification: true,
+          planification_access: 'weekly',
           score_loading: false,
           max_disciplines: 5,
         },
@@ -194,7 +197,8 @@ describe('useCoachPlanFeatures', () => {
         displayName: 'Plan Básico',
         features: {
           dashboard_custom: true,
-          daily_planification: true,
+          weekly_planification: true,
+          planification_access: 'weekly',
           score_loading: false,
           max_disciplines: 5,
         },
@@ -235,7 +239,7 @@ describe('useCoachPlanFeatures', () => {
         displayName: 'Plan Elite',
         features: {
           dashboard_custom: true,
-          daily_planification: true,
+          planification_access: 'monthly',
           planification_monthly: true,
           planification_unlimited: false,
           score_loading: true,
