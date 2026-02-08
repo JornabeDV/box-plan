@@ -42,6 +42,8 @@ export interface CoachPlanFeatures {
 	whatsapp_integration?: boolean // Para POWER y ELITE
 	community_forum?: boolean // Para POWER y ELITE
 	custom_motivational_quotes?: boolean // Para POWER y ELITE
+	/** Permite crear planificaciones personalizadas para estudiantes específicos */
+	personalized_planifications?: boolean
 }
 
 /**
@@ -360,6 +362,13 @@ export async function canCoachAccessScoreDatabase(coachId: number): Promise<bool
  */
 export async function canCoachUseCustomMotivationalQuotes(coachId: number): Promise<boolean> {
 	return coachHasFeature(coachId, 'custom_motivational_quotes')
+}
+
+/**
+ * Verifica si el coach puede crear planificaciones personalizadas para estudiantes
+ */
+export async function canCoachCreatePersonalizedPlanifications(coachId: number): Promise<boolean> {
+	return coachHasFeature(coachId, 'personalized_planifications')
 }
 
 /**

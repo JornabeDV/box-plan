@@ -145,6 +145,12 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
       enabled: true, // Siempre habilitado, muestra el tipo de acceso
     },
     {
+      key: "personalized_planifications",
+      label: "Planificaciones Personalizadas",
+      icon: Users,
+      enabled: planInfo.features.personalized_planifications,
+    },
+    {
       key: "score_loading",
       label: "Carga de Scores",
       icon: Database,

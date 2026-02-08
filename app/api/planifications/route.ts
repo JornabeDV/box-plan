@@ -6,7 +6,8 @@ import { normalizeDateForArgentina } from '@/lib/utils'
 import { 
 	getCoachPlanificationWeeks, 
 	canCoachLoadMonthlyPlanifications,
-	canCoachLoadUnlimitedPlanifications 
+	canCoachLoadUnlimitedPlanifications,
+	canCoachCreatePersonalizedPlanifications
 } from '@/lib/coach-plan-features'
 
 export const dynamic = 'force-dynamic'
@@ -430,6 +431,15 @@ export async function POST(request: NextRequest) {
       if (!relationship) {
         return NextResponse.json(
           { error: 'El usuario especificado no es tu estudiante' },
+          { status: 403 }
+        )
+      }
+
+      // Validar que el coach tenga el feature de planificaciones personalizadas
+      const canCreatePersonalized = await canCoachCreatePersonalizedPlanifications(coachId)
+      if (!canCreatePersonalized) {
+        return NextResponse.json(
+          { error: 'Tu plan no incluye planificaciones personalizadas. Actualiza tu plan para acceder a esta función.' },
           { status: 403 }
         )
       }

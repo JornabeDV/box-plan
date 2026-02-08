@@ -8,6 +8,7 @@ import { usePlanifications } from "@/hooks/use-planifications";
 import { useModalState } from "@/hooks/use-modal-state";
 import { useDashboardCRUD } from "@/hooks/use-dashboard-crud";
 import { useToast } from "@/hooks/use-toast";
+import { useCoachPlanFeatures } from "@/hooks/use-coach-plan-features";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -69,6 +70,9 @@ export default function AdminDashboardPage() {
 
   const { createPlanification, updatePlanification, deletePlanification } =
     usePlanifications(profileId || undefined);
+
+  // Hook para obtener features del plan del coach
+  const { canCreatePersonalizedPlanifications } = useCoachPlanFeatures();
 
   // Usar datos del dashboard combinado
   const disciplines = dashboardDisciplines;
@@ -631,6 +635,7 @@ export default function AdminDashboardPage() {
           name: user.name,
           email: user.email,
         }))}
+        canCreatePersonalized={canCreatePersonalizedPlanifications}
         onSubmit={handlePlanificationSubmit}
       />
 

@@ -72,6 +72,7 @@ interface PlanificationModalProps {
   selectedDate?: Date | null;
   coachId?: string | null;
   students?: Student[];
+  canCreatePersonalized?: boolean;
   onSubmit: (
     data: Omit<Planification, "id" | "coach_id">,
   ) => Promise<{ error?: string }>;
@@ -84,6 +85,7 @@ export function PlanificationModal({
   selectedDate,
   coachId,
   students = [],
+  canCreatePersonalized = false,
   onSubmit,
 }: PlanificationModalProps) {
   const {
@@ -456,6 +458,7 @@ export function PlanificationModal({
                     setSelectedStudent("");
                   }
                 }}
+                disabled={!canCreatePersonalized && !planification?.is_personalized}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Seleccionar tipo de planificación..." />
@@ -469,16 +472,38 @@ export function PlanificationModal({
                       </span>
                     </div>
                   </SelectItem>
-                  <SelectItem value="personalized">
+                  <SelectItem 
+                    value="personalized" 
+                    disabled={!canCreatePersonalized && !planification?.is_personalized}
+                  >
                     <div className="flex items-center gap-2 whitespace-normal">
                       <Users className="w-4 h-4 flex-shrink-0" />
                       <span className="break-words">
                         Personalizada (Un estudiante)
                       </span>
+                      {!canCreatePersonalized && !planification?.is_personalized && (
+                        <span className="text-xs text-muted-foreground ml-1">
+                          (Requiere upgrade)
+                        </span>
+                      )}
                     </div>
                   </SelectItem>
                 </SelectContent>
               </Select>
+
+              {/* Mensaje informativo si no tiene el feature */}
+              {!canCreatePersonalized && !planification?.is_personalized && (
+                <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-md">
+                  <span className="font-medium">Nota:</span> Tu plan actual no incluye planificaciones personalizadas.{" "}
+                  <a 
+                    href="/pricing/coaches" 
+                    className="text-primary hover:underline font-medium"
+                  >
+                    Actualiza tu plan
+                  </a>{" "}
+                  para acceder a esta función.
+                </div>
+              )}
 
               {/* Selector de estudiante si es personalizada */}
               {isPersonalized && (

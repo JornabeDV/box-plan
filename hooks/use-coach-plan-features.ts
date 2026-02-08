@@ -27,6 +27,8 @@ export interface CoachPlanFeatures {
 	whatsapp_integration?: boolean
 	community_forum?: boolean
 	custom_motivational_quotes?: boolean
+	/** Permite crear planificaciones personalizadas para estudiantes específicos */
+	personalized_planifications?: boolean
 }
 
 export interface CoachPlanInfo {
@@ -60,6 +62,8 @@ interface UseCoachPlanFeaturesReturn {
 	canUseCommunityForum: boolean
 	canLoadScores: boolean
 	canAccessScoreDatabase: boolean
+	/** Permite crear planificaciones personalizadas para estudiantes */
+	canCreatePersonalizedPlanifications: boolean
 	/** Cantidad máxima de planes de alumnos que puede crear */
 	maxStudentPlans: number
 	/** Tier máximo de plan de alumno permitido */
@@ -260,6 +264,7 @@ export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 	const canUseCommunityForum = hasFeature('community_forum')
 	const canLoadScores = hasFeature('score_loading')
 	const canAccessScoreDatabase = hasFeature('score_database')
+	const canCreatePersonalizedPlanifications = hasFeature('personalized_planifications')
 	const maxStudentPlans = planInfo?.maxStudentPlans || 2
 	const maxStudentPlanTier = planInfo?.maxStudentPlanTier || 'basic'
 
@@ -278,6 +283,7 @@ export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 		canUseCommunityForum,
 		canLoadScores,
 		canAccessScoreDatabase,
+		canCreatePersonalizedPlanifications,
 		maxStudentPlans,
 		maxStudentPlanTier,
 		refetch

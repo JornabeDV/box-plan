@@ -24,6 +24,7 @@ const BOOLEAN_FEATURES = [
   { key: "whatsapp_integration", label: "Integración WhatsApp" },
   { key: "community_forum", label: "Foro de Comunidad" },
   { key: "timer", label: "Cronómetro" },
+  { key: "personalized_planifications", label: "Planificaciones Personalizadas" },
 ];
 
 const PLANIFICATION_OPTIONS = [

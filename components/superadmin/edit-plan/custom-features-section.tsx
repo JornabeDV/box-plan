@@ -42,7 +42,7 @@ export function CustomFeaturesSection({
   );
 
   return (
-    <div className="space-y-4 border-t pt-4 mt-4">
+    <div className="space-y-4 border-t pt-4 mt-4 hidden">
       <div className="flex items-center justify-between">
         <Label className="text-base font-semibold">
           Características Personalizadas
