@@ -37,6 +37,8 @@ const DEFAULT_FEATURES = {
   whatsapp_integration: false,
   community_forum: false,
   custom_motivational_quotes: false,
+  personalized_planifications: false,
+  replicate_planifications: false,
 };
 
 export function CreateCoachPlanModal({

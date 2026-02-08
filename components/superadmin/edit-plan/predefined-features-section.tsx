@@ -18,6 +18,8 @@ interface PredefinedFeaturesSectionProps {
 
 const BOOLEAN_FEATURES = [
   { key: "dashboard_custom", label: "Dashboard Personalizado" },
+  { key: "personalized_planifications", label: "Planificaciones Personalizadas" },
+  { key: "replicate_planifications", label: "Duplicar/Replicar Planificaciones" },
   { key: "score_loading", label: "Carga de Scores" },
   { key: "score_database", label: "Base de Datos de Scores" },
   { key: "mercadopago_connection", label: "Conexión MercadoPago" },
