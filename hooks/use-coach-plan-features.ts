@@ -29,6 +29,8 @@ export interface CoachPlanFeatures {
 	custom_motivational_quotes?: boolean
 	/** Permite crear planificaciones personalizadas para estudiantes específicos */
 	personalized_planifications?: boolean
+	/** Permite duplicar y replicar planificaciones a otros días */
+	replicate_planifications?: boolean
 }
 
 export interface CoachPlanInfo {
@@ -64,6 +66,8 @@ interface UseCoachPlanFeaturesReturn {
 	canAccessScoreDatabase: boolean
 	/** Permite crear planificaciones personalizadas para estudiantes */
 	canCreatePersonalizedPlanifications: boolean
+	/** Permite duplicar y replicar planificaciones */
+	canReplicatePlanifications: boolean
 	/** Cantidad máxima de planes de alumnos que puede crear */
 	maxStudentPlans: number
 	/** Tier máximo de plan de alumno permitido */
@@ -265,6 +269,7 @@ export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 	const canLoadScores = hasFeature('score_loading')
 	const canAccessScoreDatabase = hasFeature('score_database')
 	const canCreatePersonalizedPlanifications = hasFeature('personalized_planifications')
+	const canReplicatePlanifications = hasFeature('replicate_planifications')
 	const maxStudentPlans = planInfo?.maxStudentPlans || 2
 	const maxStudentPlanTier = planInfo?.maxStudentPlanTier || 'basic'
 
@@ -284,6 +289,7 @@ export function useCoachPlanFeatures(): UseCoachPlanFeaturesReturn {
 		canLoadScores,
 		canAccessScoreDatabase,
 		canCreatePersonalizedPlanifications,
+		canReplicatePlanifications,
 		maxStudentPlans,
 		maxStudentPlanTier,
 		refetch

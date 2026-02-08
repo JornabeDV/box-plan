@@ -43,6 +43,7 @@ interface PlanificationDayModalProps {
   onCreate: (date: Date) => void;
   onDuplicate?: (planification: Planification) => void;
   onDuplicateAll?: () => void;
+  canReplicate?: boolean;
 }
 
 export function PlanificationDayModal({
@@ -55,6 +56,7 @@ export function PlanificationDayModal({
   onCreate,
   onDuplicate,
   onDuplicateAll,
+  canReplicate = false,
 }: PlanificationDayModalProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -107,21 +109,21 @@ export function PlanificationDayModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-screen sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg m-0 sm:m-4 p-4 sm:p-6">
-        <DialogHeader className="pb-4 sm:pb-6">
+        <DialogHeader className="">
           <DialogTitle className="flex flex-col gap-1 sm:gap-2">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="text-lg sm:text-xl">Planificaciones</span>
             </div>
-            <div className="text-sm sm:text-base font-normal text-muted-foreground ml-6 sm:ml-7 break-words">
+            <div className="text-sm sm:text-base font-normal text-muted-foreground break-words max-sm:text-left">
               {(() => {
                 const dateParts = formatDate(selectedDate);
                 return `${dateParts.weekday}, ${dateParts.day} de ${dateParts.month} de ${dateParts.year}`;
               })()}
             </div>
           </DialogTitle>
-          <DialogDescription className="text-xs sm:text-sm">
-            Gestiona las planificaciones de entrenamiento para este día
+          <DialogDescription className="text-sm text-left">
+            Gestiona las planificaciones de entrenamiento para este día.
           </DialogDescription>
         </DialogHeader>
 
@@ -148,28 +150,46 @@ export function PlanificationDayModal({
           ) : (
             <div className="space-y-4">
               {/* Botones de acción */}
-              <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2">
-                {onDuplicateAll && (
-                  <Button
-                    variant="outline"
-                    onClick={onDuplicateAll}
-                    className="flex items-center justify-center gap-2 w-full sm:w-auto"
+              {canReplicate && (
+                <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2">
+                  {onDuplicateAll && (
+                    <Button
+                      variant="outline"
+                      onClick={onDuplicateAll}
+                      className="flex items-center justify-center gap-2 w-full sm:w-auto"
+                    >
+                      <Copy className="w-4 h-4" />
+                      <span className="hidden sm:inline">Replicar Todas</span>
+                      <span className="sm:hidden">Replicar Todas</span>
+                    </Button>
+                  )}
+
+                  {!isPast && (
+                    <Button
+                      onClick={() => onCreate(selectedDate)}
+                      className="w-full sm:w-auto"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Nueva Planificación
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {/* Mensaje informativo si no tiene feature de replicar */}
+              {!canReplicate && (
+                <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-md border border-border">
+                  <span className="font-medium">Nota:</span> Tu plan actual no
+                  incluye la función de duplicar/replicar planificaciones.{" "}
+                  <a
+                    href="/pricing/coaches"
+                    className="text-primary hover:underline font-medium"
                   >
-                    <Copy className="w-4 h-4" />
-                    <span className="hidden sm:inline">Replicar Todas</span>
-                    <span className="sm:hidden">Replicar Todas</span>
-                  </Button>
-                )}
-                {!isPast && (
-                  <Button
-                    onClick={() => onCreate(selectedDate)}
-                    className="w-full sm:w-auto"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Nueva Planificación
-                  </Button>
-                )}
-              </div>
+                    Actualiza tu plan
+                  </a>{" "}
+                  para acceder a esta función.
+                </div>
+              )}
 
               {/* Lista de planificaciones */}
               {planifications.map((planification) => (
@@ -182,9 +202,13 @@ export function PlanificationDayModal({
                       <div className="space-y-2 flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           {planification.is_personalized && (
-                            <Badge variant="secondary" className="text-xs bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30">
+                            <Badge
+                              variant="secondary"
+                              className="text-xs bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30"
+                            >
                               <Users className="w-3 h-3 mr-1" />
-                              {planification.target_user?.name?.split(' ')[0] || 'Personalizada'}
+                              {planification.target_user?.name?.split(" ")[0] ||
+                                "Personalizada"}
                             </Badge>
                           )}
                           {planification.discipline && (
@@ -222,7 +246,7 @@ export function PlanificationDayModal({
                       </div>
                       <TooltipProvider delayDuration={0}>
                         <div className="flex gap-2 flex-shrink-0">
-                          {onDuplicate && (
+                          {onDuplicate && canReplicate && (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
@@ -306,7 +330,7 @@ export function PlanificationDayModal({
                                           </span>
                                           <span>{item}</span>
                                         </li>
-                                      )
+                                      ),
                                     )}
                                   </ul>
                                 )}
@@ -321,7 +345,7 @@ export function PlanificationDayModal({
                                   </div>
                                 )}
                               </div>
-                            )
+                            ),
                           )}
                         </div>
                       )}

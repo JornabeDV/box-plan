@@ -72,7 +72,7 @@ export default function AdminDashboardPage() {
     usePlanifications(profileId || undefined);
 
   // Hook para obtener features del plan del coach
-  const { canCreatePersonalizedPlanifications } = useCoachPlanFeatures();
+  const { canCreatePersonalizedPlanifications, canReplicatePlanifications } = useCoachPlanFeatures();
 
   // Usar datos del dashboard combinado
   const disciplines = dashboardDisciplines;
@@ -656,6 +656,7 @@ export default function AdminDashboardPage() {
         onCreate={handleCreateFromDay}
         onDuplicate={handleDuplicatePlanification}
         onDuplicateAll={handleDuplicateAll}
+        canReplicate={canReplicatePlanifications}
       />
 
       {/* Modal para replicar planificaciones */}

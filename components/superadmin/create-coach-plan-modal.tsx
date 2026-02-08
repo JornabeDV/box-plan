@@ -38,6 +38,7 @@ const DEFAULT_FEATURES = {
   community_forum: false,
   custom_motivational_quotes: false,
   personalized_planifications: false,
+  replicate_planifications: false,
 };
 
 export function CreateCoachPlanModal({

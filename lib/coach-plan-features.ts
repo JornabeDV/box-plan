@@ -34,6 +34,8 @@ export interface CoachPlanFeatures {
 	weekly_planification?: boolean
 	/** @deprecated Usar planification_access */
 	planification_weeks?: number
+	/** @deprecated Usar planification_access */
+	daily_planification?: boolean
 	max_disciplines?: number // 2 para START, 3 para POWER, 999999 para ELITE
 	timer?: boolean
 	score_loading?: boolean // Para POWER y ELITE
@@ -44,6 +46,8 @@ export interface CoachPlanFeatures {
 	custom_motivational_quotes?: boolean // Para POWER y ELITE
 	/** Permite crear planificaciones personalizadas para estudiantes específicos */
 	personalized_planifications?: boolean
+	/** Permite duplicar y replicar planificaciones a otros días */
+	replicate_planifications?: boolean
 }
 
 /**
@@ -369,6 +373,13 @@ export async function canCoachUseCustomMotivationalQuotes(coachId: number): Prom
  */
 export async function canCoachCreatePersonalizedPlanifications(coachId: number): Promise<boolean> {
 	return coachHasFeature(coachId, 'personalized_planifications')
+}
+
+/**
+ * Verifica si el coach puede duplicar y replicar planificaciones
+ */
+export async function canCoachReplicatePlanifications(coachId: number): Promise<boolean> {
+	return coachHasFeature(coachId, 'replicate_planifications')
 }
 
 /**

@@ -17,6 +17,7 @@ import {
   Loader2,
   AlertCircle,
   Info,
+  Copy,
 } from "lucide-react";
 import {
   useCoachPlanFeatures,
@@ -149,6 +150,12 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
       label: "Planificaciones Personalizadas",
       icon: Users,
       enabled: planInfo.features.personalized_planifications,
+    },
+    {
+      key: "replicate_planifications",
+      label: "Duplicar/Replicar Planificaciones",
+      icon: Copy,
+      enabled: planInfo.features.replicate_planifications,
     },
     {
       key: "score_loading",
