@@ -6,7 +6,7 @@ import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
-import { useCoachPlanFeatures } from "@/hooks/use-coach-plan-features";
+import { useStudentSubscription } from "@/hooks/use-student-subscription";
 import { useWorkouts } from "@/hooks/use-workouts";
 import { useRMs } from "@/hooks/use-rms";
 import { useProgressStats } from "@/hooks/use-progress-stats";
@@ -20,17 +20,16 @@ export default function ProgresoPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const {
-    canLoadScores,
-    canAccessScoreDatabase,
-    loading: planFeaturesLoading,
-  } = useCoachPlanFeatures();
+    canTrackProgress,
+    loading: subscriptionLoading,
+  } = useStudentSubscription();
   const { workouts, loading: workoutsLoading } = useWorkouts();
   const { rmRecords, loading: rmsLoading } = useRMs();
   const { stats, loading: loadingStats } = useProgressStats(
     user?.id ? String(user.id) : undefined
   );
 
-  if (authLoading || planFeaturesLoading || workoutsLoading) {
+  if (authLoading || subscriptionLoading || workoutsLoading) {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="flex items-center gap-2">
@@ -52,10 +51,8 @@ export default function ProgresoPage() {
     );
   }
 
-  // Verificar si tiene acceso a la funcionalidad de progreso (score_loading o score_database)
-  const hasProgressAccess = canLoadScores || canAccessScoreDatabase;
-
-  if (!hasProgressAccess) {
+  // Verificar si tiene acceso a la funcionalidad de progreso
+  if (!canTrackProgress) {
     return (
       <div className="min-h-screen bg-background text-foreground">
         <Header />
@@ -73,7 +70,7 @@ export default function ProgresoPage() {
               </p>
               <p className="text-sm text-muted-foreground">
                 Para acceder a esta funcionalidad, necesitas un plan que incluya
-                la carga de scores y base de datos de scores.
+                el seguimiento de progreso.
               </p>
               <Button
                 onClick={() => router.push("/subscription")}

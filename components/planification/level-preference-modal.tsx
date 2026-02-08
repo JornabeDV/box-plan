@@ -11,12 +11,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Loader2, Target } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-
-interface DisciplineLevel {
-  id: number
-  name: string
-  description: string | null
-}
+import type { DisciplineLevel } from '@/hooks/use-planification-data'
 
 interface LevelPreferenceModalProps {
   open: boolean

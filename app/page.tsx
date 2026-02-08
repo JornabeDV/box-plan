@@ -7,14 +7,14 @@ import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { useAuthWithRoles } from "@/hooks/use-auth-with-roles";
 import { useProfile } from "@/hooks/use-profile";
 import { useUserCoach } from "@/hooks/use-user-coach";
-import { useCoachPlanFeatures } from "@/hooks/use-coach-plan-features";
+import { useStudentSubscription } from "@/hooks/use-student-subscription";
 import { TodaySection } from "@/components/dashboard/today-section";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { ReviewsSection } from "@/components/home/reviews-section";
 import { CoachInfoCard } from "@/components/dashboard/coach-info-card";
 import { CoachSelector } from "@/components/auth/coach-selector";
 import { TrialCalendar } from "@/components/dashboard/trial-calendar";
-import { WhatsAppButton } from "@/components/dashboard/whatsapp-button";
+import { StudentWhatsAppButton } from "@/components/dashboard/student-whatsapp-button";
 import { PreferenceSelector } from "@/components/dashboard/preference-selector";
 import { useCurrentUserPreferences } from "@/hooks/use-current-user-preferences";
 import {
@@ -66,21 +66,20 @@ export default function BoxPlanApp() {
   const { subscription, loading: profileLoading } = useProfile();
   const { coach: userCoach, loading: coachLoading } = useUserCoach();
   const {
-    canUseWhatsApp,
-    canLoadScores,
-    canAccessScoreDatabase,
-    loading: planFeaturesLoading,
-  } = useCoachPlanFeatures();
+    canViewRanking,
+    canTrackProgress,
+    canUseWhatsAppSupport,
+    loading: subscriptionLoading,
+  } = useStudentSubscription();
 
   // Verificar si tiene acceso a la funcionalidad de progreso
-  const hasProgressAccess = canLoadScores || canAccessScoreDatabase;
+  const hasProgressAccess = canTrackProgress;
 
-  // Verificar si tiene acceso a ranking (requiere base de datos de scores)
-  const hasRankingAccess = canAccessScoreDatabase;
+  // Verificar si tiene acceso a ranking
+  const hasRankingAccess = canViewRanking;
 
   // Verificar si hay al menos un acceso rápido disponible
-  const hasAnyQuickAccess =
-    hasProgressAccess || canLoadScores || hasRankingAccess;
+  const hasAnyQuickAccess = hasProgressAccess || hasRankingAccess;
   const {
     preferences,
     loading: preferencesLoading,
@@ -97,21 +96,31 @@ export default function BoxPlanApp() {
     preferences.preferredLevelId;
 
   // Obtener frases motivacionales del coach (si tiene coach)
-  const { quotes: coachQuotes, loading: coachQuotesLoading } = useCoachMotivationalQuotes();
-  
+  const { quotes: coachQuotes, loading: coachQuotesLoading } =
+    useCoachMotivationalQuotes();
+
   // Obtener planificación de hoy (solo si tiene suscripción activa y preferencias)
   // Solo cargar si tiene suscripción activa y preferencias para evitar llamadas innecesarias
-  const shouldLoadTodayPlanification = !authLoading && !profileLoading && !preferencesLoading && 
-                                        user?.id && hasActiveSubscription && hasPreferences;
-  const { planification: todayPlanification, loading: todayPlanificationLoading } = useTodayPlanification({
-    enabled: shouldLoadTodayPlanification
+  const shouldLoadTodayPlanification =
+    !authLoading &&
+    !profileLoading &&
+    !preferencesLoading &&
+    user?.id &&
+    hasActiveSubscription &&
+    hasPreferences;
+  const {
+    planification: todayPlanification,
+    loading: todayPlanificationLoading,
+  } = useTodayPlanification({
+    enabled: shouldLoadTodayPlanification,
   });
 
   // Obtener una frase motivacional basada en el día del año para que cambie diariamente
   const getDailyMotivationalQuote = () => {
     // Priorizar frases del coach si existen
-    const quotesToUse = coachQuotes.length > 0 ? coachQuotes : MOTIVATIONAL_QUOTES;
-    
+    const quotesToUse =
+      coachQuotes.length > 0 ? coachQuotes : MOTIVATIONAL_QUOTES;
+
     if (quotesToUse.length === 0) {
       return "¡Sigue adelante!";
     }
@@ -119,7 +128,7 @@ export default function BoxPlanApp() {
     const today = new Date();
     const dayOfYear = Math.floor(
       (today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) /
-        86400000
+        86400000,
     );
     return quotesToUse[dayOfYear % quotesToUse.length];
   };
@@ -191,9 +200,10 @@ export default function BoxPlanApp() {
 
   // Calcular si estamos cargando datos críticos
   // Solo esperar la planificación de hoy si tiene suscripción activa y preferencias
-  const isLoadingCriticalData = 
-    authLoading || 
-    profileLoading || 
+  const isLoadingCriticalData =
+    authLoading ||
+    profileLoading ||
+    subscriptionLoading ||
     preferencesLoading ||
     (shouldLoadTodayPlanification && todayPlanificationLoading) ||
     (isCoach && user?.id);
@@ -406,7 +416,7 @@ export default function BoxPlanApp() {
                       <CardHeader>
                         <div
                           className={`w-12 h-12 rounded-lg bg-gradient-to-br ${getGradientClass(
-                            feature.color
+                            feature.color,
                           )} flex items-center justify-center mb-4`}
                         >
                           <feature.icon
@@ -673,7 +683,6 @@ export default function BoxPlanApp() {
     );
   }
 
-
   // Para usuarios logueados, mostrar dashboard personalizado
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -783,7 +792,7 @@ export default function BoxPlanApp() {
                       <span className="text-xs md:text-base">Progreso</span>
                     </Button>
                   )}
-                  {canLoadScores && (
+                  {canTrackProgress && (
                     <Button
                       variant="outline"
                       className="flex flex-col items-center gap-1 md:gap-2 h-auto py-3 md:py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
@@ -815,7 +824,7 @@ export default function BoxPlanApp() {
             <CoachInfoCard coach={userCoach} />
           </section>
         )}
-        
+
         {/* Card para seleccionar coach si no tiene uno */}
         {user?.id && !coachLoading && !userCoach && !isCoach && (
           <section className="mb-3 sm:mb-8">
@@ -831,7 +840,9 @@ export default function BoxPlanApp() {
 
                   if (!response.ok) {
                     const data = await response.json();
-                    throw new Error(data.error || "Error al seleccionar el coach");
+                    throw new Error(
+                      data.error || "Error al seleccionar el coach",
+                    );
                   }
 
                   // Recargar la página para actualizar el estado
@@ -839,7 +850,8 @@ export default function BoxPlanApp() {
                 } catch (error: any) {
                   toast({
                     title: "Error",
-                    description: error.message || "No se pudo seleccionar el coach",
+                    description:
+                      error.message || "No se pudo seleccionar el coach",
                     variant: "destructive",
                   });
                   throw error;
@@ -860,9 +872,15 @@ export default function BoxPlanApp() {
       <BottomNavigation />
 
       {/* Botón flotante de WhatsApp para contactar al coach */}
-      {!coachLoading && !planFeaturesLoading && userCoach && canUseWhatsApp && (
-        <WhatsAppButton phone={userCoach.phone} coachName={userCoach.name} />
-      )}
+      {!coachLoading &&
+        !subscriptionLoading &&
+        userCoach &&
+        canUseWhatsAppSupport && (
+          <StudentWhatsAppButton
+            phone={userCoach.phone}
+            coachName={userCoach.name}
+          />
+        )}
     </div>
   );
 }

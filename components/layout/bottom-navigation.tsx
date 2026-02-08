@@ -4,15 +4,41 @@ import { User, Timer, Calculator, Settings, Hash, HomeIcon } from "lucide-react"
 import Link from "next/link";
 import { useAuthWithRoles } from "@/hooks/use-auth-with-roles";
 import { useCoachPlanFeatures } from "@/hooks/use-coach-plan-features";
+import { useStudentSubscription } from "@/hooks/use-student-subscription";
 
 export const BottomNavigation = memo(function BottomNavigation() {
-  const { isAdmin, isCoach } = useAuthWithRoles();
+  const { isAdmin, isCoach, isStudent } = useAuthWithRoles();
   const { canLoadScores, loading: planFeaturesLoading } = useCoachPlanFeatures();
+  const { 
+    canTrackProgress, 
+    canUseTimer, 
+    loading: subscriptionLoading 
+  } = useStudentSubscription();
   
   // Memoizar los valores para evitar re-renders innecesarios
   const showRMButton = useMemo(() => {
-    return !planFeaturesLoading && canLoadScores;
-  }, [planFeaturesLoading, canLoadScores]);
+    // Para coaches: usar canLoadScores
+    // Para estudiantes: usar canTrackProgress
+    if (isCoach) {
+      return !planFeaturesLoading && canLoadScores;
+    }
+    if (isStudent) {
+      return !subscriptionLoading && canTrackProgress;
+    }
+    return false;
+  }, [planFeaturesLoading, canLoadScores, subscriptionLoading, canTrackProgress, isCoach, isStudent]);
+  
+  const showTimerButton = useMemo(() => {
+    // Para coaches: siempre mostrar (no hay restricción específica de timer para coaches)
+    // Para estudiantes: verificar canUseTimer
+    if (isCoach) {
+      return true;
+    }
+    if (isStudent) {
+      return !subscriptionLoading && canUseTimer;
+    }
+    return true; // Default para admin u otros roles
+  }, [subscriptionLoading, canUseTimer, isCoach, isStudent]);
   
   const showCoachDashboard = useMemo(() => {
     return isCoach;
@@ -47,16 +73,18 @@ export const BottomNavigation = memo(function BottomNavigation() {
           </Button>
         </Link>
 
-        <Link href="/timer" className="flex items-center justify-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="justify-center items-center whitespace-nowrap transition-all duration-300 cursor-pointer disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-ring aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] w-16 h-16 rounded-lg p-0 text-xs flex flex-col gap-1"
-          >
-            <Timer className="w-5 h-5" />
-            <span className="text-xs font-medium">Timer</span>
-          </Button>
-        </Link>
+        {showTimerButton && (
+          <Link href="/timer" className="flex items-center justify-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="justify-center items-center whitespace-nowrap transition-all duration-300 cursor-pointer disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-ring aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] w-16 h-16 rounded-lg p-0 text-xs flex flex-col gap-1"
+            >
+              <Timer className="w-5 h-5" />
+              <span className="text-xs font-medium">Timer</span>
+            </Button>
+          </Link>
+        )}
 
         {showRMButton && (
           <Link href="/log-rm" className="flex items-center justify-center">

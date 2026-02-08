@@ -7,7 +7,7 @@ import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
-import { useCoachPlanFeatures } from "@/hooks/use-coach-plan-features";
+import { useStudentSubscription } from "@/hooks/use-student-subscription";
 import { useRanking } from "@/hooks/use-ranking";
 import { RankingHeader } from "@/components/ranking/ranking-header";
 import { RankingDateSelector } from "@/components/ranking/ranking-date-selector";
@@ -27,12 +27,12 @@ const getInitialDate = (): Date => {
 export default function RankingPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { canAccessScoreDatabase, loading: planFeaturesLoading } =
-    useCoachPlanFeatures();
+  const { canViewRanking, loading: subscriptionLoading } =
+    useStudentSubscription();
   const [selectedDate, setSelectedDate] = useState<Date>(getInitialDate);
   const { rankingData, loading } = useRanking(user?.id, selectedDate);
 
-  if (authLoading || planFeaturesLoading || loading) {
+  if (authLoading || subscriptionLoading || loading) {
     return <RankingLoadingScreen />;
   }
 
@@ -40,7 +40,7 @@ export default function RankingPage() {
     return <RankingUnauthorized />;
   }
 
-  if (!canAccessScoreDatabase) {
+  if (!canViewRanking) {
     return (
       <div className="min-h-screen bg-background text-foreground">
         <Header />
