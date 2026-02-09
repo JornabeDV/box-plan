@@ -207,8 +207,7 @@ export function TrialCalendar({ onDateClick, coachId }: TrialCalendarProps) {
             Calendario de Entrenamientos
           </CardTitle>
           <p className="text-sm text-muted-foreground mt-2">
-            Accede a tu entrenamiento de hoy. Suscríbete para acceder a todo el
-            mes.
+            Accede a tu entrenamiento de hoy. Suscríbete!
           </p>
           {preferences?.discipline && (
             <Badge variant="outline" className="mt-2">
