@@ -11,12 +11,7 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
-
-interface DisciplineLevel {
-  id: number;
-  name: string;
-  description?: string;
-}
+import type { DisciplineLevel } from "@/hooks/use-planification-data";
 
 interface PlanificationHeaderProps {
   selectedDate: Date;

@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeUserId } from '@/lib/auth-helpers'
 import { normalizeDateForArgentina } from '@/lib/utils'
-import { studentHasFeature } from '@/lib/coach-plan-features'
+import { requireRankingAccess } from '@/lib/api-feature-guards'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -19,18 +19,10 @@ export async function GET(request: NextRequest) {
 			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 		}
 
-		// Verificar si el usuario tiene acceso a la base de datos de scores según el plan del coach
-		try {
-			const hasAccess = await studentHasFeature(userId, 'score_database')
-			if (!hasAccess) {
-				return NextResponse.json(
-					{ error: 'Tu plan no incluye la funcionalidad de Ranking. Actualiza tu plan para acceder a esta funcionalidad.' },
-					{ status: 403 }
-				)
-			}
-		} catch (planError) {
-			// Si hay error al obtener el plan, loguear pero continuar con la consulta
-			console.error('Error al validar acceso a ranking:', planError)
+		// Verificar si el usuario tiene acceso al ranking
+		const guard = await requireRankingAccess(userId)
+		if (!guard.allowed && guard.response) {
+			return guard.response
 		}
 
 		const { searchParams } = new URL(request.url)

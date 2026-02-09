@@ -40,16 +40,13 @@ export interface StudentPlanFormData {
   interval: string;
   tier: string;
   features: {
-    whatsappSupport: boolean;
-    communityAccess: boolean;
-    progressTracking: boolean;
-    leaderboardAccess: boolean;
-    videoLibrary: boolean;
-    liveStreaming: boolean;
-    nutritionPlan: boolean;
-    prioritySupport: boolean;
-    groupClasses: boolean;
-    achievements: boolean;
+    // Features del plan del coach
+    whatsappSupport: boolean;        // coach: whatsapp_integration
+    communityAccess: boolean;        // coach: community_forum
+    progressTracking: boolean;       // coach: score_loading
+    leaderboardAccess: boolean;      // coach: score_database
+    timerAccess: boolean;            // coach: timer
+    personalizedWorkouts: boolean;   // coach: personalized_planifications
   };
 }
 
@@ -84,16 +81,13 @@ export function StudentPlanForm({
     interval: editingPlan?.interval || "month",
     tier: editingPlan?.tier || "basic",
     features: {
+      // Features del plan del coach
       whatsappSupport: editingPlan?.features?.whatsappSupport || false,
       communityAccess: editingPlan?.features?.communityAccess || false,
       progressTracking: editingPlan?.features?.progressTracking || false,
       leaderboardAccess: editingPlan?.features?.leaderboardAccess || false,
-      videoLibrary: editingPlan?.features?.videoLibrary || false,
-      liveStreaming: editingPlan?.features?.liveStreaming || false,
-      nutritionPlan: editingPlan?.features?.nutritionPlan || false,
-      prioritySupport: editingPlan?.features?.prioritySupport || false,
-      groupClasses: editingPlan?.features?.groupClasses || false,
-      achievements: editingPlan?.features?.achievements || false,
+      timerAccess: editingPlan?.features?.timerAccess ?? true, // Por defecto true si el coach tiene timer
+      personalizedWorkouts: editingPlan?.features?.personalizedWorkouts || false,
     },
   });
 
@@ -417,54 +411,50 @@ export function StudentPlanForm({
               />
             </div>
 
-            {/* Features libres (no dependen del plan del coach) */}
-            {/* <div className="flex items-center justify-between p-3 rounded-lg border">
-                <div>
-                  <p className="font-medium">Plan Nutricional</p>
-                  <p className="text-xs text-muted-foreground">Incluye guía nutricional</p>
-                </div>
-                <Switch
-                  checked={formData.features.nutritionPlan}
-                  onCheckedChange={(v) => updateFeature('nutritionPlan', v)}
-                  disabled={!isEditing && !canCreateMore}
-                />
+            {/* Cronómetro - Todos los planes */}
+            <div
+              className={cn(
+                "flex items-center justify-between p-3 rounded-lg border",
+                !coachFeatures.timer && "opacity-50 bg-muted",
+              )}
+            >
+              <div>
+                <p className="font-medium">Cronómetro</p>
+                <p className="text-xs text-muted-foreground">
+                  {coachFeatures.timer
+                    ? "Los alumnos pueden usar el cronómetro"
+                    : "No disponible en tu plan"}
+                </p>
               </div>
+              <Switch
+                checked={formData.features.timerAccess}
+                onCheckedChange={(v) => updateFeature("timerAccess", v)}
+                disabled={!canCreateMore || !coachFeatures.timer}
+              />
+            </div>
 
-              <div className="flex items-center justify-between p-3 rounded-lg border">
-                <div>
-                  <p className="font-medium">Soporte Prioritario</p>
-                  <p className="text-xs text-muted-foreground">Respuesta en 24h</p>
-                </div>
-                <Switch
-                  checked={formData.features.prioritySupport}
-                  onCheckedChange={(v) => updateFeature('prioritySupport', v)}
-                  disabled={!isEditing && !canCreateMore}
-                />
+            {/* Planificaciones Personalizadas */}
+            <div
+              className={cn(
+                "flex items-center justify-between p-3 rounded-lg border",
+                !coachFeatures.personalized_planifications && "opacity-50 bg-muted",
+              )}
+            >
+              <div>
+                <p className="font-medium">Planificaciones Personalizadas</p>
+                <p className="text-xs text-muted-foreground">
+                  {coachFeatures.personalized_planifications
+                    ? "Puedes crear planes específicos por alumno"
+                    : "Requiere plan ELITE"}
+                </p>
               </div>
+              <Switch
+                checked={formData.features.personalizedWorkouts}
+                onCheckedChange={(v) => updateFeature("personalizedWorkouts", v)}
+                disabled={!canCreateMore || !coachFeatures.personalized_planifications}
+              />
+            </div>
 
-              <div className="flex items-center justify-between p-3 rounded-lg border">
-                <div>
-                  <p className="font-medium">Clases Grupales</p>
-                  <p className="text-xs text-muted-foreground">Incluye sesiones grupales</p>
-                </div>
-                <Switch
-                  checked={formData.features.groupClasses}
-                  onCheckedChange={(v) => updateFeature('groupClasses', v)}
-                  disabled={!isEditing && !canCreateMore}
-                />
-              </div>
-
-              <div className="flex items-center justify-between p-3 rounded-lg border">
-                <div>
-                  <p className="font-medium">Sistema de Logros</p>
-                  <p className="text-xs text-muted-foreground">Badges y recompensas</p>
-                </div>
-                <Switch
-                  checked={formData.features.achievements}
-                  onCheckedChange={(v) => updateFeature('achievements', v)}
-                  disabled={!isEditing && !canCreateMore}
-                />
-              </div> */}
           </div>
         </div>
 

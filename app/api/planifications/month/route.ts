@@ -7,7 +7,9 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 // GET /api/planifications/month?year=2024&month=1
-// Obtiene todas las planificaciones del mes del coach del estudiante según sus preferencias (discipline y level)
+// Obtiene las planificaciones del mes:
+// - Si el estudiante tiene personalizedWorkouts=true: solo sus planificaciones personalizadas
+// - Si no: planificaciones generales según sus preferencias (discipline y level)
 export async function GET(request: NextRequest) {
   try {
     const session = await auth()
@@ -50,6 +52,35 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Verificar si el estudiante tiene feature de planificaciones personalizadas
+    const studentSubscription = await prisma.subscription.findFirst({
+      where: {
+        userId: userId,
+        status: 'active'
+      },
+      include: {
+        plan: {
+          select: {
+            features: true
+          }
+        }
+      }
+    })
+
+    // Parsear features
+    let hasPersonalizedWorkouts = false
+    const rawFeatures = studentSubscription?.plan?.features
+    if (typeof rawFeatures === 'string') {
+      try {
+        const parsed = JSON.parse(rawFeatures)
+        hasPersonalizedWorkouts = parsed?.personalizedWorkouts === true
+      } catch (e) {
+        console.error('Error parsing features:', e)
+      }
+    } else if (rawFeatures && typeof rawFeatures === 'object') {
+      hasPersonalizedWorkouts = (rawFeatures as any)?.personalizedWorkouts === true
+    }
+
     // Obtener año y mes de los query params
     const { searchParams } = new URL(request.url)
     const yearParam = searchParams.get('year')
@@ -76,27 +107,34 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Determinar qué disciplina usar:
-    // 1. Si se proporciona disciplineId en los params, usar ese
-    // 2. Si no, usar la preferencia del usuario si existe
-    // 3. Si no hay preferencia, no filtrar por disciplina (mostrar todas)
-    let disciplineIdToUse: number | null = null
-    
-    if (disciplineIdParam) {
-      const disciplineId = parseInt(disciplineIdParam, 10)
-      if (!isNaN(disciplineId)) {
-        disciplineIdToUse = disciplineId
+    // Si tiene personalizedWorkouts, buscar solo planificaciones personalizadas para él
+    if (hasPersonalizedWorkouts) {
+      whereClause.isPersonalized = true
+      whereClause.targetUserId = userId
+    } else {
+      // Si no tiene el feature, buscar planificaciones generales según preferencias
+      // Determinar qué disciplina usar:
+      // 1. Si se proporciona disciplineId en los params, usar ese
+      // 2. Si no, usar la preferencia del usuario si existe
+      // 3. Si no hay preferencia, no filtrar por disciplina (mostrar todas)
+      let disciplineIdToUse: number | null = null
+      
+      if (disciplineIdParam) {
+        const disciplineId = parseInt(disciplineIdParam, 10)
+        if (!isNaN(disciplineId)) {
+          disciplineIdToUse = disciplineId
+        }
+      } else if (preference?.preferredDisciplineId) {
+        disciplineIdToUse = preference.preferredDisciplineId
       }
-    } else if (preference?.preferredDisciplineId) {
-      disciplineIdToUse = preference.preferredDisciplineId
-    }
 
-    // Si tenemos una disciplina, filtrar por ella
-    if (disciplineIdToUse !== null) {
-      whereClause.disciplineId = disciplineIdToUse
-      // También filtrar por nivel si el usuario tiene preferencia de nivel
-      if (preference?.preferredLevelId) {
-        whereClause.disciplineLevelId = preference.preferredLevelId
+      // Si tenemos una disciplina, filtrar por ella
+      if (disciplineIdToUse !== null) {
+        whereClause.disciplineId = disciplineIdToUse
+        // También filtrar por nivel si el usuario tiene preferencia de nivel
+        if (preference?.preferredLevelId) {
+          whereClause.disciplineLevelId = preference.preferredLevelId
+        }
       }
     }
 

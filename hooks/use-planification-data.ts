@@ -8,7 +8,7 @@ interface UsePlanificationDataProps {
 	userId?: string | number
 }
 
-interface DisciplineLevel {
+export interface DisciplineLevel {
 	id: number
 	name: string
 	description: string | null

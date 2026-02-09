@@ -229,8 +229,6 @@ export async function GET(request: NextRequest) {
     const [year, month, day] = dateStr.split('-').map(Number)
     const nextDayStr = new Date(year, month - 1, day + 1).toISOString().split('T')[0]
     const endOfDay = normalizeDateForArgentina(nextDayStr)
-
-    // PASO 1: Buscar planificación PERSONALIZADA para este usuario
     const personalizedPlanification = await prisma.planification.findFirst({
       where: {
         coachId: coachId,
@@ -280,11 +278,46 @@ export async function GET(request: NextRequest) {
       },
       orderBy: { date: 'asc' }
     })
+    
+    // Si hay personalizada, verificar que el estudiante tenga la feature activa
+    let planification = null
+    
+    if (personalizedPlanification) {
+      // Verificar que el estudiante tenga personalizedWorkouts activo
+      const studentSubscription = await prisma.subscription.findFirst({
+        where: {
+          userId: userId,
+          status: 'active'
+        },
+        include: {
+          plan: {
+            select: {
+              features: true
+            }
+          }
+        }
+      })
+      
+      // Parsear features si viene como string
+      let studentFeatures: { personalizedWorkouts?: boolean } | null = null
+      const rawFeatures = studentSubscription?.plan?.features
+      
+      if (typeof rawFeatures === 'string') {
+        try {
+          studentFeatures = JSON.parse(rawFeatures)
+        } catch (e) {
+          console.error('[DEBUG Planifications] Error parsing features:', e)
+        }
+      } else if (rawFeatures && typeof rawFeatures === 'object') {
+        studentFeatures = rawFeatures as { personalizedWorkouts?: boolean }
+      }
+      
+      if (studentFeatures?.personalizedWorkouts === true) {
+        planification = personalizedPlanification
+      }
+    }
 
-    // Si hay personalizada, usarla con prioridad
-    let planification = personalizedPlanification
-
-    // PASO 2: Si no hay personalizada, buscar planificación GENERAL
+    // PASO 2: Si no hay personalizada (o no tiene feature activa), buscar planificación GENERAL
     if (!planification) {
       planification = await prisma.planification.findFirst({
         where: {
@@ -440,6 +473,30 @@ export async function POST(request: NextRequest) {
       if (!canCreatePersonalized) {
         return NextResponse.json(
           { error: 'Tu plan no incluye planificaciones personalizadas. Actualiza tu plan para acceder a esta función.' },
+          { status: 403 }
+        )
+      }
+
+      // Validar que el estudiante tenga la feature personalizedWorkouts en su plan
+      const studentSubscription = await prisma.subscription.findFirst({
+        where: {
+          userId: targetUserIdNum,
+          status: 'active'
+        },
+        include: {
+          plan: {
+            select: {
+              features: true
+            }
+          }
+        }
+      })
+
+      const studentFeatures = studentSubscription?.plan?.features as { personalizedWorkouts?: boolean } | null
+
+      if (!studentFeatures?.personalizedWorkouts) {
+        return NextResponse.json(
+          { error: 'El estudiante no tiene habilitadas las planificaciones personalizadas en su plan actual' },
           { status: 403 }
         )
       }

@@ -216,14 +216,14 @@ export async function POST(request: NextRequest) {
       validationErrors.push('No puedes ofrecer ranking sin tener base de datos de scores.')
     }
 
-    // Validar Videos (si el coach no tiene almacenamiento de videos)
-    if (features.videoLibrary && !coachFeatures.video_library) {
-      validationErrors.push('No puedes ofrecer biblioteca de videos sin tener el feature habilitado.')
+    // Validar Timer
+    if (features.timerAccess && !coachFeatures.timer) {
+      validationErrors.push('No puedes ofrecer acceso al cronómetro sin tenerlo en tu plan.')
     }
 
-    // Validar Live Streaming
-    if (features.liveStreaming && !coachFeatures.live_streaming) {
-      validationErrors.push('No puedes ofrecer live streaming sin tenerlo habilitado en tu plan.')
+    // Validar Planificaciones Personalizadas
+    if (features.personalizedWorkouts && !coachFeatures.personalized_planifications) {
+      validationErrors.push('No puedes ofrecer planificaciones personalizadas sin tener el feature habilitado.')
     }
 
     if (validationErrors.length > 0) {
@@ -241,24 +241,15 @@ export async function POST(request: NextRequest) {
     // ==========================================
     const planificationAccess = getPlanificationAccess(coachFeatures)
 
-    // Construir features finales (solo las permitidas)
+    // Construir features finales (solo las permitidas según el plan del coach)
     const finalFeatures = {
-      // Features condicionales (solo si el coach las tiene y las solicitó)
+      // Features condicionales (solo si el coach las tiene Y las solicitó)
       whatsappSupport: coachFeatures.whatsapp_integration && features.whatsappSupport,
       communityAccess: coachFeatures.community_forum && features.communityAccess,
       progressTracking: coachFeatures.score_loading && features.progressTracking,
       leaderboardAccess: coachFeatures.score_database && features.leaderboardAccess,
-      videoLibrary: coachFeatures.video_library && features.videoLibrary,
-      liveStreaming: coachFeatures.live_streaming && features.liveStreaming,
-      
-      // // Features libres (no dependen del plan del coach)
-      // nutritionPlan: features.nutritionPlan || false,
-      // prioritySupport: features.prioritySupport || false,
-      // groupClasses: features.groupClasses || false,
-      // achievements: features.achievements || false,
-      
-      // El coach siempre tiene timer
-      timerAccess: true
+      timerAccess: coachFeatures.timer && (features.timerAccess ?? true), // Default true si coach tiene timer
+      personalizedWorkouts: coachFeatures.personalized_planifications && features.personalizedWorkouts,
     }
 
     // Crear el plan

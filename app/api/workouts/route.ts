@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeUserId } from '@/lib/auth-helpers'
+import { requireProgressTracking } from '@/lib/api-feature-guards'
 
 // GET /api/workouts?userId=xxx
 export async function GET(request: NextRequest) {
@@ -49,6 +50,12 @@ export async function POST(request: NextRequest) {
     const userId = normalizeUserId(session?.user?.id)
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Verificar si el usuario tiene acceso a la carga de scores
+    const guard = await requireProgressTracking(userId)
+    if (!guard.allowed && guard.response) {
+      return guard.response
     }
 
     const body = await request.json()

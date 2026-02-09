@@ -38,7 +38,8 @@ export interface DashboardDisciplines {
 export interface DashboardUsers {
 	id: string
 	email: string
-	full_name: string | null
+	name: string | null
+	full_name: string | null  // @deprecated Use name instead
 	avatar_url: string | null
 	created_at: string
 	updated_at: string
@@ -197,8 +198,8 @@ export async function loadDashboardUsers(coachId: number): Promise<DashboardUser
 			createdAt: true,
 			updatedAt: true,
 			subscriptions: {
-				// Obtener la suscripción más reciente sin importar su estado
-				// para poder mostrar información histórica de suscripciones canceladas
+				// Solo suscripciones activas para verificar features
+				where: { status: 'active' },
 				include: {
 					plan: {
 						select: {
@@ -266,7 +267,16 @@ export async function loadDashboardUsers(coachId: number): Promise<DashboardUser
 	const disciplineMap = new Map(disciplines.map(d => [d.id, d]))
 	const levelMap = new Map(levels.map(l => [l.id, l]))
 
-	return users.map(user => {
+	// FILTRO: Solo estudiantes con personalizedWorkouts=true
+	const eligibleUsers = users.filter(user => {
+		const subscription = user.subscriptions[0]
+		if (!subscription) return false
+		
+		const features = subscription.plan?.features as { personalizedWorkouts?: boolean } | null
+		return features?.personalizedWorkouts === true
+	})
+
+	return eligibleUsers.map(user => {
 		const subscription = user.subscriptions[0] || null
 		const preferences = user.userPreferences
 
@@ -281,7 +291,8 @@ export async function loadDashboardUsers(coachId: number): Promise<DashboardUser
 		return {
 			id: String(user.id),
 			email: user.email,
-			full_name: user.name,
+			name: user.name,
+			full_name: user.name,  // @deprecated
 			avatar_url: user.image,
 			created_at: user.createdAt.toISOString(),
 			updated_at: user.updatedAt.toISOString(),
