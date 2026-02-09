@@ -33,10 +33,12 @@ export async function GET(request: NextRequest) {
 
 		const now = new Date()
 		
-		// Buscar suscripciones activas que han vencido
-		const expiredSubscriptions = await prisma.subscription.findMany({
+		// PASO 1: Buscar suscripciones activas con cancelAtPeriodEnd=true que han vencido
+		// Estas deben cambiar a 'canceled'
+		const pendingCancellationSubscriptions = await prisma.subscription.findMany({
 			where: {
 				status: 'active',
+				cancelAtPeriodEnd: true,
 				currentPeriodEnd: {
 					lt: now // Menor que ahora = vencida
 				}
@@ -57,11 +59,49 @@ export async function GET(request: NextRequest) {
 			}
 		})
 
-		// Actualizar status a 'past_due' para suscripciones vencidas
-		const updateResult = await prisma.subscription.updateMany({
+		// Actualizar status a 'canceled' para las que tenían cancelAtPeriodEnd
+		const canceledResult = await prisma.subscription.updateMany({
 			where: {
 				id: {
-					in: expiredSubscriptions.map(s => s.id)
+					in: pendingCancellationSubscriptions.map(s => s.id)
+				}
+			},
+			data: {
+				status: 'canceled'
+			}
+		})
+
+		// PASO 2: Buscar suscripciones activas SIN cancelAtPeriodEnd que han vencido
+		// Estas deben cambiar a 'past_due' (para renovación/pago pendiente)
+		const expiredActiveSubscriptions = await prisma.subscription.findMany({
+			where: {
+				status: 'active',
+				cancelAtPeriodEnd: false,
+				currentPeriodEnd: {
+					lt: now // Menor que ahora = vencida
+				}
+			},
+			include: {
+				user: {
+					select: {
+						id: true,
+						email: true,
+						name: true
+					}
+				},
+				plan: {
+					select: {
+						name: true
+					}
+				}
+			}
+		})
+
+		// Actualizar status a 'past_due' para suscripciones vencidas sin cancelación pendiente
+		const pastDueResult = await prisma.subscription.updateMany({
+			where: {
+				id: {
+					in: expiredActiveSubscriptions.map(s => s.id)
 				}
 			},
 			data: {
@@ -70,18 +110,29 @@ export async function GET(request: NextRequest) {
 		})
 
 		// Log para debugging (opcional: enviar a servicio de logging)
-		console.log(`[Cron] Revisadas suscripciones vencidas: ${expiredSubscriptions.length} encontradas, ${updateResult.count} actualizadas`)
+		console.log(`[Cron] Suscripciones procesadas: ${pendingCancellationSubscriptions.length} canceladas, ${expiredActiveSubscriptions.length} vencidas (past_due)`)
 
 		return NextResponse.json({
 			success: true,
-			expiredCount: expiredSubscriptions.length,
-			updatedCount: updateResult.count,
-			expiredSubscriptions: expiredSubscriptions.map(s => ({
+			canceledCount: pendingCancellationSubscriptions.length,
+			canceledUpdated: canceledResult.count,
+			pastDueCount: expiredActiveSubscriptions.length,
+			pastDueUpdated: pastDueResult.count,
+			canceledSubscriptions: pendingCancellationSubscriptions.map(s => ({
 				id: s.id,
 				userId: s.userId,
 				userEmail: s.user.email,
 				planName: s.plan.name,
-				expiredAt: s.currentPeriodEnd
+				expiredAt: s.currentPeriodEnd,
+				reason: 'cancel_at_period_end'
+			})),
+			pastDueSubscriptions: expiredActiveSubscriptions.map(s => ({
+				id: s.id,
+				userId: s.userId,
+				userEmail: s.user.email,
+				planName: s.plan.name,
+				expiredAt: s.currentPeriodEnd,
+				reason: 'payment_pending'
 			}))
 		})
 	} catch (error) {
