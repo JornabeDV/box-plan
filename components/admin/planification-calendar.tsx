@@ -124,6 +124,22 @@ export function PlanificationCalendar({
     });
   };
 
+  // Verificar si un día tiene planificaciones personalizadas
+  const hasPersonalizedPlanification = (day: number) => {
+    const dayPlanifications = getPlanificationsForDay(day);
+    return dayPlanifications.some((p) => p.is_personalized);
+  };
+
+  // Obtener la inicial del estudiante para el badge (primera personalizada encontrada)
+  const getPersonalizedBadge = (day: number) => {
+    const dayPlanifications = getPlanificationsForDay(day);
+    const personalized = dayPlanifications.find((p) => p.is_personalized);
+    if (personalized?.target_user?.name) {
+      return personalized.target_user.name.charAt(0).toUpperCase();
+    }
+    return "P";
+  };
+
   // Verificar si es hoy
   const isToday = (day: number) => {
     const date = new Date(year, month, day);
@@ -330,45 +346,78 @@ export function PlanificationCalendar({
             const isCurrentDay = isToday(day);
             const isPast = isPastDay(day);
             const isBlocked = isFutureDayBlocked(day);
+            const hasPersonalized = hasPersonalizedPlanification(day);
+            const personalizedCount = dayPlanifications.filter((p) => p.is_personalized).length;
+            const generalCount = dayPlanifications.filter((p) => !p.is_personalized).length;
+
+            // Determinar estilos según tipo de planificación
+            const getDayStyles = () => {
+              // Deshabilitado
+              if ((isPast && dayPlanifications.length === 0) ||
+                  (isBlocked && dayPlanifications.length === 0)) {
+                return "cursor-not-allowed opacity-50 bg-background border border-muted-foreground/10 text-muted-foreground";
+              }
+
+              // Hoy sin planificaciones
+              if (isCurrentDay && dayPlanifications.length === 0) {
+                return "bg-primary text-primary-foreground shadow-accent animate-pulse-glow cursor-pointer";
+              }
+
+              // Con AMBOS tipos: mix de colores
+              if (hasPersonalized && generalCount > 0) {
+                return "bg-gradient-to-br from-purple-500/20 to-emerald-500/20 text-foreground hover:from-purple-500/30 hover:to-emerald-500/30 hover:scale-105 border-2 border-purple-500/30 cursor-pointer";
+              }
+
+              // Solo planificaciones personalizadas
+              if (hasPersonalized) {
+                return "bg-purple-500/20 text-purple-600 dark:text-purple-400 hover:bg-purple-500/30 hover:scale-105 border-2 border-purple-500/40 cursor-pointer";
+              }
+
+              // Solo planificaciones generales
+              if (generalCount > 0) {
+                return "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/30 hover:scale-105 border-2 border-emerald-500/40 cursor-pointer";
+              }
+
+              // Día bloqueado sin planificaciones
+              if (isBlocked) {
+                return "bg-background border-2 border-dashed border-muted-foreground/30 text-muted-foreground opacity-50 cursor-not-allowed";
+              }
+
+              // Día normal
+              return "bg-background border border-muted-foreground/20 text-muted-foreground hover:bg-muted/50 cursor-pointer";
+            };
 
             const dayContent = (
               <div
-                className={`
-                  w-full h-full flex items-center justify-center text-sm font-semibold rounded-xl transition-all duration-200 relative
-                  ${
-                    (isPast && dayPlanifications.length === 0) ||
-                    (isBlocked && dayPlanifications.length === 0)
-                      ? "cursor-not-allowed opacity-50"
-                      : "cursor-pointer"
-                  }
-                  ${
-                    isPast && dayPlanifications.length > 0
-                      ? "bg-accent/20 text-accent hover:bg-accent/30 hover:scale-105 border-2 border-accent/30"
-                      : isPast
-                        ? "bg-background border border-muted-foreground/10 text-muted-foreground opacity-50"
-                        : isBlocked && dayPlanifications.length === 0
-                          ? "bg-background border-2 border-dashed border-muted-foreground/30 text-muted-foreground opacity-50"
-                          : isBlocked && dayPlanifications.length > 0
-                            ? "bg-accent/20 text-accent hover:bg-accent/30 hover:scale-105 border-2 border-accent/30"
-                            : isCurrentDay
-                              ? "bg-primary text-primary-foreground shadow-accent animate-pulse-glow"
-                              : dayPlanifications.length > 0
-                                ? "bg-accent/20 text-accent hover:bg-accent/30 hover:scale-105 border-2 border-accent/30"
-                                : "bg-background border border-muted-foreground/20 text-muted-foreground hover:bg-muted/50"
-                  }
-                `}
+                className={`w-full h-full flex items-center justify-center text-sm font-semibold rounded-xl transition-all duration-200 relative ${getDayStyles()}`}
                 onClick={() => handleDayClick(day)}
               >
                 <span className="text-sm">{day}</span>
-                {dayPlanifications.length > 0 && (
+                
+                {/* Badge PÚRPURA (arriba-derecha): Planificaciones personalizadas */}
+                {hasPersonalized && (
                   <span
-                    className={`absolute -top-1 -right-1 sm:top-1 sm:right-1 bg-accent text-accent-foreground text-[9px] sm:text-xs font-bold rounded-full w-3 h-3 sm:w-5 sm:h-5 flex items-center justify-center ${
-                      isPast ? "opacity-50" : ""
+                    className={`absolute -top-1 -right-1 sm:top-1 sm:right-1 bg-purple-500 text-white text-[9px] sm:text-xs font-bold rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center ${
+                      isPast ? "opacity-70" : ""
                     }`}
+                    title={`${personalizedCount} planificación${personalizedCount > 1 ? 'es' : ''} personalizada${personalizedCount > 1 ? 's' : ''}`}
                   >
-                    {dayPlanifications.length}
+                    {personalizedCount}
                   </span>
                 )}
+                
+                {/* Badge VERDE (abajo-derecha): Planificaciones generales */}
+                {generalCount > 0 && (
+                  <span
+                    className={`absolute -bottom-1 -right-1 sm:bottom-1 sm:right-1 bg-emerald-500 text-white text-[9px] sm:text-xs font-bold rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center ${
+                      isPast ? "opacity-50" : ""
+                    }`}
+                    title={`${generalCount} planificación${generalCount > 1 ? 'es' : ''} general${generalCount > 1 ? 'es' : ''}`}
+                  >
+                    {generalCount}
+                  </span>
+                )}
+                
                 {isBlocked && dayPlanifications.length === 0 && (
                   <Info className="absolute bottom-0.5 right-0.5 w-2 h-2 sm:w-3 sm:h-3 text-muted-foreground opacity-60" />
                 )}

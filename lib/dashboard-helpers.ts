@@ -118,6 +118,8 @@ export async function loadDashboardPlanifications(coachId: number): Promise<Dash
 			exercises: true,
 			notes: true,
 			isCompleted: true,
+			isPersonalized: true,
+			targetUserId: true,
 			createdAt: true,
 			updatedAt: true,
 			discipline: {
@@ -132,6 +134,13 @@ export async function loadDashboardPlanifications(coachId: number): Promise<Dash
 					id: true,
 					name: true,
 					description: true
+				}
+			},
+			targetUser: {
+				select: {
+					id: true,
+					name: true,
+					email: true
 				}
 			}
 		},
@@ -148,6 +157,13 @@ export async function loadDashboardPlanifications(coachId: number): Promise<Dash
 			date: p.date instanceof Date ? p.date.toISOString().split('T')[0] : p.date,
 			blocks: blocksData, // Agregar blocks para compatibilidad con el frontend
 			exercises: exercisesData, // Mantener exercises también
+			is_personalized: p.isPersonalized || false,
+			target_user_id: p.targetUserId ? String(p.targetUserId) : null,
+			target_user: p.targetUser ? {
+				id: String(p.targetUser.id),
+				name: p.targetUser.name,
+				email: p.targetUser.email
+			} : null,
 			discipline: p.discipline ? {
 				id: p.discipline.id,
 				name: p.discipline.name,
