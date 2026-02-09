@@ -267,7 +267,10 @@ export function useUsersManagement(coachId: string | null) {
         throw new Error(errorData.error || 'Error al eliminar usuario')
       }
 
-      // Recargar usuarios (forzar refresh para obtener datos actualizados)
+      // Actualizar estado local inmediatamente (optimistic update)
+      setUsers(prev => prev.filter(user => user.id !== userId))
+      
+      // Recargar usuarios en segundo plano para sincronizar
       await loadUsers(true)
       return { error: null }
     } catch (err) {

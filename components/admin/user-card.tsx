@@ -473,6 +473,10 @@ export function UserCard({
             variant: 'default'
           })
           setShowDeleteDialog(false)
+          // Notificar que se completó la eliminación para actualizar la lista
+          if (onAssignmentComplete) {
+            onAssignmentComplete()
+          }
         }
       }}
       title="Eliminar Usuario"
