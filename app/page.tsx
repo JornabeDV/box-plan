@@ -726,7 +726,7 @@ export default function BoxPlanApp() {
                     </p>
                     <Button
                       size="lg"
-                      className="bg-green-600 hover:bg-green-700 text-white w-full"
+                      className="bg-green-600 hover:bg-green-700 w-full"
                       onClick={() => {
                         const message = encodeURIComponent(
                           `Hola ${studentCoach.businessName || ""}, soy ${user?.name || ""}. ` +

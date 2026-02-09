@@ -92,7 +92,7 @@ export function RMModal({
 
 	return (
 		<Dialog open={open} onOpenChange={handleClose}>
-			<DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+			<DialogContent className="w-full max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						<Weight className="w-5 h-5 text-lime-400" />
@@ -158,14 +158,12 @@ export function RMModal({
 						variant="outline"
 						onClick={handleClose}
 						disabled={loading}
-						size="sm"
 					>
 						Cancelar
 					</Button>
 					<Button
 						onClick={handleSubmit}
 						disabled={loading}
-						size="sm"
 					>
 						{loading ? (
 							<>
