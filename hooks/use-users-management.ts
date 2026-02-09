@@ -204,6 +204,57 @@ export function useUsersManagement(coachId: string | null) {
     }
   }
 
+  // Cambiar plan de suscripción
+  const changePlan = async (userId: string, newPlanId: string) => {
+    try {
+      // Intentar obtener la suscripción actual del usuario del estado local
+      const user = users.find(u => u.id === userId)
+      const currentSubscription = user?.subscription
+
+      const response = await fetch('/api/subscriptions/change-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          newPlanId,
+          // Si tenemos la suscripción local, la pasamos; si no, el endpoint buscará por targetUserId
+          currentSubscriptionId: currentSubscription?.id,
+          targetUserId: userId
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }))
+        throw new Error(errorData.error || 'Error al cambiar de plan')
+      }
+
+      // Recargar usuarios para reflejar el cambio
+      await loadUsers(true)
+    } catch (err) {
+      console.error('Error changing plan:', err)
+      throw err
+    }
+  }
+
+  // Reactivar suscripción (para suscripciones canceladas o vencidas)
+  const reactivateSubscription = async (subscriptionId: string) => {
+    try {
+      const response = await fetch(`/api/subscriptions/${subscriptionId}/reactivate`, {
+        method: 'PATCH'
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }))
+        throw new Error(errorData.error || 'Error al reactivar suscripción')
+      }
+
+      // Recargar usuarios (forzar refresh para obtener datos actualizados)
+      await loadUsers(true)
+    } catch (err) {
+      console.error('Error reactivating subscription:', err)
+      throw err
+    }
+  }
+
   // Eliminar usuario
   const deleteUser = async (userId: string) => {
     try {
@@ -216,7 +267,10 @@ export function useUsersManagement(coachId: string | null) {
         throw new Error(errorData.error || 'Error al eliminar usuario')
       }
 
-      // Recargar usuarios (forzar refresh para obtener datos actualizados)
+      // Actualizar estado local inmediatamente (optimistic update)
+      setUsers(prev => prev.filter(user => user.id !== userId))
+      
+      // Recargar usuarios en segundo plano para sincronizar
       await loadUsers(true)
       return { error: null }
     } catch (err) {
@@ -245,6 +299,8 @@ export function useUsersManagement(coachId: string | null) {
     loadUsers,
     assignSubscription,
     cancelSubscription,
+    changePlan,
+    reactivateSubscription,
     deleteUser
   }
 }

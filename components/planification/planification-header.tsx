@@ -21,6 +21,7 @@ interface PlanificationHeaderProps {
   selectedLevelId?: number | null;
   onLevelChange?: (levelId: number) => void;
   disciplineName?: string;
+  isPersonalized?: boolean;
 }
 
 export function PlanificationHeader({
@@ -29,6 +30,7 @@ export function PlanificationHeader({
   levels = [],
   selectedLevelId,
   onLevelChange,
+  isPersonalized = false,
 }: PlanificationHeaderProps) {
   const router = useRouter();
   return (
@@ -56,8 +58,8 @@ export function PlanificationHeader({
           </div>
         </div>
         
-        {/* Selector de nivel */}
-        {levels.length > 0 && onLevelChange && (
+        {/* Selector de nivel - solo si NO es planificación personalizada */}
+        {!isPersonalized && levels.length > 0 && onLevelChange && (
           <div className="flex items-center gap-3">
             <Label htmlFor="level-select" className="text-sm font-semibold text-foreground whitespace-nowrap">
               Nivel:

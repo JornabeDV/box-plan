@@ -4,21 +4,24 @@ import { prisma } from '@/lib/prisma'
 import { normalizeUserId, isCoach } from '@/lib/auth-helpers'
 
 // POST /api/subscriptions/change-plan
+// Cambia el plan de suscripción de un usuario
+// - Si es el propio usuario: newPlanId, currentSubscriptionId
+// - Si es un coach cambiando el plan de un estudiante: newPlanId, currentSubscriptionId, targetUserId
 export async function POST(request: NextRequest) {
   try {
     const session = await auth()
     
-    const userId = normalizeUserId(session?.user?.id)
-    if (!userId) {
+    const currentUserId = normalizeUserId(session?.user?.id)
+    if (!currentUserId) {
       return NextResponse.json(
         { error: 'No autenticado' },
         { status: 401 }
       )
     }
 
-    const { newPlanId, currentSubscriptionId } = await request.json()
+    const { newPlanId, currentSubscriptionId, targetUserId } = await request.json()
 
-    if (!newPlanId || !currentSubscriptionId) {
+    if (!newPlanId) {
       return NextResponse.json(
         { error: 'Parámetros faltantes' },
         { status: 400 }
@@ -27,11 +30,10 @@ export async function POST(request: NextRequest) {
 
     // Convertir IDs a números enteros
     const newPlanIdNum = typeof newPlanId === 'string' ? parseInt(newPlanId, 10) : newPlanId
-    const currentSubscriptionIdNum = typeof currentSubscriptionId === 'string' ? parseInt(currentSubscriptionId, 10) : currentSubscriptionId
 
-    if (isNaN(newPlanIdNum) || isNaN(currentSubscriptionIdNum)) {
+    if (isNaN(newPlanIdNum)) {
       return NextResponse.json(
-        { error: 'IDs inválidos' },
+        { error: 'ID de plan inválido' },
         { status: 400 }
       )
     }
@@ -48,43 +50,112 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Obtener suscripción actual para mantener el método de pago y coachId
-    // Usar findUnique y hacer cast para incluir paymentMethod que puede no estar en los tipos generados
-    const currentSubscriptionRaw = await prisma.subscription.findUnique({
-      where: { id: currentSubscriptionIdNum }
-    }) as { coachId: number | null; paymentMethod?: string | null } | null
+    let currentSubscriptionRaw: { id: number; userId: number; coachId: number | null; paymentMethod?: string | null } | null = null
+
+    if (currentSubscriptionId) {
+      // Si se proporciona currentSubscriptionId, usarlo directamente
+      const subscriptionIdNum = typeof currentSubscriptionId === 'string' ? parseInt(currentSubscriptionId, 10) : currentSubscriptionId
+      if (!isNaN(subscriptionIdNum)) {
+        currentSubscriptionRaw = await prisma.subscription.findUnique({
+          where: { id: subscriptionIdNum }
+        }) as { id: number; userId: number; coachId: number | null; paymentMethod?: string | null } | null
+      }
+    }
+
+    // Si no se encontró por ID o no se proporcionó, buscar la suscripción activa del targetUserId
+    if (!currentSubscriptionRaw && targetUserId) {
+      const targetUserIdNum = typeof targetUserId === 'string' ? parseInt(targetUserId, 10) : targetUserId
+      if (!isNaN(targetUserIdNum)) {
+        currentSubscriptionRaw = await prisma.subscription.findFirst({
+          where: { 
+            userId: targetUserIdNum,
+            status: 'active'
+          },
+          orderBy: { createdAt: 'desc' }
+        }) as { id: number; userId: number; coachId: number | null; paymentMethod?: string | null } | null
+      }
+    }
     
-    const currentSubscription = currentSubscriptionRaw ? {
+    if (!currentSubscriptionRaw) {
+      return NextResponse.json(
+        { error: 'No se encontró una suscripción activa para este usuario' },
+        { status: 404 }
+      )
+    }
+
+    // Extraer método de pago de la suscripción actual
+    const currentSubscription = {
       coachId: currentSubscriptionRaw.coachId,
       paymentMethod: (currentSubscriptionRaw as any).paymentMethod || null
-    } : null
-
-    // Determinar el coachId si no existe en la suscripción actual
-    let coachIdNum: number | null = currentSubscription?.coachId ?? null
+    }
     
-    if (coachIdNum === null) {
-      // Buscar el coach asociado al estudiante
-      const authCheck = await isCoach(userId)
-      if (authCheck.isAuthorized && authCheck.profile) {
-        const coachId = authCheck.profile.id
-        
-        // Verificar que el estudiante esté asociado a este coach
-        const relationship = await prisma.coachStudentRelationship.findFirst({
-          where: {
-            coachId: coachId,
-            studentId: userId,
-            status: 'active'
-          }
-        })
-        
-        if (relationship) {
-          coachIdNum = coachId
+    // Determinar el usuario objetivo (quién está cambiando de plan)
+    let targetUserIdNum: number
+    let isCoachAction = false
+    let coachIdNum: number | null = currentSubscriptionRaw.coachId ?? null
+    
+    if (targetUserId && targetUserId !== String(currentUserId)) {
+      // Un coach está cambiando el plan de un estudiante
+      const authCheck = await isCoach(currentUserId)
+      if (!authCheck.isAuthorized || !authCheck.profile) {
+        return NextResponse.json(
+          { error: 'No autorizado. Solo coaches pueden cambiar planes de otros usuarios.' },
+          { status: 403 }
+        )
+      }
+      
+      // Verificar que el estudiante esté asociado a este coach
+      const targetUserIdParsed = typeof targetUserId === 'string' ? parseInt(targetUserId, 10) : targetUserId
+      if (isNaN(targetUserIdParsed)) {
+        return NextResponse.json(
+          { error: 'ID de usuario objetivo inválido' },
+          { status: 400 }
+        )
+      }
+      
+      const relationship = await prisma.coachStudentRelationship.findFirst({
+        where: {
+          coachId: authCheck.profile.id,
+          studentId: targetUserIdParsed,
+          status: 'active'
         }
-      } else {
-        // Si el usuario autenticado no es coach, buscar el coach del estudiante
+      })
+      
+      if (!relationship) {
+        return NextResponse.json(
+          { error: 'No autorizado. El usuario no es tu estudiante.' },
+          { status: 403 }
+        )
+      }
+      
+      // Verificar que la suscripción pertenezca al estudiante objetivo
+      if (currentSubscriptionRaw.userId !== targetUserIdParsed) {
+        return NextResponse.json(
+          { error: 'La suscripción no pertenece al usuario especificado' },
+          { status: 403 }
+        )
+      }
+      
+      targetUserIdNum = targetUserIdParsed
+      coachIdNum = authCheck.profile.id
+      isCoachAction = true
+    } else {
+      // El usuario está cambiando su propio plan
+      targetUserIdNum = currentUserId
+      
+      // Verificar que la suscripción pertenezca al usuario autenticado
+      if (currentSubscriptionRaw.userId !== currentUserId) {
+        return NextResponse.json(
+          { error: 'No autorizado. La suscripción no te pertenece.' },
+          { status: 403 }
+        )
+      }
+      
+      // Si no hay coachId en la suscripción, buscar el coach del estudiante
+      if (coachIdNum === null) {
         const studentRelationship = await prisma.coachStudentRelationship.findFirst({
           where: {
-            studentId: userId,
+            studentId: currentUserId,
             status: 'active'
           }
         })
@@ -100,10 +171,10 @@ export async function POST(request: NextRequest) {
     newEndDate.setDate(newEndDate.getDate() + 30) // 30 días
 
     const result = await prisma.$transaction(async (tx) => {
-      // Cancelar TODAS las suscripciones activas del usuario inmediatamente
+      // Cancelar TODAS las suscripciones activas del usuario objetivo inmediatamente
       await tx.subscription.updateMany({
         where: {
-          userId: userId,
+          userId: targetUserIdNum,
           status: 'active'
         },
         data: {
@@ -114,7 +185,7 @@ export async function POST(request: NextRequest) {
 
       // Crear nueva suscripción
       const subscriptionData: any = {
-        userId,
+        userId: targetUserIdNum,
         planId: newPlanIdNum,
         status: 'active',
         currentPeriodStart: new Date(),
@@ -144,7 +215,7 @@ export async function POST(request: NextRequest) {
       
       await tx.paymentHistory.create({
         data: {
-          userId,
+          userId: targetUserIdNum,
           subscriptionId: newSubscription.id,
           amount: newPlan.price,
           currency: newPlan.currency,

@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCurrentUserPreferences } from "@/hooks/use-current-user-preferences";
 import { useUserCoach } from "@/hooks/use-user-coach";
 import { useDisciplines } from "@/hooks/use-disciplines";
+import { useStudentSubscription } from "@/hooks/use-student-subscription";
 import {
   Select,
   SelectContent,
@@ -63,6 +64,7 @@ export default function ProfilePage() {
     disciplineLevels,
     loading: disciplinesLoading,
   } = useDisciplines(userCoach?.id ? userCoach.id.toString() : null);
+  const { hasPersonalizedWorkouts, loading: subscriptionLoading } = useStudentSubscription();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedDisciplineId, setSelectedDisciplineId] = useState<
@@ -333,7 +335,8 @@ export default function ProfilePage() {
             <SubscriptionStatus />
           </div>
 
-          {/* Preferencias de Entrenamiento */}
+          {/* Preferencias de Entrenamiento - Oculta si tiene planificaciones personalizadas */}
+          {!hasPersonalizedWorkouts && (
           <div className="mt-6">
             <Card>
               <CardHeader>
@@ -553,6 +556,7 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
           </div>
+          )}
         </div>
       </main>
 

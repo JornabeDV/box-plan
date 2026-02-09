@@ -15,7 +15,7 @@ interface UsersListProps {
 }
 
 export function UsersList({ coachId, initialUsers, initialPlans, onRefresh }: UsersListProps) {
-  const { users: hookUsers, plans: hookPlans, loading, assignSubscription, cancelSubscription, deleteUser, loadUsers } = useUsersManagement(coachId)
+  const { users: hookUsers, plans: hookPlans, loading, assignSubscription, cancelSubscription, changePlan, reactivateSubscription, deleteUser, loadUsers } = useUsersManagement(coachId)
   
   // Priorizar datos del hook si están disponibles (indica que se han cargado/actualizado)
   // Usar datos iniciales solo como fallback inicial antes de que el hook cargue
@@ -109,6 +109,8 @@ export function UsersList({ coachId, initialUsers, initialPlans, onRefresh }: Us
               coachId={coachId}
               onAssignSubscription={assignSubscription}
               onCancelSubscription={cancelSubscription}
+              onChangePlan={changePlan}
+              onReactivateSubscription={reactivateSubscription}
               onEditUser={handleEditUser}
               onDeleteUser={deleteUser}
               onAssignmentComplete={handleUserUpdated}
