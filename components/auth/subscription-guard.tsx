@@ -61,7 +61,7 @@ export function SubscriptionGuard({ children }: SubscriptionGuardProps) {
               </p>
               <Button
                 size="lg"
-                className="bg-green-600 hover:bg-green-700 text-white w-full"
+                className="bg-green-600 hover:bg-green-700 w-full"
                 onClick={() => {
                   const message = encodeURIComponent(
                     `Hola ${coach.businessName || ''}, soy ${user?.name || ''}. ` +

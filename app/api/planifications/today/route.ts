@@ -87,7 +87,6 @@ export async function GET(request: NextRequest) {
     }
 
     // Obtener la fecha del query param o usar hoy
-    const { searchParams } = new URL(request.url)
     const dateParam = searchParams.get('date')
     
     let dateStr: string

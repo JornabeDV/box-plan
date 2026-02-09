@@ -181,48 +181,48 @@ export default function PlanificationPage() {
             )}
 
             {/* Sección de registro de scores - solo si tiene progressTracking */}
-            {canTrackProgress ? (
-              <div className="space-y-4">
-                <h3 className="text-xl font-semibold flex items-center gap-2 text-white">
-                  <CheckCircle className="w-6 h-6 text-lime-400" />
-                  Registro de Scores
-                </h3>
-
-                <WodScoreForm
-                  planificationId={planification.id}
-                  existingWorkout={existingWodWorkout}
-                  onSave={handleSaveWodScore}
-                />
-
-                <StrengthScoreForm
-                  planificationId={planification.id}
-                  existingWorkout={existingStrengthWorkout}
-                  onSave={handleSaveStrengthScore}
-                />
-              </div>
-            ) : (
-              <Card className="bg-muted/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Lock className="w-5 h-5" />
+              {/* {canTrackProgress ? (
+                <div className="space-y-4">
+                  <h3 className="text-xl font-semibold flex items-center gap-2 text-white">
+                    <CheckCircle className="w-6 h-6 text-lime-400" />
                     Registro de Scores
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    El registro de scores no está incluido en tu plan actual.
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => router.push("/subscription")}
-                    className="w-full"
-                  >
-                    Ver Planes Disponibles
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+                  </h3>
+
+                  <WodScoreForm
+                    planificationId={planification.id}
+                    existingWorkout={existingWodWorkout}
+                    onSave={handleSaveWodScore}
+                  />
+
+                  <StrengthScoreForm
+                    planificationId={planification.id}
+                    existingWorkout={existingStrengthWorkout}
+                    onSave={handleSaveStrengthScore}
+                  />
+                </div>
+              ) : (
+                <Card className="bg-muted/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Lock className="w-5 h-5" />
+                      Registro de Scores
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      El registro de scores no está incluido en tu plan actual.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => router.push("/subscription")}
+                      className="w-full"
+                    >
+                      Ver Planes Disponibles
+                    </Button>
+                  </CardContent>
+                </Card>
+              )} */}
           </div>
         )}
 

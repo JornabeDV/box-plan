@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { useCoachPlanFeatures } from "@/hooks/use-coach-plan-features";
+
 
 interface ProgressStatsCardsProps {
   stats: {
@@ -22,7 +22,6 @@ export function ProgressStatsCards({
   loading,
 }: ProgressStatsCardsProps) {
   const router = useRouter();
-  const { canLoadScores } = useCoachPlanFeatures();
 
   if (loading) {
     return (
@@ -87,41 +86,28 @@ export function ProgressStatsCards({
         </CardContent>
       </Card>
 
-      {canLoadScores ? (
-        <Card
-          className="cursor-pointer hover:bg-gray-900/10 dark:hover:bg-gray-100/5 transition-colors py-2"
-          onClick={() => router.push("/log-rm")}
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              router.push("/log-rm");
-            }
-          }}
-          role="button"
-          aria-label="Ver repeticiones máximas"
-        >
-          <CardContent className="pt-2 pb-2 md:pt-6 md:pb-6 px-2 md:px-6">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-lime-400 mb-1">
-                {rmCount}
-              </div>
-              <div className="text-sm text-muted-foreground">Mis RMs</div>
+      <Card
+        className="cursor-pointer hover:bg-gray-900/10 dark:hover:bg-gray-100/5 transition-colors py-2"
+        onClick={() => router.push("/log-rm")}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            router.push("/log-rm");
+          }
+        }}
+        role="button"
+        aria-label="Ver repeticiones máximas"
+      >
+        <CardContent className="pt-2 pb-2 md:pt-6 md:pb-6 px-2 md:px-6">
+          <div className="text-center">
+            <div className="text-3xl font-bold text-lime-400 mb-1">
+              {rmCount}
             </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="py-2 opacity-50">
-          <CardContent className="pt-2 pb-2 md:pt-6 md:pb-6 px-2 md:px-6">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-lime-400 mb-1">
-                {rmCount}
-              </div>
-              <div className="text-sm text-muted-foreground">Mis RMs</div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            <div className="text-sm text-muted-foreground">Mis RMs</div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

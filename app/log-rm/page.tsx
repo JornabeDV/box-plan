@@ -5,11 +5,10 @@ import { useRouter } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { useAuth } from "@/hooks/use-auth";
-import { useCoachPlanFeatures } from "@/hooks/use-coach-plan-features";
 import { useRMs } from "@/hooks/use-rms";
 import { useExercises } from "@/hooks/use-exercises";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Lock } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { RMHeader } from "@/components/rm/rm-header";
 import { RMList } from "@/components/rm/rm-list";
@@ -20,8 +19,7 @@ import { Button } from "@/components/ui/button";
 export default function CargaRMPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { canLoadScores, loading: planFeaturesLoading } =
-    useCoachPlanFeatures();
+
   const {
     logMultipleRMs,
     rmRecords,
@@ -168,7 +166,7 @@ export default function CargaRMPage() {
     }
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (authLoading || planFeaturesLoading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="flex items-center gap-2">
@@ -195,40 +193,40 @@ export default function CargaRMPage() {
     );
   }
 
-  if (!canLoadScores) {
-    return (
-      <div className="min-h-screen bg-background text-foreground">
-        <Header />
-        <main className="p-6 pb-32 max-w-4xl mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Lock className="w-5 h-5" />
-                Funcionalidad no disponible
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-muted-foreground">
-                La carga de Repeticiones Máximas (RM) no está incluida en tu
-                plan actual.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Para acceder a esta funcionalidad, necesitas un plan que incluya
-                la carga de scores.
-              </p>
-              <Button
-                onClick={() => router.push("/subscription")}
-                className="w-full"
-              >
-                Ver Planes Disponibles
-              </Button>
-            </CardContent>
-          </Card>
-        </main>
-        <BottomNavigation />
-      </div>
-    );
-  }
+  // if (!canLoadScores) {
+  //   return (
+  //     <div className="min-h-screen bg-background text-foreground">
+  //       <Header />
+  //       <main className="p-6 pb-32 max-w-4xl mx-auto">
+  //         <Card>
+  //           <CardHeader>
+  //             <CardTitle className="flex items-center gap-2">
+  //               <Lock className="w-5 h-5" />
+  //               Funcionalidad no disponible
+  //             </CardTitle>
+  //           </CardHeader>
+  //           <CardContent className="space-y-4">
+  //             <p className="text-muted-foreground">
+  //               La carga de Repeticiones Máximas (RM) no está incluida en tu
+  //               plan actual.
+  //             </p>
+  //             <p className="text-sm text-muted-foreground">
+  //               Para acceder a esta funcionalidad, necesitas un plan que incluya
+  //               la carga de scores.
+  //             </p>
+  //             <Button
+  //               onClick={() => router.push("/subscription")}
+  //               className="w-full"
+  //             >
+  //               Ver Planes Disponibles
+  //             </Button>
+  //           </CardContent>
+  //         </Card>
+  //       </main>
+  //       <BottomNavigation />
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen bg-background text-foreground">

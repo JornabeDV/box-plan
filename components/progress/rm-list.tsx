@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Weight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-import { useCoachPlanFeatures } from "@/hooks/use-coach-plan-features";
 
 interface RMListProps {
   rmRecords: any[];
@@ -14,7 +13,6 @@ interface RMListProps {
 
 export function RMList({ rmRecords }: RMListProps) {
   const router = useRouter();
-  const { canLoadScores } = useCoachPlanFeatures();
 
   if (!rmRecords || rmRecords.length === 0) {
     return (
@@ -25,28 +23,24 @@ export function RMList({ rmRecords }: RMListProps) {
               <Weight className="w-5 h-5" />
               Mis Repeticiones Máximas
             </CardTitle>
-            {canLoadScores && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.push("/log-rm")}
-                className="flex items-center gap-2"
-              >
-                <Weight className="w-4 h-4" />
-                Agregar RM
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push("/log-rm")}
+              className="flex items-center gap-2"
+            >
+              <Weight className="w-4 h-4" />
+              Agregar RM
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
             <Weight className="w-12 h-12 mx-auto mb-4 opacity-50" />
             <p>No hay RMs registrados aún</p>
-            {canLoadScores && (
-              <Button className="mt-4" onClick={() => router.push("/log-rm")}>
-                Registrar Primer RM
-              </Button>
-            )}
+            <Button className="mt-4" onClick={() => router.push("/log-rm")}>
+              Registrar Primer RM
+            </Button>
           </div>
         </CardContent>
       </Card>
