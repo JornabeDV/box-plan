@@ -63,6 +63,7 @@ interface Student {
   id: string;
   name: string;
   email: string;
+  preferredDisciplineId?: string | null;
 }
 
 interface PlanificationModalProps {
@@ -104,6 +105,7 @@ export function PlanificationModal({
 
   const [isPersonalized, setIsPersonalized] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<string>("");
+  const [isDisciplineLocked, setIsDisciplineLocked] = useState(false);
 
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [blockTitle, setBlockTitle] = useState("");
@@ -172,6 +174,18 @@ export function PlanificationModal({
         // Cargar datos de personalización si existen
         setIsPersonalized(planification.is_personalized || false);
         setSelectedStudent(planification.target_user_id || "");
+        
+        // Si es personalizada y tiene estudiante, verificar si bloquear disciplina
+        if (planification.is_personalized && planification.target_user_id) {
+          const student = students.find((s) => s.id === planification.target_user_id);
+          if (student?.preferredDisciplineId) {
+            setIsDisciplineLocked(true);
+          } else {
+            setIsDisciplineLocked(false);
+          }
+        } else {
+          setIsDisciplineLocked(false);
+        }
       } else {
         setFormData({
           discipline_id: "",
@@ -182,6 +196,7 @@ export function PlanificationModal({
         setBlocks([]);
         setIsPersonalized(false);
         setSelectedStudent("");
+        setIsDisciplineLocked(false);
       }
       setBlockTitle("");
       setBlockItem("");
@@ -203,6 +218,33 @@ export function PlanificationModal({
     // Si cambia la disciplina, resetear el nivel
     if (field === "discipline_id") {
       setFormData((prev) => ({ ...prev, discipline_level_id: "" }));
+    }
+  };
+
+  // Manejar cambio de estudiante seleccionado
+  const handleStudentChange = (studentId: string) => {
+    setSelectedStudent(studentId);
+    
+    if (!studentId) {
+      // Si deselecciona, liberar disciplina
+      setIsDisciplineLocked(false);
+      return;
+    }
+
+    // Buscar el estudiante
+    const student = students.find((s) => s.id === studentId);
+    
+    if (student?.preferredDisciplineId) {
+      // Tiene disciplina preferida: auto-asignar y bloquear
+      setFormData((prev) => ({
+        ...prev,
+        discipline_id: student.preferredDisciplineId!,
+        discipline_level_id: "", // Resetear nivel al cambiar disciplina
+      }));
+      setIsDisciplineLocked(true);
+    } else {
+      // No tiene preferida: liberar selector
+      setIsDisciplineLocked(false);
     }
   };
 
@@ -505,13 +547,26 @@ export function PlanificationModal({
                 </div>
               )}
 
+              {/* Mensaje informativo si tiene el feature pero no hay estudiantes elegibles */}
+              {canCreatePersonalized && isPersonalized && students.length === 0 && (
+                <div className="text-xs text-muted-foreground bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-3 rounded-md">
+                  <span className="font-medium">Nota:</span> No tienes estudiantes con planes que incluyan planificaciones personalizadas.{" "}
+                  <a 
+                    href="/admin/student-plans" 
+                    className="text-primary hover:underline font-medium"
+                  >
+                    Revisar planes de estudiantes
+                  </a>
+                </div>
+              )}
+
               {/* Selector de estudiante si es personalizada */}
               {isPersonalized && (
                 <div className="space-y-2 mt-3">
                   <Label htmlFor="student">Estudiante *</Label>
                   <Select
                     value={selectedStudent}
-                    onValueChange={setSelectedStudent}
+                    onValueChange={handleStudentChange}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Seleccionar estudiante..." />
@@ -539,7 +594,7 @@ export function PlanificationModal({
                     onValueChange={(value) =>
                       handleInputChange("discipline_id", value)
                     }
-                    disabled={disciplinesLoading}
+                    disabled={disciplinesLoading || isDisciplineLocked}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Seleccionar disciplina" />

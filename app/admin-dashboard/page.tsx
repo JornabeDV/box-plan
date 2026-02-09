@@ -634,6 +634,7 @@ export default function AdminDashboardPage() {
           id: String(user.id),
           name: user.name,
           email: user.email,
+          preferredDisciplineId: user.preferences?.preferred_discipline_id || null,
         }))}
         canCreatePersonalized={canCreatePersonalizedPlanifications}
         onSubmit={handlePlanificationSubmit}
