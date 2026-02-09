@@ -65,6 +65,10 @@ export interface CoachPlanInfo {
 	maxStudentPlanTier: string
 	isActive: boolean
 	isTrial: boolean
+	/** Fecha de inicio del período actual */
+	currentPeriodStart: Date
+	/** Fecha de vencimiento del período actual */
+	currentPeriodEnd: Date
 }
 
 /**
@@ -137,6 +141,21 @@ export async function getCoachActivePlan(coachId: number): Promise<CoachPlanInfo
 		if (periodEndDate >= nowDate) {
 			const features = plan.features as CoachPlanFeatures || {}
 			
+			return {
+				planId: plan.id,
+				planName: plan.name,
+				displayName: plan.displayName,
+				slug: plan.slug,
+				features,
+				maxStudents: plan.maxStudents,
+				commissionRate: Number(plan.commissionRate),
+				maxStudentPlans: plan.maxStudentPlans,
+				maxStudentPlanTier: plan.maxStudentPlanTier,
+				isActive: true,
+				isTrial: false,
+				currentPeriodStart: subscription.currentPeriodStart,
+				currentPeriodEnd: subscription.currentPeriodEnd
+			}
 		}
 	}
 
@@ -170,7 +189,9 @@ export async function getCoachActivePlan(coachId: number): Promise<CoachPlanInfo
 					maxStudentPlans: startPlan.maxStudentPlans,
 					maxStudentPlanTier: startPlan.maxStudentPlanTier,
 					isActive: true,
-					isTrial: true
+					isTrial: true,
+					currentPeriodStart: new Date(),
+					currentPeriodEnd: trialEndsAt
 				}
 			}
 		}

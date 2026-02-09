@@ -55,7 +55,9 @@ export async function GET(request: NextRequest) {
 				maxStudentPlans: planInfo.maxStudentPlans,
 				maxStudentPlanTier: planInfo.maxStudentPlanTier,
 				isActive: planInfo.isActive,
-				isTrial: planInfo.isTrial
+				isTrial: planInfo.isTrial,
+				currentPeriodStart: planInfo.currentPeriodStart,
+				currentPeriodEnd: planInfo.currentPeriodEnd
 			} : null
 		})
 	} catch (error) {
