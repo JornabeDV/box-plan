@@ -252,12 +252,18 @@ export function SubscriptionStatus() {
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <h3 className="text-lg font-semibold">Plan Activo</h3>
+            <h3 className="text-lg font-semibold">
+              {subscription.subscription_plans?.name || "Plan Activo"}
+            </h3>
           </div>
           <Badge className={getStatusColor(subscription.status)}>
             <div className="flex items-center gap-1">
               {getStatusIcon(subscription.status)}
-              {subscription.status}
+              {subscription.status === 'active' ? 'Activo' :
+               subscription.status === 'canceled' ? 'Cancelado' :
+               subscription.status === 'past_due' ? 'Vencido' :
+               subscription.status === 'unpaid' ? 'Impago' :
+               subscription.status}
             </div>
           </Badge>
         </div>

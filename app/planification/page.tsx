@@ -137,6 +137,7 @@ export default function PlanificationPage() {
           selectedLevelId={selectedLevelId}
           onLevelChange={handleLevelChange}
           disciplineName={disciplineName}
+          isPersonalized={planification?.is_personalized}
         />
 
         {/* Contenido solo si hay planificación */}
@@ -144,10 +145,10 @@ export default function PlanificationPage() {
           <div className="space-y-6">
             {/* Indicador de planificación personalizada */}
             {planification.is_personalized && (
-              <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
+              <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-2 sm:p-4">
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-purple-700 dark:text-purple-300 mb-1">
+                    <h3 className="max-sm:text-base font-semibold text-purple-700 dark:text-purple-300 mb-1">
                       Planificación Personalizada
                     </h3>
                     <p className="text-sm text-purple-600 dark:text-purple-400">
