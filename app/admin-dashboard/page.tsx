@@ -630,12 +630,18 @@ export default function AdminDashboardPage() {
         planification={planificationModal.selectedItem}
         selectedDate={selectedDate}
         coachId={profileId}
-        students={users.map((user) => ({
-          id: String(user.id),
-          name: user.name,
-          email: user.email,
-          preferredDisciplineId: user.preferences?.preferred_discipline_id || null,
-        }))}
+        students={users
+          // Filtrar solo estudiantes con personalizedWorkouts=true para el selector de planificaciones personalizadas
+          .filter((user) => {
+            const features = user.subscription?.plan?.features as { personalizedWorkouts?: boolean } | null;
+            return features?.personalizedWorkouts === true;
+          })
+          .map((user) => ({
+            id: String(user.id),
+            name: user.name,
+            email: user.email,
+            preferredDisciplineId: user.preferences?.preferred_discipline_id || null,
+          }))}
         canCreatePersonalized={canCreatePersonalizedPlanifications}
         onSubmit={handlePlanificationSubmit}
       />

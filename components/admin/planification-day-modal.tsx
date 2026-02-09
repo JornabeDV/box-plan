@@ -150,31 +150,31 @@ export function PlanificationDayModal({
           ) : (
             <div className="space-y-4">
               {/* Botones de acción */}
-              {canReplicate && (
-                <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2">
-                  {onDuplicateAll && (
-                    <Button
-                      variant="outline"
-                      onClick={onDuplicateAll}
-                      className="flex items-center justify-center gap-2 w-full sm:w-auto"
-                    >
-                      <Copy className="w-4 h-4" />
-                      <span className="hidden sm:inline">Replicar Todas</span>
-                      <span className="sm:hidden">Replicar Todas</span>
-                    </Button>
-                  )}
+              <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2">
+                {/* Botón Replicar Todas (solo si tiene feature) */}
+                {canReplicate && onDuplicateAll && (
+                  <Button
+                    variant="outline"
+                    onClick={onDuplicateAll}
+                    className="flex items-center justify-center gap-2 w-full sm:w-auto"
+                  >
+                    <Copy className="w-4 h-4" />
+                    <span className="hidden sm:inline">Replicar Todas</span>
+                    <span className="sm:hidden">Replicar Todas</span>
+                  </Button>
+                )}
 
-                  {!isPast && (
-                    <Button
-                      onClick={() => onCreate(selectedDate)}
-                      className="w-full sm:w-auto"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Nueva Planificación
-                    </Button>
-                  )}
-                </div>
-              )}
+                {/* Botón Nueva Planificación (siempre visible si no es pasado) */}
+                {!isPast && (
+                  <Button
+                    onClick={() => onCreate(selectedDate)}
+                    className="w-full sm:w-auto"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nueva Planificación
+                  </Button>
+                )}
+              </div>
 
               {/* Mensaje informativo si no tiene feature de replicar */}
               {!canReplicate && (
@@ -200,15 +200,36 @@ export function PlanificationDayModal({
                   <CardHeader className="pb-3 sm:pb-6">
                     <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-3 sm:gap-0">
                       <div className="space-y-2 flex-1 min-w-0">
+                        {/* Badge de tipo: Personalizada vs General */}
                         <div className="flex flex-wrap items-center gap-2">
-                          {planification.is_personalized && (
+                          {planification.is_personalized ? (
                             <Badge
                               variant="secondary"
-                              className="text-xs bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30"
+                              className="text-xs bg-purple-500 text-white border-purple-600 hover:bg-purple-600"
                             >
                               <Users className="w-3 h-3 mr-1" />
-                              {planification.target_user?.name?.split(" ")[0] ||
-                                "Personalizada"}
+                              Personalizada
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="secondary"
+                              className="text-xs bg-emerald-500 text-white border-emerald-600 hover:bg-emerald-600"
+                            >
+                              <Target className="w-3 h-3 mr-1" />
+                              General
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        {/* Info adicional */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {planification.is_personalized && planification.target_user && (
+                            <Badge
+                              variant="outline"
+                              className="text-xs bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30"
+                            >
+                              <Users className="w-3 h-3 mr-1" />
+                              Para: {planification.target_user.name}
                             </Badge>
                           )}
                           {planification.discipline && (

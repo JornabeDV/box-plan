@@ -41,7 +41,7 @@ export function CoachInfoCard({ coach }: CoachInfoCardProps) {
                 src={coach.logoUrl}
                 alt={coach.businessName || coach.name}
                 fill
-                className="object-contain p-1"
+                className="object-cover"
                 onError={(e) => {
                   // Si falla el logo, mostrar imagen de perfil o icono
                   const target = e.target as HTMLImageElement;

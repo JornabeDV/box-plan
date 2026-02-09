@@ -118,6 +118,8 @@ export async function loadDashboardPlanifications(coachId: number): Promise<Dash
 			exercises: true,
 			notes: true,
 			isCompleted: true,
+			isPersonalized: true,
+			targetUserId: true,
 			createdAt: true,
 			updatedAt: true,
 			discipline: {
@@ -132,6 +134,13 @@ export async function loadDashboardPlanifications(coachId: number): Promise<Dash
 					id: true,
 					name: true,
 					description: true
+				}
+			},
+			targetUser: {
+				select: {
+					id: true,
+					name: true,
+					email: true
 				}
 			}
 		},
@@ -148,6 +157,13 @@ export async function loadDashboardPlanifications(coachId: number): Promise<Dash
 			date: p.date instanceof Date ? p.date.toISOString().split('T')[0] : p.date,
 			blocks: blocksData, // Agregar blocks para compatibilidad con el frontend
 			exercises: exercisesData, // Mantener exercises también
+			is_personalized: p.isPersonalized || false,
+			target_user_id: p.targetUserId ? String(p.targetUserId) : null,
+			target_user: p.targetUser ? {
+				id: String(p.targetUser.id),
+				name: p.targetUser.name,
+				email: p.targetUser.email
+			} : null,
 			discipline: p.discipline ? {
 				id: p.discipline.id,
 				name: p.discipline.name,
@@ -267,16 +283,10 @@ export async function loadDashboardUsers(coachId: number): Promise<DashboardUser
 	const disciplineMap = new Map(disciplines.map(d => [d.id, d]))
 	const levelMap = new Map(levels.map(l => [l.id, l]))
 
-	// FILTRO: Solo estudiantes con personalizedWorkouts=true
-	const eligibleUsers = users.filter(user => {
-		const subscription = user.subscriptions[0]
-		if (!subscription) return false
-		
-		const features = subscription.plan?.features as { personalizedWorkouts?: boolean } | null
-		return features?.personalizedWorkouts === true
-	})
+	// NOTA: Este helper retorna TODOS los estudiantes del coach
+	// El filtrado por personalizedWorkouts se hace en el frontend solo para el selector de planificaciones personalizadas
 
-	return eligibleUsers.map(user => {
+	return users.map(user => {
 		const subscription = user.subscriptions[0] || null
 		const preferences = user.userPreferences
 

@@ -24,6 +24,8 @@ import {
   type PlanificationAccess,
 } from "@/hooks/use-coach-plan-features";
 import Link from "next/link";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { useDisciplines } from "@/hooks/use-disciplines";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
 import { CoachLogoUploadInline } from "@/components/admin/coach-logo-upload-inline";
@@ -215,9 +217,9 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
       {/* Información del Plan */}
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="min-w-0 flex sm:flex-col max-sm:items-start max-sm:justify-between">
-              <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="min-w-0 flex flex-col max-sm:gap-2 max-sm:items-start max-sm:justify-between">
+              <div className="flex sm:flex-wrap items-center gap-3">
                 <Badge
                   className={`text-sm sm:text-base px-2 sm:px-3 py-1 ${
                     planInfo.planName === "elite"
@@ -245,6 +247,42 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
                     Activo
                   </Badge>
                 )}
+              </div>
+              {/* Fechas del período */}
+              <div className="flex flex-col items-start gap-1 text-sm text-muted-foreground mt-5">
+                <div className="flex items-center gap-2 mb-1">
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-white">
+                    Período del plan
+                  </span>
+                  <span className="px-2 py-1 rounded bg-lime-500/10 text-lime-600 text-xs font-medium">
+                    {Math.ceil(
+                      (new Date(planInfo.currentPeriodEnd).getTime() -
+                        new Date().getTime()) /
+                        (1000 * 60 * 60 * 24),
+                    )}{" "}
+                    días restantes
+                  </span>
+                </div>
+                <div>
+                  <span className="px-2 py-1 rounded bg-muted text-xs sm:text-sm">
+                    Inicio:{" "}
+                    {format(
+                      new Date(planInfo.currentPeriodStart),
+                      "dd/MM/yyyy",
+                      {
+                        locale: es,
+                      },
+                    )}
+                  </span>
+
+                  <span className="px-2 py-1 rounded bg-muted text-xs sm:text-sm">
+                    Fin:{" "}
+                    {format(new Date(planInfo.currentPeriodEnd), "dd/MM/yyyy", {
+                      locale: es,
+                    })}
+                  </span>
+                </div>
               </div>
             </div>
             <div className="flex-shrink-0">

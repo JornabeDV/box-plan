@@ -8,6 +8,7 @@ import { useAuthWithRoles } from "@/hooks/use-auth-with-roles";
 import { useProfile } from "@/hooks/use-profile";
 import { useUserCoach } from "@/hooks/use-user-coach";
 import { useStudentSubscription } from "@/hooks/use-student-subscription";
+import { useStudentCoach } from "@/hooks/use-student-coach";
 import { TodaySection } from "@/components/dashboard/today-section";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { ReviewsSection } from "@/components/home/reviews-section";
@@ -36,6 +37,8 @@ import {
   Weight,
   Trophy,
   Settings,
+  MessageCircle,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -69,8 +72,11 @@ export default function BoxPlanApp() {
     canViewRanking,
     canTrackProgress,
     canUseWhatsAppSupport,
+    isSubscribed,
     loading: subscriptionLoading,
   } = useStudentSubscription();
+  const { coach: studentCoach, loading: studentCoachLoading } =
+    useStudentCoach();
 
   // Verificar si tiene acceso a la funcionalidad de progreso
   const hasProgressAccess = canTrackProgress;
@@ -683,12 +689,95 @@ export default function BoxPlanApp() {
     );
   }
 
-  // Para usuarios logueados, mostrar dashboard personalizado
+  // Para usuarios logueados, verificar si tiene suscripción activa
+  // Si no tiene suscripción, mostrar pantalla de acceso restringido (Beta)
+  if (!subscriptionLoading && !isSubscribed) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <Header />
+        <main
+          className={`p-6 space-y-6 max-w-4xl mx-auto ${
+            isSubscribed ? "pb-32" : ""
+          }`}
+        >
+          <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-8">
+            <Card className="border-amber-500/30 bg-amber-500/5 w-full max-w-md">
+              <CardContent className="pt-6 text-center py-6 sm:py-12 space-y-6">
+                <div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto">
+                  <AlertTriangle className="w-10 h-10 text-amber-500" />
+                </div>
+
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-bold text-foreground">
+                    Acceso Beta Limitado
+                  </h2>
+                  <p className="text-muted-foreground max-w-sm mx-auto">
+                    Actualmente no tienes un plan activo. Para acceder a las
+                    planificaciones personalizadas, contacta a tu coach.
+                  </p>
+                </div>
+
+                {!studentCoachLoading && studentCoach?.phone ? (
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Envíale un mensaje a{" "}
+                      <strong>{studentCoach.businessName || "tu coach"}</strong>{" "}
+                      para que te dé de alta:
+                    </p>
+                    <Button
+                      size="lg"
+                      className="bg-green-600 hover:bg-green-700 text-white w-full"
+                      onClick={() => {
+                        const message = encodeURIComponent(
+                          `Hola ${studentCoach.businessName || ""}, soy ${user?.name || ""}. ` +
+                            `Quiero acceder a las planificaciones de entrenamiento. ¿Podés darme de alta?`,
+                        );
+                        window.open(
+                          `https://wa.me/${studentCoach.phone}?text=${message}`,
+                          "_blank",
+                        );
+                      }}
+                    >
+                      <MessageCircle className="w-5 h-5 mr-2" />
+                      Contactar por WhatsApp
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      No se encontró información de contacto de tu coach.
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => router.push("/subscription")}
+                      className="w-full"
+                    >
+                      Ver Planes Disponibles
+                    </Button>
+                  </div>
+                )}
+
+                <div className="pt-4 border-t border-border">
+                  <p className="text-xs text-muted-foreground">
+                    Versión Beta - Estamos trabajando para mejorar tu
+                    experiencia
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+        {/* No mostrar BottomNavigation si no tiene suscripción - evita navegación */}
+      </div>
+    );
+  }
+
+  // Para usuarios logueados con suscripción activa, mostrar dashboard personalizado
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
 
-      <main className="p-6 space-y-8 pb-28flex items-center justify-center gap-6 mt-6 pt-4 border-t border-border max-w-6xl mx-auto">
+      <main className="p-6 space-y-8 pb-28 gap-6 mt-6 pt-4 border-t border-border max-w-6xl mx-auto">
         {/* Saludo personalizado */}
         <section className="mb-3 sm:mb-8">
           <div className="space-y-3">

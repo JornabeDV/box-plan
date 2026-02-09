@@ -45,6 +45,10 @@ export interface CoachPlanInfo {
 	maxStudentPlanTier: string
 	isActive: boolean
 	isTrial: boolean
+	/** Fecha de inicio del período actual */
+	currentPeriodStart: string | Date
+	/** Fecha de vencimiento del período actual */
+	currentPeriodEnd: string | Date
 }
 
 interface UseCoachPlanFeaturesReturn {
