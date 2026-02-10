@@ -125,8 +125,8 @@ export function TimerDisplay({
         </div>
       </CardHeader>
       <CardContent className="text-center space-y-6">
-        {/* Mostrar rondas para TABATA y EMOM */}
-        {(mode === "tabata" || mode === "emom") &&
+        {/* Mostrar rondas para TABATA, EMOM y AMRAP (solo si hay más de 1 ronda) */}
+        {(mode === "tabata" || mode === "emom" || (mode === "amrap" && parseInt(totalRounds || '1') > 1)) &&
           currentRound &&
           totalRounds &&
           !isCountdownActive && (

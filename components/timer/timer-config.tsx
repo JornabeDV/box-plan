@@ -98,6 +98,8 @@ export function TimerConfig({
 	}
 
 	if (mode === 'amrap') {
+		const totalRoundsNum = parseInt(totalRounds) || 1
+		
 		return (
 			<Card className="max-w-md mx-auto">
 				<CardHeader>
@@ -122,6 +124,44 @@ export function TimerConfig({
 							disabled={isRunning || isPaused}
 						/>
 					</div>
+					<div className="space-y-2">
+						<Label htmlFor="totalRounds">Número de rondas</Label>
+						<Input
+							id="totalRounds"
+							type="number"
+							value={totalRounds}
+							onChange={(e) => {
+								const value = e.target.value
+								if (value === '' || (value.length <= 2 && parseInt(value) <= 99)) {
+									onTotalRoundsChange(value)
+								}
+							}}
+							min="1"
+							max="99"
+							placeholder="1"
+							disabled={isRunning || isPaused}
+						/>
+					</div>
+					{totalRoundsNum > 1 && (
+						<div className="space-y-2">
+							<Label htmlFor="restTime">Descanso entre rondas (segundos)</Label>
+							<Input
+								id="restTime"
+								type="number"
+								value={restTime}
+								onChange={(e) => {
+									const value = e.target.value
+									if (value === '' || (value.length <= 3 && parseInt(value) <= 999)) {
+										onRestTimeChange(value)
+									}
+								}}
+								min="0"
+								max="999"
+								placeholder="60"
+								disabled={isRunning || isPaused}
+							/>
+						</div>
+					)}
 				</CardContent>
 			</Card>
 		)
