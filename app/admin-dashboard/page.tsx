@@ -516,8 +516,8 @@ export default function AdminDashboardPage() {
             >
               <div className="flex flex-col items-center gap-1">
                 <Package className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">Mi Plan</span>
-                <span className="sm:hidden text-xs">Mi Plan</span>
+                <span className="hidden sm:inline">Mi Cuenta</span>
+                <span className="sm:hidden text-xs">Mi Cuenta</span>
               </div>
             </TabsTrigger>
           </TabsList>
@@ -597,12 +597,12 @@ export default function AdminDashboardPage() {
             <MercadoPagoConnect coachId={coachProfile?.id} />
           </TabsContent>
 
-          {/* Mi Plan Tab */}
+          {/* Mi Cuenta Tab */}
           <TabsContent value="my-plan" className="space-y-6">
             <div className="flex flex-col gap-2 items-start">
-              <h2 className="text-2xl font-bold">Mi Plan</h2>
+              <h2 className="text-2xl font-bold">Mi Cuenta</h2>
               <p className="text-muted-foreground text-sm sm:text-base">
-                Información sobre tu plan actual y características disponibles
+                Gestiona tu plan, datos del negocio y configuración personal
               </p>
             </div>
             <MyPlanSection coachId={profileId} />
