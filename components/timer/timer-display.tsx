@@ -6,6 +6,9 @@ import {
   Play,
   Pause,
   RotateCcw,
+  Maximize2,
+  Volume2,
+  VolumeX,
   Clock,
   Timer,
   Zap,
@@ -25,9 +28,13 @@ interface TimerDisplayProps {
   isRunning: boolean;
   isPaused: boolean;
   countdown?: number | null;
+  emomTotalTime?: string;
+  soundEnabled?: boolean;
   onStart: () => void;
   onPause: () => void;
   onReset: () => void;
+  onToggleFullscreen?: () => void;
+  onToggleSound?: () => void;
 }
 
 const modeIcons = {
@@ -58,9 +65,13 @@ export function TimerDisplay({
   isRunning,
   isPaused,
   countdown,
+  emomTotalTime,
+  soundEnabled = true,
   onStart,
   onPause,
   onReset,
+  onToggleFullscreen,
+  onToggleSound,
 }: TimerDisplayProps) {
   const Icon = modeIcons[mode];
   const isCountdownActive =
@@ -75,19 +86,51 @@ export function TimerDisplay({
     countdown > 0;
 
   return (
-    <Card className="max-w-md mx-auto">
+    <Card className="max-w-md mx-auto relative">
       <CardHeader className="text-center">
-        <CardTitle className="flex items-center justify-center gap-2">
-          <Icon className="w-6 h-6 text-primary" />
-          {modeNames[mode]}
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <div className="flex-1" />
+          <CardTitle className="flex items-center justify-center gap-2 flex-1">
+            <Icon className="w-6 h-6 text-primary" />
+            {modeNames[mode]}
+          </CardTitle>
+          <div className="flex-1 flex justify-end gap-1">
+            {onToggleSound && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onToggleSound}
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                title={soundEnabled ? "Silenciar" : "Activar sonido"}
+              >
+                {soundEnabled ? (
+                  <Volume2 className="w-4 h-4" />
+                ) : (
+                  <VolumeX className="w-4 h-4" />
+                )}
+              </Button>
+            )}
+            {onToggleFullscreen && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onToggleFullscreen}
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                title="Pantalla completa"
+              >
+                <Maximize2 className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="text-center space-y-6">
-        {mode === "tabata" &&
+        {/* Mostrar rondas para TABATA y EMOM */}
+        {(mode === "tabata" || mode === "emom") &&
           currentRound &&
           totalRounds &&
           !isCountdownActive && (
-            <div className="text-lg font-medium">
+            <div className="text-xl font-bold text-primary">
               Ronda {currentRound} de {totalRounds}
             </div>
           )}
@@ -117,6 +160,13 @@ export function TimerDisplay({
         >
           {displayTime}
         </div>
+
+        {/* Tiempo total para EMOM */}
+        {mode === "emom" && emomTotalTime && !isCountdownActive && (
+          <div className="text-lg text-muted-foreground">
+            Tiempo total: <span className="font-mono font-bold text-foreground text-2xl">{emomTotalTime}</span>
+          </div>
+        )}
 
         <div className="flex flex-col sm:flex-row justify-center gap-4">
           {!isRunning ? (

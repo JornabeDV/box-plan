@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 type TimerMode = 'normal' | 'tabata' | 'fortime' | 'amrap' | 'emom' | 'otm'
 
@@ -10,6 +10,77 @@ interface UseTimerProps {
 	restTime: string
 	totalRounds: string
 	amrapTime: string
+}
+
+// SONIDO TIPO CAMPANA DE GIMNASIO (estándar CrossFit)
+// Usa múltiples armónicos para simular una campana metálica
+const playBellSound = (isHigh: boolean = false) => {
+	try {
+		const AudioContext = window.AudioContext || (window as any).webkitAudioContext
+		if (!AudioContext) return
+
+		const audioContext = new AudioContext()
+		
+		// Frecuencias base: campana grave para conteo, aguda para inicio
+		const baseFreq = isHigh ? 880 : 523 // La5 (agudo) o Do5 (grave)
+		const freqs = [baseFreq, baseFreq * 1.5, baseFreq * 2] // Fundamental + 5ta + octava
+		const duration = isHigh ? 0.6 : 0.15 // Más largo para inicio
+		
+		freqs.forEach((freq, i) => {
+			const oscillator = audioContext.createOscillator()
+			const gainNode = audioContext.createGain()
+			
+			oscillator.connect(gainNode)
+			gainNode.connect(audioContext.destination)
+			
+			oscillator.frequency.value = freq
+			oscillator.type = 'triangle' // Más similar a campana que sine
+			
+			// Envolvente tipo campana (attack rápido, decay largo)
+			const volume = isHigh ? 0.2 : 0.15
+			gainNode.gain.setValueAtTime(0, audioContext.currentTime)
+			gainNode.gain.linearRampToValueAtTime(volume / (i + 1), audioContext.currentTime + 0.02)
+			gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration)
+			
+			oscillator.start(audioContext.currentTime)
+			oscillator.stop(audioContext.currentTime + duration)
+		})
+	} catch (e) {}
+}
+
+// Sonido de conteo (3-2-1) - Campana corta y grave
+const playCountdownBeep = () => {
+	playBellSound(false)
+}
+
+// Sonido de inicio - Campana larga y aguda
+const playStartBeep = () => {
+	playBellSound(true)
+}
+
+// Sonido simple tipo "clock beep" para cuenta regresiva larga
+const playSimpleBeep = () => {
+	try {
+		const AudioContext = window.AudioContext || (window as any).webkitAudioContext
+		if (!AudioContext) return
+
+		const audioContext = new AudioContext()
+		const oscillator = audioContext.createOscillator()
+		const gainNode = audioContext.createGain()
+
+		oscillator.connect(gainNode)
+		gainNode.connect(audioContext.destination)
+
+		oscillator.frequency.value = 600
+		oscillator.type = 'sine'
+
+		gainNode.gain.setValueAtTime(0, audioContext.currentTime)
+		gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.01)
+		gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.08)
+
+		oscillator.start(audioContext.currentTime)
+		oscillator.stop(audioContext.currentTime + 0.08)
+	} catch (e) {}
 }
 
 export function useTimer({
@@ -26,7 +97,51 @@ export function useTimer({
 	const [amrapInitialTime, setAmrapInitialTime] = useState(600)
 	const [isWorkPhase, setIsWorkPhase] = useState(true)
 	const [countdown, setCountdown] = useState<number | null>(null)
+	const [soundEnabled, setSoundEnabled] = useState(true)
+
 	const intervalRef = useRef<NodeJS.Timeout | null>(null)
+	const lastCountdownRef = useRef<number | null>(null)
+
+	// Efecto para reproducir sonidos durante la cuenta regresiva
+	useEffect(() => {
+		if (!soundEnabled) return
+		if (countdown !== null && countdown > 0 && countdown !== lastCountdownRef.current) {
+			// Sonido de campana para 3, 2, 1
+			if (countdown <= 3 && countdown > 0) {
+				playCountdownBeep()
+			} else {
+				// Beep simple para el resto de la cuenta (10-4)
+				playSimpleBeep()
+			}
+			lastCountdownRef.current = countdown
+		}
+		// Sonido de inicio cuando termina la cuenta regresiva (campana larga y aguda)
+		if (lastCountdownRef.current !== null && countdown === null && isRunning) {
+			playStartBeep()
+			lastCountdownRef.current = null
+		}
+	}, [countdown, isRunning, soundEnabled])
+
+	// Efecto para sonidos en EMOM (últimos 3 segundos de cada minuto)
+	useEffect(() => {
+		if (!soundEnabled || !isRunning || isPaused || countdown) return
+		if (mode === 'emom') {
+			const secondsIntoMinute = time % 60
+			// Últimos 3 segundos del minuto - campana de conteo
+			if (secondsIntoMinute >= 57 && secondsIntoMinute < 60) {
+				playCountdownBeep()
+			}
+		}
+	}, [time, mode, isRunning, isPaused, countdown, soundEnabled])
+
+	// Efecto para sonidos en Tabata (cambio de fase)
+	useEffect(() => {
+		if (!soundEnabled || !isRunning || isPaused || countdown) return
+		if (mode === 'tabata') {
+			// Campana larga para cambios de fase
+			playStartBeep()
+		}
+	}, [isWorkPhase, mode, isRunning, isPaused, countdown, soundEnabled])
 
 	// Inicializar tiempo de AMRAP cuando cambia el modo o el tiempo configurado
 	useEffect(() => {
@@ -57,6 +172,10 @@ export function useTimer({
 								const amrapTimeInSeconds = amrapTimeNum * 60
 								setTime(amrapTimeInSeconds)
 								setAmrapInitialTime(amrapTimeInSeconds)
+							} else if (mode === 'emom') {
+								// Para EMOM, iniciar en el segundo 0 del primer minuto
+								setTime(0)
+								setCurrentRound(1)
 							} else {
 								setTime(0)
 							}
@@ -113,6 +232,21 @@ export function useTimer({
 						}
 					}
 
+					// Lógica EMOM: incrementar ronda cada 60 segundos
+					if (mode === 'emom') {
+						const totalRoundsNum = parseInt(totalRounds) || 10
+						const currentEmomRound = Math.floor(newTime / 60) + 1
+						
+						if (currentEmomRound > totalRoundsNum) {
+							setIsRunning(false)
+							return prevTime
+						}
+						
+						if (currentEmomRound !== currentRound) {
+							setCurrentRound(currentEmomRound)
+						}
+					}
+
 					return newTime
 				})
 			}, 1000)
@@ -127,7 +261,7 @@ export function useTimer({
 				clearInterval(intervalRef.current)
 			}
 		}
-	}, [isRunning, isPaused, mode, workTime, restTime, totalRounds, isWorkPhase, countdown])
+	}, [isRunning, isPaused, mode, workTime, restTime, totalRounds, isWorkPhase, countdown, currentRound])
 
 	const formatTime = (seconds: number) => {
 		const hours = Math.floor(seconds / 3600)
@@ -164,6 +298,12 @@ export function useTimer({
 		return time
 	}
 
+	const getEmomCountdown = () => {
+		// EMOM: cuenta regresiva desde 60 segundos cada minuto
+		const secondsIntoMinute = time % 60
+		return 60 - secondsIntoMinute
+	}
+
 	const getDisplayTime = () => {
 		// Mostrar cuenta regresiva si está activa en cualquier modo
 		if ((mode === 'normal' || mode === 'tabata' || mode === 'fortime' || mode === 'amrap' || mode === 'emom' || mode === 'otm') && countdown !== null && countdown > 0) {
@@ -175,6 +315,14 @@ export function useTimer({
 		if (mode === 'amrap') {
 			return formatTime(Math.max(0, time))
 		}
+		if (mode === 'emom') {
+			return formatTime(getEmomCountdown())
+		}
+		return formatTime(time)
+	}
+
+	const getEmomTotalTime = () => {
+		// En EMOM, el tiempo total es simplemente el tiempo transcurrido
 		return formatTime(time)
 	}
 
@@ -226,6 +374,11 @@ export function useTimer({
 		setIsPaused(false)
 		setCurrentRound(1)
 		setIsWorkPhase(true)
+		lastCountdownRef.current = null
+	}
+
+	const toggleSound = () => {
+		setSoundEnabled(prev => !prev)
 	}
 
 	return {
@@ -235,12 +388,15 @@ export function useTimer({
 		currentRound,
 		isWorkPhase,
 		countdown,
+		soundEnabled,
 		getDisplayTime,
 		getPhaseText,
 		getPhaseColor,
+		getEmomTotalTime,
 		handleStart,
 		handlePause,
 		handleReset,
+		toggleSound,
 	}
 }
 
