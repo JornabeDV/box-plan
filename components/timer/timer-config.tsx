@@ -127,5 +127,35 @@ export function TimerConfig({
 		)
 	}
 
+	if (mode === 'emom') {
+		return (
+			<Card className="max-w-md mx-auto">
+				<CardHeader>
+					<CardTitle>Configuración EMOM</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-4">
+					<div className="space-y-2">
+						<Label htmlFor="totalRounds">Número de Rondas</Label>
+						<Input
+							id="totalRounds"
+							type="number"
+							value={totalRounds}
+							onChange={(e) => {
+								const value = e.target.value
+								if (value === '' || (value.length <= 2 && parseInt(value) <= 99)) {
+									onTotalRoundsChange(value)
+								}
+							}}
+							min="1"
+							max="99"
+							placeholder="10"
+							disabled={isRunning || isPaused}
+						/>
+					</div>
+				</CardContent>
+			</Card>
+		)
+	}
+
 	return null
 }
