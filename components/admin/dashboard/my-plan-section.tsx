@@ -30,6 +30,7 @@ import { useDisciplines } from "@/hooks/use-disciplines";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
 import { CoachLogoUploadInline } from "@/components/admin/coach-logo-upload-inline";
 import { MotivationalQuotesManager } from "@/components/admin/motivational-quotes-manager";
+import { CoachBusinessInfoForm } from "@/components/admin/coach-business-info-form";
 import {
   Tooltip,
   TooltipContent,
@@ -432,6 +433,9 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Datos del Negocio */}
+      <CoachBusinessInfoForm />
 
       {/* Gestión de Frases Motivacionales */}
       <MotivationalQuotesManager

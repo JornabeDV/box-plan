@@ -146,6 +146,7 @@ export function CoachPlanCard({
         features.max_disciplines &&
           `Hasta ${features.max_disciplines} disciplinas`,
         features.timer && "Cronómetro con tiempos de entrenamiento",
+        features.whatsapp_integration && "Vinculación con WhatsApp",
       ].filter(Boolean);
     }
 
@@ -172,7 +173,7 @@ export function CoachPlanCard({
     if (planName === "elite") {
       return [
         ...baseFeatures,
-        features.planification_unlimited &&
+        features.planification_access &&
           "Planificación ilimitada (sin límite de días)",
         features.score_loading && "Carga de score por alumno",
         features.score_database &&
@@ -223,7 +224,8 @@ export function CoachPlanCard({
       {hasTrialPeriod && !currentPlan && (
         <div className="absolute -top-3 right-4 z-10">
           <Badge className="bg-green-600 text-white px-3 py-1">
-            <Zap className="w-3 h-3 mr-1" />30 días gratis
+            <Zap className="w-3 h-3 mr-1" />
+            30 días gratis
           </Badge>
         </div>
       )}
@@ -243,8 +245,8 @@ export function CoachPlanCard({
           {plan.maxStudents === 999999
             ? "Alumnos ilimitados"
             : plan.minStudents === 1 && plan.maxStudents === 1
-            ? "1 alumno"
-            : `Hasta ${plan.maxStudents} alumnos`}
+              ? "1 alumno"
+              : `Hasta ${plan.maxStudents} alumnos`}
         </CardDescription>
 
         <div className="mt-6 mb-4">
