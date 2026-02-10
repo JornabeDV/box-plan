@@ -69,9 +69,26 @@ export default function TimerPage() {
   const handleModeChange = (newMode: TimerMode) => {
     setMode(newMode);
     handleReset(true);
-    setWorkTime("20");
-    setRestTime("10");
-    setTotalRounds("8");
+    
+    if (newMode === 'amrap') {
+      // Valores por defecto para AMRAP (1 ronda = comportamiento clásico)
+      setWorkTime("20");
+      setRestTime("60"); // 60 segundos de descanso entre rondas (solo si > 1 ronda)
+      setTotalRounds("1"); // 1 ronda por defecto (clásico)
+      setAmrapTime("10"); // 10 minutos clásico
+    } else if (newMode === 'tabata') {
+      setWorkTime("20");
+      setRestTime("10");
+      setTotalRounds("8");
+    } else if (newMode === 'emom') {
+      setWorkTime("20");
+      setRestTime("10");
+      setTotalRounds("10");
+    } else {
+      setWorkTime("20");
+      setRestTime("10");
+      setTotalRounds("8");
+    }
   };
 
   // Función para entrar en pantalla completa
@@ -257,8 +274,8 @@ export default function TimerPage() {
 
         {/* Contenido principal centrado */}
         <div className="h-full flex flex-col items-center justify-center px-4">
-          {/* Rondas (para Tabata y EMOM) */}
-          {(mode === "tabata" || mode === "emom") &&
+          {/* Rondas (para Tabata, EMOM y AMRAP con múltiples rondas) */}
+          {(mode === "tabata" || mode === "emom" || (mode === "amrap" && parseInt(totalRounds) > 1)) &&
             currentRound &&
             totalRounds && (
               <div className="text-2xl md:text-4xl font-bold text-white mb-4 md:mb-6">
@@ -266,8 +283,8 @@ export default function TimerPage() {
               </div>
             )}
 
-          {/* Fase (para Tabata) */}
-          {mode === "tabata" && (
+          {/* Fase (para Tabata y AMRAP con múltiples rondas) */}
+          {(mode === "tabata" || (mode === "amrap" && parseInt(totalRounds) > 1)) && (
             <div
               className={`text-3xl md:text-5xl font-bold mb-4 md:mb-6 ${isWorkPhase ? "text-lime-400" : "text-green-400"}`}
             >

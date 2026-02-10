@@ -148,13 +148,13 @@ export function useTimer({
 		if (mode === 'amrap' && !isRunning && !isPaused) {
 			const amrapTimeNum = parseInt(amrapTime) || 10
 			const amrapTimeInSeconds = amrapTimeNum * 60
-			if (time === 0 || time === amrapInitialTime) {
+			if (time === 0 || time === amrapInitialTime || time === parseInt(restTime || '60')) {
 				setTime(amrapTimeInSeconds)
 				setAmrapInitialTime(amrapTimeInSeconds)
 			}
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [mode, amrapTime])
+	}, [mode, amrapTime, restTime])
 
 	useEffect(() => {
 		if (isRunning && !isPaused) {
@@ -172,6 +172,8 @@ export function useTimer({
 								const amrapTimeInSeconds = amrapTimeNum * 60
 								setTime(amrapTimeInSeconds)
 								setAmrapInitialTime(amrapTimeInSeconds)
+								setIsWorkPhase(true)
+								setCurrentRound(1)
 							} else if (mode === 'emom') {
 								// Para EMOM, iniciar en el segundo 0 del primer minuto
 								setTime(0)
@@ -192,12 +194,48 @@ export function useTimer({
 					}
 
 					if (mode === 'amrap') {
-						const newTime = prevTime - 1
-						if (newTime <= 0) {
-							setIsRunning(false)
-							return 0
+						const amrapTimeNum = parseInt(amrapTime) || 10
+						const restTimeNum = parseInt(restTime) || 60
+						const totalRoundsNum = parseInt(totalRounds) || 1
+						
+						// Si es una sola ronda, comportamiento clásico de AMRAP
+						if (totalRoundsNum <= 1) {
+							const newTime = prevTime - 1
+							if (newTime <= 0) {
+								setIsRunning(false)
+								return 0
+							}
+							return newTime
 						}
-						return newTime
+						
+						// Múltiples rondas: alternar entre trabajo y descanso
+						if (isWorkPhase) {
+							// Fase de trabajo (AMRAP)
+							const newTime = prevTime - 1
+							if (newTime <= 0) {
+								// Terminó esta ronda de AMRAP
+								if (currentRound >= totalRoundsNum) {
+									// Terminó todo el entrenamiento
+									setIsRunning(false)
+									return 0
+								} else {
+									// Pasar a descanso
+									setIsWorkPhase(false)
+									return restTimeNum
+								}
+							}
+							return newTime
+						} else {
+							// Fase de descanso
+							const newTime = prevTime - 1
+							if (newTime <= 0) {
+								// Terminó el descanso, pasar a siguiente ronda
+								setIsWorkPhase(true)
+								setCurrentRound(prev => prev + 1)
+								return amrapTimeNum * 60
+							}
+							return newTime
+						}
 					}
 
 					const newTime = prevTime + 1
@@ -333,12 +371,26 @@ export function useTimer({
 		if (mode === 'tabata') {
 			return isWorkPhase ? 'TRABAJO' : 'DESCANSO'
 		}
+		if (mode === 'amrap') {
+			const totalRoundsNum = parseInt(totalRounds) || 1
+			// Solo mostrar fase si hay múltiples rondas
+			if (totalRoundsNum > 1) {
+				return isWorkPhase ? 'TRABAJO' : 'DESCANSO'
+			}
+		}
 		return 'TIEMPO'
 	}
 
 	const getPhaseColor = () => {
 		if (mode === 'tabata') {
 			return isWorkPhase ? 'text-primary' : 'text-green-500'
+		}
+		if (mode === 'amrap') {
+			const totalRoundsNum = parseInt(totalRounds) || 1
+			// Solo cambiar color si hay múltiples rondas
+			if (totalRoundsNum > 1) {
+				return isWorkPhase ? 'text-primary' : 'text-green-500'
+			}
 		}
 		return 'text-primary'
 	}
