@@ -8,6 +8,7 @@ import { usePlanificationScores } from "@/hooks/use-planification-scores";
 import { PlanificationHeader } from "@/components/planification/planification-header";
 import { PlanificationBlocks } from "@/components/planification/planification-blocks";
 import { PlanificationNotes } from "@/components/planification/planification-notes";
+import { PlanificationTimer } from "@/components/planification/planification-timer";
 import { WodScoreForm } from "@/components/planification/wod-score-form";
 import { StrengthScoreForm } from "@/components/planification/strength-score-form";
 import { LevelPreferenceModal } from "@/components/planification/level-preference-modal";
@@ -58,7 +59,6 @@ export default function PlanificationPage() {
 /*  */  
   // El modal se muestra si hay disciplina pero no hay nivel seleccionado
   const showLevelModal = !!disciplineId && !selectedLevelId;
-
   const { handleSaveWodScore, handleSaveStrengthScore } =
     usePlanificationScores({
       planificationId: planification?.id,
@@ -225,6 +225,16 @@ export default function PlanificationPage() {
               )} */}
           </div>
         )}
+
+      {/* Timer de entrenamiento */}
+      {planification && (
+        <div className="mt-6">
+          <PlanificationTimer
+            planificationTitle={planification.discipline?.name || ""}
+            blocksText={sortedBlocks.map(b => `${b.title} ${b.items?.join(" ") || ""}`).join(" ")}
+          />
+        </div>
+      )}
 
       {/* Mensaje si no hay bloques ni notas */}
       {!loading && planification && sortedBlocks.length === 0 && !planification.notes && (
