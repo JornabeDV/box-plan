@@ -54,6 +54,7 @@ export default function TimerPage() {
     getPhaseText,
     getPhaseColor,
     getEmomTotalTime,
+    getOtmTotalTime,
     handleStart,
     handlePause,
     handleReset,
@@ -84,6 +85,10 @@ export default function TimerPage() {
       setWorkTime("20");
       setRestTime("10");
       setTotalRounds("10");
+    } else if (newMode === 'otm') {
+      setWorkTime("2");    // 2 minutos por ronda por defecto
+      setRestTime("0");    // No hay descanso explícito
+      setTotalRounds("3"); // 5 rondas por defecto
     } else {
       setWorkTime("20");
       setRestTime("10");
@@ -274,8 +279,8 @@ export default function TimerPage() {
 
         {/* Contenido principal centrado */}
         <div className="h-full flex flex-col items-center justify-center px-4">
-          {/* Rondas (para Tabata, EMOM y AMRAP con múltiples rondas) */}
-          {(mode === "tabata" || mode === "emom" || (mode === "amrap" && parseInt(totalRounds) > 1)) &&
+          {/* Rondas (para Tabata, EMOM, OTM y AMRAP con múltiples rondas) */}
+          {(mode === "tabata" || mode === "emom" || mode === "otm" || (mode === "amrap" && parseInt(totalRounds) > 1)) &&
             currentRound &&
             totalRounds && (
               <div className="text-2xl md:text-4xl font-bold text-white mb-4 md:mb-6">
@@ -317,12 +322,12 @@ export default function TimerPage() {
             )}
           </div>
 
-          {/* Tiempo total para EMOM */}
-          {mode === "emom" && (
+          {/* Tiempo total para EMOM y OTM */}
+          {(mode === "emom" || mode === "otm") && (
             <div className="text-xl md:text-3xl text-white/70 mb-4">
               Total:{" "}
               <span className="font-mono font-bold text-white">
-                {getEmomTotalTime()}
+                {mode === "emom" ? getEmomTotalTime() : getOtmTotalTime()}
               </span>
             </div>
           )}

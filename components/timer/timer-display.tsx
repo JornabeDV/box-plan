@@ -125,8 +125,11 @@ export function TimerDisplay({
         </div>
       </CardHeader>
       <CardContent className="text-center space-y-6">
-        {/* Mostrar rondas para TABATA, EMOM y AMRAP (solo si hay más de 1 ronda) */}
-        {(mode === "tabata" || mode === "emom" || (mode === "amrap" && parseInt(totalRounds || '1') > 1)) &&
+        {/* Mostrar rondas para TABATA, EMOM, OTM y AMRAP (solo si hay más de 1 ronda) */}
+        {(mode === "tabata" ||
+          mode === "emom" ||
+          mode === "otm" ||
+          (mode === "amrap" && parseInt(totalRounds || "1") > 1)) &&
           currentRound &&
           totalRounds &&
           !isCountdownActive && (
@@ -164,7 +167,20 @@ export function TimerDisplay({
         {/* Tiempo total para EMOM */}
         {mode === "emom" && emomTotalTime && !isCountdownActive && (
           <div className="text-lg text-muted-foreground">
-            Tiempo total: <span className="font-mono font-bold text-foreground text-2xl">{emomTotalTime}</span>
+            Tiempo total:{" "}
+            <span className="font-mono font-bold text-foreground text-2xl">
+              {emomTotalTime}
+            </span>
+          </div>
+        )}
+
+        {/* Tiempo total para OTM */}
+        {mode === "otm" && emomTotalTime && !isCountdownActive && (
+          <div className="text-lg text-muted-foreground">
+            Tiempo total:{" "}
+            <span className="font-mono font-bold text-foreground text-2xl">
+              {emomTotalTime}
+            </span>
           </div>
         )}
 
