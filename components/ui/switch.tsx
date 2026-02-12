@@ -89,7 +89,7 @@ function Switch({
           // Estados de color
           isChecked 
             ? 'bg-lime-400' 
-            : 'bg-muted dark:bg-muted/60 border border-border',
+            : 'bg-gray-400 dark:bg-gray-600 border border-gray-500 dark:border-gray-500',
           // Estados de foco
           isFocused && 'ring-2 ring-lime-400/50 ring-offset-2 ring-offset-background',
           // Estado deshabilitado
