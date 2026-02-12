@@ -5,24 +5,24 @@
 
 :root {
   /* Modern Dark Theme with Neon Lime Accents - Based on Reference Images */
-  --background: oklch(0.05 0.01 0); /* Ultra dark background */
+  --background: oklch(0.18 0.01 0); /* Soft dark background - easier on eyes */
   --foreground: oklch(1.0 0.01 0); /* Pure white text */
-  --card: oklch(0.08 0.01 0); /* Dark cards */
+  --card: oklch(0.23 0.01 0); /* Elevated cards with clear distinction */
   --card-foreground: oklch(1.0 0.01 0);
-  --popover: oklch(0.08 0.01 0);
+  --popover: oklch(0.23 0.01 0);
   --popover-foreground: oklch(1.0 0.01 0);
   --primary: oklch(0.85 0.20 120); /* Bright neon lime green */
   --primary-foreground: oklch(0.05 0.01 0); /* Black text on lime */
-  --secondary: oklch(0.15 0.01 0); /* Dark gray secondary */
+  --secondary: oklch(0.28 0.01 0); /* Lighter secondary for better hierarchy */
   --secondary-foreground: oklch(0.9 0.01 0);
-  --muted: oklch(0.12 0.01 0); /* Dark muted background */
-  --muted-foreground: oklch(0.6 0.01 0); /* Light gray text */
+  --muted: oklch(0.28 0.01 0); /* Muted with better visibility */
+  --muted-foreground: oklch(0.65 0.01 0); /* Light gray text - improved contrast */
   --accent: oklch(0.85 0.20 120); /* Same as primary for consistency */
   --accent-foreground: oklch(0.05 0.01 0);
   --destructive: oklch(0.6 0.2 0); /* Red for destructive actions */
   --destructive-foreground: oklch(1.0 0.01 0);
-  --border: oklch(0.2 0.01 0); /* Dark borders */
-  --input: oklch(0.1 0.01 0); /* Dark input backgrounds */
+  --border: oklch(0.32 0.01 0); /* Visible borders for definition */
+  --input: oklch(0.25 0.01 0); /* Input backgrounds with depth */
   --ring: oklch(0.85 0.20 120);
   --chart-1: oklch(0.85 0.20 120); /* Neon Lime */
   --chart-2: oklch(0.7 0.15 60); /* Yellow */
@@ -30,49 +30,49 @@
   --chart-4: oklch(0.6 0.1 300); /* Purple */
   --chart-5: oklch(0.5 0.1 0); /* Gray */
   --radius: 0.5rem; /* Modern rounded corners */
-  --sidebar: oklch(0.03 0.01 0); /* Ultra dark sidebar */
+  --sidebar: oklch(0.14 0.01 0); /* Dark sidebar - distinct from main bg */
   --sidebar-foreground: oklch(1.0 0.01 0);
   --sidebar-primary: oklch(0.85 0.20 120);
   --sidebar-primary-foreground: oklch(0.05 0.01 0);
-  --sidebar-accent: oklch(0.15 0.01 0);
+  --sidebar-accent: oklch(0.28 0.01 0);
   --sidebar-accent-foreground: oklch(0.9 0.01 0);
-  --sidebar-border: oklch(0.2 0.01 0);
+  --sidebar-border: oklch(0.32 0.01 0);
   --sidebar-ring: oklch(0.85 0.20 120);
 }
 
 .dark {
   /* Modern Dark Theme - Same as root for consistency */
-  --background: oklch(0.05 0.01 0); /* Ultra dark background */
+  --background: oklch(0.18 0.01 0); /* Soft dark background - easier on eyes */
   --foreground: oklch(1.0 0.01 0); /* Pure white text */
-  --card: oklch(0.08 0.01 0); /* Dark cards */
+  --card: oklch(0.23 0.01 0); /* Elevated cards with clear distinction */
   --card-foreground: oklch(1.0 0.01 0);
-  --popover: oklch(0.08 0.01 0);
+  --popover: oklch(0.23 0.01 0);
   --popover-foreground: oklch(1.0 0.01 0);
   --primary: oklch(0.85 0.20 120); /* Bright neon lime green */
   --primary-foreground: oklch(0.05 0.01 0); /* Black text on lime */
-  --secondary: oklch(0.15 0.01 0); /* Dark gray secondary */
+  --secondary: oklch(0.28 0.01 0); /* Lighter secondary for better hierarchy */
   --secondary-foreground: oklch(0.9 0.01 0);
-  --muted: oklch(0.12 0.01 0); /* Dark muted background */
-  --muted-foreground: oklch(0.6 0.01 0); /* Light gray text */
+  --muted: oklch(0.28 0.01 0); /* Muted with better visibility */
+  --muted-foreground: oklch(0.65 0.01 0); /* Light gray text - improved contrast */
   --accent: oklch(0.85 0.20 120); /* Same as primary for consistency */
   --accent-foreground: oklch(0.05 0.01 0);
   --destructive: oklch(0.6 0.2 0); /* Red for destructive actions */
   --destructive-foreground: oklch(1.0 0.01 0);
-  --border: oklch(0.2 0.01 0); /* Dark borders */
-  --input: oklch(0.1 0.01 0); /* Dark input backgrounds */
+  --border: oklch(0.32 0.01 0); /* Visible borders for definition */
+  --input: oklch(0.25 0.01 0); /* Input backgrounds with depth */
   --ring: oklch(0.85 0.20 120);
   --chart-1: oklch(0.85 0.20 120); /* Neon Lime */
   --chart-2: oklch(0.7 0.15 60); /* Yellow */
   --chart-3: oklch(0.8 0.15 180); /* Cyan */
   --chart-4: oklch(0.6 0.1 300); /* Purple */
   --chart-5: oklch(0.5 0.1 0); /* Gray */
-  --sidebar: oklch(0.03 0.01 0); /* Ultra dark sidebar */
+  --sidebar: oklch(0.14 0.01 0); /* Dark sidebar - distinct from main bg */
   --sidebar-foreground: oklch(1.0 0.01 0);
   --sidebar-primary: oklch(0.85 0.20 120);
   --sidebar-primary-foreground: oklch(0.05 0.01 0);
-  --sidebar-accent: oklch(0.15 0.01 0);
+  --sidebar-accent: oklch(0.28 0.01 0);
   --sidebar-accent-foreground: oklch(0.9 0.01 0);
-  --sidebar-border: oklch(0.2 0.01 0);
+  --sidebar-border: oklch(0.32 0.01 0);
   --sidebar-ring: oklch(0.85 0.20 120);
 }
 
@@ -126,7 +126,7 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    background-color: #000000; /* Pure black background like reference images */
+    background-color: #1a1a1a; /* Soft dark background - easier on eyes */
   }
 
   /* Modern Typography - Optimized for fitness/CrossFit aesthetic */
@@ -203,7 +203,7 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: #000000;
+    background: #1a1a1a;
   }
 
   ::-webkit-scrollbar-thumb {
@@ -222,8 +222,8 @@
   }
 
   .dark-card {
-    background-color: #0A0A0A;
-    border: 1px solid #1A1A1A;
+    background-color: #2a2a2a;
+    border: 1px solid #333333;
   }
 
   .neon-border {
