@@ -186,6 +186,10 @@ export function useTimer({
 								// Para EMOM, iniciar en el segundo 0 del primer minuto
 								setTime(0)
 								setCurrentRound(1)
+							} else if (mode === 'otm') {
+								// Para OTM, iniciar en el segundo 0 del primer intervalo
+								setTime(0)
+								setCurrentRound(1)
 							} else {
 								setTime(0)
 							}
@@ -293,6 +297,22 @@ export function useTimer({
 						}
 					}
 
+					// Lógica OTM: incrementar ronda cada X minutos (configurable)
+					if (mode === 'otm') {
+						const totalRoundsNum = parseInt(totalRounds) || 10
+						const otmIntervalNum = (parseInt(workTime || '1') || 1) * 60 // Convertir minutos a segundos
+						const currentOtmRound = Math.floor(newTime / otmIntervalNum) + 1
+						
+						if (currentOtmRound > totalRoundsNum) {
+							setIsRunning(false)
+							return prevTime
+						}
+						
+						if (currentOtmRound !== currentRound) {
+							setCurrentRound(currentOtmRound)
+						}
+					}
+
 					return newTime
 				})
 			}, 1000)
@@ -307,7 +327,7 @@ export function useTimer({
 				clearInterval(intervalRef.current)
 			}
 		}
-	}, [isRunning, isPaused, mode, workTime, restTime, totalRounds, isWorkPhase, countdown, currentRound])
+	}, [isRunning, isPaused, mode, workTime, restTime, totalRounds, isWorkPhase, countdown, currentRound, amrapTime])
 
 	const formatTime = (seconds: number) => {
 		const hours = Math.floor(seconds / 3600)
