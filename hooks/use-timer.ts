@@ -122,7 +122,7 @@ export function useTimer({
 		}
 	}, [countdown, isRunning, soundEnabled])
 
-	// Efecto para sonidos en EMOM (últimos 3 segundos de cada minuto)
+	// Efecto para sonidos en EMOM y OTM (últimos 3 segundos de cada intervalo)
 	useEffect(() => {
 		if (!soundEnabled || !isRunning || isPaused || countdown) return
 		if (mode === 'emom') {
@@ -132,7 +132,15 @@ export function useTimer({
 				playCountdownBeep()
 			}
 		}
-	}, [time, mode, isRunning, isPaused, countdown, soundEnabled])
+		if (mode === 'otm') {
+			const otmIntervalNum = (parseInt(workTime || '1') || 1) * 60
+			const secondsIntoInterval = time % otmIntervalNum
+			// Últimos 3 segundos del intervalo - campana de conteo
+			if (secondsIntoInterval >= otmIntervalNum - 3 && secondsIntoInterval < otmIntervalNum) {
+				playCountdownBeep()
+			}
+		}
+	}, [time, mode, isRunning, isPaused, countdown, soundEnabled, workTime])
 
 	// Efecto para sonidos en Tabata (cambio de fase)
 	useEffect(() => {
@@ -342,6 +350,13 @@ export function useTimer({
 		return 60 - secondsIntoMinute
 	}
 
+	const getOtmCountdown = () => {
+		// OTM: cuenta regresiva desde el intervalo configurable (en minutos)
+		const otmIntervalNum = (parseInt(workTime || '1') || 1) * 60 // Convertir minutos a segundos
+		const secondsIntoInterval = time % otmIntervalNum
+		return otmIntervalNum - secondsIntoInterval
+	}
+
 	const getDisplayTime = () => {
 		// Mostrar cuenta regresiva si está activa en cualquier modo
 		if ((mode === 'normal' || mode === 'tabata' || mode === 'fortime' || mode === 'amrap' || mode === 'emom' || mode === 'otm') && countdown !== null && countdown > 0) {
@@ -356,11 +371,19 @@ export function useTimer({
 		if (mode === 'emom') {
 			return formatTime(getEmomCountdown())
 		}
+		if (mode === 'otm') {
+			return formatTime(getOtmCountdown())
+		}
 		return formatTime(time)
 	}
 
 	const getEmomTotalTime = () => {
 		// En EMOM, el tiempo total es simplemente el tiempo transcurrido
+		return formatTime(time)
+	}
+
+	const getOtmTotalTime = () => {
+		// En OTM, el tiempo total es simplemente el tiempo transcurrido
 		return formatTime(time)
 	}
 
@@ -445,6 +468,7 @@ export function useTimer({
 		getPhaseText,
 		getPhaseColor,
 		getEmomTotalTime,
+		getOtmTotalTime,
 		handleStart,
 		handlePause,
 		handleReset,

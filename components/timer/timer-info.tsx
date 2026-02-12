@@ -63,8 +63,12 @@ export function TimerInfo({ mode }: TimerInfoProps) {
         return (
           <>
             <p>
-              • Haces la serie, luego descansas lo que necesites antes de
-              empezar la siguiente dentro del mismo minuto
+              • Haces la serie, luego descansas el tiempo que sobra de la ronda
+              y te preparas para la siguiente.
+            </p>
+            <p>
+              • Ayuda a mantener un ritmo constante y trabajar resistencia y
+              técnica
             </p>
           </>
         );

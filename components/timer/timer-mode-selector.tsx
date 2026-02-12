@@ -16,7 +16,7 @@ const modeConfigs = {
 	fortime: { name: 'FOR TIME', icon: Timer, description: 'Completar en el menor tiempo' },
 	amrap: { name: 'AMRAP', icon: Target, description: 'Máximas rondas posibles' },
 	emom: { name: 'EMOM', icon: Bell, description: 'Cada minuto en el minuto' },
-	otm: { name: 'OTM', icon: Repeat, description: 'Cada minuto en el minuto' },
+	otm: { name: 'OTM', icon: Repeat, description: 'On The Minute - Intervalo configurable' },
 }
 
 export function TimerModeSelector({ mode, onModeChange }: TimerModeSelectorProps) {
