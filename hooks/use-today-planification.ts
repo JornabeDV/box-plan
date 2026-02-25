@@ -77,7 +77,14 @@ export function useTodayPlanification(options?: UseTodayPlanificationOptions): U
 			const day = String(today.getDate()).padStart(2, '0')
 			const dateString = `${year}-${month}-${day}`
 
-			const response = await fetch(`/api/planifications?date=${dateString}`)
+			// Timestamp para evitar cache en Safari/iOS
+			const timestamp = Date.now();
+			const response = await fetch(`/api/planifications?date=${dateString}&_t=${timestamp}`, {
+				headers: {
+					'Cache-Control': 'no-cache, no-store, must-revalidate',
+					'Pragma': 'no-cache',
+				}
+			})
 			
 			if (!response.ok) {
 				throw new Error('Error al cargar la planificación')

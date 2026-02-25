@@ -59,10 +59,12 @@ import { useToast } from "@/hooks/use-toast";
 import { MOTIVATIONAL_QUOTES } from "@/lib/constants";
 import { useCoachMotivationalQuotes } from "@/hooks/use-coach-motivational-quotes";
 import { useTodayPlanification } from "@/hooks/use-today-planification";
+import { useLoadingTimeout } from "@/hooks/use-loading-timeout";
 
 export default function BoxPlanApp() {
   const [shouldRedirect, setShouldRedirect] = useState(false);
   const [paymentStatusHandled, setPaymentStatusHandled] = useState(false);
+  const [isRedirectingCoach, setIsRedirectingCoach] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const { user, loading: authLoading, isCoach } = useAuthWithRoles();
@@ -141,10 +143,11 @@ export default function BoxPlanApp() {
 
   // Para coaches, redirigir automáticamente al dashboard
   useEffect(() => {
-    if (!authLoading && isCoach && user?.id) {
+    if (!authLoading && isCoach && user?.id && !isRedirectingCoach) {
+      setIsRedirectingCoach(true);
       router.replace("/admin-dashboard");
     }
-  }, [authLoading, isCoach, user?.id, router]);
+  }, [authLoading, isCoach, user?.id, router, isRedirectingCoach]);
 
   // Manejar parámetros de pago después de redirección desde MercadoPago
   useEffect(() => {
@@ -211,11 +214,37 @@ export default function BoxPlanApp() {
     profileLoading ||
     subscriptionLoading ||
     preferencesLoading ||
-    (shouldLoadTodayPlanification && todayPlanificationLoading) ||
-    (isCoach && user?.id);
+    (shouldLoadTodayPlanification && todayPlanificationLoading);
+
+  // Debug: Log which hooks are loading
+  useEffect(() => {
+    if (isLoadingCriticalData) {
+      console.log('[BoxPlanApp] Loading states:', {
+        authLoading,
+        profileLoading,
+        subscriptionLoading,
+        preferencesLoading,
+        shouldLoadTodayPlanification,
+        todayPlanificationLoading,
+        hasUser: !!user,
+        userId: user?.id,
+        isCoach,
+        hasActiveSubscription,
+        hasPreferences,
+      });
+    }
+  }, [authLoading, profileLoading, subscriptionLoading, preferencesLoading, todayPlanificationLoading, shouldLoadTodayPlanification, user, isCoach, hasActiveSubscription, hasPreferences]);
+
+  // Timeout para detectar loading infinito (10 segundos para desarrollo)
+  const { hasTimedOut } = useLoadingTimeout(isLoadingCriticalData, {
+    timeout: 10000,
+    onTimeout: () => {
+      console.error('[BoxPlanApp] Loading timeout - possible infinite loading detected');
+    }
+  });
 
   // Mostrar loading mientras se verifica la autenticación o se redirige
-  if (isLoadingCriticalData) {
+  if (isLoadingCriticalData && !hasTimedOut) {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="flex items-center gap-2">
@@ -226,8 +255,73 @@ export default function BoxPlanApp() {
     );
   }
 
+  // Si hay timeout, mostrar opción de reintentar con diagnóstico
+  if (hasTimedOut) {
+    const loadingStatuses = [
+      { name: 'Autenticación', loading: authLoading },
+      { name: 'Perfil', loading: profileLoading },
+      { name: 'Suscripción', loading: subscriptionLoading },
+      { name: 'Preferencias', loading: preferencesLoading },
+      { name: 'Planificación hoy', loading: shouldLoadTodayPlanification && todayPlanificationLoading },
+    ];
+
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6 text-center space-y-4">
+            <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-8 h-8 text-amber-500" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl font-semibold">Tiempo de espera agotado</h2>
+              <p className="text-muted-foreground text-sm">
+                La aplicación está tardando más de lo esperado en cargar.
+              </p>
+            </div>
+            
+            {/* Diagnóstico */}
+            <div className="text-left bg-muted/50 rounded-lg p-3 space-y-1">
+              <p className="text-xs font-semibold text-muted-foreground uppercase">Estado de carga:</p>
+              {loadingStatuses.map((status) => (
+                <div key={status.name} className="flex justify-between text-sm">
+                  <span>{status.name}:</span>
+                  <span className={status.loading ? "text-amber-500" : "text-green-500"}>
+                    {status.loading ? "Cargando..." : "Listo"}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Button 
+                onClick={() => window.location.reload()} 
+                className="w-full"
+              >
+                Reintentar
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  // Limpiar caché y recargar
+                  if (typeof window !== 'undefined') {
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    window.location.href = '/login';
+                  }
+                }} 
+                className="w-full"
+              >
+                Limpiar datos y volver a login
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // Si debe redirigir, mostrar loading durante la redirección
-  if (shouldRedirect) {
+  if (shouldRedirect || isRedirectingCoach) {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="flex items-center gap-2">

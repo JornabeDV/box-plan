@@ -7,6 +7,7 @@ import { Suspense } from "react"
 import { Oswald, Inter, Bebas_Neue, Space_Grotesk } from "next/font/google"
 import { SessionProvider } from "next-auth/react"
 import { Toaster } from "@/components/ui/toaster"
+import { ClearCacheScript } from "@/components/clear-cache-script"
 import "./globals.css"
 
 // Tipografía para títulos impactantes - estilo deportivo/fitness
@@ -66,6 +67,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="dark">
+      <head>
+        <ClearCacheScript />
+        {/* Meta tags adicionales para iOS PWA */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Box Plan" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+        <meta http-equiv="Pragma" content="no-cache" />
+        <meta http-equiv="Expires" content="0" />
+      </head>
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} ${bebasNeue.variable} ${spaceGrotesk.variable} ${oswald.variable} ${inter.variable} antialiased`}>
         <SessionProvider>
           <Suspense fallback={null}>{children}</Suspense>

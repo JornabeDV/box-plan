@@ -117,8 +117,14 @@ export function useStudentSubscription(): UseStudentSubscriptionReturn {
 			if (!cancelled) setError(null)
 
 			try {
-				const response = await fetch('/api/subscriptions/current', {
-					signal: abortController.signal
+				// Timestamp para evitar cache en Safari/iOS
+				const timestamp = Date.now();
+				const response = await fetch(`/api/subscriptions/current?_t=${timestamp}`, {
+					signal: abortController.signal,
+					headers: {
+						'Cache-Control': 'no-cache, no-store, must-revalidate',
+						'Pragma': 'no-cache',
+					}
 				})
 
 				if (!response.ok) {
@@ -178,7 +184,14 @@ export function useStudentSubscription(): UseStudentSubscriptionReturn {
 		setError(null)
 
 		try {
-			const response = await fetch('/api/subscriptions/current')
+			// Timestamp para evitar cache en Safari/iOS
+			const timestamp = Date.now();
+			const response = await fetch(`/api/subscriptions/current?_t=${timestamp}`, {
+				headers: {
+					'Cache-Control': 'no-cache, no-store, must-revalidate',
+					'Pragma': 'no-cache',
+				}
+			})
 
 			if (!response.ok) {
 				throw new Error(`Error ${response.status} al obtener suscripción`)
