@@ -45,7 +45,7 @@ interface UseTodayPlanificationOptions {
  * Hook para obtener la planificación de hoy
  */
 export function useTodayPlanification(options?: UseTodayPlanificationOptions): UseTodayPlanificationReturn {
-	const { data: session } = useSession()
+	const { data: session, status: sessionStatus } = useSession()
 	const [planification, setPlanification] = useState<Planification | null>(null)
 	const [loading, setLoading] = useState(false) // Cambiar a false para evitar flash
 	const [error, setError] = useState<string | null>(null)
@@ -108,6 +108,11 @@ export function useTodayPlanification(options?: UseTodayPlanificationOptions): U
 	}, [session?.user?.id])
 
 	useEffect(() => {
+		// Si la sesión aún está cargando, esperar
+		if (sessionStatus === 'loading') {
+			return
+		}
+		
 		if (!enabled) {
 			setPlanification(null)
 			setLoading(false)
@@ -120,7 +125,7 @@ export function useTodayPlanification(options?: UseTodayPlanificationOptions): U
 			setPlanification(null)
 			setLoading(false)
 		}
-	}, [session?.user?.id, fetchTodayPlanification, enabled])
+	}, [session?.user?.id, sessionStatus, fetchTodayPlanification, enabled])
 
 	return {
 		planification,

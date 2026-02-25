@@ -45,7 +45,7 @@ interface UseStudentSubscriptionReturn {
 }
 
 export function useStudentSubscription(): UseStudentSubscriptionReturn {
-	const { data: session } = useSession()
+	const { data: session, status: sessionStatus } = useSession()
 	const [subscription, setSubscription] = useState<StudentSubscriptionInfo | null>(null)
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
@@ -170,7 +170,7 @@ export function useStudentSubscription(): UseStudentSubscriptionReturn {
 			cancelled = true
 			abortController.abort()
 		}
-	}, [session?.user?.id, clearState])
+	}, [session?.user?.id, sessionStatus, clearState])
 
 	const hasFeature = useCallback((feature: keyof StudentSubscriptionFeatures): boolean => {
 		return subscription?.features[feature] === true

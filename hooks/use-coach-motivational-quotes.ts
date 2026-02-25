@@ -15,7 +15,7 @@ interface UseCoachMotivationalQuotesReturn {
  * Si el estudiante no tiene coach o el coach no tiene frases, devuelve array vacío
  */
 export function useCoachMotivationalQuotes(): UseCoachMotivationalQuotesReturn {
-	const { data: session } = useSession()
+	const { data: session, status: sessionStatus } = useSession()
 	const [quotes, setQuotes] = useState<string[]>([])
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)

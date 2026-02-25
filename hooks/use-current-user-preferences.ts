@@ -37,7 +37,7 @@ export interface CurrentUserPreferencesState {
 }
 
 export function useCurrentUserPreferences() {
-	const { data: session } = useSession()
+	const { data: session, status: sessionStatus } = useSession()
 	const [state, setState] = useState<CurrentUserPreferencesState>({
 		preferences: null,
 		loading: true,
@@ -207,13 +207,19 @@ export function useCurrentUserPreferences() {
 	}
 
 	useEffect(() => {
+		// Si la sesión aún está cargando, esperar
+		if (sessionStatus === 'loading') {
+			return
+		}
+		
 		if (session?.user?.id) {
 			fetchPreferences()
-		} else if (session !== undefined) {
+		} else {
+			// Si la sesión está cargada pero no hay usuario, detener loading
 			setState(prev => ({ ...prev, loading: false }))
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [session?.user?.id])
+	}, [session?.user?.id, sessionStatus])
 
 	return {
 		...state,
