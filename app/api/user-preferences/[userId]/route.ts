@@ -113,7 +113,10 @@ export async function PUT(request: NextRequest, { params }: { params: { userId: 
     const isChangingDiscipline = preferredDisciplineIdNum !== null && 
       currentPreferences?.preferredDisciplineId !== preferredDisciplineIdNum
     
-    if (isChangingDiscipline && activeSubscription && currentPreferences?.lastPreferenceChangeDate) {
+    // Los coaches y admins pueden cambiar preferencias sin restricciones
+    const isCoachOrAdmin = session.user.role === 'coach' || session.user.role === 'admin'
+    
+    if (isChangingDiscipline && activeSubscription && currentPreferences?.lastPreferenceChangeDate && !isCoachOrAdmin) {
       const lastChangeDate = new Date(currentPreferences.lastPreferenceChangeDate)
       const periodStart = new Date(activeSubscription.currentPeriodStart)
 
