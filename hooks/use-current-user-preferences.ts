@@ -54,7 +54,14 @@ export function useCurrentUserPreferences() {
 		try {
 			setState(prev => ({ ...prev, loading: true, error: null }))
 
-			const response = await fetch(`/api/user-preferences/${session.user.id}`)
+			// Timestamp para evitar cache en Safari/iOS
+			const timestamp = Date.now();
+			const response = await fetch(`/api/user-preferences/${session.user.id}?_t=${timestamp}`, {
+				headers: {
+					'Cache-Control': 'no-cache, no-store, must-revalidate',
+					'Pragma': 'no-cache',
+				}
+			})
 
 			if (!response.ok) {
 				if (response.status === 404) {

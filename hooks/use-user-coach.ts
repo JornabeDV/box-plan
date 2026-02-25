@@ -41,7 +41,14 @@ export function useUserCoach() {
 				return
 			}
 
-			const response = await fetch('/api/user-coach')
+			// Timestamp para evitar cache en Safari/iOS
+			const timestamp = Date.now();
+			const response = await fetch(`/api/user-coach?_t=${timestamp}`, {
+				headers: {
+					'Cache-Control': 'no-cache, no-store, must-revalidate',
+					'Pragma': 'no-cache',
+				}
+			})
 			
 			if (!response.ok) {
 				if (response.status === 401) {

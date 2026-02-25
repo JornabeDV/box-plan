@@ -76,8 +76,14 @@ export function useProfile() {
         return
       }
 
-      // Llamar a API route
-      const response = await fetch('/api/profile')
+      // Llamar a API route con timestamp para evitar cache en Safari/iOS
+      const timestamp = Date.now();
+      const response = await fetch(`/api/profile?_t=${timestamp}`, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        }
+      })
       
       if (!response.ok) {
         // Si es 401, el usuario no está autenticado, esto es esperado
@@ -130,7 +136,13 @@ export function useProfile() {
       const userId = session?.user?.id
       if (!userId) return
 
-      const response = await fetch('/api/subscription')
+      const timestamp = Date.now();
+      const response = await fetch(`/api/subscription?_t=${timestamp}`, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        }
+      })
       if (!response.ok) {
         // Si no hay suscripción, está bien, no es un error
         if (response.status === 401 || response.status === 404) {
@@ -157,7 +169,13 @@ export function useProfile() {
       const userId = session?.user?.id
       if (!userId) return
 
-      const response = await fetch('/api/payment-history')
+      const timestamp = Date.now();
+      const response = await fetch(`/api/payment-history?_t=${timestamp}`, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        }
+      })
       if (!response.ok) return
 
       const data = await response.json()

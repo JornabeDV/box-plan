@@ -60,8 +60,9 @@ export function useAuthWithRoles() {
       return
     }
 
-    // Si el userId no cambió, no hacer la llamada
+    // Si el userId no cambió, no hacer la llamada pero asegurar que loading sea false
     if (lastUserIdRef.current === userId) {
+      setLoading(false)
       return
     }
 
@@ -71,10 +72,13 @@ export function useAuthWithRoles() {
       setLoading(true)
       
       // Llamar a API route en el servidor con cache deshabilitado para evitar datos stale
-      const response = await fetch('/api/user-role', {
+      // Importante: Safari/iOS cachea agresivamente, agregar timestamp para evitar cache
+      const timestamp = Date.now();
+      const response = await fetch(`/api/user-role?_t=${timestamp}`, {
         cache: 'no-store',
         headers: {
-          'Cache-Control': 'no-cache'
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
         }
       })
       

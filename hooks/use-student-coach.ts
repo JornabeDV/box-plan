@@ -42,7 +42,14 @@ export function useStudentCoach(): UseStudentCoachReturn {
 		setError(null)
 
 		try {
-			const response = await fetch('/api/student/coach')
+			// Timestamp para evitar cache en Safari/iOS
+			const timestamp = Date.now();
+			const response = await fetch(`/api/student/coach?_t=${timestamp}`, {
+				headers: {
+					'Cache-Control': 'no-cache, no-store, must-revalidate',
+					'Pragma': 'no-cache',
+				}
+			})
 			
 			if (!response.ok) {
 				if (response.status === 404) {
