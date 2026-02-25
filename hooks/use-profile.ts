@@ -63,7 +63,7 @@ export function useProfile() {
     error: null
   })
 
-  const { data: session } = useSession()
+  const { data: session, status: sessionStatus } = useSession()
 
   // Cargar perfil del usuario
   const loadProfile = async () => {
@@ -235,14 +235,19 @@ export function useProfile() {
 
   // Cargar datos iniciales
   useEffect(() => {
+    // Si la sesión aún está cargando, esperar
+    if (sessionStatus === 'loading') {
+      return
+    }
+    
     if (session?.user?.id) {
       loadAllData()
-    } else if (session !== undefined) {
-      // Si la sesión está definitivamente cargada pero no hay usuario, detener loading
+    } else {
+      // Si la sesión está cargada pero no hay usuario, detener loading
       setState(prev => ({ ...prev, loading: false }))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user?.id])
+  }, [session?.user?.id, sessionStatus])
 
   return {
     ...state,

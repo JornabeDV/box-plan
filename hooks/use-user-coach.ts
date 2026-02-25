@@ -29,7 +29,7 @@ export function useUserCoach() {
 		error: null
 	})
 
-	const { data: session } = useSession()
+	const { data: session, status: sessionStatus } = useSession()
 
 	const loadCoach = async () => {
 		try {
@@ -84,13 +84,18 @@ export function useUserCoach() {
 	}
 
 	useEffect(() => {
+		// Si la sesión aún está cargando, esperar
+		if (sessionStatus === 'loading') {
+			return
+		}
+		
 		if (session?.user?.id) {
 			loadCoach()
-		} else if (session !== undefined) {
+		} else {
 			setState(prev => ({ ...prev, loading: false }))
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [session?.user?.id])
+	}, [session?.user?.id, sessionStatus])
 
 	return {
 		...state,

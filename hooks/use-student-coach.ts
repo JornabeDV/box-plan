@@ -19,7 +19,7 @@ interface UseStudentCoachReturn {
 }
 
 export function useStudentCoach(): UseStudentCoachReturn {
-	const { data: session } = useSession()
+	const { data: session, status: sessionStatus } = useSession()
 	const [coach, setCoach] = useState<CoachInfo | null>(null)
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
@@ -82,8 +82,12 @@ export function useStudentCoach(): UseStudentCoachReturn {
 	}, [session?.user?.id, clearState])
 
 	useEffect(() => {
+		// Si la sesión aún está cargando, esperar
+		if (sessionStatus === 'loading') {
+			return
+		}
 		loadCoach()
-	}, [loadCoach])
+	}, [loadCoach, sessionStatus])
 
 	const refetch = useCallback(async () => {
 		await loadCoach()

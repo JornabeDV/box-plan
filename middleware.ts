@@ -18,3 +18,7 @@ export const config = {
     "/admin-dashboard/:path*",
   ],
 }
+
+// export const config = {
+//   matcher: ["/admin-dashboard/:path*"],
+// }
