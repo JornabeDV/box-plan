@@ -32,6 +32,7 @@ import {
   Pencil,
   Check,
   Users,
+  Upload,
 } from "lucide-react";
 import { useDisciplines } from "@/hooks/use-disciplines";
 
@@ -77,6 +78,7 @@ interface PlanificationModalProps {
   onSubmit: (
     data: Omit<Planification, "id" | "coach_id">,
   ) => Promise<{ error?: string }>;
+  onImport?: () => void;
 }
 
 export function PlanificationModal({
@@ -88,6 +90,7 @@ export function PlanificationModal({
   students = [],
   canCreatePersonalized = false,
   onSubmit,
+  onImport,
 }: PlanificationModalProps) {
   const {
     disciplines,
@@ -450,22 +453,39 @@ export function PlanificationModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg p-4 sm:p-6">
         <DialogHeader className="pb-0">
-          <DialogTitle className="flex items-center gap-2">
-            {planification ? "Editar Planificación" : "Nueva Planificación"}
-          </DialogTitle>
-          <DialogDescription className="text-left">
-            {planification
-              ? "Modifica los detalles de la planificación"
-              : `Planificación para ${selectedDate?.toLocaleDateString(
-                  "es-ES",
-                  {
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  },
-                )}`}
-          </DialogDescription>
+          <div className="flex items-end justify-between gap-4">
+            <div className="flex-1">
+              <DialogTitle className="flex items-center gap-2">
+                {planification ? "Editar Planificación" : "Nueva Planificación"}
+              </DialogTitle>
+              <DialogDescription className="text-left mt-1">
+                {planification
+                  ? "Modifica los detalles de la planificación"
+                  : `Planificación para ${selectedDate?.toLocaleDateString(
+                      "es-ES",
+                      {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      },
+                    )}`}
+              </DialogDescription>
+            </div>
+            {/* Botón Importar desde Excel (solo en modo creación) */}
+            {!planification && onImport && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onImport}
+                className="flex items-center gap-2 border-dashed border-2 flex-shrink-0"
+              >
+                <Upload className="w-4 h-4" />
+                <span className="hidden sm:inline">Importar Excel</span>
+              </Button>
+            )}
+          </div>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">

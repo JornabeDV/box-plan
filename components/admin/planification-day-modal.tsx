@@ -30,6 +30,8 @@ import {
   CheckCircle,
   Copy,
   Users,
+  Download,
+  Upload,
 } from "lucide-react";
 import { Planification } from "@/hooks/use-planifications";
 
@@ -44,6 +46,9 @@ interface PlanificationDayModalProps {
   onDuplicate?: (planification: Planification) => void;
   onDuplicateAll?: () => void;
   canReplicate?: boolean;
+  onExport?: (planification: Planification) => void;
+  onImport?: () => void;
+  exportingId?: string | null;
 }
 
 export function PlanificationDayModal({
@@ -57,6 +62,9 @@ export function PlanificationDayModal({
   onDuplicate,
   onDuplicateAll,
   canReplicate = false,
+  onExport,
+  onImport,
+  exportingId,
 }: PlanificationDayModalProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -108,7 +116,7 @@ export function PlanificationDayModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-screen sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg m-0 sm:m-4 p-4 sm:p-6">
+      <DialogContent className="max-w-6xl h-screen sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg m-0 sm:m-4 p-4 sm:p-6 w-full">
         <DialogHeader className="">
           <DialogTitle className="flex flex-col gap-1 sm:gap-2">
             <div className="flex items-center gap-2">
@@ -139,39 +147,65 @@ export function PlanificationDayModal({
                 <p className="text-muted-foreground mb-4">
                   Este día no tiene planificaciones de entrenamiento
                 </p>
-                {!isPast && (
-                  <Button onClick={() => onCreate(selectedDate)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Crear Planificación
-                  </Button>
-                )}
+                <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                  {!isPast && (
+                    <Button onClick={() => onCreate(selectedDate)}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Nueva
+                    </Button>
+                  )}
+                  {/* Botón Importar cuando no hay planificaciones */}
+                  {onImport && (
+                    <Button
+                      variant="outline"
+                      onClick={onImport}
+                      className="flex items-center justify-center gap-2 border-dashed border-2"
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>Importar</span>
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-4">
               {/* Botones de acción */}
               <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2">
-                {/* Botón Replicar Todas (solo si tiene feature) */}
-                {canReplicate && onDuplicateAll && (
-                  <Button
-                    variant="outline"
-                    onClick={onDuplicateAll}
-                    className="flex items-center justify-center gap-2 w-full sm:w-auto"
-                  >
-                    <Copy className="w-4 h-4" />
-                    <span className="hidden sm:inline">Replicar Todas</span>
-                    <span className="sm:hidden">Replicar Todas</span>
-                  </Button>
-                )}
+                <div className="flex flex-col sm:flex-row gap-2">
+                  {/* Botón Replicar Todas (solo si tiene feature) */}
+                  {canReplicate && onDuplicateAll && (
+                    <Button
+                      variant="outline"
+                      onClick={onDuplicateAll}
+                      className="flex items-center justify-center gap-2 whitespace-nowrap"
+                    >
+                      <Copy className="w-4 h-4" />
+                      <span>Replicar</span>
+                    </Button>
+                  )}
+
+                  {/* Botón Importar desde Excel */}
+                  {onImport && (
+                    <Button
+                      variant="outline"
+                      onClick={onImport}
+                      className="flex items-center justify-center gap-2 whitespace-nowrap border-dashed border-2"
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>Importar</span>
+                    </Button>
+                  )}
+                </div>
 
                 {/* Botón Nueva Planificación (siempre visible si no es pasado) */}
                 {!isPast && (
                   <Button
                     onClick={() => onCreate(selectedDate)}
-                    className="w-full sm:w-auto"
+                    className="whitespace-nowrap"
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Nueva Planificación
+                    Nueva
                   </Button>
                 )}
               </div>
@@ -267,6 +301,19 @@ export function PlanificationDayModal({
                       </div>
                       <TooltipProvider delayDuration={0}>
                         <div className="flex gap-2 flex-shrink-0">
+                          {/* Exportar a Excel */}
+                          {onExport && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => onExport(planification)}
+                              disabled={exportingId === planification.id}
+                              className="flex items-center gap-1 whitespace-nowrap"
+                            >
+                              <Download className="w-4 h-4" />
+                              <span>Exportar</span>
+                            </Button>
+                          )}
                           {onDuplicate && canReplicate && (
                             <Tooltip>
                               <TooltipTrigger asChild>

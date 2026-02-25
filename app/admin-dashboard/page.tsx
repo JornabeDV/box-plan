@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuthWithRoles as useSimplifiedAuth } from "@/hooks/use-auth-with-roles";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
 import { useDisciplines } from "@/hooks/use-disciplines";
@@ -10,6 +10,7 @@ import { useDashboardCRUD } from "@/hooks/use-dashboard-crud";
 import { useToast } from "@/hooks/use-toast";
 import { useCoachPlanFeatures } from "@/hooks/use-coach-plan-features";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Plus,
@@ -111,6 +112,8 @@ export default function AdminDashboardPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [dayPlanifications, setDayPlanifications] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
+  const [exportingId, setExportingId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Detectar tab desde URL (para redirecciones de OAuth)
   useEffect(() => {
@@ -294,6 +297,134 @@ export default function AdminDashboardPage() {
       planifications: dayPlanifications,
       sourceDate: selectedDate,
     });
+  };
+
+  // Handler para exportar planificación a Excel
+  const handleExportPlanification = async (planification: any) => {
+    try {
+      setExportingId(planification.id);
+      
+      const response = await fetch(`/api/planifications/${planification.id}/export`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al exportar');
+      }
+
+      // Obtener el blob del archivo
+      const blob = await response.blob();
+      
+      // Crear URL para descargar
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      // Obtener nombre del archivo del header o generar uno
+      const contentDisposition = response.headers.get('content-disposition');
+      const fileName = contentDisposition?.match(/filename="(.+)"/)?.[1] || 
+                      `planificacion_${planification.date}.xlsx`;
+      
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Planificación exportada",
+        description: "El archivo Excel se ha descargado correctamente",
+      });
+    } catch (error: any) {
+      console.error('Error exporting:', error);
+      toast({
+        title: "Error al exportar",
+        description: error.message || "No se pudo exportar la planificación",
+        variant: "destructive",
+      });
+    } finally {
+      setExportingId(null);
+    }
+  };
+
+  // Handler para abrir el selector de archivo de importación
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Handler para procesar el archivo importado
+  const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/planifications/import', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Error al importar');
+      }
+
+      // Refrescar datos del dashboard (calendario)
+      await refreshDashboard();
+
+      const isPersonalized = result.type === 'Personalizada';
+      const studentInfo = isPersonalized && result.student ? ` para ${result.student}` : '';
+      
+      toast({
+        title: result.action === 'created' ? 
+          (isPersonalized ? "Planificación personalizada creada" : "Planificación creada") : 
+          (isPersonalized ? "Planificación personalizada actualizada" : "Planificación actualizada"),
+        description: `${result.message}${studentInfo}. Se importaron ${result.blocksCount} bloques con ${result.exercisesCount} ejercicios.`,
+      });
+
+      // Si estamos en el modal del día, recargar las planificaciones del día
+      if (dayModal.isOpen && selectedDate) {
+        // Buscar la planificación recién importada y actualizar la lista
+        const normalizedDate = (date: Date) => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        };
+
+        // Refrescar las planificaciones del día desde el servidor
+        const dateStr = normalizedDate(selectedDate);
+        const response = await fetch(`/api/planifications?coachId=${profileId}`);
+        if (response.ok) {
+          const allPlanifications = await response.json();
+          const dayPlans = allPlanifications.filter((p: any) => {
+            const planDate = typeof p.date === 'string' ? p.date.split('T')[0] : p.date;
+            return planDate === dateStr;
+          });
+          setDayPlanifications(dayPlans);
+        }
+      } else {
+        // Si estamos en el modal de creación, cerrarlo
+        planificationModal.close();
+        setSelectedDate(null);
+      }
+    } catch (error: any) {
+      console.error('Error importing:', error);
+      toast({
+        title: "Error al importar",
+        description: error.message || "No se pudo importar la planificación. Verifica que el archivo tenga el formato correcto.",
+        variant: "destructive",
+      });
+    } finally {
+      // Limpiar el input para permitir seleccionar el mismo archivo de nuevo
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const handleReplicateConfirm = async (
@@ -644,6 +775,7 @@ export default function AdminDashboardPage() {
           }))}
         canCreatePersonalized={canCreatePersonalizedPlanifications}
         onSubmit={handlePlanificationSubmit}
+        onImport={handleImportClick}
       />
 
       {/* Modal para ver planificaciones del día */}
@@ -664,6 +796,18 @@ export default function AdminDashboardPage() {
         onDuplicate={handleDuplicatePlanification}
         onDuplicateAll={handleDuplicateAll}
         canReplicate={canReplicatePlanifications}
+        onExport={handleExportPlanification}
+        onImport={handleImportClick}
+        exportingId={exportingId}
+      />
+
+      {/* Input oculto para importar archivo Excel */}
+      <Input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx,.xls"
+        onChange={handleFileImport}
+        className="hidden"
       />
 
       {/* Modal para replicar planificaciones */}
