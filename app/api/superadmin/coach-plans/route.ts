@@ -7,7 +7,7 @@ import { prisma } from '@/lib/prisma'
  * GET /api/superadmin/coach-plans
  * Lista todos los planes de coaches (solo superadmin)
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
 	try {
 		const session = await auth()
 		const userId = normalizeUserId(session?.user?.id)
@@ -113,9 +113,16 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		// Verificar que no exista un plan con el mismo nombre
-		const existingPlan = await prisma.coachPlanType.findUnique({
-			where: { name }
+		// Generar slug desde el name (max 20 chars según el schema)
+		const slug = name
+			.toLowerCase()
+			.replace(/\s+/g, '-')
+			.replace(/[^a-z0-9-]/g, '')
+			.slice(0, 20)
+
+		// Verificar que no exista un plan con el mismo nombre o slug
+		const existingPlan = await prisma.coachPlanType.findFirst({
+			where: { OR: [{ name }, { slug }] }
 		})
 
 		if (existingPlan) {
@@ -128,6 +135,7 @@ export async function POST(request: NextRequest) {
 		// Crear el plan
 		const newPlan = await prisma.coachPlanType.create({
 			data: {
+				slug,
 				name,
 				displayName,
 				minStudents: minStudents ?? 0,
