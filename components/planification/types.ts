@@ -1,3 +1,9 @@
+export interface SubBlock {
+	id: string
+	subtitle: string
+	items: string[]
+}
+
 export interface Planification {
 	id: string
 	discipline_id: string
@@ -10,6 +16,7 @@ export interface Planification {
 		items: string[]
 		order: number
 		notes?: string
+		subBlocks?: SubBlock[]
 	}>
 	notes?: string
 	// Campos de personalización

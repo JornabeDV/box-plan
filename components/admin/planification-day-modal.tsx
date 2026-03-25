@@ -393,7 +393,7 @@ export function PlanificationDayModal({
                                           key={itemIndex}
                                           className="text-sm text-muted-foreground flex items-start gap-2"
                                         >
-                                          <span className="text-primary mt-1">
+                                          <span className="text-primary">
                                             •
                                           </span>
                                           <span>{item}</span>
@@ -401,6 +401,27 @@ export function PlanificationDayModal({
                                       ),
                                     )}
                                   </ul>
+                                )}
+                                {block.subBlocks && block.subBlocks.length > 0 && (
+                                  <div className="space-y-2 ml-6 mb-3">
+                                    {block.subBlocks.map((subBlock: any) => (
+                                      <div key={subBlock.id}>
+                                        <p className="text-xs font-semibold text-muted-foreground mb-1">
+                                          {subBlock.subtitle}
+                                        </p>
+                                        {subBlock.items && subBlock.items.length > 0 && (
+                                          <ul className="space-y-1 ml-3">
+                                            {subBlock.items.map((item: string, i: number) => (
+                                              <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+                                                <span className="text-primary">•</span>
+                                                <span>{item}</span>
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
                                 )}
                                 {block.notes && (
                                   <div className="mt-3 pt-3 border-t border-border/50">

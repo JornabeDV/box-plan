@@ -41,6 +41,7 @@ export function PlanificationBlocks({
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {/* Items directos del bloque */}
             {block.items && block.items.length > 0 && (
               <ul className="space-y-3 mb-4">
                 {block.items.map((item, itemIndex) => (
@@ -56,11 +57,58 @@ export function PlanificationBlocks({
                 ))}
               </ul>
             )}
-            {(!block.items || block.items.length === 0) && (
-              <p className="text-sm text-zinc-400 mb-4">
-                Sin ejercicios específicos
-              </p>
+
+            {/* Sub-bloques */}
+            {block.subBlocks && block.subBlocks.length > 0 && (
+              <div className="space-y-4">
+                {block.subBlocks.map((subBlock) => (
+                  <div key={subBlock.id}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span
+                        className="w-1 h-4 rounded-full flex-shrink-0"
+                        style={{
+                          backgroundColor:
+                            disciplineColor || "hsl(var(--primary))",
+                        }}
+                      />
+                      <h4 className="text-sm font-semibold text-zinc-300">
+                        {subBlock.subtitle}
+                      </h4>
+                    </div>
+                    {subBlock.items.length > 0 ? (
+                      <ul className="space-y-2 pl-3">
+                        {subBlock.items.map((item, i) => (
+                          <li key={i} className="flex items-start gap-3">
+                            <CheckCircle
+                              className="w-4 h-4 mt-0.5 flex-shrink-0"
+                              style={{
+                                color: disciplineColor || "hsl(var(--primary))",
+                              }}
+                            />
+                            <span className="text-sm text-zinc-100">
+                              {item}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-xs text-zinc-400 pl-3">
+                        Sin ejercicios
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
+
+            {/* Fallback cuando no hay nada */}
+            {(!block.items || block.items.length === 0) &&
+              (!block.subBlocks || block.subBlocks.length === 0) && (
+                <p className="text-sm text-zinc-400 mb-4">
+                  Sin ejercicios específicos
+                </p>
+              )}
+
             {block.notes && (
               <div className="mt-4 pt-4 border-t border-zinc-800/50">
                 <p className="text-xs font-medium text-zinc-400 mb-2">

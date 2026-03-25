@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -21,20 +21,35 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Plus,
   X,
   Clock,
-  FileText,
   Target,
   Trash2,
   Pencil,
   Check,
   Users,
   Upload,
+  ChevronDown,
+  ChevronRight,
+  GripVertical,
 } from "lucide-react";
+import { DndContext, closestCenter, type DragEndEvent } from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  arrayMove,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useDisciplines } from "@/hooks/use-disciplines";
+
+interface SubBlock {
+  id: string;
+  subtitle: string;
+  items: string[];
+}
 
 interface Block {
   id: string;
@@ -42,6 +57,7 @@ interface Block {
   items: string[];
   order: number;
   notes?: string;
+  subBlocks?: SubBlock[];
 }
 
 interface Planification {
@@ -49,8 +65,8 @@ interface Planification {
   coach_id?: string;
   discipline_id?: string | number;
   discipline_level_id?: string | number;
-  disciplineId?: number | null; // Formato camelCase (del dashboard)
-  disciplineLevelId?: number | null; // Formato camelCase (del dashboard)
+  disciplineId?: number | null;
+  disciplineLevelId?: number | null;
   date: string;
   estimated_duration?: number;
   blocks?: Block[];
@@ -79,6 +95,40 @@ interface PlanificationModalProps {
     data: Omit<Planification, "id" | "coach_id">,
   ) => Promise<{ error?: string }>;
   onImport?: () => void;
+}
+
+function SortableBlock({
+  id,
+  children,
+}: {
+  id: string;
+  children: (dragHandleProps: {
+    listeners: ReturnType<typeof useSortable>["listeners"];
+    attributes: ReturnType<typeof useSortable>["attributes"];
+  }) => React.ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    zIndex: isDragging ? 10 : undefined,
+    position: "relative",
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children({ listeners, attributes })}
+    </div>
+  );
 }
 
 export function PlanificationModal({
@@ -112,25 +162,39 @@ export function PlanificationModal({
 
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [blockTitle, setBlockTitle] = useState("");
-  const [blockItem, setBlockItem] = useState("");
-  const [currentBlockId, setCurrentBlockId] = useState<string | null>(null);
+
+  // Estado para items directos del bloque (independiente por bloque, key: blockId)
+  const [blockItemInputs, setBlockItemInputs] = useState<
+    Record<string, string>
+  >({});
+
+  // Estado para items de sub-bloques (independiente por sub-bloque, key: `blockId::subBlockId`)
+  const [subBlockItemInputs, setSubBlockItemInputs] = useState<
+    Record<string, string>
+  >({});
+
+  // Estado para nuevos títulos de sub-bloques (por blockId)
+  const [newSubBlockTitles, setNewSubBlockTitles] = useState<
+    Record<string, string>
+  >({});
+
+  // Estado de edición (aplica a items de bloques y sub-bloques)
   const [editingItem, setEditingItem] = useState<{
     blockId: string;
+    subBlockId?: string;
     itemIndex: number;
   } | null>(null);
   const [editingItemValue, setEditingItemValue] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Filtrar niveles de disciplina según la disciplina seleccionada
   const availableLevels = disciplineLevels.filter(
     (level) => level.discipline_id === formData.discipline_id,
   );
 
-  // Verificar si hay disciplinas disponibles
   const hasDisciplines = disciplines.length > 0;
 
-  // Recargar disciplinas cuando se abre el modal (siempre con forceRefresh para tener datos actualizados)
   useEffect(() => {
     if (open && coachId) {
       fetchDisciplines(true);
@@ -138,18 +202,14 @@ export function PlanificationModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, coachId]);
 
-  // Resetear formulario cuando se abre/cierra el modal
   useEffect(() => {
     if (open) {
       if (planification) {
-        // Verificar que el objeto tiene la estructura correcta
         if (!planification.id) {
           setError("Error: La planificación no tiene un ID válido");
           return;
         }
 
-        // Manejar diferentes formatos de datos (camelCase o snake_case)
-        // También convertir números a strings para los Select components
         const planificationAny = planification as any;
         const disciplineId = planification.discipline_id
           ? String(planification.discipline_id)
@@ -170,22 +230,17 @@ export function PlanificationModal({
             planification.estimated_duration?.toString() || "",
           notes: planification.notes || "",
         });
-        // Manejar bloques desde blocks o exercises
         const blocksToSet =
           planification.blocks || planificationAny.exercises || [];
         setBlocks(Array.isArray(blocksToSet) ? blocksToSet : []);
-        // Cargar datos de personalización si existen
         setIsPersonalized(planification.is_personalized || false);
         setSelectedStudent(planification.target_user_id || "");
-        
-        // Si es personalizada y tiene estudiante, verificar si bloquear disciplina
+
         if (planification.is_personalized && planification.target_user_id) {
-          const student = students.find((s) => s.id === planification.target_user_id);
-          if (student?.preferredDisciplineId) {
-            setIsDisciplineLocked(true);
-          } else {
-            setIsDisciplineLocked(false);
-          }
+          const student = students.find(
+            (s) => s.id === planification.target_user_id,
+          );
+          setIsDisciplineLocked(!!student?.preferredDisciplineId);
         } else {
           setIsDisciplineLocked(false);
         }
@@ -202,14 +257,14 @@ export function PlanificationModal({
         setIsDisciplineLocked(false);
       }
       setBlockTitle("");
-      setBlockItem("");
-      setCurrentBlockId(null);
+      setBlockItemInputs({});
+      setSubBlockItemInputs({});
+      setNewSubBlockTitles({});
       setEditingItem(null);
       setEditingItemValue("");
       setError(null);
       setLoading(false);
     } else {
-      // Limpiar error cuando se cierra el modal
       setError(null);
       setLoading(false);
     }
@@ -217,39 +272,50 @@ export function PlanificationModal({
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-
-    // Si cambia la disciplina, resetear el nivel
     if (field === "discipline_id") {
       setFormData((prev) => ({ ...prev, discipline_level_id: "" }));
     }
   };
 
-  // Manejar cambio de estudiante seleccionado
   const handleStudentChange = (studentId: string) => {
     setSelectedStudent(studentId);
-    
+
     if (!studentId) {
-      // Si deselecciona, liberar disciplina
       setIsDisciplineLocked(false);
       return;
     }
 
-    // Buscar el estudiante
     const student = students.find((s) => s.id === studentId);
-    
+
     if (student?.preferredDisciplineId) {
-      // Tiene disciplina preferida: auto-asignar y bloquear
       setFormData((prev) => ({
         ...prev,
         discipline_id: student.preferredDisciplineId!,
-        discipline_level_id: "", // Resetear nivel al cambiar disciplina
+        discipline_level_id: "",
       }));
       setIsDisciplineLocked(true);
     } else {
-      // No tiene preferida: liberar selector
       setIsDisciplineLocked(false);
     }
   };
+
+  // ── Drag & drop ──────────────────────────────────────────────────────────
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setBlocks((prev) => {
+        const oldIndex = prev.findIndex((b) => b.id === active.id);
+        const newIndex = prev.findIndex((b) => b.id === over.id);
+        return arrayMove(prev, oldIndex, newIndex).map((block, i) => ({
+          ...block,
+          order: i,
+        }));
+      });
+    }
+  };
+
+  // ── Bloques ──────────────────────────────────────────────────────────────
 
   const addBlock = () => {
     if (blockTitle.trim()) {
@@ -258,81 +324,20 @@ export function PlanificationModal({
         title: blockTitle.trim(),
         items: [],
         order: blocks.length,
+        subBlocks: [],
       };
       setBlocks((prev) => [...prev, newBlock]);
       setBlockTitle("");
     }
   };
 
-  const addItemToBlock = (blockId: string) => {
-    if (blockItem.trim()) {
-      // Si se está editando un inciso, cancelar la edición antes de agregar uno nuevo
-      if (editingItem) {
-        cancelEditingItem();
-      }
-      setBlocks((prev) =>
-        prev.map((block) =>
-          block.id === blockId
-            ? { ...block, items: [...block.items, blockItem.trim()] }
-            : block,
-        ),
-      );
-      setBlockItem("");
-    }
-  };
-
-  const removeItemFromBlock = (blockId: string, itemIndex: number) => {
-    setBlocks((prev) =>
-      prev.map((block) =>
-        block.id === blockId
-          ? {
-              ...block,
-              items: block.items.filter((_, index) => index !== itemIndex),
-            }
-          : block,
-      ),
-    );
-  };
-
-  const startEditingItem = (blockId: string, itemIndex: number) => {
-    const block = blocks.find((b) => b.id === blockId);
-    if (block && block.items[itemIndex]) {
-      setEditingItem({ blockId, itemIndex });
-      setEditingItemValue(block.items[itemIndex]);
-    }
-  };
-
-  const saveEditingItem = () => {
-    if (editingItem && editingItemValue.trim()) {
-      setBlocks((prev) =>
-        prev.map((block) =>
-          block.id === editingItem.blockId
-            ? {
-                ...block,
-                items: block.items.map((item, index) =>
-                  index === editingItem.itemIndex
-                    ? editingItemValue.trim()
-                    : item,
-                ),
-              }
-            : block,
-        ),
-      );
-      setEditingItem(null);
-      setEditingItemValue("");
-    }
-  };
-
-  const cancelEditingItem = () => {
-    setEditingItem(null);
-    setEditingItemValue("");
-  };
-
   const removeBlock = (blockId: string) => {
-    // Si se está editando un inciso de este bloque, cancelar la edición
-    if (editingItem?.blockId === blockId) {
-      cancelEditingItem();
-    }
+    if (editingItem?.blockId === blockId) cancelEditingItem();
+    setBlockItemInputs((prev) => {
+      const next = { ...prev };
+      delete next[blockId];
+      return next;
+    });
     setBlocks((prev) => prev.filter((block) => block.id !== blockId));
   };
 
@@ -350,10 +355,229 @@ export function PlanificationModal({
     );
   };
 
+  // ── Items directos del bloque ─────────────────────────────────────────────
+
+  const addItemToBlock = (blockId: string) => {
+    const item = blockItemInputs[blockId]?.trim();
+    if (item) {
+      if (editingItem) cancelEditingItem();
+      setBlocks((prev) =>
+        prev.map((block) =>
+          block.id === blockId
+            ? { ...block, items: [...block.items, item] }
+            : block,
+        ),
+      );
+      setBlockItemInputs((prev) => ({ ...prev, [blockId]: "" }));
+    }
+  };
+
+  const removeItemFromBlock = (blockId: string, itemIndex: number) => {
+    setBlocks((prev) =>
+      prev.map((block) =>
+        block.id === blockId
+          ? {
+              ...block,
+              items: block.items.filter((_, index) => index !== itemIndex),
+            }
+          : block,
+      ),
+    );
+  };
+
+  // ── Sub-bloques ───────────────────────────────────────────────────────────
+
+  const addSubBlock = (blockId: string) => {
+    const title = newSubBlockTitles[blockId]?.trim();
+    if (!title) return;
+    const newSubBlock: SubBlock = {
+      id: Date.now().toString(),
+      subtitle: title,
+      items: [],
+    };
+    setBlocks((prev) =>
+      prev.map((block) =>
+        block.id === blockId
+          ? { ...block, subBlocks: [...(block.subBlocks || []), newSubBlock] }
+          : block,
+      ),
+    );
+    setNewSubBlockTitles((prev) => ({ ...prev, [blockId]: "" }));
+  };
+
+  const removeSubBlock = (blockId: string, subBlockId: string) => {
+    if (
+      editingItem?.blockId === blockId &&
+      editingItem?.subBlockId === subBlockId
+    ) {
+      cancelEditingItem();
+    }
+    const key = `${blockId}::${subBlockId}`;
+    setSubBlockItemInputs((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+    setBlocks((prev) =>
+      prev.map((block) =>
+        block.id === blockId
+          ? {
+              ...block,
+              subBlocks: (block.subBlocks || []).filter(
+                (sb) => sb.id !== subBlockId,
+              ),
+            }
+          : block,
+      ),
+    );
+  };
+
+  const updateSubBlockTitle = (
+    blockId: string,
+    subBlockId: string,
+    subtitle: string,
+  ) => {
+    setBlocks((prev) =>
+      prev.map((block) =>
+        block.id === blockId
+          ? {
+              ...block,
+              subBlocks: (block.subBlocks || []).map((sb) =>
+                sb.id === subBlockId ? { ...sb, subtitle } : sb,
+              ),
+            }
+          : block,
+      ),
+    );
+  };
+
+  // ── Items de sub-bloques ──────────────────────────────────────────────────
+
+  const addItemToSubBlock = (blockId: string, subBlockId: string) => {
+    const key = `${blockId}::${subBlockId}`;
+    const item = subBlockItemInputs[key]?.trim();
+    if (!item) return;
+    if (editingItem) cancelEditingItem();
+    setBlocks((prev) =>
+      prev.map((block) =>
+        block.id === blockId
+          ? {
+              ...block,
+              subBlocks: (block.subBlocks || []).map((sb) =>
+                sb.id === subBlockId
+                  ? { ...sb, items: [...sb.items, item] }
+                  : sb,
+              ),
+            }
+          : block,
+      ),
+    );
+    setSubBlockItemInputs((prev) => ({ ...prev, [key]: "" }));
+  };
+
+  const removeItemFromSubBlock = (
+    blockId: string,
+    subBlockId: string,
+    itemIndex: number,
+  ) => {
+    setBlocks((prev) =>
+      prev.map((block) =>
+        block.id === blockId
+          ? {
+              ...block,
+              subBlocks: (block.subBlocks || []).map((sb) =>
+                sb.id === subBlockId
+                  ? {
+                      ...sb,
+                      items: sb.items.filter((_, i) => i !== itemIndex),
+                    }
+                  : sb,
+              ),
+            }
+          : block,
+      ),
+    );
+  };
+
+  // ── Edición de items (bloque directo o sub-bloque) ────────────────────────
+
+  const startEditingItem = (
+    blockId: string,
+    itemIndex: number,
+    subBlockId?: string,
+  ) => {
+    const block = blocks.find((b) => b.id === blockId);
+    if (!block) return;
+
+    if (subBlockId) {
+      const subBlock = block.subBlocks?.find((sb) => sb.id === subBlockId);
+      if (subBlock && subBlock.items[itemIndex] !== undefined) {
+        setEditingItem({ blockId, subBlockId, itemIndex });
+        setEditingItemValue(subBlock.items[itemIndex]);
+      }
+    } else {
+      if (block.items[itemIndex]) {
+        setEditingItem({ blockId, itemIndex });
+        setEditingItemValue(block.items[itemIndex]);
+      }
+    }
+  };
+
+  const saveEditingItem = () => {
+    if (!editingItem || !editingItemValue.trim()) return;
+
+    if (editingItem.subBlockId) {
+      setBlocks((prev) =>
+        prev.map((block) =>
+          block.id === editingItem.blockId
+            ? {
+                ...block,
+                subBlocks: (block.subBlocks || []).map((sb) =>
+                  sb.id === editingItem.subBlockId
+                    ? {
+                        ...sb,
+                        items: sb.items.map((item, index) =>
+                          index === editingItem.itemIndex
+                            ? editingItemValue.trim()
+                            : item,
+                        ),
+                      }
+                    : sb,
+                ),
+              }
+            : block,
+        ),
+      );
+    } else {
+      setBlocks((prev) =>
+        prev.map((block) =>
+          block.id === editingItem.blockId
+            ? {
+                ...block,
+                items: block.items.map((item, index) =>
+                  index === editingItem.itemIndex
+                    ? editingItemValue.trim()
+                    : item,
+                ),
+              }
+            : block,
+        ),
+      );
+    }
+    setEditingItem(null);
+    setEditingItemValue("");
+  };
+
+  const cancelEditingItem = () => {
+    setEditingItem(null);
+    setEditingItemValue("");
+  };
+
+  // ── Submit ────────────────────────────────────────────────────────────────
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validar planificación personalizada
     if (isPersonalized && !selectedStudent) {
       setError(
         "Debes seleccionar un estudiante para planificaciones personalizadas",
@@ -361,13 +585,11 @@ export function PlanificationModal({
       return;
     }
 
-    // Validar campos requeridos (solo para generales)
     if (!isPersonalized) {
       if (!formData.discipline_id) {
         setError("Debe seleccionar una disciplina");
         return;
       }
-
       if (!formData.discipline_level_id) {
         setError("Debe seleccionar un nivel de disciplina");
         return;
@@ -387,17 +609,15 @@ export function PlanificationModal({
     setLoading(true);
     setError(null);
 
-    // Timeout de seguridad para evitar que se quede tildado
     const timeoutId = setTimeout(() => {
       console.warn("Planification submit timeout, resetting loading state");
       setError(
         "La operación está tardando demasiado. Por favor, inténtalo de nuevo.",
       );
       setLoading(false);
-    }, 8000); // Reducido a 8 segundos
+    }, 8000);
 
     try {
-      // Función helper para obtener la fecha en formato YYYY-MM-DD sin problemas de timezone
       const getLocalDateString = (date: Date): string => {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -419,7 +639,6 @@ export function PlanificationModal({
         target_user_id: isPersonalized ? selectedStudent : null,
       };
 
-      // Verificar que si es una edición, el ID existe
       if (planification && !planification.id) {
         setError("ID de planificación no válido para la edición");
         setLoading(false);
@@ -428,7 +647,6 @@ export function PlanificationModal({
       }
 
       const result = await onSubmit(submitData);
-
       clearTimeout(timeoutId);
 
       if (result.error) {
@@ -448,6 +666,8 @@ export function PlanificationModal({
       setLoading(false);
     }
   };
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -472,7 +692,6 @@ export function PlanificationModal({
                     )}`}
               </DialogDescription>
             </div>
-            {/* Botón Importar desde Excel (solo en modo creación) */}
             {!planification && onImport && (
               <Button
                 type="button"
@@ -489,7 +708,6 @@ export function PlanificationModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Verificar si hay disciplinas disponibles */}
           {!hasDisciplines && !disciplinesLoading && (
             <div className="text-center py-8">
               <div className="text-destructive mb-2">
@@ -505,10 +723,8 @@ export function PlanificationModal({
             </div>
           )}
 
-          {/* Información básica */}
           {hasDisciplines && (
             <div className="space-y-6">
-              {/* Tipo de planificación */}
               <Label className="text-base font-semibold">
                 Tipo de Planificación
               </Label>
@@ -516,11 +732,11 @@ export function PlanificationModal({
                 value={isPersonalized ? "personalized" : "general"}
                 onValueChange={(val) => {
                   setIsPersonalized(val === "personalized");
-                  if (val === "general") {
-                    setSelectedStudent("");
-                  }
+                  if (val === "general") setSelectedStudent("");
                 }}
-                disabled={!canCreatePersonalized && !planification?.is_personalized}
+                disabled={
+                  !canCreatePersonalized && !planification?.is_personalized
+                }
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Seleccionar tipo de planificación..." />
@@ -534,31 +750,34 @@ export function PlanificationModal({
                       </span>
                     </div>
                   </SelectItem>
-                  <SelectItem 
-                    value="personalized" 
-                    disabled={!canCreatePersonalized && !planification?.is_personalized}
+                  <SelectItem
+                    value="personalized"
+                    disabled={
+                      !canCreatePersonalized && !planification?.is_personalized
+                    }
                   >
                     <div className="flex items-center gap-2 whitespace-normal">
                       <Users className="w-4 h-4 flex-shrink-0" />
                       <span className="break-words">
                         Personalizada (Un estudiante)
                       </span>
-                      {!canCreatePersonalized && !planification?.is_personalized && (
-                        <span className="text-xs text-muted-foreground ml-1">
-                          (Requiere upgrade)
-                        </span>
-                      )}
+                      {!canCreatePersonalized &&
+                        !planification?.is_personalized && (
+                          <span className="text-xs text-muted-foreground ml-1">
+                            (Requiere upgrade)
+                          </span>
+                        )}
                     </div>
                   </SelectItem>
                 </SelectContent>
               </Select>
 
-              {/* Mensaje informativo si no tiene el feature */}
               {!canCreatePersonalized && !planification?.is_personalized && (
                 <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-md">
-                  <span className="font-medium">Nota:</span> Tu plan actual no incluye planificaciones personalizadas.{" "}
-                  <a 
-                    href="/pricing/coaches" 
+                  <span className="font-medium">Nota:</span> Tu plan actual no
+                  incluye planificaciones personalizadas.{" "}
+                  <a
+                    href="/pricing/coaches"
                     className="text-primary hover:underline font-medium"
                   >
                     Actualiza tu plan
@@ -567,20 +786,22 @@ export function PlanificationModal({
                 </div>
               )}
 
-              {/* Mensaje informativo si tiene el feature pero no hay estudiantes elegibles */}
-              {canCreatePersonalized && isPersonalized && students.length === 0 && (
-                <div className="text-xs text-muted-foreground bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-3 rounded-md">
-                  <span className="font-medium">Nota:</span> No tienes estudiantes con planes que incluyan planificaciones personalizadas.{" "}
-                  <a 
-                    href="/admin/student-plans" 
-                    className="text-primary hover:underline font-medium"
-                  >
-                    Revisar planes de estudiantes
-                  </a>
-                </div>
-              )}
+              {canCreatePersonalized &&
+                isPersonalized &&
+                students.length === 0 && (
+                  <div className="text-xs text-muted-foreground bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-3 rounded-md">
+                    <span className="font-medium">Nota:</span> No tienes
+                    estudiantes con planes que incluyan planificaciones
+                    personalizadas.{" "}
+                    <a
+                      href="/admin/student-plans"
+                      className="text-primary hover:underline font-medium"
+                    >
+                      Revisar planes de estudiantes
+                    </a>
+                  </div>
+                )}
 
-              {/* Selector de estudiante si es personalizada */}
               {isPersonalized && (
                 <div className="space-y-2 mt-3">
                   <Label htmlFor="student">Estudiante *</Label>
@@ -685,185 +906,473 @@ export function PlanificationModal({
                 <Badge variant="outline">{blocks.length} bloques</Badge>
               </div>
 
-              <div className="space-y-4">
-                {blocks.map((block, index) => (
-                  <Card
-                    key={block.id}
-                    className="p-4 border-l-4 border-l-primary"
-                  >
-                    <div className="space-y-3">
-                      {/* Título del bloque */}
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <div className="w-5 h-5 sm:w-6 sm:h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
-                          {index + 1}
-                        </div>
-                        <Input
-                          value={block.title}
-                          onChange={(e) =>
-                            updateBlockTitle(block.id, e.target.value)
-                          }
-                          placeholder="Título del bloque (ej: Entrada en calor)"
-                          className="font-medium min-w-0 text-sm placeholder:text-sm"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeBlock(block.id)}
-                          className="text-destructive hover:text-destructive-foreground hover:bg-destructive flex-shrink-0"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+              <DndContext
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={blocks.map((b) => b.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-4">
+                    {blocks.map((block, index) => (
+                      <SortableBlock key={block.id} id={block.id}>
+                        {({ listeners, attributes }) => (
+                          <Card className="p-4 border-l-4 border-l-primary">
+                            <div className="space-y-3">
+                              {/* Título del bloque */}
+                              <div className="flex items-center gap-2 sm:gap-3">
+                                <button
+                                  type="button"
+                                  {...listeners}
+                                  {...attributes}
+                                  className="cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground flex-shrink-0 p-0.5"
+                                  tabIndex={-1}
+                                >
+                                  <GripVertical className="w-4 h-4" />
+                                </button>
+                                <div className="w-5 h-5 sm:w-6 sm:h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                  {index + 1}
+                                </div>
+                                <Input
+                                  value={block.title}
+                                  onChange={(e) =>
+                                    updateBlockTitle(block.id, e.target.value)
+                                  }
+                                  placeholder="Título del bloque (ej: Entrada en calor)"
+                                  className="font-medium min-w-0 text-sm placeholder:text-sm"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeBlock(block.id)}
+                                  className="text-destructive hover:text-destructive-foreground hover:bg-destructive flex-shrink-0"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
 
-                      {/* Incisos del bloque */}
-                      <div className="ml-6 sm:ml-9 space-y-2">
-                        {block.items.map((item, itemIndex) => {
-                          const isEditing =
-                            editingItem?.blockId === block.id &&
-                            editingItem?.itemIndex === itemIndex;
+                              <div className="ml-6 sm:ml-9 space-y-2">
+                                {/* Items directos del bloque */}
+                                {block.items.map((item, itemIndex) => {
+                                  const isEditing =
+                                    editingItem?.blockId === block.id &&
+                                    !editingItem?.subBlockId &&
+                                    editingItem?.itemIndex === itemIndex;
+                                  return (
+                                    <div
+                                      key={itemIndex}
+                                      className="flex items-center gap-2"
+                                    >
+                                      <span className="text-muted-foreground">
+                                        -
+                                      </span>
+                                      {isEditing ? (
+                                        <>
+                                          <Input
+                                            className="text-sm flex-1 h-8 font-medium min-w-0 placeholder:text-sm"
+                                            value={editingItemValue}
+                                            onChange={(e) =>
+                                              setEditingItemValue(
+                                                e.target.value,
+                                              )
+                                            }
+                                            onKeyPress={(e) => {
+                                              if (e.key === "Enter") {
+                                                e.preventDefault();
+                                                saveEditingItem();
+                                              } else if (e.key === "Escape") {
+                                                e.preventDefault();
+                                                cancelEditingItem();
+                                              }
+                                            }}
+                                            autoFocus
+                                          />
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={saveEditingItem}
+                                            disabled={!editingItemValue.trim()}
+                                            className="text-primary hover:text-primary-foreground hover:bg-primary h-6 w-6 p-0"
+                                          >
+                                            <Check className="w-3 h-3" />
+                                          </Button>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={cancelEditingItem}
+                                            className="text-muted-foreground hover:text-foreground h-6 w-6 p-0"
+                                          >
+                                            <X className="w-3 h-3" />
+                                          </Button>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <span
+                                            className="text-sm flex-1 cursor-pointer hover:bg-muted/50 rounded px-2 py-1 -mx-2 -my-1"
+                                            onClick={() =>
+                                              startEditingItem(
+                                                block.id,
+                                                itemIndex,
+                                              )
+                                            }
+                                            title="Haz clic para editar"
+                                          >
+                                            {item}
+                                          </span>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() =>
+                                              startEditingItem(
+                                                block.id,
+                                                itemIndex,
+                                              )
+                                            }
+                                            className="text-muted-foreground hover:text-foreground h-6 w-6 p-0"
+                                          >
+                                            <Pencil className="w-3 h-3" />
+                                          </Button>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() =>
+                                              removeItemFromBlock(
+                                                block.id,
+                                                itemIndex,
+                                              )
+                                            }
+                                            className="text-destructive hover:text-destructive-foreground hover:bg-destructive h-6 w-6 p-0"
+                                          >
+                                            <X className="w-3 h-3" />
+                                          </Button>
+                                        </>
+                                      )}
+                                    </div>
+                                  );
+                                })}
 
-                          return (
-                            <div
-                              key={itemIndex}
-                              className="flex items-center gap-2"
-                            >
-                              <span className="text-muted-foreground">-</span>
-                              {isEditing ? (
-                                <>
+                                {/* Input para agregar item directo */}
+                                <div className="flex gap-2">
                                   <Input
-                                    className="text-sm flex-1 h-8 font-medium min-w-0 text-sm placeholder:text-sm"
-                                    value={editingItemValue}
+                                    className="text-sm min-w-0 font-medium placeholder:text-sm h-auto"
+                                    value={blockItemInputs[block.id] || ""}
                                     onChange={(e) =>
-                                      setEditingItemValue(e.target.value)
+                                      setBlockItemInputs((prev) => ({
+                                        ...prev,
+                                        [block.id]: e.target.value,
+                                      }))
                                     }
-                                    onKeyPress={(e) => {
+                                    placeholder="Agregar inciso..."
+                                    onKeyDown={(e) => {
                                       if (e.key === "Enter") {
                                         e.preventDefault();
-                                        saveEditingItem();
-                                      } else if (e.key === "Escape") {
-                                        e.preventDefault();
-                                        cancelEditingItem();
+                                        addItemToBlock(block.id);
                                       }
                                     }}
-                                    autoFocus
                                   />
                                   <Button
                                     type="button"
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
-                                    onClick={saveEditingItem}
-                                    disabled={!editingItemValue.trim()}
-                                    className="text-primary hover:text-primary-foreground hover:bg-primary h-6 w-6 p-0"
+                                    onClick={() => addItemToBlock(block.id)}
+                                    disabled={
+                                      !blockItemInputs[block.id]?.trim()
+                                    }
+                                    className="flex-shrink-0"
                                   >
-                                    <Check className="w-3 h-3" />
+                                    <Plus className="w-3 h-3" />
                                   </Button>
+                                </div>
+
+                                {/* Sub-bloques existentes */}
+                                {block.subBlocks &&
+                                  block.subBlocks.length > 0 && (
+                                    <div className="mt-3 space-y-2">
+                                      <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                                        <ChevronRight className="w-3 h-3" />
+                                        Sub-bloques
+                                      </p>
+                                      {block.subBlocks.map((subBlock) => (
+                                        <div
+                                          key={subBlock.id}
+                                          className="border border-border rounded-md p-3 space-y-2 bg-muted/20"
+                                        >
+                                          {/* Título del sub-bloque */}
+                                          <div className="flex items-center gap-2">
+                                            <ChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                                            <Input
+                                              value={subBlock.subtitle}
+                                              onChange={(e) =>
+                                                updateSubBlockTitle(
+                                                  block.id,
+                                                  subBlock.id,
+                                                  e.target.value,
+                                                )
+                                              }
+                                              placeholder="Nombre del sub-bloque..."
+                                              className="text-sm font-medium h-7 flex-1"
+                                            />
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() =>
+                                                removeSubBlock(
+                                                  block.id,
+                                                  subBlock.id,
+                                                )
+                                              }
+                                              className="text-destructive hover:text-destructive-foreground hover:bg-destructive h-6 w-6 p-0 flex-shrink-0"
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                            </Button>
+                                          </div>
+
+                                          {/* Items del sub-bloque */}
+                                          <div className="space-y-1 pl-4">
+                                            {subBlock.items.map(
+                                              (item, itemIndex) => {
+                                                const isEditing =
+                                                  editingItem?.blockId ===
+                                                    block.id &&
+                                                  editingItem?.subBlockId ===
+                                                    subBlock.id &&
+                                                  editingItem?.itemIndex ===
+                                                    itemIndex;
+                                                return (
+                                                  <div
+                                                    key={itemIndex}
+                                                    className="flex items-center gap-2"
+                                                  >
+                                                    <span className="text-muted-foreground text-xs">
+                                                      -
+                                                    </span>
+                                                    {isEditing ? (
+                                                      <>
+                                                        <Input
+                                                          className="text-sm flex-1 h-7"
+                                                          value={
+                                                            editingItemValue
+                                                          }
+                                                          onChange={(e) =>
+                                                            setEditingItemValue(
+                                                              e.target.value,
+                                                            )
+                                                          }
+                                                          onKeyPress={(e) => {
+                                                            if (
+                                                              e.key === "Enter"
+                                                            ) {
+                                                              e.preventDefault();
+                                                              saveEditingItem();
+                                                            } else if (
+                                                              e.key === "Escape"
+                                                            ) {
+                                                              e.preventDefault();
+                                                              cancelEditingItem();
+                                                            }
+                                                          }}
+                                                          autoFocus
+                                                        />
+                                                        <Button
+                                                          type="button"
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          onClick={
+                                                            saveEditingItem
+                                                          }
+                                                          disabled={
+                                                            !editingItemValue.trim()
+                                                          }
+                                                          className="text-primary hover:text-primary-foreground hover:bg-primary h-6 w-6 p-0"
+                                                        >
+                                                          <Check className="w-3 h-3" />
+                                                        </Button>
+                                                        <Button
+                                                          type="button"
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          onClick={
+                                                            cancelEditingItem
+                                                          }
+                                                          className="text-muted-foreground hover:text-foreground h-6 w-6 p-0"
+                                                        >
+                                                          <X className="w-3 h-3" />
+                                                        </Button>
+                                                      </>
+                                                    ) : (
+                                                      <>
+                                                        <span
+                                                          className="text-sm flex-1 cursor-pointer hover:bg-muted/50 rounded px-2 py-0.5 -mx-2"
+                                                          onClick={() =>
+                                                            startEditingItem(
+                                                              block.id,
+                                                              itemIndex,
+                                                              subBlock.id,
+                                                            )
+                                                          }
+                                                        >
+                                                          {item}
+                                                        </span>
+                                                        <Button
+                                                          type="button"
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          onClick={() =>
+                                                            startEditingItem(
+                                                              block.id,
+                                                              itemIndex,
+                                                              subBlock.id,
+                                                            )
+                                                          }
+                                                          className="text-muted-foreground hover:text-foreground h-6 w-6 p-0"
+                                                        >
+                                                          <Pencil className="w-3 h-3" />
+                                                        </Button>
+                                                        <Button
+                                                          type="button"
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          onClick={() =>
+                                                            removeItemFromSubBlock(
+                                                              block.id,
+                                                              subBlock.id,
+                                                              itemIndex,
+                                                            )
+                                                          }
+                                                          className="text-destructive hover:text-destructive-foreground hover:bg-destructive h-6 w-6 p-0"
+                                                        >
+                                                          <X className="w-3 h-3" />
+                                                        </Button>
+                                                      </>
+                                                    )}
+                                                  </div>
+                                                );
+                                              },
+                                            )}
+
+                                            {/* Input para agregar item al sub-bloque */}
+                                            <div className="flex gap-2 mt-1">
+                                              <Input
+                                                className="text-sm h-7 placeholder:text-xs"
+                                                value={
+                                                  subBlockItemInputs[
+                                                    `${block.id}::${subBlock.id}`
+                                                  ] || ""
+                                                }
+                                                onChange={(e) => {
+                                                  const key = `${block.id}::${subBlock.id}`;
+                                                  setSubBlockItemInputs(
+                                                    (prev) => ({
+                                                      ...prev,
+                                                      [key]: e.target.value,
+                                                    }),
+                                                  );
+                                                }}
+                                                placeholder="Agregar ejercicio..."
+                                                onKeyDown={(e) => {
+                                                  if (e.key === "Enter") {
+                                                    e.preventDefault();
+                                                    addItemToSubBlock(
+                                                      block.id,
+                                                      subBlock.id,
+                                                    );
+                                                  }
+                                                }}
+                                              />
+                                              <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() =>
+                                                  addItemToSubBlock(
+                                                    block.id,
+                                                    subBlock.id,
+                                                  )
+                                                }
+                                                disabled={
+                                                  !subBlockItemInputs[
+                                                    `${block.id}::${subBlock.id}`
+                                                  ]?.trim()
+                                                }
+                                                className="flex-shrink-0 h-7 w-7 p-0"
+                                              >
+                                                <Plus className="w-3 h-3" />
+                                              </Button>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                {/* Input para agregar nuevo sub-bloque */}
+                                <div className="mt-2 flex gap-2">
+                                  <Input
+                                    className="text-sm placeholder:text-xs h-auto"
+                                    value={newSubBlockTitles[block.id] || ""}
+                                    onChange={(e) =>
+                                      setNewSubBlockTitles((prev) => ({
+                                        ...prev,
+                                        [block.id]: e.target.value,
+                                      }))
+                                    }
+                                    placeholder="Nuevo sub-bloque (opcional)..."
+                                    onKeyPress={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        addSubBlock(block.id);
+                                      }
+                                    }}
+                                  />
                                   <Button
                                     type="button"
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
-                                    onClick={cancelEditingItem}
-                                    className="text-muted-foreground hover:text-foreground h-6 w-6 p-0"
-                                  >
-                                    <X className="w-3 h-3" />
-                                  </Button>
-                                </>
-                              ) : (
-                                <>
-                                  <span
-                                    className="text-sm flex-1 cursor-pointer hover:bg-muted/50 rounded px-2 py-1 -mx-2 -my-1"
-                                    onClick={() =>
-                                      startEditingItem(block.id, itemIndex)
+                                    onClick={() => addSubBlock(block.id)}
+                                    disabled={
+                                      !newSubBlockTitles[block.id]?.trim()
                                     }
-                                    title="Haz clic para editar"
+                                    className="flex-shrink-0 h-auto"
                                   >
-                                    {item}
-                                  </span>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() =>
-                                      startEditingItem(block.id, itemIndex)
-                                    }
-                                    className="text-muted-foreground hover:text-foreground h-6 w-6 p-0"
-                                    title="Editar inciso"
-                                  >
-                                    <Pencil className="w-3 h-3" />
+                                    <Plus className="w-3 h-3" />                                    
                                   </Button>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() =>
-                                      removeItemFromBlock(block.id, itemIndex)
-                                    }
-                                    className="text-destructive hover:text-destructive-foreground hover:bg-destructive h-6 w-6 p-0"
-                                    title="Eliminar inciso"
+                                </div>
+
+                                {/* Notas del bloque */}
+                                <div className="mt-3">
+                                  <Label
+                                    htmlFor={`block-notes-${block.id}`}
+                                    className="text-xs text-muted-foreground"
                                   >
-                                    <X className="w-3 h-3" />
-                                  </Button>
-                                </>
-                              )}
+                                    Notas del bloque (opcional)
+                                  </Label>
+                                  <Textarea
+                                    id={`block-notes-${block.id}`}
+                                    value={block.notes || ""}
+                                    onChange={(e) =>
+                                      updateBlockNotes(block.id, e.target.value)
+                                    }
+                                    placeholder="Agregar notas específicas para este bloque..."
+                                    className="text-sm mt-1 min-h-[60px] border border-color bg-input"
+                                    rows={2}
+                                  />
+                                </div>
+                              </div>
                             </div>
-                          );
-                        })}
-
-                        {/* Agregar inciso */}
-                        <div className="flex gap-2">
-                          <Input
-                            className="text-sm min-w-0 font-medium text-sm placeholder:text-sm h-auto"
-                            value={currentBlockId === block.id ? blockItem : ""}
-                            onChange={(e) => {
-                              setCurrentBlockId(block.id);
-                              setBlockItem(e.target.value);
-                            }}
-                            placeholder="Agregar inciso..."
-                            onKeyPress={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                addItemToBlock(block.id);
-                              }
-                            }}
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => addItemToBlock(block.id)}
-                            disabled={
-                              !blockItem.trim() || currentBlockId !== block.id
-                            }
-                            className="flex-shrink-0"
-                          >
-                            <Plus className="w-3 h-3" />
-                          </Button>
-                        </div>
-
-                        {/* Notas del bloque */}
-                        <div className="mt-3">
-                          <Label
-                            htmlFor={`block-notes-${block.id}`}
-                            className="text-xs text-muted-foreground"
-                          >
-                            Notas del bloque (opcional)
-                          </Label>
-                          <Textarea
-                            id={`block-notes-${block.id}`}
-                            value={block.notes || ""}
-                            onChange={(e) =>
-                              updateBlockNotes(block.id, e.target.value)
-                            }
-                            placeholder="Agregar notas específicas para este bloque..."
-                            className="text-sm mt-1 min-h-[60px] border border-color bg-input"
-                            rows={2}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
+                          </Card>
+                        )}
+                      </SortableBlock>
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
 
               {/* Agregar nuevo bloque */}
               <div className="flex gap-2">
@@ -904,14 +1413,12 @@ export function PlanificationModal({
             </div>
           )}
 
-          {/* Error message */}
           {error && (
             <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
               {error}
             </div>
           )}
 
-          {/* Botones */}
           <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t">
             <Button
               type="button"
