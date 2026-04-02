@@ -103,39 +103,14 @@ export async function PUT(request: NextRequest, { params }: { params: { userId: 
       }
     })
 
-    // Obtener preferencias actuales para verificar bloqueo
+    // Obtener preferencias actuales
     const currentPreferences = await prisma.userPreference.findUnique({
       where: { userId }
     })
 
-    // Validar bloqueo mensual: solo se aplica al cambiar DISCIPLINA
-    // Cambiar el nivel siempre está permitido
-    const isChangingDiscipline = preferredDisciplineIdNum !== null && 
+    // Validar cambio de disciplina (sin restricciones de bloqueo)
+    const isChangingDiscipline = preferredDisciplineIdNum !== null &&
       currentPreferences?.preferredDisciplineId !== preferredDisciplineIdNum
-    
-    // Los coaches y admins pueden cambiar preferencias sin restricciones
-    const isCoachOrAdmin = session.user.role === 'coach' || session.user.role === 'admin'
-    
-    if (isChangingDiscipline && activeSubscription && currentPreferences?.lastPreferenceChangeDate && !isCoachOrAdmin) {
-      const lastChangeDate = new Date(currentPreferences.lastPreferenceChangeDate)
-      const periodStart = new Date(activeSubscription.currentPeriodStart)
-
-      // Si ya cambió la disciplina en el período actual, bloquear
-      if (lastChangeDate >= periodStart) {
-        const nextPeriodStart = new Date(activeSubscription.currentPeriodEnd)
-        return NextResponse.json(
-          {
-            error: 'Ya has cambiado tu disciplina este mes',
-            message: 'Solo puedes cambiar tu disciplina una vez por período de suscripción. Podrás cambiarla nuevamente después de tu próximo pago.',
-            nextChangeDate: nextPeriodStart.toISOString()
-          },
-          { status: 403 }
-        )
-      }
-    }
-
-    // Si no hay suscripción activa, permitir el cambio (usuarios sin suscripción)
-    // Si hay suscripción pero no ha cambiado en este período, permitir el cambio
 
     const now = new Date()
 

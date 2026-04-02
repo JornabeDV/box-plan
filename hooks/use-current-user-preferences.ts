@@ -97,7 +97,7 @@ export function useCurrentUserPreferences() {
 				}
 
 				// Calcular estado de bloqueo
-				const lockStatus = await calculateLockStatus(preferences, session?.user?.id)
+				const lockStatus = await calculateLockStatus(preferences, session?.user?.id ? String(session.user.id) : undefined)
 
 				setState(prev => ({ ...prev, loading: false, preferences, lockStatus }))
 			} else {

@@ -150,18 +150,45 @@ export async function GET(request: NextRequest) {
 
     const coachId = relationship.coach.id
 
-    // Obtener las preferencias del usuario
-    const preference = await prisma.userPreference.findUnique({
+    // Obtener TODAS las disciplinas asignadas al usuario
+    const userDisciplines = await prisma.userDiscipline.findMany({
       where: { userId },
-      select: {
-        preferredDisciplineId: true,
-        preferredLevelId: true
+      include: {
+        discipline: {
+          select: {
+            id: true,
+            name: true,
+            color: true
+          }
+        },
+        level: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
       }
     })
 
+    // Fallback a preferencias antiguas si no hay disciplinas asignadas
+    const preference = userDisciplines.length === 0
+      ? await prisma.userPreference.findUnique({
+          where: { userId },
+          select: {
+            preferredDisciplineId: true,
+            preferredLevelId: true
+          }
+        })
+      : null
+
+    // Preparar lista de combinaciones disciplina/nivel a buscar
+    let disciplineLevelCombinations: { disciplineId: number; levelId: number | null }[] = []
+
     // Obtener nivel del query param (para cuando el usuario cambia el filtro)
     const levelIdParam = searchParams.get('levelId')
+    const disciplineIdParam = searchParams.get('disciplineId')
     let selectedLevelId: number | null = null
+    let selectedDisciplineId: number | null = null
 
     if (levelIdParam) {
       selectedLevelId = parseInt(levelIdParam, 10)
@@ -170,26 +197,55 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Si no hay nivel seleccionado en query param, usar el de preferencias
-    const preferredLevelId = selectedLevelId ?? preference?.preferredLevelId ?? null
-    const preferredDisciplineId = preference?.preferredDisciplineId ?? null
+    if (disciplineIdParam) {
+      selectedDisciplineId = parseInt(disciplineIdParam, 10)
+      if (isNaN(selectedDisciplineId)) {
+        selectedDisciplineId = null
+      }
+    }
 
-    // Si no hay disciplina configurada, no podemos mostrar planificaciones
-    if (!preferredDisciplineId) {
-      return NextResponse.json({ 
+    if (selectedDisciplineId) {
+      // Si se especificó una disciplina en particular, buscar esa
+      const userDiscipline = userDisciplines.find(ud => ud.disciplineId === selectedDisciplineId)
+      disciplineLevelCombinations = [{
+        disciplineId: selectedDisciplineId,
+        levelId: selectedLevelId ?? userDiscipline?.levelId ?? null
+      }]
+    } else if (userDisciplines.length > 0) {
+      // Buscar en todas las disciplinas del usuario
+      disciplineLevelCombinations = userDisciplines.map(ud => ({
+        disciplineId: ud.disciplineId,
+        levelId: ud.levelId
+      }))
+    } else if (preference?.preferredDisciplineId) {
+      // Fallback a preferencias antiguas
+      disciplineLevelCombinations = [{
+        disciplineId: preference.preferredDisciplineId,
+        levelId: selectedLevelId ?? preference.preferredLevelId ?? null
+      }]
+    }
+
+    // Si no hay disciplinas configuradas, no podemos mostrar planificaciones
+    if (disciplineLevelCombinations.length === 0) {
+      return NextResponse.json({
         data: null,
         needsPreference: true,
-        message: 'El usuario no tiene preferencias configuradas (discipline y level)'
+        message: 'El usuario no tiene disciplinas asignadas'
       })
     }
 
-    // Si no hay nivel seleccionado (ni en query ni en preferencias), indicar que se necesita seleccionar
-    if (!preferredLevelId) {
-      return NextResponse.json({ 
+    // Filtrar combinaciones que no tengan nivel asignado
+    const validCombinations = disciplineLevelCombinations.filter(
+      c => c.levelId !== null
+    )
+
+    // Si no hay nivel seleccionado para ninguna disciplina, indicar que se necesita seleccionar
+    if (validCombinations.length === 0) {
+      return NextResponse.json({
         data: null,
         needsLevel: true,
-        disciplineId: preferredDisciplineId,
-        message: 'El usuario necesita seleccionar un nivel para ver las planificaciones'
+        disciplineId: disciplineLevelCombinations[0]?.disciplineId,
+        message: 'El usuario necesita tener niveles asignados a sus disciplinas para ver las planificaciones'
       })
     }
 
@@ -317,18 +373,21 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // PASO 2: Si no hay personalizada (o no tiene feature activa), buscar planificación GENERAL
+    // PASO 2: Si no hay personalizada (o no tiene feature activa), buscar planificaciones GENERALES
+    // Buscar planificaciones para CUALQUIERA de las disciplinas/niveles del usuario
     if (!planification) {
       planification = await prisma.planification.findFirst({
         where: {
           coachId: coachId,
-          disciplineId: preferredDisciplineId,
-          disciplineLevelId: preferredLevelId,
           isPersonalized: false, // Explícitamente buscar NO personalizadas
           date: {
             gte: startOfDay,
             lt: endOfDay
-          }
+          },
+          OR: validCombinations.map(combo => ({
+            disciplineId: combo.disciplineId,
+            disciplineLevelId: combo.levelId
+          }))
         },
         select: {
           id: true,
@@ -365,10 +424,10 @@ export async function GET(request: NextRequest) {
     }
 
     if (!planification) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         data: null,
-        disciplineId: preferredDisciplineId,
-        message: `No hay planificación para ${dateParam ? 'esa fecha' : 'hoy'} con tu disciplina y nivel`
+        disciplineId: validCombinations[0]?.disciplineId ?? null,
+        message: `No hay planificación para ${dateParam ? 'esa fecha' : 'hoy'} con tus disciplinas y niveles`
       })
     }
 

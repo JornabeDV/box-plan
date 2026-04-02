@@ -67,10 +67,9 @@ export function PlanificationHeader({
             <Select
               value={selectedLevelId?.toString() || ''}
               onValueChange={(value) => onLevelChange(parseInt(value))}
-              disabled={selectedLevelId === null}
             >
               <SelectTrigger id="level-select" className="w-[180px]">
-                <SelectValue placeholder={selectedLevelId === null ? 'Cargando...' : 'Seleccionar'} />
+                <SelectValue placeholder="Seleccionar" />
               </SelectTrigger>
               <SelectContent>
                 {levels.map((level) => (

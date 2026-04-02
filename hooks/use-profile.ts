@@ -93,10 +93,11 @@ export function useProfile() {
         }
         // Si hay otro error, crear perfil básico
         const basicProfile: Profile = {
-          id: userId,
+          id: String(userId),
           email: session.user?.email || '',
           full_name: session.user?.name || null,
           avatar_url: session.user?.image || null,
+          phone: null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }
@@ -106,16 +107,17 @@ export function useProfile() {
 
       const data = await response.json()
 
-      // Si no hay perfil, crear uno básico con la información del usuario
-      if (!data) {
-        const basicProfile: Profile = {
-          id: userId,
-          email: session.user?.email || '',
-          full_name: session.user?.name || null,
-          avatar_url: session.user?.image || null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
+       // Si no hay perfil, crear uno básico con la información del usuario
+       if (!data) {
+         const basicProfile: Profile = {
+           id: String(userId),
+           email: session.user?.email || '',
+           full_name: session.user?.name || null,
+           avatar_url: session.user?.image || null,
+           phone: null,
+           created_at: new Date().toISOString(),
+           updated_at: new Date().toISOString()
+         }
         setState(prev => ({ ...prev, profile: basicProfile, loading: false }))
       } else {
         setState(prev => ({ ...prev, profile: data, loading: false }))

@@ -21,17 +21,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
 import { SubscriptionStatus } from "@/components/dashboard/subscription-status";
 import { useToast } from "@/hooks/use-toast";
-import { useCurrentUserPreferences } from "@/hooks/use-current-user-preferences";
-import { useUserCoach } from "@/hooks/use-user-coach";
-import { useDisciplines } from "@/hooks/use-disciplines";
-import { useStudentSubscription } from "@/hooks/use-student-subscription";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { useUserDisciplines } from "@/hooks/use-user-disciplines";
 import {
   User,
   Mail,
@@ -40,8 +30,7 @@ import {
   ArrowLeft,
   Edit,
   Loader2,
-  Target,
-  Lock,
+  Dumbbell,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -52,26 +41,11 @@ export default function ProfilePage() {
   const { profile, updateProfile, loading: profileLoading } = useProfile();
   const { toast } = useToast();
   const {
-    preferences,
-    loading: preferencesLoading,
-    refetch: refetchPreferences,
-    updatePreferences,
-    lockStatus,
-  } = useCurrentUserPreferences();
-  const { coach: userCoach, loading: coachLoading } = useUserCoach();
-  const {
-    disciplines,
-    disciplineLevels,
-    loading: disciplinesLoading,
-  } = useDisciplines(userCoach?.id ? userCoach.id.toString() : null);
-  const { hasPersonalizedWorkouts, loading: subscriptionLoading } = useStudentSubscription();
+    disciplines: userDisciplines,
+    loading: userDisciplinesLoading,
+  } = useUserDisciplines();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [selectedDisciplineId, setSelectedDisciplineId] = useState<
-    number | null
-  >(null);
-  const [selectedLevelId, setSelectedLevelId] = useState<number | null>(null);
-  const [savingPreferences, setSavingPreferences] = useState(false);
   const [formData, setFormData] = useState({
     full_name: profile?.full_name || "",
     avatar_url: profile?.avatar_url || "",
@@ -88,81 +62,6 @@ export default function ProfilePage() {
       });
     }
   }, [profile]);
-
-  // Cargar preferencias existentes cuando se carguen
-  useEffect(() => {
-    if (preferences && !preferencesLoading) {
-      setSelectedDisciplineId(preferences.preferredDisciplineId);
-      setSelectedLevelId(preferences.preferredLevelId);
-    }
-  }, [preferences, preferencesLoading]);
-
-  // Obtener niveles filtrados por disciplina seleccionada
-  const availableLevels = selectedDisciplineId
-    ? disciplineLevels.filter(
-        (level) => level.discipline_id === selectedDisciplineId.toString()
-      )
-    : [];
-
-  const handleDisciplineSelect = (value: string) => {
-    const disciplineId = value === "" ? null : parseInt(value, 10);
-    setSelectedDisciplineId(disciplineId);
-    // Resetear nivel cuando cambia la disciplina
-    setSelectedLevelId(null);
-  };
-
-  const handleLevelSelect = (value: string) => {
-    const levelId = value === "" ? null : parseInt(value, 10);
-    setSelectedLevelId(levelId);
-  };
-
-  const handleSavePreferences = async () => {
-    if (!selectedDisciplineId || !selectedLevelId) {
-      toast({
-        title: "Selección incompleta",
-        description: "Por favor, selecciona una disciplina y un nivel",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const isLocked = lockStatus?.isLocked ?? false;
-    const hasChanges =
-      selectedDisciplineId !== preferences?.preferredDisciplineId ||
-      selectedLevelId !== preferences?.preferredLevelId;
-
-    if (isLocked && hasChanges) {
-      toast({
-        title: "Cambio bloqueado",
-        description:
-          lockStatus?.message || "Ya has cambiado tus preferencias este mes",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSavingPreferences(true);
-    const result = await updatePreferences(
-      selectedDisciplineId,
-      selectedLevelId
-    );
-
-    if (result.error) {
-      toast({
-        title: "Error",
-        description: result.error,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Preferencias actualizadas",
-        description: "Tus preferencias han sido guardadas correctamente",
-      });
-      refetchPreferences();
-    }
-
-    setSavingPreferences(false);
-  };
 
   const handleEdit = () => {
     setFormData({
@@ -335,228 +234,67 @@ export default function ProfilePage() {
             <SubscriptionStatus />
           </div>
 
-          {/* Preferencias de Entrenamiento - Oculta si tiene planificaciones personalizadas */}
-          {!hasPersonalizedWorkouts && (
+          {/* Mis Disciplinas - Solo lectura para el estudiante */}
           <div className="mt-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-foreground">
-                  <Target className="h-5 w-5" />
-                  Preferencias de Entrenamiento
+                  <Dumbbell className="h-5 w-5" />
+                  Mis Disciplinas
                 </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Estas son las disciplinas que tu coach te ha asignado.
+                </p>
               </CardHeader>
               <CardContent>
-                {preferencesLoading || coachLoading || disciplinesLoading ? (
+                {userDisciplinesLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
                     <span className="ml-2 text-muted-foreground">
-                      Actualizando preferencias...
+                      Cargando disciplinas...
                     </span>
                   </div>
-                ) : lockStatus?.isLocked ? (
-                  // Mostrar preferencias actuales cuando está bloqueado
-                  preferences &&
-                  preferences.preferredDisciplineId &&
-                  preferences.preferredLevelId ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">
-                          Disciplina preferida
-                        </p>
-                        <p className="text-base font-semibold text-foreground">
-                          {preferences.discipline?.name || "No especificada"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">
-                          Nivel preferido
-                        </p>
-                        <p className="text-base font-semibold text-foreground">
-                          {preferences.level?.name || "No especificado"}
-                        </p>
-                        {preferences.level?.description && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {preferences.level.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ) : null
                 ) : (
-                  <div className="space-y-6">
-                    {/* Mostrar preferencias actuales si existen */}
-                    {preferences &&
-                      preferences.preferredDisciplineId &&
-                      preferences.preferredLevelId && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4 border-b border-border">
-                          <div>
-                            <p className="text-sm text-muted-foreground">
-                              Disciplina preferida
-                            </p>
-                            <p className="text-base font-semibold text-foreground">
-                              {preferences.discipline?.name ||
-                                "No especificada"}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">
-                              Nivel preferido
-                            </p>
-                            <p className="text-base font-semibold text-foreground">
-                              {preferences.level?.name || "No especificado"}
-                            </p>
-                            {preferences.level?.description && (
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {preferences.level.description}
+                  <div className="space-y-4">
+                    {/* Lista de disciplinas asignadas - Solo lectura */}
+                    {userDisciplines.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {userDisciplines.map((userDiscipline) => (
+                          <div
+                            key={userDiscipline.id}
+                            className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border border-border"
+                          >
+                            <div
+                              className="w-4 h-4 rounded-full flex-shrink-0"
+                              style={{
+                                backgroundColor: userDiscipline.discipline?.color || '#3B82F6',
+                              }}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-foreground truncate">
+                                {userDiscipline.discipline?.name || 'Disciplina'}
                               </p>
-                            )}
+                              <p className="text-xs text-muted-foreground">
+                                {userDiscipline.level?.name || 'Sin nivel asignado'}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      )}
-
-                    {/* Selectores de preferencias */}
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label
-                            htmlFor="profile-discipline-select"
-                            className="text-sm font-semibold text-foreground"
-                          >
-                            {preferences?.preferredDisciplineId
-                              ? "Cambiar Disciplina"
-                              : "Selecciona tu Disciplina"}
-                          </Label>
-                          <Select
-                            value={selectedDisciplineId?.toString() || ""}
-                            onValueChange={handleDisciplineSelect}
-                          >
-                            <SelectTrigger id="profile-discipline-select">
-                              <SelectValue placeholder="Selecciona una disciplina" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {disciplines.map((discipline) => (
-                                <SelectItem
-                                  key={discipline.id}
-                                  value={discipline.id}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <div
-                                      className="w-3 h-3 rounded-full border"
-                                      style={{
-                                        backgroundColor: discipline.color,
-                                        borderColor: discipline.color,
-                                      }}
-                                    />
-                                    <span>{discipline.name}</span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label
-                            htmlFor="profile-level-select"
-                            className="text-sm font-semibold text-foreground"
-                          >
-                            {preferences?.preferredLevelId
-                              ? "Cambiar Nivel"
-                              : "Selecciona tu Nivel"}
-                          </Label>
-                          <Select
-                            value={selectedLevelId?.toString() || ""}
-                            onValueChange={handleLevelSelect}
-                            disabled={
-                              !selectedDisciplineId ||
-                              availableLevels.length === 0
-                            }
-                          >
-                            <SelectTrigger id="profile-level-select">
-                              <SelectValue
-                                placeholder={
-                                  !selectedDisciplineId
-                                    ? "Primero selecciona una disciplina"
-                                    : availableLevels.length === 0
-                                    ? "No hay niveles disponibles"
-                                    : "Selecciona un nivel"
-                                }
-                              />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availableLevels.map((level) => (
-                                <SelectItem key={level.id} value={level.id}>
-                                  {level.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        ))}
                       </div>
-                      {!selectedDisciplineId && (
-                        <p className="text-xs text-muted-foreground">
-                          Selecciona una disciplina para habilitar la selección
-                          de nivel
-                        </p>
-                      )}
-                      {selectedDisciplineId && !selectedLevelId && (
-                        <p className="text-xs text-muted-foreground text-center">
-                          Por favor, selecciona un nivel para continuar
-                        </p>
-                      )}
-
-                      {/* Botón Guardar/Actualizar */}
-                      <div className="flex justify-end">
-                        <Button
-                          onClick={handleSavePreferences}
-                          disabled={
-                            !selectedDisciplineId ||
-                            !selectedLevelId ||
-                            savingPreferences
-                          }
-                          variant="outline"
-                          size="sm"
-                        >
-                          {savingPreferences ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Guardando...
-                            </>
-                          ) : (
-                            <>
-                              {preferences?.preferredDisciplineId
-                                ? "Actualizar"
-                                : "Guardar"}
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {lockStatus?.isLocked && lockStatus?.nextChangeDate && (
-                  <div className="p-3 bg-muted/50 rounded-lg mt-6 sm:mt-8 border border-border">
-                    <div className="flex items-start gap-2">
-                      <div className="text-sm text-muted-foreground">
-                        {/* <p>{lockStatus.message}</p> */}
-                        <p>
-                          Podrás cambiar de disciplina nuevamente el{" "}
-                          <span className="font-semibold">
-                            {format(
-                              new Date(lockStatus.nextChangeDate),
-                              "d 'de' MMMM, yyyy",
-                              { locale: es }
-                            )}
-                          </span>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Dumbbell className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                        <p>No tienes disciplinas asignadas</p>
+                        <p className="text-sm mt-1">
+                          Tu coach te asignará las disciplinas correspondientes
                         </p>
                       </div>
-                    </div>
+                    )}
                   </div>
                 )}
               </CardContent>
             </Card>
           </div>
-          )}
         </div>
       </main>
 

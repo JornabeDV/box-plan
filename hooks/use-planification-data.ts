@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import type { Planification, WorkoutScore } from '@/components/planification/types'
+import { useUserDisciplines } from './use-user-disciplines'
 
 interface UsePlanificationDataProps {
 	userId?: string | number
@@ -22,12 +23,39 @@ export function usePlanificationData({ userId }: UsePlanificationDataProps) {
 	const [selectedDate, setSelectedDate] = useState<Date>(new Date())
 	const [existingWodWorkout, setExistingWodWorkout] = useState<WorkoutScore | null>(null)
 	const [existingStrengthWorkout, setExistingStrengthWorkout] = useState<WorkoutScore | null>(null)
-	
+
 	// Estados para nivel
-	const [disciplineId, setDisciplineId] = useState<number | null>(null)
-	const [disciplineName, setDisciplineName] = useState('')
+  const [disciplineId, setDisciplineId] = useState<number | null>(null)
+  const [disciplineName, setDisciplineName] = useState('')
+  const [availableDisciplineOptions, setAvailableDisciplineOptions] = useState<Array<{
+    id: number
+    name: string
+    color: string
+    levelId: number | null
+    levelName: string | null
+  }>>([])
+
+  // Hook para disciplinas del usuario
+  const { disciplines: userDisciplines, loading: disciplinesLoading } = useUserDisciplines()
+
+  // Poblar opciones disponibles de disciplinas cuando cambian las disciplinas del usuario
+  useEffect(() => {
+    if (!disciplinesLoading && userDisciplines.length > 0) {
+      const options = userDisciplines.map(userDiscipline => ({
+        id: userDiscipline.disciplineId,
+        name: userDiscipline.discipline?.name || 'Sin nombre',
+        color: userDiscipline.discipline?.color || '#3B82F6',
+        levelId: userDiscipline.levelId,
+        levelName: userDiscipline.level?.name || null,
+      }))
+      setAvailableDisciplineOptions(options)
+    } else if (!disciplinesLoading) {
+      setAvailableDisciplineOptions([])
+    }
+  }, [userDisciplines, disciplinesLoading])
 	const [levels, setLevels] = useState<DisciplineLevel[]>([])
 	const [selectedLevelId, setSelectedLevelId] = useState<number | null>(null)
+	const [needsLevel, setNeedsLevel] = useState(false)
 
 	// Usar ref para evitar re-renders innecesarios
 	const isLoadingRef = useRef(false)
@@ -133,12 +161,12 @@ export function usePlanificationData({ userId }: UsePlanificationDataProps) {
 
 				if (prefsResponse.ok) {
 					const prefs = await prefsResponse.json()
-					if (prefs?.preferred_level_id) {
-						initialLevelId = parseInt(prefs.preferred_level_id)
+					if (prefs?.preferredLevelId) {
+						initialLevelId = parseInt(prefs.preferredLevelId)
 						setSelectedLevelId(initialLevelId)
 					}
-					if (prefs?.preferred_discipline_id) {
-						initialDisciplineId = parseInt(prefs.preferred_discipline_id)
+					if (prefs?.preferredDisciplineId) {
+						initialDisciplineId = parseInt(prefs.preferredDisciplineId)
 						setDisciplineId(initialDisciplineId)
 					}
 				}
@@ -171,7 +199,8 @@ export function usePlanificationData({ userId }: UsePlanificationDataProps) {
 
 				// Paso 3: Cargar planificación
 				const levelParam = levelToUse ? `&levelId=${levelToUse}` : ''
-				const planifResponse = await fetch(`/api/planifications?date=${dateString}${levelParam}`)
+				const disciplineParam = initialDisciplineId ? `&disciplineId=${initialDisciplineId}` : ''
+				const planifResponse = await fetch(`/api/planifications?date=${dateString}${levelParam}${disciplineParam}`)
 				
 				if (!planifResponse.ok) {
 					throw new Error('Error al cargar la planificación')
@@ -181,27 +210,39 @@ export function usePlanificationData({ userId }: UsePlanificationDataProps) {
 
 				if (data.data) {
 					// Hay planificación
+					setNeedsLevel(false)
 					setPlanification(data.data)
-					
+
 					// Actualizar nivel si viene en la respuesta
 					if (data.data.discipline_level?.id) {
-						const levelId = typeof data.data.discipline_level.id === 'string' 
-							? parseInt(data.data.discipline_level.id) 
+						const levelId = typeof data.data.discipline_level.id === 'string'
+							? parseInt(data.data.discipline_level.id)
 							: data.data.discipline_level.id
 						setSelectedLevelId(levelId)
 					}
-					
+
 					// Cargar niveles de la disciplina
 					if (data.data.discipline?.id) {
 						const discId = parseInt(data.data.discipline.id)
 						setDisciplineId(discId)
 						await fetchDisciplineInfo(discId)
 					}
-					
+
 					// Cargar workouts
 					await fetchExistingWorkouts(data.data.id)
+				} else if (data.needsLevel) {
+					// El usuario no tiene nivel asignado → mostrar modal
+					setNeedsLevel(true)
+					setPlanification(null)
+					setExistingWodWorkout(null)
+					setExistingStrengthWorkout(null)
+					if (data.disciplineId) {
+						setDisciplineId(data.disciplineId)
+						await fetchDisciplineInfo(data.disciplineId)
+					}
 				} else if (data.disciplineId) {
-					// No hay planificación pero tenemos disciplina
+					// No hay planificación para esta fecha, pero la config es válida
+					setNeedsLevel(false)
 					setDisciplineId(data.disciplineId)
 					setPlanification(null)
 					setExistingWodWorkout(null)
@@ -209,6 +250,7 @@ export function usePlanificationData({ userId }: UsePlanificationDataProps) {
 					await fetchDisciplineInfo(data.disciplineId)
 				} else {
 					// No hay nada
+					setNeedsLevel(false)
 					setPlanification(null)
 					if (data.message) setError(data.message)
 				}
@@ -227,19 +269,20 @@ export function usePlanificationData({ userId }: UsePlanificationDataProps) {
 	// Función para recargar (cuando cambia el nivel manualmente)
 	const reloadWithLevel = useCallback(async (newLevelId: number) => {
 		if (!userId) return
-		
+
 		setSelectedLevelId(newLevelId)
 		setLoading(true)
-		
+
 		try {
 			const dateParam = searchParams.get('date')
 			const dateString = dateParam || new Date().toISOString().split('T')[0]
-			
-			const response = await fetch(`/api/planifications?date=${dateString}&levelId=${newLevelId}`)
+
+			const disciplineParam = disciplineId ? `&disciplineId=${disciplineId}` : ''
+			const response = await fetch(`/api/planifications?date=${dateString}&levelId=${newLevelId}${disciplineParam}`)
 			if (!response.ok) throw new Error('Error al cargar')
-			
+
 			const data = await response.json()
-			
+
 			if (data.data) {
 				setPlanification(data.data)
 				await fetchExistingWorkouts(data.data.id)
@@ -252,6 +295,66 @@ export function usePlanificationData({ userId }: UsePlanificationDataProps) {
 			setLoading(false)
 		}
 	}, [userId, searchParams.get('date'), fetchExistingWorkouts])
+
+	// Función para recargar (cuando cambia la disciplina manualmente)
+	const reloadWithDiscipline = useCallback(async (newDisciplineId: number | null) => {
+		if (!userId) return
+
+		// Usar el nivel que ya tiene el usuario para esa disciplina
+		const newUserDiscipline = userDisciplines.find(ud => ud.disciplineId === newDisciplineId)
+		const newLevelId = newUserDiscipline?.levelId ?? null
+
+		setSelectedLevelId(newLevelId)
+		setDisciplineId(newDisciplineId)
+		setPlanification(null)
+		setExistingWodWorkout(null)
+		setExistingStrengthWorkout(null)
+		setLevels([])
+		setNeedsLevel(false)
+		setLoading(true)
+
+		try {
+			const dateParam = searchParams.get('date')
+			const dateString = dateParam || new Date().toISOString().split('T')[0]
+
+			const disciplineParam = newDisciplineId ? `&disciplineId=${newDisciplineId}` : ''
+			const levelParam = newLevelId ? `&levelId=${newLevelId}` : ''
+			const response = await fetch(`/api/planifications?date=${dateString}${disciplineParam}${levelParam}`)
+			if (!response.ok) throw new Error('Error al cargar')
+
+			const data = await response.json()
+
+			if (data.data) {
+				setNeedsLevel(false)
+				setPlanification(data.data)
+
+				if (data.data.discipline_level?.id) {
+					const levelId = typeof data.data.discipline_level.id === 'string'
+						? parseInt(data.data.discipline_level.id)
+						: data.data.discipline_level.id
+					setSelectedLevelId(levelId)
+				}
+
+				if (data.data.discipline?.id) {
+					await fetchDisciplineInfo(parseInt(data.data.discipline.id))
+				}
+
+				await fetchExistingWorkouts(data.data.id)
+			} else if (data.needsLevel) {
+				setNeedsLevel(true)
+				setPlanification(null)
+				if (newDisciplineId) await fetchDisciplineInfo(newDisciplineId)
+			} else {
+				setNeedsLevel(false)
+				setPlanification(null)
+				if (newDisciplineId) await fetchDisciplineInfo(newDisciplineId)
+			}
+		} catch (error) {
+			console.error('Error reloading with discipline:', error)
+		} finally {
+			setLoading(false)
+		}
+	}, [userId, userDisciplines, searchParams, fetchDisciplineInfo, fetchExistingWorkouts])
 
 	return {
 		planification,
@@ -267,6 +370,10 @@ export function usePlanificationData({ userId }: UsePlanificationDataProps) {
 		disciplineName,
 		levels,
 		selectedLevelId,
+		needsLevel,
+		setNeedsLevel,
 		setSelectedLevelId: reloadWithLevel,
+		setSelectedDisciplineId: reloadWithDiscipline,
+		availableDisciplineOptions,
 	}
 }

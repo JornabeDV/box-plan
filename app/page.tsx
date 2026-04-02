@@ -16,8 +16,8 @@ import { CoachInfoCard } from "@/components/dashboard/coach-info-card";
 import { CoachSelector } from "@/components/auth/coach-selector";
 import { TrialCalendar } from "@/components/dashboard/trial-calendar";
 import { StudentWhatsAppButton } from "@/components/dashboard/student-whatsapp-button";
-import { PreferenceSelector } from "@/components/dashboard/preference-selector";
 import { useCurrentUserPreferences } from "@/hooks/use-current-user-preferences";
+import { useUserDisciplines } from "@/hooks/use-user-disciplines";
 import {
   Loader2,
   Target,
@@ -88,20 +88,14 @@ export default function BoxPlanApp() {
 
   // Verificar si hay al menos un acceso rápido disponible
   const hasAnyQuickAccess = hasProgressAccess || hasRankingAccess;
-  const {
-    preferences,
-    loading: preferencesLoading,
-    refetch: refetchPreferences,
-  } = useCurrentUserPreferences();
+  const { loading: preferencesLoading } = useCurrentUserPreferences();
+  const { disciplines: userDisciplines, loading: disciplinesLoading } = useUserDisciplines();
 
   // Verificar si el usuario tiene suscripción activa
   const hasActiveSubscription = subscription?.status === "active";
 
-  // Verificar si el usuario tiene preferencias configuradas
-  const hasPreferences =
-    preferences &&
-    preferences.preferredDisciplineId &&
-    preferences.preferredLevelId;
+  // El estudiante puede ver el calendario si el coach le asignó al menos una disciplina con nivel
+  const hasPreferences = userDisciplines.some(d => d.levelId !== null);
 
   // Obtener frases motivacionales del coach (si tiene coach)
   const { quotes: coachQuotes, loading: coachQuotesLoading } =
@@ -112,7 +106,7 @@ export default function BoxPlanApp() {
   const shouldLoadTodayPlanification =
     !authLoading &&
     !profileLoading &&
-    !preferencesLoading &&
+    !disciplinesLoading &&
     user?.id &&
     hasActiveSubscription &&
     hasPreferences;
@@ -213,7 +207,7 @@ export default function BoxPlanApp() {
     authLoading ||
     profileLoading ||
     subscriptionLoading ||
-    preferencesLoading ||
+    disciplinesLoading ||
     (shouldLoadTodayPlanification && todayPlanificationLoading);
 
   // Debug: Log which hooks are loading
@@ -223,7 +217,7 @@ export default function BoxPlanApp() {
         authLoading,
         profileLoading,
         subscriptionLoading,
-        preferencesLoading,
+        disciplinesLoading,
         shouldLoadTodayPlanification,
         todayPlanificationLoading,
         hasUser: !!user,
@@ -233,7 +227,7 @@ export default function BoxPlanApp() {
         hasPreferences,
       });
     }
-  }, [authLoading, profileLoading, subscriptionLoading, preferencesLoading, todayPlanificationLoading, shouldLoadTodayPlanification, user, isCoach, hasActiveSubscription, hasPreferences]);
+  }, [authLoading, profileLoading, subscriptionLoading, disciplinesLoading, todayPlanificationLoading, shouldLoadTodayPlanification, user, isCoach, hasActiveSubscription, hasPreferences]);
 
   // Timeout para detectar loading infinito (10 segundos para desarrollo)
   const { hasTimedOut } = useLoadingTimeout(isLoadingCriticalData, {
@@ -261,7 +255,7 @@ export default function BoxPlanApp() {
       { name: 'Autenticación', loading: authLoading },
       { name: 'Perfil', loading: profileLoading },
       { name: 'Suscripción', loading: subscriptionLoading },
-      { name: 'Preferencias', loading: preferencesLoading },
+      { name: 'Disciplinas', loading: disciplinesLoading },
       { name: 'Planificación hoy', loading: shouldLoadTodayPlanification && todayPlanificationLoading },
     ];
 
@@ -931,22 +925,7 @@ export default function BoxPlanApp() {
           </section>
         )}
 
-        {/* Selector de preferencias - Solo para usuarios con suscripción activa sin preferencias */}
-        {user?.id &&
-          hasActiveSubscription &&
-          !preferencesLoading &&
-          !hasPreferences && (
-            <section>
-              <PreferenceSelector
-                coachId={userCoach?.id ?? null}
-                onPreferencesSaved={() => {
-                  refetchPreferences();
-                }}
-              />
-            </section>
-          )}
-
-        {/* Sección del día - Solo para usuarios con suscripción activa y con preferencias */}
+        {/* Sección del día - Solo para usuarios con suscripción activa y con disciplinas asignadas */}
         {user?.id && hasActiveSubscription && hasPreferences && (
           <section className="mb-3 sm:mb-8">
             <TodaySection />

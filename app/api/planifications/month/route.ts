@@ -98,6 +98,11 @@ export async function GET(request: NextRequest) {
     // El último día del mes: día 1 del mes siguiente a las 02:59:59 UTC (que es 23:59:59 del último día en Argentina)
     const lastDay = new Date(Date.UTC(year, month, 1, 2, 59, 59, 999))
 
+    // Obtener TODAS las disciplinas asignadas al estudiante (no solo la preferida)
+    const userDisciplines = await prisma.userDiscipline.findMany({
+      where: { userId }
+    })
+
     // Construir el filtro de where
     const whereClause: any = {
       coachId: coachId, // Solo planificaciones del coach del estudiante
@@ -112,28 +117,29 @@ export async function GET(request: NextRequest) {
       whereClause.isPersonalized = true
       whereClause.targetUserId = userId
     } else {
-      // Si no tiene el feature, buscar planificaciones generales según preferencias
-      // Determinar qué disciplina usar:
-      // 1. Si se proporciona disciplineId en los params, usar ese
-      // 2. Si no, usar la preferencia del usuario si existe
-      // 3. Si no hay preferencia, no filtrar por disciplina (mostrar todas)
-      let disciplineIdToUse: number | null = null
+      // Si no tiene el feature, buscar planificaciones generales
+      // Determinar qué disciplinas mostrar:
+      // 1. Si se proporciona disciplineId en los params, usar solo esa
+      // 2. Si no, usar TODAS las disciplinas asignadas al usuario
+      let disciplineIdsToUse: number[] = []
       
       if (disciplineIdParam) {
         const disciplineId = parseInt(disciplineIdParam, 10)
         if (!isNaN(disciplineId)) {
-          disciplineIdToUse = disciplineId
+          disciplineIdsToUse = [disciplineId]
         }
+      } else if (userDisciplines.length > 0) {
+        // Usar TODAS las disciplinas asignadas al estudiante
+        disciplineIdsToUse = userDisciplines.map(ud => ud.disciplineId)
       } else if (preference?.preferredDisciplineId) {
-        disciplineIdToUse = preference.preferredDisciplineId
+        // Fallback: usar la preferencia si no hay disciplinas asignadas
+        disciplineIdsToUse = [preference.preferredDisciplineId]
       }
 
-      // Si tenemos una disciplina, filtrar por ella
-      if (disciplineIdToUse !== null) {
-        whereClause.disciplineId = disciplineIdToUse
-        // También filtrar por nivel si el usuario tiene preferencia de nivel
-        if (preference?.preferredLevelId) {
-          whereClause.disciplineLevelId = preference.preferredLevelId
+      // Si tenemos disciplinas, filtrar por ellas
+      if (disciplineIdsToUse.length > 0) {
+        whereClause.disciplineId = {
+          in: disciplineIdsToUse
         }
       }
     }
