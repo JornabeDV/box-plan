@@ -18,7 +18,7 @@ import { CheckCircle, Lock } from "lucide-react";
 import { useStudentSubscription } from "@/hooks/use-student-subscription";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -42,7 +42,8 @@ export default function PlanificationPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
-  const { canTrackProgress, loading: subscriptionLoading } = useStudentSubscription();
+  const searchParams = useSearchParams();
+  useStudentSubscription();
   const {
     planification,
     loading,
@@ -58,7 +59,6 @@ export default function PlanificationPage() {
     needsLevel,
     setNeedsLevel,
     setSelectedLevelId,
-    setSelectedDisciplineId,
     availableDisciplineOptions,
   } = usePlanificationData({ userId: user?.id });
 
@@ -140,20 +140,26 @@ export default function PlanificationPage() {
             if (!user?.id || newDisciplineId === disciplineId) return;
 
             try {
-              // Actualizar preferencia en BD
+              // Actualizar preferencia en BD (resetear nivel al cambiar disciplina)
               const response = await fetch(`/api/user-preferences/${user.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   preferred_discipline_id: newDisciplineId,
-                  preferred_level_id: null // Resetear nivel cuando cambia disciplina
+                  preferred_level_id: null
                 })
               });
 
               if (!response.ok) throw new Error('Error al actualizar preferencia');
 
-              // Recargar con la nueva disciplina
-              await setSelectedDisciplineId(newDisciplineId);
+              // Actualizar URL con la nueva disciplina → dispara el useEffect principal
+              const params = new URLSearchParams(searchParams.toString());
+              if (newDisciplineId) {
+                params.set('disciplineId', newDisciplineId.toString());
+              } else {
+                params.delete('disciplineId');
+              }
+              router.replace(`/planification?${params.toString()}`, { scroll: false });
 
               toast({
                 title: 'Disciplina actualizada',

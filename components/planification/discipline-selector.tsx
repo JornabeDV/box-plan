@@ -1,11 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
 import { Dumbbell } from 'lucide-react'
-import { useUserDisciplines } from '@/hooks/use-user-disciplines'
-import { useRouter, useSearchParams } from 'next/navigation'
 
 interface DisciplineOption {
   id: number
@@ -28,30 +24,10 @@ export function DisciplineSelector({
   disabled = false,
   availableDisciplineOptions
 }: DisciplineSelectorProps) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-
   const handleDisciplineChange = (value: string) => {
     const disciplineId = value === 'all' ? null : parseInt(value, 10)
     onDisciplineChange(disciplineId)
-
-    // Actualizar URL para mantener el estado
-    const params = new URLSearchParams(searchParams.toString())
-    if (disciplineId) {
-      params.set('disciplineId', disciplineId.toString())
-    } else {
-      params.delete('disciplineId')
-    }
-
-    // Mantener la fecha si existe
-    const currentUrl = window.location.pathname
-    const newUrl = params.toString() ? `${currentUrl}?${params.toString()}` : currentUrl
-    router.replace(newUrl, { scroll: false })
   }
-
-  // Determinar la disciplina seleccionada basada en la URL o la primera disponible
-  const currentSelectedId = selectedDisciplineId ||
-    (searchParams.get('disciplineId') ? parseInt(searchParams.get('disciplineId')!, 10) : null)
 
   // No mostrar selector si no hay opciones disponibles
   if (!availableDisciplineOptions || availableDisciplineOptions.length <= 1) {
@@ -66,7 +42,7 @@ export function DisciplineSelector({
       </div>
 
       <Select
-        value={currentSelectedId?.toString() || 'all'}
+        value={selectedDisciplineId?.toString() || 'all'}
         onValueChange={handleDisciplineChange}
         disabled={disabled}
       >
