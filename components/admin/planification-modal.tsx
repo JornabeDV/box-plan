@@ -49,6 +49,13 @@ interface SubBlock {
   id: string;
   subtitle: string;
   items: string[];
+  timer_mode?: 'normal' | 'tabata' | 'fortime' | 'amrap' | 'emom' | 'otm' | null;
+  timer_config?: {
+    workTime?: string;
+    restTime?: string;
+    totalRounds?: string;
+    amrapTime?: string;
+  };
 }
 
 interface Block {
@@ -57,6 +64,13 @@ interface Block {
   items: string[];
   order: number;
   notes?: string;
+  timer_mode?: 'normal' | 'tabata' | 'fortime' | 'amrap' | 'emom' | 'otm' | null;
+  timer_config?: {
+    workTime?: string;
+    restTime?: string;
+    totalRounds?: string;
+    amrapTime?: string;
+  };
   subBlocks?: SubBlock[];
 }
 
@@ -352,6 +366,56 @@ export function PlanificationModal({
   const updateBlockNotes = (blockId: string, notes: string) => {
     setBlocks((prev) =>
       prev.map((block) => (block.id === blockId ? { ...block, notes } : block)),
+    );
+  };
+
+const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'fortime' | 'amrap' | 'emom' | 'otm' | null) => {
+    setBlocks((prev) =>
+      prev.map((block) =>
+        block.id === blockId ? { ...block, timer_mode: timerMode } : block,
+      ),
+    );
+  };
+
+  const updateBlockTimerConfig = (blockId: string, config: { workTime?: string; restTime?: string; totalRounds?: string; amrapTime?: string }) => {
+    setBlocks((prev) =>
+      prev.map((block) =>
+        block.id === blockId ? { ...block, timer_config: config } : block,
+      ),
+    );
+  };
+
+  const updateSubBlockTimer = (
+    blockId: string,
+    subBlockId: string,
+    timerMode: 'normal' | 'tabata' | 'fortime' | 'amrap' | 'emom' | 'otm' | null,
+  ) => {
+    setBlocks((prev) =>
+      prev.map((block) =>
+        block.id === blockId
+          ? {
+              ...block,
+              subBlocks: (block.subBlocks || []).map((sb) =>
+                sb.id === subBlockId ? { ...sb, timer_mode: timerMode } : sb,
+              ),
+            }
+          : block,
+      ),
+    );
+  };
+
+  const updateSubBlockTimerConfig = (blockId: string, subBlockId: string, config: { workTime?: string; restTime?: string; totalRounds?: string; amrapTime?: string }) => {
+    setBlocks((prev) =>
+      prev.map((block) =>
+        block.id === blockId
+          ? {
+              ...block,
+              subBlocks: (block.subBlocks || []).map((sb) =>
+                sb.id === subBlockId ? { ...sb, timer_config: config } : sb,
+              ),
+            }
+          : block,
+      ),
     );
   };
 
@@ -953,6 +1017,149 @@ export function PlanificationModal({
                                 </Button>
                               </div>
 
+                              {/* Timer selector para el bloque */}
+                              <div className="ml-6 sm:ml-9 flex items-center gap-2">
+                                <Clock className="w-4 h-4 text-muted-foreground" />
+                                <Select
+                                  value={block.timer_mode || "none"}
+                                  onValueChange={(value) =>
+                                    updateBlockTimer(
+                                      block.id,
+                                      value === "none" ? null : value as any,
+                                    )
+                                  }
+                                >
+                                  <SelectTrigger className="w-32 h-8 text-xs">
+                                    <SelectValue placeholder="Sin timer" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">Sin timer</SelectItem>
+                                    <SelectItem value="normal">Cronómetro</SelectItem>
+                                    <SelectItem value="fortime">FOR TIME</SelectItem>
+                                    <SelectItem value="amrap">AMRAP</SelectItem>
+                                    <SelectItem value="emom">EMOM</SelectItem>
+                                    <SelectItem value="otm">OTM</SelectItem>
+                                    <SelectItem value="tabata">TABATA</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              {/* Timer config para el bloque */}
+                              {block.timer_mode === "tabata" && (
+                                <div className="ml-6 sm:ml-9 grid grid-cols-3 gap-2">
+                                  <div className="space-y-1">
+                                    <Label className="text-xs text-muted-foreground">Trabajo</Label>
+                                    <Input
+                                      type="number"
+                                      value={block.timer_config?.workTime || "20"}
+                                      onChange={(e) =>
+                                        updateBlockTimerConfig(block.id, {
+                                          ...block.timer_config,
+                                          workTime: e.target.value,
+                                        })
+                                      }
+                                      className="h-8 text-xs"
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-xs text-muted-foreground">Descanso</Label>
+                                    <Input
+                                      type="number"
+                                      value={block.timer_config?.restTime || "10"}
+                                      onChange={(e) =>
+                                        updateBlockTimerConfig(block.id, {
+                                          ...block.timer_config,
+                                          restTime: e.target.value,
+                                        })
+                                      }
+                                      className="h-8 text-xs"
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-xs text-muted-foreground">Rondas</Label>
+                                    <Input
+                                      type="number"
+                                      value={block.timer_config?.totalRounds || "8"}
+                                      onChange={(e) =>
+                                        updateBlockTimerConfig(block.id, {
+                                          ...block.timer_config,
+                                          totalRounds: e.target.value,
+                                        })
+                                      }
+                                      className="h-8 text-xs"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+
+                              {block.timer_mode === "amrap" && (
+                                <div className="ml-6 sm:ml-9 grid grid-cols-2 gap-2">
+                                  <div className="space-y-1">
+                                    <Label className="text-xs text-muted-foreground">Tiempo (min)</Label>
+                                    <Input
+                                      type="number"
+                                      value={block.timer_config?.amrapTime || "10"}
+                                      onChange={(e) =>
+                                        updateBlockTimerConfig(block.id, {
+                                          ...block.timer_config,
+                                          amrapTime: e.target.value,
+                                        })
+                                      }
+                                      className="h-8 text-xs"
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-xs text-muted-foreground">Rondas</Label>
+                                    <Input
+                                      type="number"
+                                      value={block.timer_config?.totalRounds || "1"}
+                                      onChange={(e) =>
+                                        updateBlockTimerConfig(block.id, {
+                                          ...block.timer_config,
+                                          totalRounds: e.target.value,
+                                        })
+                                      }
+                                      className="h-8 text-xs"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+
+                              {(block.timer_mode === "emom" || block.timer_mode === "otm") && (
+                                <div className="ml-6 sm:ml-9 grid grid-cols-2 gap-2">
+                                  <div className="space-y-1">
+                                    <Label className="text-xs text-muted-foreground">Rondas</Label>
+                                    <Input
+                                      type="number"
+                                      value={block.timer_config?.totalRounds || "10"}
+                                      onChange={(e) =>
+                                        updateBlockTimerConfig(block.id, {
+                                          ...block.timer_config,
+                                          totalRounds: e.target.value,
+                                        })
+                                      }
+                                      className="h-8 text-xs"
+                                    />
+                                  </div>
+                                  {block.timer_mode === "otm" && (
+                                    <div className="space-y-1">
+                                      <Label className="text-xs text-muted-foreground">Min/ronda</Label>
+                                      <Input
+                                        type="number"
+                                        value={block.timer_config?.workTime || "2"}
+                                        onChange={(e) =>
+                                          updateBlockTimerConfig(block.id, {
+                                            ...block.timer_config,
+                                            workTime: e.target.value,
+                                          })
+                                        }
+                                        className="h-8 text-xs"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
                               <div className="ml-6 sm:ml-9 space-y-2">
                                 {/* Items directos del bloque */}
                                 {block.items.map((item, itemIndex) => {
@@ -1133,6 +1340,150 @@ export function PlanificationModal({
                                               <Trash2 className="w-3 h-3" />
                                             </Button>
                                           </div>
+
+                                          {/* Timer selector para el sub-bloque */}
+                                          <div className="flex items-center gap-2 pl-6">
+                                            <Clock className="w-3 h-3 text-muted-foreground" />
+                                            <Select
+                                              value={subBlock.timer_mode || "none"}
+                                              onValueChange={(value) =>
+                                                updateSubBlockTimer(
+                                                  block.id,
+                                                  subBlock.id,
+                                                  value === "none" ? null : value as any,
+                                                )
+                                              }
+                                            >
+                                              <SelectTrigger className="w-28 h-7 text-xs">
+                                                <SelectValue placeholder="Sin timer" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="none">Sin timer</SelectItem>
+                                                <SelectItem value="normal">Cronómetro</SelectItem>
+                                                <SelectItem value="fortime">FOR TIME</SelectItem>
+                                                <SelectItem value="amrap">AMRAP</SelectItem>
+                                                <SelectItem value="emom">EMOM</SelectItem>
+                                                <SelectItem value="otm">OTM</SelectItem>
+                                                <SelectItem value="tabata">TABATA</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+
+                                          {/* Timer config para el sub-bloque */}
+                                          {subBlock.timer_mode === "tabata" && (
+                                            <div className="grid grid-cols-3 gap-2 pl-6">
+                                              <div className="space-y-1">
+                                                <Label className="text-xs text-muted-foreground">Trabajo</Label>
+                                                <Input
+                                                  type="number"
+                                                  value={subBlock.timer_config?.workTime || "20"}
+                                                  onChange={(e) =>
+                                                    updateSubBlockTimerConfig(block.id, subBlock.id, {
+                                                      ...subBlock.timer_config,
+                                                      workTime: e.target.value,
+                                                    })
+                                                  }
+                                                  className="h-7 text-xs"
+                                                />
+                                              </div>
+                                              <div className="space-y-1">
+                                                <Label className="text-xs text-muted-foreground">Descanso</Label>
+                                                <Input
+                                                  type="number"
+                                                  value={subBlock.timer_config?.restTime || "10"}
+                                                  onChange={(e) =>
+                                                    updateSubBlockTimerConfig(block.id, subBlock.id, {
+                                                      ...subBlock.timer_config,
+                                                      restTime: e.target.value,
+                                                    })
+                                                  }
+                                                  className="h-7 text-xs"
+                                                />
+                                              </div>
+                                              <div className="space-y-1">
+                                                <Label className="text-xs text-muted-foreground">Rondas</Label>
+                                                <Input
+                                                  type="number"
+                                                  value={subBlock.timer_config?.totalRounds || "8"}
+                                                  onChange={(e) =>
+                                                    updateSubBlockTimerConfig(block.id, subBlock.id, {
+                                                      ...subBlock.timer_config,
+                                                      totalRounds: e.target.value,
+                                                    })
+                                                  }
+                                                  className="h-7 text-xs"
+                                                />
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {subBlock.timer_mode === "amrap" && (
+                                            <div className="grid grid-cols-2 gap-2 pl-6">
+                                              <div className="space-y-1">
+                                                <Label className="text-xs text-muted-foreground">Tiempo</Label>
+                                                <Input
+                                                  type="number"
+                                                  value={subBlock.timer_config?.amrapTime || "10"}
+                                                  onChange={(e) =>
+                                                    updateSubBlockTimerConfig(block.id, subBlock.id, {
+                                                      ...subBlock.timer_config,
+                                                      amrapTime: e.target.value,
+                                                    })
+                                                  }
+                                                  className="h-7 text-xs"
+                                                />
+                                              </div>
+                                              <div className="space-y-1">
+                                                <Label className="text-xs text-muted-foreground">Rondas</Label>
+                                                <Input
+                                                  type="number"
+                                                  value={subBlock.timer_config?.totalRounds || "1"}
+                                                  onChange={(e) =>
+                                                    updateSubBlockTimerConfig(block.id, subBlock.id, {
+                                                      ...subBlock.timer_config,
+                                                      totalRounds: e.target.value,
+                                                    })
+                                                  }
+                                                  className="h-7 text-xs"
+                                                />
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {(subBlock.timer_mode === "emom" || subBlock.timer_mode === "otm") && (
+                                            <div className="grid grid-cols-2 gap-2 pl-6">
+                                              <div className="space-y-1">
+                                                <Label className="text-xs text-muted-foreground">Rondas</Label>
+                                                <Input
+                                                  type="number"
+                                                  value={subBlock.timer_config?.totalRounds || "10"}
+                                                  onChange={(e) =>
+                                                    updateSubBlockTimerConfig(block.id, subBlock.id, {
+                                                      ...subBlock.timer_config,
+                                                      totalRounds: e.target.value,
+                                                    })
+                                                  }
+                                                  className="h-7 text-xs"
+                                                />
+                                              </div>
+                                              {subBlock.timer_mode === "otm" && (
+                                                <div className="space-y-1">
+                                                  <Label className="text-xs text-muted-foreground">Min/ronda</Label>
+                                                  <Input
+                                                    type="number"
+                                                    value={subBlock.timer_config?.workTime || "2"}
+                                                    onChange={(e) =>
+                                                      updateSubBlockTimerConfig(block.id, subBlock.id, {
+                                                        ...subBlock.timer_config,
+                                                        workTime: e.target.value,
+                                                      })
+                                                    }
+                                                    className="h-7 text-xs"
+                                                  />
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
 
                                           {/* Items del sub-bloque */}
                                           <div className="space-y-1 pl-4">
