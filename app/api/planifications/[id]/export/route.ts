@@ -79,9 +79,14 @@ export async function POST(
       items: string[]
       order: number
       notes?: string
+      subBlocks?: Array<{
+        id?: string
+        subtitle: string
+        items: string[]
+      }>
     }> || []
 
-    // Crear filas expandidas (una por ejercicio)
+    // Crear filas expandidas (una por ejercicio / sub-bloque)
     const rows: Array<{
       Fecha: string
       Disciplina: string
@@ -90,6 +95,7 @@ export async function POST(
       Estudiante: string
       Bloque: string
       'Orden Bloque': number
+      'Sub-bloque': string
       Ejercicio: string
       'Notas Bloque': string
       'Notas General': string
@@ -105,52 +111,45 @@ export async function POST(
     const tipo = planification.isPersonalized ? 'Personalizada' : 'General'
     const estudiante = planification.targetUser?.name || ''
 
+    const baseRow = {
+      Fecha: normalizedDate,
+      Disciplina: planification.discipline?.name || '',
+      Nivel: planification.disciplineLevel?.name || '',
+      Tipo: tipo,
+      Estudiante: estudiante,
+    }
+
+    // Helper para agregar filas de items (bloque principal o sub-bloque)
+    const addItemRows = (
+      blockTitle: string,
+      blockOrder: number,
+      blockNotes: string,
+      subBlockTitle: string,
+      items: string[]
+    ) => {
+      if (items.length === 0) {
+        rows.push({ ...baseRow, Bloque: blockTitle, 'Orden Bloque': blockOrder, 'Sub-bloque': subBlockTitle, Ejercicio: '', 'Notas Bloque': blockNotes, 'Notas General': planification.notes || '' })
+      } else {
+        for (const item of items) {
+          rows.push({ ...baseRow, Bloque: blockTitle, 'Orden Bloque': blockOrder, 'Sub-bloque': subBlockTitle, Ejercicio: item, 'Notas Bloque': blockNotes, 'Notas General': planification.notes || '' })
+        }
+      }
+    }
+
     // Si no hay ejercicios, crear al menos una fila vacía
     if (exercisesData.length === 0) {
-      rows.push({
-        Fecha: normalizedDate,
-        Disciplina: planification.discipline?.name || '',
-        Nivel: planification.disciplineLevel?.name || '',
-        Tipo: tipo,
-        Estudiante: estudiante,
-        Bloque: '',
-        'Orden Bloque': 0,
-        Ejercicio: '',
-        'Notas Bloque': '',
-        'Notas General': planification.notes || ''
-      })
+      rows.push({ ...baseRow, Bloque: '', 'Orden Bloque': 0, 'Sub-bloque': '', Ejercicio: '', 'Notas Bloque': '', 'Notas General': planification.notes || '' })
     } else {
-      // Expandir cada ejercicio en filas separadas
       for (const block of exercisesData) {
-        // Si el bloque no tiene items, crear una fila vacía para el bloque
-        if (!block.items || block.items.length === 0) {
-          rows.push({
-            Fecha: normalizedDate,
-            Disciplina: planification.discipline?.name || '',
-            Nivel: planification.disciplineLevel?.name || '',
-            Tipo: tipo,
-            Estudiante: estudiante,
-            Bloque: block.title,
-            'Orden Bloque': block.order,
-            Ejercicio: '',
-            'Notas Bloque': block.notes || '',
-            'Notas General': planification.notes || ''
-          })
-        } else {
-          // Una fila por cada ejercicio del bloque
-          for (const item of block.items) {
-            rows.push({
-              Fecha: normalizedDate,
-              Disciplina: planification.discipline?.name || '',
-              Nivel: planification.disciplineLevel?.name || '',
-              Tipo: tipo,
-              Estudiante: estudiante,
-              Bloque: block.title,
-              'Orden Bloque': block.order,
-              Ejercicio: item,
-              'Notas Bloque': block.notes || '',
-              'Notas General': planification.notes || ''
-            })
+        const blockNotes = block.notes || ''
+
+        // Items del bloque principal
+        addItemRows(block.title, block.order, blockNotes, '', block.items || [])
+
+        // Items de cada sub-bloque
+        if (block.subBlocks && block.subBlocks.length > 0) {
+          for (const sub of block.subBlocks) {
+            addItemRows(block.title, block.order, blockNotes, sub.subtitle || '', sub.items || [])
           }
         }
       }
@@ -168,6 +167,7 @@ export async function POST(
       { wch: 30 },  // Estudiante
       { wch: 25 },  // Bloque
       { wch: 15 },  // Orden Bloque
+      { wch: 20 },  // Sub-bloque
       { wch: 40 },  // Ejercicio
       { wch: 30 },  // Notas Bloque
       { wch: 30 },  // Notas General

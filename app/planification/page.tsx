@@ -12,12 +12,13 @@ import { PlanificationTimer } from "@/components/planification/planification-tim
 import { WodScoreForm } from "@/components/planification/wod-score-form";
 import { StrengthScoreForm } from "@/components/planification/strength-score-form";
 import { LevelPreferenceModal } from "@/components/planification/level-preference-modal";
+import { DisciplineSelector } from "@/components/planification/discipline-selector";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, Lock } from "lucide-react";
 import { useStudentSubscription } from "@/hooks/use-student-subscription";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -41,7 +42,8 @@ export default function PlanificationPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
-  const { canTrackProgress, loading: subscriptionLoading } = useStudentSubscription();
+  const searchParams = useSearchParams();
+  useStudentSubscription();
   const {
     planification,
     loading,
@@ -54,11 +56,13 @@ export default function PlanificationPage() {
     disciplineName,
     levels,
     selectedLevelId,
+    needsLevel,
+    setNeedsLevel,
     setSelectedLevelId,
+    availableDisciplineOptions,
   } = usePlanificationData({ userId: user?.id });
-/*  */  
-  // El modal se muestra si hay disciplina pero no hay nivel seleccionado
-  const showLevelModal = !!disciplineId && !selectedLevelId;
+
+  const showLevelModal = needsLevel;
   const { handleSaveWodScore, handleSaveStrengthScore } =
     usePlanificationScores({
       planificationId: planification?.id,
@@ -90,18 +94,7 @@ export default function PlanificationPage() {
         })
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        if (response.status === 403 && errorData.message) {
-          toast({
-            title: 'Cambio bloqueado',
-            description: errorData.message,
-            variant: 'destructive'
-          });
-          return;
-        }
-        throw new Error('Error al actualizar preferencia');
-      }
+      if (!response.ok) throw new Error('Error al actualizar preferencia');
 
       // Recargar con el nuevo nivel (sin refrescar la página)
       await setSelectedLevelId(newLevelId);
@@ -138,6 +131,50 @@ export default function PlanificationPage() {
           onLevelChange={handleLevelChange}
           disciplineName={disciplineName}
           isPersonalized={planification?.is_personalized}
+        />
+
+        {/* Selector de disciplina */}
+        <DisciplineSelector
+          selectedDisciplineId={disciplineId}
+          onDisciplineChange={async (newDisciplineId) => {
+            if (!user?.id || newDisciplineId === disciplineId) return;
+
+            try {
+              // Actualizar preferencia en BD (resetear nivel al cambiar disciplina)
+              const response = await fetch(`/api/user-preferences/${user.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  preferred_discipline_id: newDisciplineId,
+                  preferred_level_id: null
+                })
+              });
+
+              if (!response.ok) throw new Error('Error al actualizar preferencia');
+
+              // Actualizar URL con la nueva disciplina → dispara el useEffect principal
+              const params = new URLSearchParams(searchParams.toString());
+              if (newDisciplineId) {
+                params.set('disciplineId', newDisciplineId.toString());
+              } else {
+                params.delete('disciplineId');
+              }
+              router.replace(`/planification?${params.toString()}`, { scroll: false });
+
+              toast({
+                title: 'Disciplina actualizada',
+                description: 'Tu preferencia ha sido actualizada'
+              });
+            } catch (error) {
+              console.error('Error updating discipline:', error);
+              toast({
+                title: 'Error',
+                description: 'No se pudo actualizar la disciplina',
+                variant: 'destructive'
+              });
+            }
+          }}
+          availableDisciplineOptions={availableDisciplineOptions}
         />
 
         {/* Contenido solo si hay planificación */}
@@ -281,6 +318,7 @@ export default function PlanificationPage() {
                   preferred_level_id: levelId
                 })
               }).then(() => {
+                setNeedsLevel(false);
                 setSelectedLevelId(levelId);
                 toast({
                   title: 'Nivel guardado',

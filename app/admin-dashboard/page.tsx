@@ -362,6 +362,14 @@ export default function AdminDashboardPage() {
       const formData = new FormData();
       formData.append('file', file);
 
+      // Si hay un día seleccionado en el calendario, importar en ese día (no en el del archivo)
+      if (selectedDate) {
+        const year = selectedDate.getFullYear();
+        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+        const day = String(selectedDate.getDate()).padStart(2, '0');
+        formData.append('targetDate', `${year}-${month}-${day}`);
+      }
+
       const response = await fetch('/api/planifications/import', {
         method: 'POST',
         body: formData,

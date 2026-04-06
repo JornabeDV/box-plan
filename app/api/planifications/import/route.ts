@@ -17,6 +17,7 @@ interface ExcelRow {
   Estudiante?: string
   Bloque: string
   'Orden Bloque': string | number
+  'Sub-bloque'?: string
   Ejercicio: string
   'Notas Bloque'?: string
   'Notas General'?: string
@@ -68,6 +69,8 @@ export async function POST(request: NextRequest) {
     // Parsear el FormData
     const formData = await request.formData()
     const file = formData.get('file') as File
+    // Fecha destino opcional (si el usuario quiere importar en un día diferente al del archivo)
+    const targetDateParam = formData.get('targetDate') as string | null
 
     if (!file) {
       return NextResponse.json({ error: 'No se proporcionó archivo' }, { status: 400 })
@@ -139,9 +142,14 @@ export async function POST(request: NextRequest) {
     // Validar formato de fecha
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/
     if (!dateRegex.test(dateStr)) {
-      return NextResponse.json({ 
-        error: `Formato de fecha inválido: ${dateStr}. Use YYYY-MM-DD` 
+      return NextResponse.json({
+        error: `Formato de fecha inválido: ${dateStr}. Use YYYY-MM-DD`
       }, { status: 400 })
+    }
+
+    // Si se envió una fecha destino válida, usarla en lugar de la del archivo
+    if (targetDateParam && dateRegex.test(targetDateParam.trim())) {
+      dateStr = targetDateParam.trim()
     }
 
     let targetStudent: { id: number; email: string; name: string | null } | null = null
@@ -250,21 +258,22 @@ export async function POST(request: NextRequest) {
     // Nota: El campo estimatedDuration no existe en el modelo actual
     // Se mantiene en el Excel para referencia pero no se guarda en BD
 
-    // Agrupar filas por bloque para reconstruir la estructura
+    // Agrupar filas por bloque para reconstruir la estructura con sub-bloques
     const blocksMap = new Map<string, {
       title: string
       order: number
       items: string[]
       notes: string
+      subBlocksMap: Map<string, { subtitle: string; items: string[] }>
     }>()
 
     for (const row of rows) {
       const blockTitle = String(row.Bloque || '').trim()
-      if (!blockTitle) continue // Saltar filas sin bloque
+      if (!blockTitle) continue
 
-      const orderNum = typeof row['Orden Bloque'] === 'string' 
-        ? parseInt(row['Orden Bloque'], 10) || 0 
-        : row['Orden Bloque'] || 0
+      const orderNum = typeof row['Orden Bloque'] === 'string'
+        ? parseInt(row['Orden Bloque'], 10) || 0
+        : (row['Orden Bloque'] as number) || 0
 
       const blockKey = `${orderNum}-${blockTitle}`
 
@@ -273,26 +282,47 @@ export async function POST(request: NextRequest) {
           title: blockTitle,
           order: orderNum,
           items: [],
-          notes: String(row['Notas Bloque'] || '').trim()
+          notes: String(row['Notas Bloque'] || '').trim(),
+          subBlocksMap: new Map()
         })
       }
 
       const block = blocksMap.get(blockKey)!
       const exercise = String(row.Ejercicio || '').trim()
-      
-      if (exercise && !block.items.includes(exercise)) {
-        block.items.push(exercise)
-      }
+      const subBlockTitle = String(row['Sub-bloque'] || '').trim()
 
-      // Actualizar notas si hay nuevas
+      // Actualizar notas si no hay todavía
       const rowNotes = String(row['Notas Bloque'] || '').trim()
       if (rowNotes && !block.notes) {
         block.notes = rowNotes
       }
+
+      if (!exercise) continue
+
+      if (subBlockTitle) {
+        // Ejercicio pertenece a un sub-bloque
+        if (!block.subBlocksMap.has(subBlockTitle)) {
+          block.subBlocksMap.set(subBlockTitle, { subtitle: subBlockTitle, items: [] })
+        }
+        block.subBlocksMap.get(subBlockTitle)!.items.push(exercise)
+      } else {
+        // Ejercicio del bloque principal
+        block.items.push(exercise)
+      }
     }
 
-    // Convertir mapa a array ordenado
-    const blocks = Array.from(blocksMap.values()).sort((a, b) => a.order - b.order)
+    // Convertir mapa a array ordenado, aplanando sub-bloques
+    const blocks = Array.from(blocksMap.values())
+      .sort((a, b) => a.order - b.order)
+      .map(({ subBlocksMap, ...block }) => ({
+        ...block,
+        id: String(Date.now() + Math.random()),
+        subBlocks: Array.from(subBlocksMap.values()).map(sub => ({
+          id: String(Date.now() + Math.random()),
+          subtitle: sub.subtitle,
+          items: sub.items
+        }))
+      }))
 
     if (blocks.length === 0) {
       return NextResponse.json({ 

@@ -23,6 +23,7 @@ model User {
   sessions                   Session[]
   adminProfile               AdminProfile?
   userPreferences            UserPreference?
+  userDisciplines            UserDiscipline[]
   subscriptions              Subscription[]
   workouts                   Workout[]
   rmRecords                  RMRecord[]
@@ -130,21 +131,23 @@ model Discipline {
   updatedAt      DateTime          @default(now()) @updatedAt @map("updated_at")
   levels         DisciplineLevel[]
   planifications Planification[]
+  userDisciplines UserDiscipline[]
 
   @@map("disciplines")
 }
 
 model DisciplineLevel {
-  id             Int             @id @default(autoincrement())
-  disciplineId   Int             @map("discipline_id")
-  name           String          @db.VarChar(255)
+  id             Int              @id @default(autoincrement())
+  disciplineId   Int              @map("discipline_id")
+  name           String           @db.VarChar(255)
   description    String?
-  orderIndex     Int             @default(0) @map("order_index")
-  isActive       Boolean         @default(true) @map("is_active")
-  createdAt      DateTime        @default(now()) @map("created_at")
-  updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at")
-  discipline     Discipline      @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  orderIndex     Int              @default(0) @map("order_index")
+  isActive       Boolean          @default(true) @map("is_active")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @default(now()) @updatedAt @map("updated_at")
+  discipline     Discipline       @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
   planifications Planification[]
+  userDisciplines UserDiscipline[]
 
   @@map("discipline_levels")
 }
@@ -204,6 +207,21 @@ model UserPreference {
   user                     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_preferences")
+}
+
+model UserDiscipline {
+  id           Int              @id @default(autoincrement())
+  userId       Int              @map("user_id")
+  disciplineId Int              @map("discipline_id")
+  levelId      Int?             @map("level_id")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @default(now()) @updatedAt @map("updated_at")
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  discipline   Discipline       @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  level        DisciplineLevel? @relation(fields: [levelId], references: [id])
+
+  @@unique([userId, disciplineId])
+  @@map("user_disciplines")
 }
 
 model Planification {
