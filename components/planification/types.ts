@@ -1,7 +1,18 @@
+export type TimerMode = 'normal' | 'tabata' | 'fortime' | 'amrap' | 'emom' | 'otm'
+
+export interface TimerConfig {
+  workTime?: string
+  restTime?: string
+  totalRounds?: string
+  amrapTime?: string
+}
+
 export interface SubBlock {
 	id: string
 	subtitle: string
 	items: string[]
+	timer_mode?: TimerMode | null
+	timer_config?: TimerConfig
 }
 
 export interface Planification {
@@ -16,6 +27,8 @@ export interface Planification {
 		items: string[]
 		order: number
 		notes?: string
+		timer_mode?: TimerMode | null
+		timer_config?: TimerConfig
 		subBlocks?: SubBlock[]
 	}>
 	notes?: string
