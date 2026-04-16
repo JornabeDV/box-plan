@@ -13,6 +13,7 @@ import {
   Trophy,
   Target,
   CheckCircle2,
+  Timer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CoachPlanInfo } from "@/hooks/use-coach-plan-features";
@@ -59,6 +60,7 @@ const FEATURE_CONFIG: Record<string, FeatureConfig> = {
   communityAccess: { icon: Users, label: "Acceso a comunidad" },
   progressTracking: { icon: Target, label: "Seguimiento de progreso" },
   leaderboardAccess: { icon: Trophy, label: "Acceso a Ranking" },
+  timerAccess: { icon: Timer, label: "Cronómetro" },
 };
 
 export function StudentPlansList({

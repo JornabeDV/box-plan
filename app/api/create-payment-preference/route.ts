@@ -65,13 +65,6 @@ export async function POST(request: NextRequest) {
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const platformCommissionRate = Number(coach.platformCommissionRate) || 0
-    const marketplaceFee = (planPrice * platformCommissionRate) / 100
-    const collectorId = parseInt(String(coach.mercadopagoAccountId).trim(), 10)
-
-    if (isNaN(collectorId)) {
-      throw new Error('Coach Account ID inválido')
-    }
 
     const client = new MercadoPagoConfig({ accessToken: coachAccessToken })
     const preference = await new Preference(client).create({
@@ -88,8 +81,6 @@ export async function POST(request: NextRequest) {
           email: session.user.email || '',
           name: session.user.name || session.user.email || ''
         },
-        collector_id: collectorId,
-        marketplace_fee: marketplaceFee,
         back_urls: {
           success: `${baseUrl}/subscription?success=true`,
           failure: `${baseUrl}/subscription?failure=true`,

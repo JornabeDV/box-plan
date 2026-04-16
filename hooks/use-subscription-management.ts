@@ -17,7 +17,8 @@ interface Subscription {
   id: string
   user_id: string
   plan_id: string
-  status: 'active' | 'canceled' | 'past_due' | 'unpaid'
+  status: 'active' | 'canceled' | 'past_due' | 'unpaid' | 'expired'
+  is_expired?: boolean
   current_period_start: string
   current_period_end: string
   cancel_at_period_end: boolean
@@ -26,8 +27,11 @@ interface Subscription {
   created_at: string
   updated_at: string
   subscription_plans?: {
+    id?: number
     name: string
     price: number
+    currency?: string
+    interval?: string
     features: string[]
   }
 }
@@ -112,8 +116,9 @@ export function useSubscriptionManagement() {
   const changePlan = async (newPlanId: string) => {
     setActionLoading(true)
     try {
-      // Si no hay suscripción actual, crear una nueva
-      if (!currentSubscription) {
+      // Si no hay suscripción o está vencida, redirigir a MercadoPago
+      const isExpiredSubscription = currentSubscription?.status === 'expired' || currentSubscription?.is_expired
+      if (!currentSubscription || isExpiredSubscription) {
         if (!session?.user?.id) {
           throw new Error('Usuario no autenticado')
         }

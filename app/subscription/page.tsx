@@ -107,7 +107,12 @@ export default function SubscriptionPage() {
     if (!loading && !currentSubscription) {
       setActiveTab("plans");
     } else if (!loading && currentSubscription) {
-      setActiveTab("overview");
+      // Si está vencida, ir directo a planes para renovar
+      if (currentSubscription.status === "expired" || currentSubscription.is_expired) {
+        setActiveTab("plans");
+      } else {
+        setActiveTab("overview");
+      }
     }
   }, [loading, currentSubscription]);
 
@@ -200,6 +205,23 @@ export default function SubscriptionPage() {
               Historial
             </TabsTrigger>
           </TabsList>
+
+          {/* Banner de suscripción vencida */}
+          {currentSubscription && (currentSubscription.status === "expired" || currentSubscription.is_expired) && (
+            <div className="rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 flex items-center gap-3">
+              <XCircle className="w-5 h-5 text-destructive shrink-0" />
+              <p className="text-sm">
+                Tu plan <strong>{currentSubscription.subscription_plans?.name}</strong> venció el{" "}
+                <strong>
+                  {new Date(currentSubscription.current_period_end).toLocaleDateString("es-AR", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </strong>. Elegí un plan para renovar.
+              </p>
+            </div>
+          )}
 
           {/* Resumen de Suscripción */}
           <TabsContent value="overview" className="space-y-6">
@@ -334,20 +356,33 @@ export default function SubscriptionPage() {
               </Card>
             ) : plans.length > 0 ? (
               <PlanSwitcher
-                currentPlanId={currentSubscription?.plan_id || ""}
+                currentPlanId={
+                  currentSubscription?.status === "expired" || currentSubscription?.is_expired
+                    ? "" // no marcar ninguno como "actual" para que todos sean seleccionables
+                    : currentSubscription?.plan_id || ""
+                }
                 plans={plans}
                 onPlanSelect={changePlan}
                 loading={actionLoading}
                 showTitle={true}
                 title={
-                  currentSubscription
+                  currentSubscription?.status === "expired" || currentSubscription?.is_expired
+                    ? "Renovar suscripción"
+                    : currentSubscription
                     ? "Cambiar Plan de Suscripción"
                     : "Elige tu Plan"
                 }
                 description={
-                  currentSubscription
+                  currentSubscription?.status === "expired" || currentSubscription?.is_expired
+                    ? "Elegí el plan con el que querés continuar"
+                    : currentSubscription
                     ? "Elige el plan que mejor se adapte a tus necesidades"
                     : "Selecciona el plan que mejor se adapte a tus necesidades"
+                }
+                confirmLabel={
+                  currentSubscription?.status === "expired" || currentSubscription?.is_expired
+                    ? "Ir a pagar"
+                    : "Confirmar Cambio"
                 }
               />
             ) : (

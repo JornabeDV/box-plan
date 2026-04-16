@@ -75,6 +75,8 @@ export default function BoxPlanApp() {
     canTrackProgress,
     canUseWhatsAppSupport,
     isSubscribed,
+    isExpired,
+    subscription: studentSubscription,
     loading: subscriptionLoading,
   } = useStudentSubscription();
   const { coach: studentCoach, loading: studentCoachLoading } =
@@ -789,70 +791,61 @@ export default function BoxPlanApp() {
           }`}
         >
           <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-8">
-            <Card className="border-amber-500/30 bg-amber-500/5 w-full max-w-md">
-              <CardContent className="pt-6 text-center py-6 sm:py-12 space-y-6">
-                <div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto">
-                  <AlertTriangle className="w-10 h-10 text-amber-500" />
-                </div>
-
-                <div className="space-y-2">
-                  <h2 className="text-2xl font-bold text-foreground">
-                    Acceso Beta Limitado
-                  </h2>
-                  <p className="text-muted-foreground max-w-sm mx-auto">
-                    Actualmente no tienes un plan activo. Para acceder a las
-                    planificaciones personalizadas, contacta a tu coach.
-                  </p>
-                </div>
-
-                {!studentCoachLoading && studentCoach?.phone ? (
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      Envíale un mensaje a{" "}
-                      <strong>{studentCoach.businessName || "tu coach"}</strong>{" "}
-                      para que te dé de alta:
-                    </p>
-                    <Button
-                      size="lg"
-                      className="bg-green-600 hover:bg-green-700 w-full"
-                      onClick={() => {
-                        const message = encodeURIComponent(
-                          `Hola ${studentCoach.businessName || ""}, soy ${user?.name || ""}. ` +
-                            `Quiero acceder a las planificaciones de entrenamiento. ¿Podés darme de alta?`,
-                        );
-                        window.open(
-                          `https://wa.me/${studentCoach.phone}?text=${message}`,
-                          "_blank",
-                        );
-                      }}
-                    >
-                      <MessageCircle className="w-5 h-5 mr-2" />
-                      Contactar por WhatsApp
-                    </Button>
+            {isExpired && studentSubscription ? (
+              <Card className="border-destructive/30 w-full max-w-md">
+                <CardContent className="pt-8 pb-8 flex flex-col items-center gap-6 text-center">
+                  <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
+                    <AlertTriangle className="w-8 h-8 text-destructive" />
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      No se encontró información de contacto de tu coach.
+                  <div className="space-y-1">
+                    <h2 className="text-xl font-bold">Tu suscripción venció</h2>
+                    <p className="text-muted-foreground text-sm">
+                      Tu plan{" "}
+                      <strong>{studentSubscription.planName}</strong> venció el{" "}
+                      <strong>
+                        {new Date(
+                          studentSubscription.currentPeriodEnd,
+                        ).toLocaleDateString("es-AR", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </strong>
+                      . Renovalo para seguir entrenando.
                     </p>
-                    <Button
-                      variant="outline"
-                      onClick={() => router.push("/subscription")}
-                      className="w-full"
-                    >
-                      Ver Planes Disponibles
-                    </Button>
                   </div>
-                )}
-
-                <div className="pt-4 border-t border-border">
-                  <p className="text-xs text-muted-foreground">
-                    Versión Beta - Estamos trabajando para mejorar tu
-                    experiencia
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                  <Button
+                    size="lg"
+                    className="w-full"
+                    onClick={() => router.push("/subscription")}
+                  >
+                    Renovar suscripción
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="border-amber-500/30 bg-amber-500/5 w-full max-w-md">
+                <CardContent className="pt-8 pb-8 flex flex-col items-center gap-6 text-center">
+                  <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center">
+                    <AlertTriangle className="w-8 h-8 text-amber-500" />
+                  </div>
+                  <div className="space-y-1">
+                    <h2 className="text-xl font-bold">Sin plan activo</h2>
+                    <p className="text-muted-foreground text-sm">
+                      Necesitás un plan para acceder a tus planificaciones y
+                      funcionalidades de entrenamiento.
+                    </p>
+                  </div>
+                  <Button
+                    size="lg"
+                    className="w-full"
+                    onClick={() => router.push("/subscription")}
+                  >
+                    Ver planes disponibles
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </main>
         {/* No mostrar BottomNavigation si no tiene suscripción - evita navegación */}

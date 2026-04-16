@@ -32,7 +32,8 @@ interface Subscription {
   id: string
   user_id: string
   plan_id: string
-  status: 'active' | 'canceled' | 'past_due' | 'unpaid'
+  status: 'active' | 'canceled' | 'past_due' | 'unpaid' | 'expired'
+  is_expired?: boolean
   current_period_start: string
   current_period_end: string
   cancel_at_period_end: boolean
@@ -62,18 +63,20 @@ const planIcons = {
   'Pro': Crown
 }
 
-const statusColors = {
+const statusColors: Record<string, string> = {
   'active': 'bg-green-100 text-green-800',
   'canceled': 'bg-red-100 text-red-800',
   'past_due': 'bg-yellow-100 text-yellow-800',
-  'unpaid': 'bg-gray-100 text-gray-800'
+  'unpaid': 'bg-gray-100 text-gray-800',
+  'expired': 'bg-red-100 text-red-800'
 }
 
-const statusLabels = {
+const statusLabels: Record<string, string> = {
   'active': 'Activa',
   'canceled': 'Cancelada',
   'past_due': 'Vencida',
-  'unpaid': 'Impaga'
+  'unpaid': 'Impaga',
+  'expired': 'Vencida'
 }
 
 export function SubscriptionManagement({ 
@@ -155,12 +158,12 @@ export function SubscriptionManagement({
               disabled={loading}
               className="w-full sm:w-auto shrink-0"
             >
-              Cambiar Plan
+              {isExpired ? "Renovar Plan" : "Cambiar Plan"}
             </Button>
           </div>
 
           {/* Fechas importantes */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-0">
             <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
               <Calendar className="w-4 h-4 text-muted-foreground" />
               <div>
@@ -182,14 +185,6 @@ export function SubscriptionManagement({
           </div>
 
           {/* Alertas */}
-          {isExpired && (
-            <Alert className="border-red-200 bg-red-50">
-              <AlertTriangle className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-800">
-                Tu suscripción ha expirado. Renueva para continuar disfrutando del servicio.
-              </AlertDescription>
-            </Alert>
-          )}
           
           {isExpiringSoon && !isExpired && (
             <Alert className="border-yellow-200 bg-yellow-50">
@@ -215,23 +210,6 @@ export function SubscriptionManagement({
               </AlertDescription>
             </Alert>
           )}
-
-          {/* Características del plan */}
-          {plan?.features && (
-            <div>
-              <h4 className="font-medium mb-2">Características incluidas:</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {plan.features.map((feature, index) => (
-                  <div key={index} className="flex items-center gap-2 text-sm">
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                    <span>{feature}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <Separator />
 
           {/* Acciones */}
           <div className="flex flex-col sm:flex-row gap-2">
