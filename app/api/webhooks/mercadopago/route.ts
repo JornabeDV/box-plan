@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { MercadoPagoConfig, Payment } from 'mercadopago'
+import { sendPushNotification } from '@/lib/push-notifications'
 
 export async function POST(request: NextRequest) {
   try {
@@ -191,4 +192,47 @@ async function createSubscription({
       data: { lastPreferenceChangeDate: null }
     })
   })
+
+  // Enviar notificación push al estudiante (fuera de la transacción)
+  await notifyStudent(userId, plan.name, periodEnd)
+}
+
+async function notifyStudent(userId: number, planName: string, periodEnd: Date) {
+  try {
+    const subscriptions = await prisma.pushSubscription.findMany({
+      where: { userId }
+    })
+
+    if (subscriptions.length === 0) return
+
+    const expiryDate = periodEnd.toLocaleDateString('es-AR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+
+    const stale: string[] = []
+
+    await Promise.allSettled(
+      subscriptions.map(async (sub) => {
+        const result = await sendPushNotification(
+          { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
+          {
+            title: '¡Pago confirmado! ✅',
+            body: `Tu plan ${planName} está activo hasta el ${expiryDate}. ¡A entrenar!`,
+            icon: '/icon-192.jpg',
+            url: '/planification'
+          }
+        )
+        if (result.error === 'gone') stale.push(sub.endpoint)
+      })
+    )
+
+    if (stale.length > 0) {
+      await prisma.pushSubscription.deleteMany({ where: { endpoint: { in: stale } } })
+    }
+  } catch (err) {
+    // No fallar el webhook si la notificación falla
+    console.error('Error sending push notification after payment:', err)
+  }
 }

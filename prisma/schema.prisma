@@ -33,6 +33,7 @@ model User {
   studentRelationships       CoachStudentRelationship[] @relation("StudentRelationships")
   adminAssignments           AdminUserAssignment[]
   personalizedPlanifications Planification[]            @relation("PersonalizedPlanifications")
+  pushSubscriptions          PushSubscription[]
 
   @@map("users")
 }
@@ -429,4 +430,17 @@ model CoachCommission {
   subscription              Subscription @relation(fields: [studentSubscriptionId], references: [id])
 
   @@map("coach_commissions")
+}
+
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  endpoint  String   @unique @db.Text
+  p256dh    String   @db.Text
+  auth      String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("push_subscriptions")
 }
