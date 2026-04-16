@@ -20,6 +20,8 @@ import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
 import { SubscriptionStatus } from "@/components/dashboard/subscription-status";
+import { PushNotificationButton } from "@/components/pwa/push-notification-button";
+import { PushNotificationGuide } from "@/components/pwa/push-notification-guide";
 import { useToast } from "@/hooks/use-toast";
 import { useUserDisciplines } from "@/hooks/use-user-disciplines";
 import {
@@ -232,6 +234,26 @@ export default function ProfilePage() {
           {/* Estado de Suscripción */}
           <div className="mt-6">
             <SubscriptionStatus />
+          </div>
+
+          {/* Notificaciones Push */}
+          <div className="mt-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <CardTitle className="text-base">Notificaciones</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Recibí avisos de tu coach aunque la app esté cerrada.
+                    </p>
+                  </div>
+                  <PushNotificationButton />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <PushNotificationGuide />
+              </CardContent>
+            </Card>
           </div>
 
           {/* Mis Disciplinas - Solo lectura para el estudiante */}

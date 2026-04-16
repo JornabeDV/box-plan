@@ -28,6 +28,7 @@ interface PlanSwitcherProps {
   showTitle?: boolean
   title?: string
   description?: string
+  confirmLabel?: string
 }
 
 const getColorClasses = (planName: string) => {
@@ -67,14 +68,15 @@ const getColorClasses = (planName: string) => {
   }
 }
 
-export function PlanSwitcher({ 
-  currentPlanId, 
-  plans, 
-  onPlanSelect, 
+export function PlanSwitcher({
+  currentPlanId,
+  plans,
+  onPlanSelect,
   loading = false,
   showTitle = true,
   title = "Cambiar Plan de Suscripción",
-  description = "Elige el plan que mejor se adapte a tus necesidades"
+  description = "Elige el plan que mejor se adapte a tus necesidades",
+  confirmLabel = "Confirmar"
 }: PlanSwitcherProps) {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
   const [processingPlanId, setProcessingPlanId] = useState<string | null>(null)
@@ -247,20 +249,20 @@ export function PlanSwitcher({
       }}>
         <DialogContent>
           <DialogHeader className="pr-8">
-            <DialogTitle className="mb-2">¿Confirmar cambio de plan?</DialogTitle>
+            <DialogTitle className="mb-2">{confirmLabel === "Confirmar" ? "¿Confirmar cambio de plan?" : confirmLabel}</DialogTitle>
             <DialogDescription className="mt-2">
-              El cambio se aplicará inmediatamente y se ajustará el prorrateo del pago.
+              Serás redirigido a MercadoPago para completar el pago.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">
-            <Button 
+            <Button
               onClick={() => setSelectedPlan(null)}
               variant="outline"
               size="sm"
             >
               Cancelar
             </Button>
-            <Button 
+            <Button
               onClick={handleConfirmChange}
               disabled={loading}
               size="sm"
@@ -271,7 +273,7 @@ export function PlanSwitcher({
                   Procesando...
                 </>
               ) : (
-                'Confirmar Cambio'
+                confirmLabel
               )}
             </Button>
           </DialogFooter>

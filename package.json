@@ -55,6 +55,7 @@
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/supabase-js": "^2.57.4",
     "@sveltejs/kit": "latest",
+    "@types/web-push": "^3.6.4",
     "@vercel/analytics": "latest",
     "autoprefixer": "^10.4.20",
     "bcryptjs": "^3.0.2",
@@ -88,6 +89,7 @@
     "vaul": "^0.9.9",
     "vue": "latest",
     "vue-router": "latest",
+    "web-push": "^3.6.7",
     "xlsx": "^0.18.5",
     "zod": "3.25.67"
   },

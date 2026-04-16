@@ -21,7 +21,11 @@ export interface StudentSubscriptionInfo {
 	subscriptionId: number
 	planId: number
 	planName: string
+	planPrice: number
+	planCurrency: string
+	planInterval: string
 	status: string
+	isExpired: boolean
 	features: StudentSubscriptionFeatures
 	planificationAccess: 'weekly' | 'monthly' | 'unlimited'
 	currentPeriodStart: string
@@ -41,6 +45,7 @@ interface UseStudentSubscriptionReturn {
 	hasPersonalizedWorkouts: boolean
 	planificationAccess: 'weekly' | 'monthly' | 'unlimited'
 	isSubscribed: boolean
+	isExpired: boolean
 	refetch: () => Promise<void>
 }
 
@@ -138,7 +143,11 @@ export function useStudentSubscription(): UseStudentSubscriptionReturn {
 						subscriptionId: data.data.id,
 						planId: data.data.plan_id,
 						planName: data.data.subscription_plans?.name || '',
+						planPrice: data.data.subscription_plans?.price || 0,
+						planCurrency: data.data.subscription_plans?.currency || 'ARS',
+						planInterval: data.data.subscription_plans?.interval || 'month',
 						status: data.data.status,
+						isExpired: data.data.is_expired ?? false,
 						features: data.data.subscription_plans?.features || {},
 						planificationAccess: data.data.subscription_plans?.planificationAccess || 'weekly',
 						currentPeriodStart: data.data.current_period_start,
@@ -204,7 +213,11 @@ export function useStudentSubscription(): UseStudentSubscriptionReturn {
 					subscriptionId: data.data.id,
 					planId: data.data.plan_id,
 					planName: data.data.subscription_plans?.name || '',
+					planPrice: data.data.subscription_plans?.price || 0,
+					planCurrency: data.data.subscription_plans?.currency || 'ARS',
+					planInterval: data.data.subscription_plans?.interval || 'month',
 					status: data.data.status,
+					isExpired: data.data.is_expired ?? false,
 					features: data.data.subscription_plans?.features || {},
 					planificationAccess: data.data.subscription_plans?.planificationAccess || 'weekly',
 					currentPeriodStart: data.data.current_period_start,
@@ -237,9 +250,10 @@ export function useStudentSubscription(): UseStudentSubscriptionReturn {
 	const canAccessCommunity = hasFeature('communityAccess')
 	const canUseWhatsAppSupport = hasFeature('whatsappSupport')
 
-	const canUseTimer = subscription?.status === 'active' // Timer disponible si tiene suscripción activa
+	const isExpired = subscription?.isExpired ?? false
+	const isSubscribed = subscription?.status === 'active' && !isExpired
+	const canUseTimer = isSubscribed
 	const hasPersonalizedWorkouts = hasFeature('personalizedWorkouts')
-	const isSubscribed = subscription?.status === 'active'
 	const planificationAccess = subscription?.planificationAccess || 'weekly'
 
 	return {
@@ -251,11 +265,11 @@ export function useStudentSubscription(): UseStudentSubscriptionReturn {
 		canTrackProgress,
 		canAccessCommunity,
 		canUseWhatsAppSupport,
-
 		canUseTimer,
 		hasPersonalizedWorkouts,
 		planificationAccess,
 		isSubscribed,
+		isExpired,
 		refetch
 	}
 }
