@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { MercadoPagoConfig, OAuth } from 'mercadopago'
+import { encryptToken } from '@/lib/crypto'
 
 function getBaseUrl(request: NextRequest): string {
   const envUrl = process.env.NEXT_PUBLIC_APP_URL
@@ -88,9 +89,9 @@ export async function GET(request: NextRequest) {
 
     await prisma.coachProfile.update({
       where: { id: stateData.coachId },
-      data: { 
+      data: {
         mercadopagoAccountId: accountId,
-        mercadoPagoAccessToken: accessToken
+        mercadoPagoAccessToken: encryptToken(accessToken)
       } as any
     })
 

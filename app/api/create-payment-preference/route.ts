@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { MercadoPagoConfig, Preference } from 'mercadopago'
+import { decryptToken } from '@/lib/crypto'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -54,10 +55,11 @@ export async function POST(request: NextRequest) {
     }
 
     const coach = dbPlan.coach
-    const coachAccessToken = (coach as any).mercadoPagoAccessToken
-    if (!coach || !coach.mercadopagoAccountId || !coachAccessToken) {
+    const rawToken = (coach as any).mercadoPagoAccessToken
+    if (!coach || !coach.mercadopagoAccountId || !rawToken) {
       return NextResponse.json({ error: 'Coach no autorizado para recibir pagos' }, { status: 400, headers: corsHeaders })
     }
+    const coachAccessToken = decryptToken(rawToken)
 
     const planPrice = Number(plan.price)
     if (isNaN(planPrice) || planPrice <= 0) {
