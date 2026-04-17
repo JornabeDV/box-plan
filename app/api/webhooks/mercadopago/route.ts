@@ -1,14 +1,77 @@
+import { createHmac } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { MercadoPagoConfig, Payment } from 'mercadopago'
 import { sendPushNotification } from '@/lib/push-notifications'
+import { decryptToken } from '@/lib/crypto'
+import { calculatePaymentSplit } from '@/lib/payment-helpers'
+
+// ---------------------------------------------------------------------------
+// Signature validation
+// ---------------------------------------------------------------------------
+
+/**
+ * Valida la firma HMAC-SHA256 que MercadoPago envía en el header x-signature.
+ * Formato del header: "ts=<timestamp>,v1=<hash>"
+ * El dato firmado es: "id:<paymentId>;request-id:<requestId>;ts:<ts>"
+ *
+ * Si MERCADOPAGO_WEBHOOK_SECRET no está configurado, se rechaza el webhook
+ * para evitar procesar notificaciones de origen desconocido.
+ */
+function validateWebhookSignature(request: NextRequest, paymentId: string): boolean {
+  const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET
+  if (!secret) {
+    console.error('MERCADOPAGO_WEBHOOK_SECRET not configured — rejecting webhook')
+    return false
+  }
+
+  const signatureHeader = request.headers.get('x-signature')
+  const requestId = request.headers.get('x-request-id') ?? ''
+
+  if (!signatureHeader) {
+    console.error('Missing x-signature header in webhook request')
+    return false
+  }
+
+  // Parsear "ts=<ts>,v1=<hash>"
+  const parts: Record<string, string> = {}
+  for (const part of signatureHeader.split(',')) {
+    const [key, value] = part.split('=')
+    if (key && value) parts[key.trim()] = value.trim()
+  }
+
+  const { ts, v1 } = parts
+  if (!ts || !v1) {
+    console.error('Malformed x-signature header:', signatureHeader)
+    return false
+  }
+
+  const manifest = `id:${paymentId};request-id:${requestId};ts:${ts}`
+  const expected = createHmac('sha256', secret).update(manifest).digest('hex')
+
+  if (expected !== v1) {
+    console.error('Webhook signature mismatch — possible spoofed request')
+    return false
+  }
+
+  return true
+}
+
+// ---------------------------------------------------------------------------
+// Main handler
+// ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
   try {
-    const body: { data: { id: string } | string, type: string } = await request.json()
+    const body: { data: { id: string } | string; type: string } = await request.json()
 
     if (body.type === 'payment') {
       const paymentId = typeof body.data === 'string' ? body.data : body.data.id
+
+      if (!validateWebhookSignature(request, paymentId)) {
+        return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+      }
+
       await handlePayment(paymentId)
     }
 
@@ -19,12 +82,17 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Payment info fetching
+// ---------------------------------------------------------------------------
+
 interface PaymentInfo {
   user_id?: string
   plan_id?: string
   coach_id?: string
   status?: string
   preferenceId?: string
+  transactionAmount?: number
 }
 
 async function fetchPaymentInfo(paymentId: string): Promise<PaymentInfo> {
@@ -37,7 +105,8 @@ async function fetchPaymentInfo(paymentId: string): Promise<PaymentInfo> {
       return {
         ...(payment.metadata || {}),
         status: payment.status ?? undefined,
-        preferenceId: (payment as any).preference_id
+        preferenceId: (payment as any).preference_id,
+        transactionAmount: (payment as any).transaction_amount ?? undefined
       }
     } catch {
       // Si falla, intentar con tokens de coaches
@@ -52,12 +121,14 @@ async function fetchPaymentInfo(paymentId: string): Promise<PaymentInfo> {
 
   for (const coach of coachProfiles) {
     try {
-      const client = new MercadoPagoConfig({ accessToken: coach.mercadoPagoAccessToken! })
+      const token = decryptToken(coach.mercadoPagoAccessToken!)
+      const client = new MercadoPagoConfig({ accessToken: token })
       const payment = await new Payment(client).get({ id: paymentId })
       return {
         ...(payment.metadata || {}),
         status: payment.status ?? undefined,
-        preferenceId: (payment as any).preference_id
+        preferenceId: (payment as any).preference_id,
+        transactionAmount: (payment as any).transaction_amount ?? undefined
       }
     } catch {
       continue
@@ -67,10 +138,22 @@ async function fetchPaymentInfo(paymentId: string): Promise<PaymentInfo> {
   return {}
 }
 
-async function handlePayment(paymentId: string) {
-  const info = await fetchPaymentInfo(paymentId)
+// ---------------------------------------------------------------------------
+// Payment handling
+// ---------------------------------------------------------------------------
 
-  const { user_id, plan_id, coach_id, status, preferenceId } = info
+async function handlePayment(paymentId: string) {
+  // --- Idempotencia: evitar procesar el mismo pago dos veces ---
+  const alreadyProcessed = await prisma.paymentHistory.findFirst({
+    where: { mercadopagoPaymentId: paymentId, status: 'approved' }
+  })
+  if (alreadyProcessed) {
+    console.log(`Payment ${paymentId} already processed — skipping`)
+    return
+  }
+
+  const info = await fetchPaymentInfo(paymentId)
+  const { user_id, plan_id, coach_id, status, preferenceId, transactionAmount } = info
 
   // Si no está aprobado, marcar como rechazado y salir
   if (status !== 'approved') {
@@ -92,8 +175,12 @@ async function handlePayment(paymentId: string) {
   const planId = parseInt(plan_id)
   const coachId = coach_id ? parseInt(coach_id) : null
 
-  await createSubscription({ userId, planId, coachId, paymentId, preferenceId })
+  await createSubscription({ userId, planId, coachId, paymentId, preferenceId, transactionAmount })
 }
+
+// ---------------------------------------------------------------------------
+// Subscription creation
+// ---------------------------------------------------------------------------
 
 function calculatePeriodEnd(interval: 'month' | 'year'): Date {
   const periodEnd = new Date()
@@ -106,13 +193,15 @@ async function createSubscription({
   planId,
   coachId,
   paymentId,
-  preferenceId
+  preferenceId,
+  transactionAmount
 }: {
   userId: number
   planId: number
   coachId: number | null
   paymentId: string
   preferenceId?: string
+  transactionAmount?: number
 }) {
   const plan = await prisma.subscriptionPlan.findUnique({
     where: { id: planId }
@@ -120,6 +209,23 @@ async function createSubscription({
 
   if (!plan) {
     throw new Error(`Plan ${planId} no encontrado`)
+  }
+
+  // --- Validar monto del pago ---
+  const expectedAmount = Number(plan.price)
+  if (transactionAmount !== undefined && Math.abs(transactionAmount - expectedAmount) > 0.01) {
+    console.error('Payment amount mismatch — rejecting', {
+      paymentId,
+      expected: expectedAmount,
+      received: transactionAmount
+    })
+    if (preferenceId) {
+      await prisma.paymentHistory.updateMany({
+        where: { mercadopagoPreferenceId: preferenceId },
+        data: { status: 'rejected', mercadopagoPaymentId: paymentId }
+      })
+    }
+    return
   }
 
   const now = new Date()
@@ -157,7 +263,7 @@ async function createSubscription({
           }
         })
 
-    // Actualizar el registro de pago pendiente existente (creado al generar la preferencia)
+    // Actualizar o crear el registro de pago
     if (preferenceId) {
       const updated = await tx.paymentHistory.updateMany({
         where: { mercadopagoPreferenceId: preferenceId },
@@ -168,19 +274,50 @@ async function createSubscription({
         }
       })
 
-      // Si no había registro previo, crear uno nuevo
       if (updated.count === 0) {
         await tx.paymentHistory.create({
           data: {
             userId,
             subscriptionId: subscription.id,
-            amount: Number(plan.price),
+            amount: expectedAmount,
             currency: plan.currency,
             status: 'approved',
             recipientType: 'coach',
             mercadopagoPaymentId: paymentId,
-            ...(preferenceId && { mercadopagoPreferenceId: preferenceId }),
+            mercadopagoPreferenceId: preferenceId,
             paymentMethod: 'mercadopago'
+          }
+        })
+      }
+    }
+
+    // --- Registrar comisión del coach ---
+    if (coachId) {
+      const coachProfile = await tx.coachProfile.findUnique({
+        where: { id: coachId },
+        select: { commissionRate: true, platformCommissionRate: true }
+      })
+
+      if (coachProfile) {
+        const split = calculatePaymentSplit(
+          expectedAmount,
+          Number(coachProfile.commissionRate),
+          Number(coachProfile.platformCommissionRate)
+        )
+
+        await tx.coachCommission.create({
+          data: {
+            coachId,
+            studentSubscriptionId: subscription.id,
+            studentId: userId,
+            commissionAmount: split.coachAmount,
+            commissionRate: split.coachRate,
+            platformCommissionAmount: split.platformAmount,
+            platformCommissionRate: split.platformRate,
+            studentSubscriptionAmount: expectedAmount,
+            periodStart: now,
+            periodEnd,
+            status: 'pending'
           }
         })
       }
@@ -196,6 +333,10 @@ async function createSubscription({
   // Enviar notificación push al estudiante (fuera de la transacción)
   await notifyStudent(userId, plan.name, periodEnd)
 }
+
+// ---------------------------------------------------------------------------
+// Push notification
+// ---------------------------------------------------------------------------
 
 async function notifyStudent(userId: number, planName: string, periodEnd: Date) {
   try {
@@ -232,7 +373,6 @@ async function notifyStudent(userId: number, planName: string, periodEnd: Date) 
       await prisma.pushSubscription.deleteMany({ where: { endpoint: { in: stale } } })
     }
   } catch (err) {
-    // No fallar el webhook si la notificación falla
     console.error('Error sending push notification after payment:', err)
   }
 }
