@@ -499,8 +499,8 @@ export function PlanificationBlocks({
       {sortedBlocks.map((block, index) => (
         <Card key={block.id || index} className="bg-surface-container">
           <CardHeader>
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-baseline gap-3">
+            <div className="flex flex-col items-center justify-between gap-4">
+              <div className="flex items-baseline gap-3 w-full">
                 <span className="text-3xl font-bold text-primary leading-none">
                   {index + 1}
                 </span>
@@ -508,11 +508,6 @@ export function PlanificationBlocks({
                   <CardTitle className="text-xl md:text-2xl uppercase italic text-foreground leading-tight">
                     {block.title}
                   </CardTitle>
-                  {block.timer_mode && (
-                    <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground mt-1">
-                      {block.timer_mode === 'normal' ? 'CRONÓMETRO' : block.timer_mode.toUpperCase()} SEQUENCE
-                    </p>
-                  )}
                 </div>
               </div>
               {block.timer_mode && (

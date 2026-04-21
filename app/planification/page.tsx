@@ -133,7 +133,8 @@ export default function PlanificationPage() {
               }),
             });
 
-            if (!response.ok) throw new Error("Error al actualizar preferencia");
+            if (!response.ok)
+              throw new Error("Error al actualizar preferencia");
 
             const params = new URLSearchParams(searchParams.toString());
             if (newDisciplineId) {
@@ -217,7 +218,10 @@ export default function PlanificationPage() {
 
   return (
     <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground">
-      <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
+      <div
+        className="absolute inset-0 kinetic-grid-bg pointer-events-none"
+        aria-hidden="true"
+      />
 
       <main className="p-6 space-y-6 pb-24 max-w-4xl mx-auto">
         {isStudent ? (

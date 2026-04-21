@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import type { DisciplineLevel } from "@/hooks/use-planification-data";
 
+
 interface DisciplineOption {
   id: number;
   name: string;
@@ -49,16 +50,21 @@ export function PlanificationHeader({
   return (
     <div className="space-y-6">
       {/* Label + Título */}
-      <div>
-        <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground mb-1">
-          Sesión Actual
-        </p>
-        <h1 className="text-3xl md:text-4xl font-bold italic text-primary">
-          Planificación
-        </h1>
-        {!isToday && formattedDate && (
-          <p className="text-sm text-muted-foreground mt-1">{formattedDate}</p>
-        )}
+      <div className="flex justify-between items-start">
+        <div>
+          <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground mb-1">
+            Sesión Actual
+          </p>
+          <h1 className="text-3xl md:text-4xl font-bold italic text-primary">
+            Planificación
+          </h1>
+          {!isToday && formattedDate && (
+            <p className="text-sm text-muted-foreground mt-1">
+              {formattedDate}
+            </p>
+          )}
+        </div>
+
       </div>
 
       {/* Selectores */}

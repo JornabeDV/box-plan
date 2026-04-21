@@ -40,25 +40,15 @@ export async function GET(request: NextRequest) {
 
     const coachId = relationship.coach.id
 
-    // Obtener disciplinas del usuario
+    // Obtener disciplinas y preferencias del usuario (alineado con /api/planifications/month)
     const userDisciplines = await prisma.userDiscipline.findMany({
       where: { userId }
     })
 
-    const preference = userDisciplines.length === 0
-      ? await prisma.userPreference.findUnique({
-          where: { userId },
-          select: { preferredDisciplineId: true, preferredLevelId: true }
-        })
-      : null
-
-    const disciplineLevelCombinations = userDisciplines.length > 0
-      ? userDisciplines.map(ud => ({ disciplineId: ud.disciplineId, levelId: ud.levelId }))
-      : preference?.preferredDisciplineId
-        ? [{ disciplineId: preference.preferredDisciplineId, levelId: preference.preferredLevelId }]
-        : []
-
-    const validCombinations = disciplineLevelCombinations.filter(c => c.levelId !== null)
+    const preference = await prisma.userPreference.findUnique({
+      where: { userId },
+      select: { preferredDisciplineId: true, preferredLevelId: true }
+    })
 
     // Normalizar fechas
     const startDate = normalizeDateForArgentina(startParam)
@@ -90,12 +80,22 @@ export async function GET(request: NextRequest) {
     if (hasPersonalizedWorkouts) {
       whereClause.isPersonalized = true
       whereClause.targetUserId = userId
-    } else if (validCombinations.length > 0) {
-      whereClause.isPersonalized = false
-      whereClause.OR = validCombinations.map(combo => ({
-        disciplineId: combo.disciplineId,
-        disciplineLevelId: combo.levelId
-      }))
+    } else {
+      // Si no tiene planificaciones personalizadas, filtrar por disciplinas asignadas
+      // (alineado con el comportamiento de /api/planifications/month)
+      let disciplineIdsToUse: number[] = []
+
+      if (userDisciplines.length > 0) {
+        disciplineIdsToUse = userDisciplines.map(ud => ud.disciplineId)
+      } else if (preference?.preferredDisciplineId) {
+        disciplineIdsToUse = [preference.preferredDisciplineId]
+      }
+
+      if (disciplineIdsToUse.length > 0) {
+        whereClause.disciplineId = {
+          in: disciplineIdsToUse
+        }
+      }
     }
 
     const planifications = await prisma.planification.findMany({

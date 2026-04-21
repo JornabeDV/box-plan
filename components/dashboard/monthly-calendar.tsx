@@ -222,9 +222,9 @@ export function MonthlyCalendar() {
 
       {/* Botón ver calendario completo */}
       <Button
-        variant="ghost"
+        variant="outline"
         onClick={handleViewFullCalendar}
-        className="w-full text-sm font-semibold tracking-widest uppercase text-muted-foreground hover:text-primary hover:bg-primary/10"
+        className="w-full text-sm font-semibold tracking-widest uppercase text-muted-foreground hover:text-primary hover:bg-primary/10 text-primary bg-primary/10"
       >
         Ver calendario completo
       </Button>
