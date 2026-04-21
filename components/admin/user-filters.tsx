@@ -52,7 +52,7 @@ export function UserFilters({
         />
       </div>
       <Select value={selectedPlan} onValueChange={onPlanChange}>
-        <SelectTrigger className="w-full sm:w-48">
+        <SelectTrigger className="w-full sm:w-48" style={{ backgroundColor: '#05252b', height: '48px' }}>
           <SelectValue placeholder="Filtrar por plan" />
         </SelectTrigger>
         <SelectContent>
@@ -66,7 +66,7 @@ export function UserFilters({
         </SelectContent>
       </Select>
       <Select value={selectedStatus} onValueChange={onStatusChange}>
-        <SelectTrigger className="w-full sm:w-48">
+        <SelectTrigger className="w-full sm:w-48" style={{ backgroundColor: '#05252b', height: '48px' }}>
           <SelectValue placeholder="Filtrar por estado" />
         </SelectTrigger>
         <SelectContent>

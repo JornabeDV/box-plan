@@ -107,7 +107,7 @@ export function RecentScores({ workouts }: RecentScoresProps) {
                 <div className="text-right ml-4">
                   {scoreType === "wod_score" && durationSeconds ? (
                     <>
-                      <div className="font-bold text-lime-400">
+                      <div className="font-bold text-primary">
                         {formatDuration(durationSeconds)}
                       </div>
                       <div className="text-xs text-muted-foreground">

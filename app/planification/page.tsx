@@ -1,6 +1,5 @@
 "use client";
 
-import { Header } from "@/components/layout/header";
 import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { usePlanificationData } from "@/hooks/use-planification-data";
@@ -9,7 +8,6 @@ import { PlanificationHeader } from "@/components/planification/planification-he
 import { PlanificationBlocks } from "@/components/planification/planification-blocks";
 import { PlanificationNotes } from "@/components/planification/planification-notes";
 import { LevelPreferenceModal } from "@/components/planification/level-preference-modal";
-import { DisciplineSelector } from "@/components/planification/discipline-selector";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -120,10 +118,8 @@ export default function PlanificationPage() {
         onLevelChange={handleLevelChange}
         disciplineName={disciplineName}
         isPersonalized={planification?.is_personalized}
-      />
-
-      <DisciplineSelector
         selectedDisciplineId={disciplineId}
+        availableDisciplineOptions={availableDisciplineOptions}
         onDisciplineChange={async (newDisciplineId) => {
           if (!user?.id || newDisciplineId === disciplineId) return;
 
@@ -137,7 +133,8 @@ export default function PlanificationPage() {
               }),
             });
 
-            if (!response.ok) throw new Error("Error al actualizar preferencia");
+            if (!response.ok)
+              throw new Error("Error al actualizar preferencia");
 
             const params = new URLSearchParams(searchParams.toString());
             if (newDisciplineId) {
@@ -162,7 +159,6 @@ export default function PlanificationPage() {
             });
           }
         }}
-        availableDisciplineOptions={availableDisciplineOptions}
       />
 
       {planification && (
@@ -221,10 +217,13 @@ export default function PlanificationPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <Header />
+    <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground">
+      <div
+        className="absolute inset-0 kinetic-grid-bg pointer-events-none"
+        aria-hidden="true"
+      />
 
-      <main className="p-6 space-y-6 pb-32 max-w-4xl mx-auto">
+      <main className="p-6 space-y-6 pb-24 max-w-4xl mx-auto">
         {isStudent ? (
           <SubscriptionGate>{mainContent}</SubscriptionGate>
         ) : (

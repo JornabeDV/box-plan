@@ -124,7 +124,8 @@ export default function ResetPasswordPage() {
 
   if (checkingToken) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-[100dvh] relative overflow-hidden bg-background">
+        <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
         {/* Header */}
         <header className="relative border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5"></div>
@@ -163,7 +164,8 @@ export default function ResetPasswordPage() {
 
   if (!isValidToken) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-[100dvh] relative overflow-hidden bg-background">
+        <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
         {/* Header */}
         <header className="relative border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5"></div>
@@ -210,7 +212,8 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-[100dvh] relative overflow-hidden bg-background">
+      <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
       {/* Header */}
       <header className="relative border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5"></div>

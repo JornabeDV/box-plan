@@ -14,7 +14,7 @@ export function PlanificationNotes({ notes }: PlanificationNotesProps) {
     <Card>
       <CardHeader>
         <CardTitle className="text-xl flex items-center gap-2 text-white">
-          <FileText className="w-6 h-6 text-lime-400" />
+          <FileText className="w-6 h-6 text-primary" />
           Notas Adicionales
         </CardTitle>
       </CardHeader>

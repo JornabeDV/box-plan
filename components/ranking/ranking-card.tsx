@@ -16,7 +16,7 @@ export const RankingCard = ({ ranking, currentUserId }: RankingCardProps) => {
         <div className="flex items-center justify-between">
           <CardTitle className="text-xl flex items-center gap-2">
             {ranking.type === "time" ? (
-              <Timer className="w-5 h-5 text-lime-400" />
+              <Timer className="w-5 h-5 text-primary" />
             ) : (
               <Weight className="w-5 h-5 text-blue-400" />
             )}

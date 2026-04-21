@@ -30,7 +30,7 @@ export function ProgressStatsCards({
           <Card key={i}>
             <CardContent className="pt-2 pb-2 md:pt-6 md:pb-6 px-2 md:px-6">
               <div className="text-center">
-                <Loader2 className="w-6 h-6 animate-spin text-lime-400 mx-auto mb-2" />
+                <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto mb-2" />
                 <div className="text-sm text-muted-foreground">Cargando...</div>
               </div>
             </CardContent>
@@ -45,7 +45,7 @@ export function ProgressStatsCards({
       <Card className="py-2">
         <CardContent className="pt-2 pb-2 md:pt-6 md:pb-6 px-2 md:px-6">
           <div className="text-center">
-            <div className="text-3xl font-bold text-lime-400 mb-1">
+            <div className="text-3xl font-bold text-primary mb-1">
               {stats?.totalScores || 0}
             </div>
             <div className="text-sm text-muted-foreground">Total Scores</div>
@@ -101,7 +101,7 @@ export function ProgressStatsCards({
       >
         <CardContent className="pt-2 pb-2 md:pt-6 md:pb-6 px-2 md:px-6">
           <div className="text-center">
-            <div className="text-3xl font-bold text-lime-400 mb-1">
+            <div className="text-3xl font-bold text-primary mb-1">
               {rmCount}
             </div>
             <div className="text-sm text-muted-foreground">Mis RMs</div>

@@ -203,11 +203,11 @@ export function CoachLogoUpload() {
             <div className="relative group">
               <div
                 onClick={handleLogoClick}
-                className="relative w-48 h-48 md:w-64 md:h-64 border-2 border-border rounded-lg overflow-hidden bg-background cursor-pointer hover:border-lime-400/50 transition-all duration-300 hover:shadow-lg"
+                className="relative w-48 h-48 md:w-64 md:h-64 border-2 border-border rounded-lg overflow-hidden bg-background cursor-pointer hover:border-primary/50 transition-all duration-300 hover:shadow-lg"
               >
                 {uploading ? (
                   <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
-                    <Loader2 className="w-8 h-8 animate-spin text-lime-400" />
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
                   </div>
                 ) : (
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center z-10">
@@ -235,10 +235,10 @@ export function CoachLogoUpload() {
           ) : (
             <div
               onClick={handleLogoClick}
-              className="relative w-48 h-48 md:w-64 md:h-64 border-2 border-dashed border-border rounded-lg overflow-hidden bg-muted/50 cursor-pointer hover:border-lime-400/50 hover:bg-muted transition-all duration-300 flex flex-col items-center justify-center gap-4"
+              className="relative w-48 h-48 md:w-64 md:h-64 border-2 border-dashed border-border rounded-lg overflow-hidden bg-muted/50 cursor-pointer hover:border-primary/50 hover:bg-muted transition-all duration-300 flex flex-col items-center justify-center gap-4"
             >
               {uploading ? (
-                <Loader2 className="w-12 h-12 animate-spin text-lime-400" />
+                <Loader2 className="w-12 h-12 animate-spin text-primary" />
               ) : (
                 <>
                   <ImageIcon className="w-16 h-16 text-muted-foreground" />

@@ -3,85 +3,122 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ============================================
+   KINETIC GRID — Design System Tokens
+   ============================================ */
+
 :root {
-  /* Modern Dark Theme with Neon Lime Accents - Based on Reference Images */
-  --background: oklch(0.18 0.01 0); /* Soft dark background - easier on eyes */
-  --foreground: oklch(1.0 0.01 0); /* Pure white text */
-  --card: oklch(0.23 0.01 0); /* Elevated cards with clear distinction */
-  --card-foreground: oklch(1.0 0.01 0);
-  --popover: oklch(0.23 0.01 0);
-  --popover-foreground: oklch(1.0 0.01 0);
-  --primary: oklch(0.85 0.20 120); /* Bright neon lime green */
-  --primary-foreground: oklch(0.05 0.01 0); /* Black text on lime */
-  --secondary: oklch(0.28 0.01 0); /* Lighter secondary for better hierarchy */
-  --secondary-foreground: oklch(0.9 0.01 0);
-  --muted: oklch(0.28 0.01 0); /* Muted with better visibility */
-  --muted-foreground: oklch(0.65 0.01 0); /* Light gray text - improved contrast */
-  --accent: oklch(0.85 0.20 120); /* Same as primary for consistency */
-  --accent-foreground: oklch(0.05 0.01 0);
-  --destructive: oklch(0.6 0.2 0); /* Red for destructive actions */
-  --destructive-foreground: oklch(1.0 0.01 0);
-  --border: oklch(0.32 0.01 0); /* Visible borders for definition */
-  --input: oklch(0.25 0.01 0); /* Input backgrounds with depth */
-  --ring: oklch(0.85 0.20 120);
-  --chart-1: oklch(0.85 0.20 120); /* Neon Lime */
-  --chart-2: oklch(0.7 0.15 60); /* Yellow */
-  --chart-3: oklch(0.8 0.15 180); /* Cyan */
-  --chart-4: oklch(0.6 0.1 300); /* Purple */
-  --chart-5: oklch(0.5 0.1 0); /* Gray */
-  --radius: 0.5rem; /* Modern rounded corners */
-  --sidebar: oklch(0.14 0.01 0); /* Dark sidebar - distinct from main bg */
-  --sidebar-foreground: oklch(1.0 0.01 0);
-  --sidebar-primary: oklch(0.85 0.20 120);
-  --sidebar-primary-foreground: oklch(0.05 0.01 0);
-  --sidebar-accent: oklch(0.28 0.01 0);
-  --sidebar-accent-foreground: oklch(0.9 0.01 0);
-  --sidebar-border: oklch(0.32 0.01 0);
-  --sidebar-ring: oklch(0.85 0.20 120);
+  /* Core Palette */
+  --background: #001115;
+  --foreground: #bbeefb;
+
+  /* Surface Architecture — Smart Glass Hierarchy */
+  --surface: #001115;
+  --surface-container-low: #02191d;
+  --surface-container: #05252b;
+  --surface-container-high: #07333a;
+  --surface-container-highest: #0a3d45;
+  --surface-variant: #0a2a30;
+
+  /* shadcn/ui mapped tokens */
+  --card: #05252b;
+  --card-foreground: #bbeefb;
+  --popover: #07333a;
+  --popover-foreground: #bbeefb;
+
+  --primary: #E6FF2B;
+  --primary-foreground: #001115;
+  --primary-dim: #d4e070;
+  --primary-container: #b6cc55;
+
+  --secondary: #0B4550;
+  --secondary-foreground: #bbeefb;
+
+  --muted: #0a2a30;
+  --muted-foreground: #898A8D;
+
+  --accent: #02191d;
+  --accent-foreground: #bbeefb;
+
+  --destructive: #ff6b5b;
+  --destructive-foreground: #001115;
+
+  /* Ghost Borders & Outlines */
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --input: #0a2a30;
+  --ring: #E6FF2B;
+  --outline: rgba(255, 255, 255, 0.12);
+  --outline-variant: rgba(255, 255, 255, 0.08);
+
+  /* Radius */
+  --radius: 0.5rem;
+
+  /* Charts */
+  --chart-1: #E6FF2B;
+  --chart-2: #0B4550;
+  --chart-3: #07333a;
+  --chart-4: #b6cc55;
+  --chart-5: #02191d;
+
+  /* Sidebar */
+  --sidebar: #02191d;
+  --sidebar-foreground: #bbeefb;
+  --sidebar-primary: #E6FF2B;
+  --sidebar-primary-foreground: #001115;
+  --sidebar-accent: #05252b;
+  --sidebar-accent-foreground: #bbeefb;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #E6FF2B;
 }
 
 .dark {
-  /* Modern Dark Theme - Same as root for consistency */
-  --background: oklch(0.18 0.01 0); /* Soft dark background - easier on eyes */
-  --foreground: oklch(1.0 0.01 0); /* Pure white text */
-  --card: oklch(0.23 0.01 0); /* Elevated cards with clear distinction */
-  --card-foreground: oklch(1.0 0.01 0);
-  --popover: oklch(0.23 0.01 0);
-  --popover-foreground: oklch(1.0 0.01 0);
-  --primary: oklch(0.85 0.20 120); /* Bright neon lime green */
-  --primary-foreground: oklch(0.05 0.01 0); /* Black text on lime */
-  --secondary: oklch(0.28 0.01 0); /* Lighter secondary for better hierarchy */
-  --secondary-foreground: oklch(0.9 0.01 0);
-  --muted: oklch(0.28 0.01 0); /* Muted with better visibility */
-  --muted-foreground: oklch(0.65 0.01 0); /* Light gray text - improved contrast */
-  --accent: oklch(0.85 0.20 120); /* Same as primary for consistency */
-  --accent-foreground: oklch(0.05 0.01 0);
-  --destructive: oklch(0.6 0.2 0); /* Red for destructive actions */
-  --destructive-foreground: oklch(1.0 0.01 0);
-  --border: oklch(0.32 0.01 0); /* Visible borders for definition */
-  --input: oklch(0.25 0.01 0); /* Input backgrounds with depth */
-  --ring: oklch(0.85 0.20 120);
-  --chart-1: oklch(0.85 0.20 120); /* Neon Lime */
-  --chart-2: oklch(0.7 0.15 60); /* Yellow */
-  --chart-3: oklch(0.8 0.15 180); /* Cyan */
-  --chart-4: oklch(0.6 0.1 300); /* Purple */
-  --chart-5: oklch(0.5 0.1 0); /* Gray */
-  --sidebar: oklch(0.14 0.01 0); /* Dark sidebar - distinct from main bg */
-  --sidebar-foreground: oklch(1.0 0.01 0);
-  --sidebar-primary: oklch(0.85 0.20 120);
-  --sidebar-primary-foreground: oklch(0.05 0.01 0);
-  --sidebar-accent: oklch(0.28 0.01 0);
-  --sidebar-accent-foreground: oklch(0.9 0.01 0);
-  --sidebar-border: oklch(0.32 0.01 0);
-  --sidebar-ring: oklch(0.85 0.20 120);
+  --background: #001115;
+  --foreground: #bbeefb;
+  --card: #05252b;
+  --card-foreground: #bbeefb;
+  --popover: #07333a;
+  --popover-foreground: #bbeefb;
+  --primary: #E6FF2B;
+  --primary-foreground: #001115;
+  --secondary: #0B4550;
+  --secondary-foreground: #bbeefb;
+  --muted: #0a2a30;
+  --muted-foreground: #898A8D;
+  --accent: #02191d;
+  --accent-foreground: #bbeefb;
+  --destructive: #ff6b5b;
+  --destructive-foreground: #001115;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --input: #0a2a30;
+  --ring: #E6FF2B;
+  --outline: rgba(255, 255, 255, 0.12);
+  --outline-variant: rgba(255, 255, 255, 0.08);
+  --radius: 0.5rem;
+  --chart-1: #E6FF2B;
+  --chart-2: #0B4550;
+  --chart-3: #07333a;
+  --chart-4: #b6cc55;
+  --chart-5: #02191d;
+  --sidebar: #02191d;
+  --sidebar-foreground: #bbeefb;
+  --sidebar-primary: #E6FF2B;
+  --sidebar-primary-foreground: #001115;
+  --sidebar-accent: #05252b;
+  --sidebar-accent-foreground: #bbeefb;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #E6FF2B;
 }
 
 @theme inline {
   --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-space);
-  --font-display: var(--font-bebas);
+  --font-display: var(--font-space);
   --font-condensed: var(--font-oswald);
+  --font-body: var(--font-inter);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -118,146 +155,242 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Kinetic Grid custom colors */
+  --color-surface: var(--surface);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-surface-container-highest: var(--surface-container-highest);
+  --color-surface-variant: var(--surface-variant);
+  --color-primary-dim: var(--primary-dim);
+  --color-primary-container: var(--primary-container);
+  --color-outline: var(--outline);
+  --color-outline-variant: var(--outline-variant);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
-    @apply bg-background text-foreground font-sans antialiased;
-    background-color: #1a1a1a; /* Soft dark background - easier on eyes */
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    background-color: #001115;
   }
 
-  /* Modern Typography - Optimized for fitness/CrossFit aesthetic */
-  .font-heading {
-    font-family: var(--font-space), sans-serif;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-  }
-
-  .font-display {
-    font-family: var(--font-bebas), sans-serif;
-    font-weight: 400;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-  }
-
-  .font-condensed {
-    font-family: var(--font-oswald), sans-serif;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    text-transform: uppercase;
-  }
-
-  .font-body {
-    font-family: var(--font-inter), sans-serif;
-    font-weight: 400;
-    letter-spacing: -0.01em;
-  }
-
-  /* Heading styles with modern fitness app aesthetic */
+  /* ============================================
+     Typography System
+     ============================================ */
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-space), sans-serif;
+    font-family: var(--font-space), ui-sans-serif, system-ui, sans-serif;
     font-weight: 700;
     letter-spacing: -0.02em;
     line-height: 1.1;
-    color: #FFFFFF;
+    color: var(--foreground);
   }
 
-  h1 {
-    font-size: 2.5rem;
+  /* Editorial scale — extreme contrast */
+  .display-lg {
+    font-family: var(--font-space), sans-serif;
+    font-size: clamp(2.5rem, 8vw, 4.5rem);
     font-weight: 700;
+    line-height: 0.95;
     letter-spacing: -0.03em;
   }
 
-  h2 {
-    font-size: 2rem;
+  .display-sm {
+    font-family: var(--font-space), sans-serif;
+    font-size: clamp(2rem, 5vw, 3rem);
     font-weight: 700;
+    line-height: 1;
     letter-spacing: -0.02em;
   }
 
-  h3 {
-    font-size: 1.5rem;
+  .headline-lg {
+    font-family: var(--font-space), sans-serif;
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  .headline-md {
+    font-family: var(--font-space), sans-serif;
+    font-size: clamp(1.25rem, 3vw, 1.75rem);
     font-weight: 600;
+    line-height: 1.2;
     letter-spacing: -0.01em;
   }
 
-  /* Custom animations inspired by reference images */
-  @keyframes neon-pulse {
-    0%, 100% {
-      box-shadow: 0 0 5px rgba(204, 255, 0, 0.3);
-    }
-    50% {
-      box-shadow: 0 0 20px rgba(204, 255, 0, 0.6), 0 0 30px rgba(204, 255, 0, 0.4);
-    }
+  .label-sm {
+    font-family: var(--font-inter), sans-serif;
+    font-size: 0.65rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
   }
 
-  .animate-neon-pulse {
-    animation: neon-pulse 2s infinite;
+  .label-md {
+    font-family: var(--font-inter), sans-serif;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
   }
 
-  /* Modern scrollbar styling */
+  .body-lg {
+    font-family: var(--font-inter), sans-serif;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.6;
+    letter-spacing: -0.01em;
+  }
+
+  .body-sm {
+    font-family: var(--font-inter), sans-serif;
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.5;
+  }
+
+  /* ============================================
+     Kinetic Grid Utilities
+     ============================================ */
+
+  /* Tonal Layering — depth without borders */
+  .layer-surface {
+    background-color: var(--surface);
+  }
+  .layer-surface-low {
+    background-color: var(--surface-container-low);
+  }
+  .layer-surface-high {
+    background-color: var(--surface-container-high);
+  }
+  .layer-surface-highest {
+    background-color: var(--surface-container-highest);
+  }
+
+  /* Glassmorphism */
+  .glass {
+    background-color: rgba(5, 37, 43, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .glass-strong {
+    background-color: rgba(5, 37, 43, 0.85);
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
+  }
+
+  /* Primary CTA gradient */
+  .gradient-primary {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%);
+  }
+
+  /* Ghost Borders */
+  .ghost-border {
+    border: 1px solid var(--outline-variant);
+  }
+  .ghost-border-active {
+    border: 1px solid var(--primary);
+    box-shadow: 0 0 0 1px var(--primary);
+  }
+
+  /* Ambient Shadows (tinted, diffused) */
+  .shadow-ambient {
+    box-shadow: 0 8px 32px rgba(187, 238, 251, 0.08);
+  }
+  .shadow-ambient-lg {
+    box-shadow: 0 16px 64px rgba(187, 238, 251, 0.1);
+  }
+
+  /* Text Glow */
+  .text-glow {
+    text-shadow: 0 0 15px rgba(230, 255, 43, 0.6);
+  }
+  .text-glow-sm {
+    text-shadow: 0 0 8px rgba(230, 255, 43, 0.4);
+  }
+
+  /* Neon Glow for interactive elements */
+  .neon-glow {
+    box-shadow: 0 0 15px rgba(230, 255, 43, 0.25);
+  }
+  .neon-glow-hover:hover {
+    box-shadow: 0 0 20px rgba(230, 255, 43, 0.35);
+  }
+
+  /* Left accent border (Active/Current state) */
+  .accent-left {
+    border-left: 2px solid var(--primary);
+  }
+
+  /* Kinetic Grid background */
+  .kinetic-grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to right, rgba(230, 255, 43, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(230, 255, 43, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  /* Primary dim glow on hover (button state) */
+  .hover-glow {
+    transition: box-shadow 0.3s ease;
+  }
+  .hover-glow:hover {
+    box-shadow: 0 0 15px rgba(230, 255, 43, 0.2);
+  }
+
+  /* ============================================
+     Scrollbar
+     ============================================ */
   ::-webkit-scrollbar {
     width: 4px;
   }
-
   ::-webkit-scrollbar-track {
-    background: #1a1a1a;
+    background: var(--surface);
   }
-
   ::-webkit-scrollbar-thumb {
-    background: #CCFF00;
+    background: var(--primary);
     border-radius: 2px;
+    opacity: 0.5;
   }
-
   ::-webkit-scrollbar-thumb:hover {
-    background: #B8E600;
+    background: var(--primary-dim);
   }
 
-  /* Custom utility classes for the new design */
-  .neon-text {
-    color: #CCFF00;
-    text-shadow: 0 0 10px rgba(204, 255, 0, 0.3);
-  }
-
-  .dark-card {
-    background-color: #2a2a2a;
-    border: 1px solid #333333;
-  }
-
-  .neon-border {
-    border: 1px solid #CCFF00;
-    box-shadow: 0 0 10px rgba(204, 255, 0, 0.2);
-  }
-
-  /* Button styles are now handled by the Button component variants */
-
-  /* PWA Optimizations */
+  /* ============================================
+     PWA & Mobile Optimizations
+     ============================================ */
   .touch-manipulation {
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Improved tap targets for mobile */
   button, a, [role="button"] {
     min-height: 44px;
     min-width: 44px;
   }
 
-  /* Prevent text selection on buttons for better mobile UX */
   button, [role="button"] {
     user-select: none;
     -webkit-user-select: none;
   }
 
-  /* Smooth scrolling for better mobile experience */
   html {
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Safe area insets for notched devices */
   @supports (padding: max(0px)) {
     body {
       padding-left: env(safe-area-inset-left);

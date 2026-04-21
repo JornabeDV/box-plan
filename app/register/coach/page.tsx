@@ -38,7 +38,8 @@ export default function CoachRegisterPage() {
 
 	if (loading || authLoading) {
 		return (
-			<div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground flex items-center justify-center">
+			<div className="min-h-[100dvh] relative overflow-hidden bg-gradient-to-br from-background via-background to-card text-foreground flex items-center justify-center">
+			  <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
 				<div className="flex items-center gap-2">
 					<Loader2 className="w-6 h-6 animate-spin" />
 					<span>Cargando...</span>
@@ -48,7 +49,8 @@ export default function CoachRegisterPage() {
 	}
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground">
+		<div className="min-h-[100dvh] relative overflow-hidden bg-gradient-to-br from-background via-background to-card text-foreground">
+		  <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
 			{/* Header */}
 			<header className="relative overflow-hidden bg-gradient-to-r from-card via-card/95 to-primary/10 border-b border-primary/20 backdrop-blur-sm">
 				<div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5"></div>

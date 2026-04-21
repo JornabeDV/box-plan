@@ -142,7 +142,7 @@ export function RMList({ rmRecords }: RMListProps) {
                   )}
                 </div>
                 <div className="text-right ml-4">
-                  <div className="text-2xl font-bold text-lime-400">
+                  <div className="text-2xl font-bold text-primary">
                     {weight} kg
                   </div>
                   <div className="text-xs text-muted-foreground">RM Actual</div>

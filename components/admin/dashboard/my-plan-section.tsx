@@ -18,11 +18,13 @@ import {
   AlertCircle,
   Info,
   Copy,
+  LogOut,
 } from "lucide-react";
 import {
   useCoachPlanFeatures,
   type PlanificationAccess,
 } from "@/hooks/use-coach-plan-features";
+import { useAuthWithRoles } from "@/hooks/use-auth-with-roles";
 import Link from "next/link";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -256,7 +258,7 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
                   <span className="text-sm font-medium text-white">
                     Período del plan
                   </span>
-                  <span className="px-2 py-1 rounded bg-lime-500/10 text-lime-600 text-xs font-medium">
+                  <span className="px-2 py-1 rounded bg-primary-container/10 text-lime-600 text-xs font-medium">
                     {Math.ceil(
                       (new Date(planInfo.currentPeriodEnd).getTime() -
                         new Date().getTime()) /
@@ -369,14 +371,14 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  className="inline-flex items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lime-400"
+                  className="inline-flex items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                 >
-                  <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-lime-400 transition-colors" />
+                  <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-primary transition-colors" />
                 </button>
               </TooltipTrigger>
               <TooltipContent
                 side="top"
-                className="max-w-xs bg-black border-2 border-lime-400 text-white [&>svg]:hidden"
+                className="max-w-xs bg-black border-2 border-primary text-white [&>svg]:hidden"
               >
                 <style
                   dangerouslySetInnerHTML={{
@@ -442,6 +444,24 @@ export function MyPlanSection({ coachId }: MyPlanSectionProps) {
         coachId={coachId}
         hasFeature={hasFeature("custom_motivational_quotes")}
       />
+
+      {/* Cerrar Sesión */}
+      <CoachLogoutButton />
     </div>
+  );
+}
+
+function CoachLogoutButton() {
+  const { signOut } = useAuthWithRoles();
+
+  return (
+    <Button
+      variant="outline"
+      onClick={() => signOut?.()}
+      className="w-full h-auto py-4 text-destructive border-destructive/30 hover:bg-destructive/5 border-2"
+    >
+      <LogOut className="w-4 h-4 mr-2" />
+      Cerrar Sesión
+    </Button>
   );
 }
