@@ -1,6 +1,6 @@
 import { defaultCache } from "@serwist/next/worker";
 import type { PrecacheEntry } from "serwist";
-import { Serwist } from "serwist";
+import { NetworkFirst, Serwist } from "serwist";
 
 declare const self: ServiceWorkerGlobalScope & {
   __SW_MANIFEST: (PrecacheEntry | string)[] | undefined;
@@ -10,9 +10,24 @@ const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
   skipWaiting: true,
   clientsClaim: true,
-  navigationPreload: true,
+  navigationPreload: false,
   runtimeCaching: defaultCache,
 });
+
+// Use NetworkFirst for navigation requests to avoid "no-response" errors
+serwist.setDefaultHandler(new NetworkFirst({
+  cacheName: "pages",
+  plugins: [
+    {
+      cacheWillUpdate: async ({ response }) => {
+        if (response && response.status === 200) {
+          return response;
+        }
+        return null;
+      },
+    },
+  ],
+}));
 
 // Push notifications support (preserved from original sw.js)
 self.addEventListener("push", (event) => {
