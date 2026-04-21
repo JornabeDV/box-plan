@@ -1,3 +1,11 @@
+import withSerwistInit from "@serwist/next";
+
+const withSerwist = withSerwistInit({
+  swSrc: "sw.ts",
+  swDest: "public/sw.js",
+  disable: process.env.NODE_ENV === "development",
+});
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
@@ -9,7 +17,6 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Deshabilitar logs de Fast Refresh en desarrollo
   webpack: (config, { dev }) => {
     if (dev) {
       config.infrastructureLogging = {
@@ -18,7 +25,6 @@ const nextConfig = {
     }
     return config
   },
-  // Deshabilitar logs de Vercel Analytics en desarrollo
   experimental: {
     logging: {
       level: 'error',
@@ -26,4 +32,4 @@ const nextConfig = {
   },
 }
 
-export default nextConfig
+export default withSerwist(nextConfig);
