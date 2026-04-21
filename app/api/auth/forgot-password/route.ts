@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import bcrypt from 'bcryptjs'
 import { nanoid } from 'nanoid'
 import { Resend } from 'resend'
 
@@ -19,13 +18,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verificar que el usuario existe
-    const user = await prisma.user.findUnique({
-      where: { email },
+    // Buscar usuario case-insensitive para evitar problemas de casing
+    const user = await prisma.user.findFirst({
+      where: {
+        email: {
+          equals: email,
+          mode: 'insensitive',
+        },
+      },
       select: { id: true, email: true, name: true }
     })
 
     if (!user) {
+      console.log('[forgot-password] Usuario no encontrado para email:', email)
       // Por seguridad, no revelamos si el email existe o no
       return NextResponse.json({
         success: true,
@@ -33,33 +38,45 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    console.log('[forgot-password] Usuario encontrado:', user.id, user.email)
+
     // Generar token único
     const resetToken = nanoid(32)
     const expiresAt = new Date()
     expiresAt.setHours(expiresAt.getHours() + 1) // Token válido por 1 hora
 
     // Eliminar tokens previos del usuario y crear nuevo token
-    await prisma.$transaction([
-      prisma.passwordResetToken.deleteMany({
-        where: { userId: user.id }
-      }),
-      prisma.passwordResetToken.create({
-        data: {
-          userId: user.id,
-          token: resetToken,
-          expiresAt
-        }
-      })
-    ])
+    try {
+      await prisma.$transaction([
+        prisma.passwordResetToken.deleteMany({
+          where: { userId: user.id }
+        }),
+        prisma.passwordResetToken.create({
+          data: {
+            userId: user.id,
+            token: resetToken,
+            expiresAt
+          }
+        })
+      ])
+      console.log('[forgot-password] Token creado exitosamente para userId:', user.id)
+    } catch (prismaError) {
+      console.error('[forgot-password] Error en transacción Prisma:', prismaError)
+      return NextResponse.json(
+        { error: 'Error al generar el token de recuperación' },
+        { status: 500 }
+      )
+    }
 
     // Generar URL de reset
-    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const resetUrl = `${appUrl}/reset-password?token=${resetToken}`
 
     // Intentar enviar email
     try {
       await sendResetEmail(user.email, user.name || user.email, resetUrl)
     } catch (emailError) {
-      console.error('Error sending email:', emailError)
+      console.error('[forgot-password] Error enviando email:', emailError)
       // No fallar si el email falla, pero loguear
     }
 
@@ -68,7 +85,7 @@ export async function POST(request: NextRequest) {
       message: 'Si el email existe en nuestro sistema, recibirás un enlace de restablecimiento.'
     })
   } catch (error) {
-    console.error('Error in forgot-password:', error)
+    console.error('[forgot-password] Error general:', error)
     return NextResponse.json(
       { error: 'Error al procesar la solicitud' },
       { status: 500 }
@@ -81,9 +98,8 @@ export async function POST(request: NextRequest) {
  */
 async function sendResetEmail(email: string, userName: string, resetUrl: string) {
   const resendApiKey = process.env.RESEND_API_KEY
-  
+
   if (!resendApiKey) {
-    // En desarrollo, loguear el URL si no hay API key
     if (process.env.NODE_ENV === 'development') {
       console.log('⚠️  RESEND_API_KEY no configurada. Reset URL:', resetUrl)
     }
@@ -92,9 +108,9 @@ async function sendResetEmail(email: string, userName: string, resetUrl: string)
 
   try {
     const resend = new Resend(resendApiKey)
-    
+
     const fromEmail = process.env.FROM_EMAIL || 'noreply@boxplan.com'
-    
+
     const { data, error } = await resend.emails.send({
       from: fromEmail,
       to: email,
