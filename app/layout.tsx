@@ -51,7 +51,9 @@ export const metadata: Metadata = {
   },
   icons: {
     apple: "/icon-192.jpg",
-    icon: "/icon-192.jpg",
+    icon: "/favicon-32.png",
+    shortcut: "/favicon-32.png",
+    apple: "/apple-touch-icon.png",
   },
   other: {
     "mobile-web-app-capable": "yes",
@@ -77,6 +79,7 @@ export default function RootLayout({
     <html lang="es" className="dark">
       <head>
         <ClearCacheScript />
+        <link rel="icon" href="/favicon-32.png?v=2" type="image/png" sizes="36x36" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Box Plan" />
