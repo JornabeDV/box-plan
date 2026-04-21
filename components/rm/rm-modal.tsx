@@ -95,7 +95,7 @@ export function RMModal({
 			<DialogContent className="w-full max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						<Weight className="w-5 h-5 text-lime-400" />
+						<Weight className="w-5 h-5 text-primary" />
 						{isEditMode ? 'Editar RM' : 'Registrar Nuevo RM'}
 					</DialogTitle>
 					<DialogDescription>

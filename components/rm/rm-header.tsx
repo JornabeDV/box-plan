@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Weight, ArrowLeft } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 
 interface RMHeaderProps {
 	onNewRMClick: () => void
@@ -33,10 +33,14 @@ export function RMHeader({ onNewRMClick }: RMHeaderProps) {
 				</Button>
 			</div>
 			{/* Segunda fila: Título */}
-			<h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
-				<Weight className="w-6 h-6 sm:w-8 sm:h-8 text-lime-400 shrink-0" />
-				<span>Repeticiones Máximas</span>
-			</h1>
+			<div>
+				<p className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground mb-1">
+					Registro
+				</p>
+				<h1 className="text-3xl md:text-4xl font-bold italic text-primary">
+					Repeticiones Máximas
+				</h1>
+			</div>
 		</div>
 	)
 }

@@ -8,11 +8,8 @@ import { SignUpForm } from "@/components/auth/signup-form";
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 import { useAuthWithRoles } from "@/hooks/use-auth-with-roles";
 import { Loader2 } from "lucide-react";
+import Image from "next/image";
 
-/**
- * Página de Login/Registro
- * Maneja la autenticación de usuarios con NextAuth y Neon PostgreSQL
- */
 export default function LoginPage() {
   const [mode, setMode] = useState<"login" | "signup" | "forgot-password">(
     "login",
@@ -27,18 +24,12 @@ export default function LoginPage() {
     loading: authLoading,
   } = useAuthWithRoles();
 
-  // Redirigir si el usuario ya está autenticado
   useEffect(() => {
-    // Si la sesión está autenticada (incluso si aún no tenemos el userRole), mostrar loading
-    // Esto evita el parpadeo del formulario después del login
     if (sessionStatus === "authenticated" && session?.user) {
-      // Si ya tenemos el userRole, redirigir inmediatamente
       if (!authLoading && user && userRole) {
-        // Verificar si hay un redirect param en la URL
         const searchParams = new URLSearchParams(window.location.search);
         const redirectParam = searchParams.get("redirect");
 
-        // Redirigir según el rol del usuario
         if (isAdmin) {
           router.replace("/superadmin");
         } else if (isCoach) {
@@ -49,8 +40,6 @@ export default function LoginPage() {
           router.replace("/");
         }
       }
-      // Si aún no tenemos userRole pero hay sesión, mantener loading
-      // El hook useAuthWithRoles se encargará de cargar el rol
     }
   }, [
     sessionStatus,
@@ -63,17 +52,12 @@ export default function LoginPage() {
     router,
   ]);
 
-  const handleSuccess = () => {
-    // La redirección se maneja en el useEffect según el rol
-    // Este callback se ejecuta después del login exitoso
-  };
+  const handleSuccess = () => {};
 
   const switchToSignUp = () => setMode("signup");
   const switchToLogin = () => setMode("login");
   const switchToForgotPassword = () => setMode("forgot-password");
 
-  // Si es coach y está autenticado, no mostrar loader (el dashboard tiene su propio loader)
-  // Solo redirigir inmediatamente
   if (isCoach && sessionStatus === "authenticated" && session?.user) {
     return null;
   }
@@ -87,30 +71,43 @@ export default function LoginPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground flex items-center justify-center">
         <div className="flex items-center gap-2">
-          <Loader2 className="w-6 h-6 animate-spin" />
-          <span>Cargando...</span>
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <span className="text-muted-foreground">Cargando...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-gradient-to-br from-background via-background to-card text-foreground">
-      {/* Header */}
-      <header className="relative overflow-hidden bg-gradient-to-r from-card via-card/95 to-primary/10 border-b border-primary/20 backdrop-blur-sm">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5"></div>
-        <div className="relative flex items-center justify-center p-6">
-          <div className="flex items-center gap-4">
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
-              Box Plan
-            </h1>
-          </div>
-        </div>
-      </header>
-
+    <>
       {/* Main Content */}
-      <main className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-md space-y-6">
+      <main className="relative z-10 flex flex-col items-center px-6 pb-12 max-w-md mx-auto">
+        {/* Logo */}
+        <div className="relative w-64 h-64 mb-6">
+          <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full" />
+          <Image
+            src="\logo_sin_fondo.png"
+            alt="Box Plan"
+            fill
+            className="object-contain relative z-10 drop-shadow-[0_0_15px_rgba(230, 255, 43,0.3)]"
+            priority
+          />
+        </div>
+
+        {/* Title */}
+        <div className="text-center mb-10">
+          <h2 className="display-lg uppercase italic text-foreground">
+            {mode === "login"
+              ? "Iniciar Sesión"
+              : mode === "signup"
+                ? "Crear Cuenta"
+                : "Recuperar Contraseña"}
+          </h2>
+          <div className="mt-3 mx-auto w-16 h-1 bg-primary rounded-full" />
+        </div>
+
+        {/* Form */}
+        <div className="w-full">
           {mode === "login" ? (
             <LoginForm
               onSuccess={handleSuccess}
@@ -127,6 +124,6 @@ export default function LoginPage() {
           )}
         </div>
       </main>
-    </div>
+    </>
   );
 }

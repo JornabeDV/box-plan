@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Header } from "@/components/layout/header";
 import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,8 +41,8 @@ export default function RankingPage() {
 
   if (!canViewRanking) {
     return (
-      <div className="min-h-screen bg-background text-foreground">
-        <Header />
+      <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground">
+        <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
         <main className="p-6 pb-32 max-w-4xl mx-auto">
           <Card>
             <CardHeader>
@@ -75,8 +74,8 @@ export default function RankingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <Header />
+    <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground">
+      <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
 
       <main className="p-6 space-y-6 pb-32 max-w-6xl mx-auto">
         <RankingHeader />

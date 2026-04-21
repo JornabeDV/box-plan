@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Header } from "@/components/layout/header";
 import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { SubscriptionManagement } from "@/components/subscription/subscription-management";
 import { PlanSwitcher } from "@/components/subscription/plan-switcher";
@@ -140,7 +139,8 @@ export default function SubscriptionPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground flex items-center justify-center">
+      <div className="min-h-[100dvh] relative overflow-hidden bg-gradient-to-br from-background via-background to-card text-foreground flex items-center justify-center">
+        <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
         <div className="text-center space-y-4">
           <Loader2 className="w-8 h-8 animate-spin mx-auto" />
           <p className="text-muted-foreground">
@@ -152,8 +152,8 @@ export default function SubscriptionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground">
-      <Header />
+    <div className="min-h-[100dvh] relative overflow-hidden bg-gradient-to-br from-background via-background to-card text-foreground">
+      <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
 
       <main className="container mx-auto px-6 py-8 pb-32">
         {/* Título */}
@@ -168,9 +168,14 @@ export default function SubscriptionPage() {
               <ArrowLeft className="h-4 w-4" />
               <span className="hidden sm:inline">Volver</span>
             </Button>
-            <h1 className="text-2xl font-bold md:order-1">
-              Gestión de Suscripción
-            </h1>
+            <div className="md:order-1">
+              <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground mb-1">
+                Miembro
+              </p>
+              <h1 className="text-3xl md:text-4xl font-bold italic text-primary">
+                Suscripción
+              </h1>
+            </div>
           </div>
           <p className="text-muted-foreground">
             Administra tu suscripción y plan de entrenamiento

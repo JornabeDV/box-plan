@@ -134,7 +134,8 @@ export default function SuperAdminPage() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-[100dvh] relative overflow-hidden flex items-center justify-center">
+        <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
         <Loader2 className="w-8 h-8 animate-spin" />
       </div>
     );
@@ -142,7 +143,8 @@ export default function SuperAdminPage() {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-[100dvh] relative overflow-hidden flex items-center justify-center">
+        <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
         <Card className="max-w-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -159,7 +161,8 @@ export default function SuperAdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground">
+    <div className="min-h-[100dvh] relative overflow-hidden bg-gradient-to-br from-background via-background to-card text-foreground">
+      <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
       {/* Header */}
       <SuperAdminHeader />
 
@@ -173,7 +176,7 @@ export default function SuperAdminPage() {
           <TabsList className="grid w-full grid-cols-3 gap-1 h-auto p-1">
             <TabsTrigger
               value="overview"
-              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300 data-[state=active]:bg-lime-400/10 data-[state=active]:border-lime-400 data-[state=active]:shadow-[0_4px_15px_rgba(204,255,0,0.3)]"
+              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-primary/50 bg-transparent text-primary font-semibold hover:shadow-[0_4px_15px_rgba(230, 255, 43,0.2)] transition-all duration-300 data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-[0_4px_15px_rgba(230, 255, 43,0.3)]"
             >
               <div className="flex flex-col items-center gap-1">
                 <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -183,7 +186,7 @@ export default function SuperAdminPage() {
             </TabsTrigger>
             <TabsTrigger
               value="coaches"
-              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300 data-[state=active]:bg-lime-400/10 data-[state=active]:border-lime-400 data-[state=active]:shadow-[0_4px_15px_rgba(204,255,0,0.3)]"
+              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-primary/50 bg-transparent text-primary font-semibold hover:shadow-[0_4px_15px_rgba(230, 255, 43,0.2)] transition-all duration-300 data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-[0_4px_15px_rgba(230, 255, 43,0.3)]"
             >
               <div className="flex flex-col items-center gap-1">
                 <Users className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -193,7 +196,7 @@ export default function SuperAdminPage() {
             </TabsTrigger>
             <TabsTrigger
               value="plans"
-              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300 data-[state=active]:bg-lime-400/10 data-[state=active]:border-lime-400 data-[state=active]:shadow-[0_4px_15px_rgba(204,255,0,0.3)]"
+              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-primary/50 bg-transparent text-primary font-semibold hover:shadow-[0_4px_15px_rgba(230, 255, 43,0.2)] transition-all duration-300 data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-[0_4px_15px_rgba(230, 255, 43,0.3)]"
             >
               <div className="flex flex-col items-center gap-1">
                 <Settings className="w-3 h-3 sm:w-4 sm:h-4" />

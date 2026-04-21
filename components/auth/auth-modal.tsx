@@ -30,7 +30,7 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login', onSuccess
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md bg-card border-border text-card-foreground">
         <DialogHeader>
-          <DialogTitle className="sr-only text-white">
+          <DialogTitle className="sr-only text-foreground">
             {mode === 'login' ? 'Iniciar Sesión' : mode === 'signup' ? 'Crear Cuenta' : 'Recuperar Contraseña'}
           </DialogTitle>
         </DialogHeader>

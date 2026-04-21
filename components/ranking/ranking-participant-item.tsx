@@ -66,7 +66,7 @@ export const RankingParticipantItem = ({
       <div className="text-right">
         {ranking.type === "time" && participant.duration_seconds ? (
           <>
-            <div className="text-lg font-bold text-lime-400">
+            <div className="text-lg font-bold text-primary">
               {formatDuration(participant.duration_seconds)}
             </div>
             <div className="text-xs text-muted-foreground">Tiempo</div>

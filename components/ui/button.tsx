@@ -5,39 +5,30 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-all duration-300 cursor-pointer disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-ring aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive relative overflow-hidden group",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap h-12 font-heading text-sm font-semibold uppercase tracking-wider transition-all duration-200 cursor-pointer disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-ring aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive relative overflow-hidden",
   {
     variants: {
       variant: {
         default:
-          'bg-gradient-to-r from-lime-400 via-lime-300 to-lime-400 text-black font-bold shadow-[0_4px_15px_rgba(204,255,0,0.3)] hover:shadow-[0_6px_20px_rgba(204,255,0,0.4)]',
-        gradient:
-          'bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 text-white font-bold shadow-lg hover:shadow-xl hover:shadow-purple-500/30 hover:scale-[1.02] active:scale-[0.98] hover:from-purple-600 hover:via-pink-600 hover:to-orange-600',
-        glass:
-          'bg-white/10 backdrop-blur-md border border-white/20 text-foreground font-semibold shadow-lg hover:bg-white/20 hover:border-white/30 hover:scale-[1.02] active:scale-[0.98] hover:shadow-xl',
+          'bg-primary text-primary-foreground font-bold shadow-[0_0_30px_rgba(230,255,43,0.25),0_0_80px_rgba(230,255,43,0.1)] hover:shadow-[0_0_40px_rgba(230,255,43,0.35),0_0_100px_rgba(230,255,43,0.15)] active:scale-[0.98]',
         outline:
-          'border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)]',
-        soft:
-          'bg-lime-400/20 border border-lime-400/30 text-lime-400 font-semibold backdrop-blur-sm hover:shadow-[0_4px_15px_rgba(204,255,0,0.15)]',
-        destructive:
-          'bg-red-600 text-white font-semibold hover:bg-red-700',
+          'border border-outline/20 bg-transparent text-primary hover:bg-primary/10 hover:border-primary/30',
         secondary:
-          'bg-gray-700/50 backdrop-blur-sm border border-gray-600/50 text-gray-200 font-semibold hover:bg-gray-600/50 hover:border-gray-500/50',
+          'bg-secondary text-secondary-foreground hover:bg-secondary/80',
         ghost:
           'text-foreground hover:bg-white/5',
-        link: 'text-lime-400 underline-offset-4 hover:underline hover:text-lime-300 p-0',
-        neon:
-          'bg-lime-400 text-black font-bold',
-        premium:
-          'bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 text-black font-bold shadow-[0_4px_20px_rgba(251,191,36,0.4)] hover:shadow-[0_6px_25px_rgba(251,191,36,0.6)] hover:scale-[1.02] active:scale-[0.98] relative before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/30 before:to-transparent before:translate-x-[-100%] hover:before:translate-x-[100%] before:transition-transform before:duration-700',
+        destructive:
+          'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+        glass:
+          'bg-surface-container-high/60 backdrop-blur-xl border border-outline/10 text-foreground hover:bg-surface-container-high/80 hover:border-outline/20',
       },
       size: {
-        default: 'h-11 px-6 py-2.5 rounded-xl',
-        sm: 'h-9 rounded-lg gap-1.5 px-4 text-xs',
-        lg: 'h-14 rounded-2xl px-10 text-base font-bold gap-3',
-        icon: 'size-11 rounded-xl',
-        xl: 'h-16 rounded-2xl px-12 text-lg font-bold gap-3',
-      },
+        default: 'px-5 py-2.5',
+        sm: 'h-10 gap-1.5 px-4 text-xs',
+        lg: 'px-10 text-base font-bold gap-3',
+        icon: 'h-12 w-12',
+        xl: 'px-12 text-lg font-bold gap-3',
+      }
     },
     defaultVariants: {
       variant: 'default',

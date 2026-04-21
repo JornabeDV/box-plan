@@ -15,7 +15,6 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
-import { Header } from "@/components/layout/header";
 import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { TimerModeSelector } from "@/components/timer/timer-mode-selector";
 import { TimerConfig } from "@/components/timer/timer-config";
@@ -177,9 +176,9 @@ export default function TimerPage() {
 
   if (subscriptionLoading) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+      <div className="min-h-screen relative overflow-hidden bg-background text-foreground flex items-center justify-center">
         <div className="flex items-center gap-2">
-          <Loader2 className="w-6 h-6 animate-spin text-lime-400" />
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
           <span>Cargando...</span>
         </div>
       </div>
@@ -189,8 +188,8 @@ export default function TimerPage() {
   // Si no tiene suscripción activa o no tiene acceso al timer
   if (!isSubscribed || !canUseTimer) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground">
-        <Header />
+      <div className="min-h-[100dvh] relative overflow-hidden bg-gradient-to-br from-background via-background to-card text-foreground">
+        <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
 
         <main className="p-6 pb-32 max-w-4xl mx-auto">
           <div className="mb-8">
@@ -204,9 +203,14 @@ export default function TimerPage() {
                 <ArrowLeft className="h-4 w-4" />
                 <span className="hidden sm:inline">Volver</span>
               </Button>
-              <h1 className="text-3xl font-heading md:order-1">
-                Timer CrossFit
-              </h1>
+              <div className="md:order-1">
+                <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground mb-1">
+                  Herramienta
+                </p>
+                <h1 className="text-3xl md:text-4xl font-bold italic text-primary">
+                  Timer CrossFit
+                </h1>
+              </div>
             </div>
           </div>
 
@@ -291,7 +295,7 @@ export default function TimerPage() {
           {/* Fase (para Tabata y AMRAP con múltiples rondas) */}
           {(mode === "tabata" || (mode === "amrap" && parseInt(totalRounds) > 1)) && (
             <div
-              className={`text-3xl md:text-5xl font-bold mb-4 md:mb-6 ${isWorkPhase ? "text-lime-400" : "text-green-400"}`}
+              className={`text-3xl md:text-5xl font-bold mb-4 md:mb-6 ${isWorkPhase ? "text-primary" : "text-green-400"}`}
             >
               {isWorkPhase ? "TRABAJO" : "DESCANSO"}
             </div>
@@ -312,7 +316,7 @@ export default function TimerPage() {
                 className={`text-7xl md:text-[10rem] lg:text-[14rem] font-mono font-bold text-center leading-none ${
                   mode === "tabata"
                     ? isWorkPhase
-                      ? "text-lime-400"
+                      ? "text-primary"
                       : "text-green-400"
                     : "text-white"
                 }`}
@@ -347,7 +351,7 @@ export default function TimerPage() {
               <button
                 onClick={handleStart}
                 type="button"
-                className="bg-lime-500 hover:bg-lime-600 active:bg-lime-700 text-black font-bold text-lg md:text-2xl h-14 md:h-20 px-8 md:px-16 rounded-full transition-colors cursor-pointer flex items-center justify-center"
+                className="bg-primary-container hover:bg-lime-600 active:bg-lime-700 text-black font-bold text-lg md:text-2xl h-14 md:h-20 px-8 md:px-16 rounded-full transition-colors cursor-pointer flex items-center justify-center"
               >
                 <Play className="w-5 h-5 md:w-8 md:h-8 mr-2 md:mr-3" />
                 Iniciar
@@ -408,7 +412,6 @@ export default function TimerPage() {
         ref={timerContainerRef}
         className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground"
       >
-        <Header />
 
         <main className="p-6 space-y-6 pb-24">
           <div className="mb-8">
@@ -422,9 +425,14 @@ export default function TimerPage() {
                 <ArrowLeft className="h-4 w-4" />
                 <span className="hidden sm:inline">Volver</span>
               </Button>
-              <h1 className="text-3xl font-heading md:order-1">
-                Timer CrossFit
-              </h1>
+              <div className="md:order-1">
+                <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground mb-1">
+                  Herramienta
+                </p>
+                <h1 className="text-3xl md:text-4xl font-bold italic text-primary">
+                  Timer CrossFit
+                </h1>
+              </div>
             </div>
           </div>
 

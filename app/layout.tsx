@@ -1,5 +1,5 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
@@ -8,43 +8,42 @@ import { Oswald, Inter, Bebas_Neue, Space_Grotesk } from "next/font/google"
 import { SessionProvider } from "next-auth/react"
 import { Toaster } from "@/components/ui/toaster"
 import { ClearCacheScript } from "@/components/clear-cache-script"
+import { Header } from "@/components/layout/header"
 import "./globals.css"
 
-// Tipografía para títulos impactantes - estilo deportivo/fitness
-const bebasNeue = Bebas_Neue({
-  subsets: ["latin"],
-  variable: "--font-bebas",
-  weight: ["400"],
-})
-
-// Tipografía para headings principales - moderna y geométrica
+// Display & Headlines — geometric, tech-forward
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-space",
   weight: ["400", "500", "600", "700"],
 })
 
-// Tipografía para títulos de secciones - condensada y fuerte
-const oswald = Oswald({
-  subsets: ["latin"],
-  variable: "--font-oswald",
-  weight: ["300", "400", "500", "600", "700"],
-})
-
-// Tipografía para body text - legible y moderna
+// Body & Data — precise, readable
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   weight: ["300", "400", "500", "600", "700"],
 })
 
+// Condensed titles (legacy, kept for compatibility)
+const oswald = Oswald({
+  subsets: ["latin"],
+  variable: "--font-oswald",
+  weight: ["300", "400", "500", "600", "700"],
+})
+
+// Impact titles (legacy, kept for compatibility)
+const bebasNeue = Bebas_Neue({
+  subsets: ["latin"],
+  variable: "--font-bebas",
+  weight: ["400"],
+})
+
 export const metadata: Metadata = {
-  title: "Box Plan - Planificación y Seguimiento",
+  title: "Box Plan — Planificación y Seguimiento",
   description: "App PWA para planificación y seguimiento de entrenamientos CrossFit",
   generator: "v0.app",
   manifest: "/manifest.json",
-  themeColor: "#059669",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -60,6 +59,15 @@ export const metadata: Metadata = {
   },
 }
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: "cover",
+  themeColor: "#001115",
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -69,21 +77,23 @@ export default function RootLayout({
     <html lang="es" className="dark">
       <head>
         <ClearCacheScript />
-        {/* Meta tags adicionales para iOS PWA */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Box Plan" />
         <meta name="format-detection" content="telephone=no" />
-        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-        <meta http-equiv="Pragma" content="no-cache" />
-        <meta http-equiv="Expires" content="0" />
+        <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+        <meta httpEquiv="Pragma" content="no-cache" />
+        <meta httpEquiv="Expires" content="0" />
       </head>
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} ${bebasNeue.variable} ${spaceGrotesk.variable} ${oswald.variable} ${inter.variable} antialiased`}>
-        <SessionProvider>
-          <Suspense fallback={null}>{children}</Suspense>
-          <Toaster />
-          {process.env.NODE_ENV === 'production' && <Analytics />}
-        </SessionProvider>
+          <SessionProvider>
+            <div className="min-h-[100dvh] bg-background text-foreground relative overflow-hidden">
+              <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
+              <Header />
+              {children}
+            </div>
+            <Toaster />
+          </SessionProvider>
       </body>
     </html>
   )

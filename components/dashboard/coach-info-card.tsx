@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { User, Building2 } from "lucide-react";
 import Image from "next/image";
@@ -25,32 +25,28 @@ interface CoachInfoCardProps {
 export function CoachInfoCard({ coach }: CoachInfoCardProps) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <User className="w-5 h-5" />
-          Tu Coach
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Información del coach */}
+      <CardContent className="pt-5 space-y-4">
+        <div className="flex items-center gap-2 mb-1">
+          <User className="w-4 h-4 text-primary" />
+          <span className="label-md">Tu Coach</span>
+        </div>
+
         <div className="flex items-start gap-4">
-          {/* Mostrar logo del coach si existe, sino imagen de perfil, sino icono por defecto */}
           {coach.logoUrl ? (
-            <div className="relative w-16 h-16 rounded-lg overflow-hidden border bg-background flex-shrink-0">
+            <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-surface-container-high border border-outline/20 flex-shrink-0">
               <Image
                 src={coach.logoUrl}
                 alt={coach.businessName || coach.name}
                 fill
                 className="object-cover"
                 onError={(e) => {
-                  // Si falla el logo, mostrar imagen de perfil o icono
                   const target = e.target as HTMLImageElement;
                   target.style.display = "none";
                 }}
               />
             </div>
           ) : coach.image ? (
-            <div className="relative w-16 h-16 rounded-full overflow-hidden border">
+            <div className="relative w-14 h-14 rounded-xl overflow-hidden border border-outline/20">
               <Image
                 src={coach.image}
                 alt={coach.name}
@@ -59,23 +55,20 @@ export function CoachInfoCard({ coach }: CoachInfoCardProps) {
               />
             </div>
           ) : (
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center border">
-              <User className="w-8 h-8 text-muted-foreground" />
+            <div className="w-14 h-14 rounded-xl bg-surface-container-high flex items-center justify-center border border-outline/20">
+              <User className="w-6 h-6 text-muted-foreground" />
             </div>
           )}
-          <div className="flex-1 space-y-2">
-            <div>
-              <h3 className="font-semibold text-lg">{coach.name}</h3>
-              {coach.businessName && (
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Building2 className="w-4 h-4" />
-                  <span>{coach.businessName}</span>
-                </div>
-              )}
-            </div>
-            <Badge variant="outline">
-              Coach Asignado
-            </Badge>
+
+          <div className="flex-1 space-y-1">
+            <h3 className="font-semibold text-foreground">{coach.name}</h3>
+            {coach.businessName && (
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Building2 className="w-3.5 h-3.5" />
+                <span>{coach.businessName}</span>
+              </div>
+            )}
+            <Badge>Coach Asignado</Badge>
           </div>
         </div>
       </CardContent>

@@ -33,7 +33,7 @@ export function RMCard({ rm, onEdit, onDelete, variant = 'desktop' }: RMCardProp
 				{/* Peso y botones */}
 				<div className="flex items-center justify-between sm:justify-end gap-3">
 					<div className="text-right">
-						<div className="font-bold text-xl text-lime-400">
+						<div className="font-bold text-xl text-primary">
 							{rm.weight} kg
 						</div>
 					</div>
@@ -75,7 +75,7 @@ export function RMCard({ rm, onEdit, onDelete, variant = 'desktop' }: RMCardProp
 			</div>
 			<div className="flex items-center gap-2">
 				<div className="text-right">
-					<div className="font-bold text-xl text-lime-400">
+					<div className="font-bold text-xl text-primary">
 						{rm.weight} kg
 					</div>
 				</div>

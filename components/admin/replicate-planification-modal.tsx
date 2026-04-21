@@ -153,7 +153,7 @@ export function ReplicatePlanificationModal({
               type="button"
               onClick={() => setCalendarOpen(!calendarOpen)}
               className={cn(
-                "w-full flex items-center justify-start text-left font-normal border-2 border-lime-400/50 bg-transparent text-lime-400 hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] rounded-xl h-11 px-6 py-2.5",
+                "w-full flex items-center justify-start text-left font-normal border-2 border-primary/50 bg-transparent text-primary hover:shadow-[0_4px_15px_rgba(230, 255, 43,0.2)] rounded-xl h-11 px-6 py-2.5",
                 !targetDate && "text-muted-foreground"
               )}
             >

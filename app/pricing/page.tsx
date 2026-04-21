@@ -103,7 +103,8 @@ export default function PricingPage() {
 
   if (loadingPlans) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-[100dvh] relative overflow-hidden bg-background flex items-center justify-center">
+        <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
         <div className="flex items-center gap-2">
           <Loader2 className="w-6 h-6 animate-spin" />
           <span>Cargando planes...</span>
@@ -113,7 +114,8 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-[100dvh] relative overflow-hidden bg-background">
+      <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
       {/* Header */}
       <div className="bg-gradient-to-r from-primary/5 to-accent/5 py-6">
         <div className="container mx-auto px-4 text-center">

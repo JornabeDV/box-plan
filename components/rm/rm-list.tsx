@@ -26,13 +26,13 @@ export function RMList({ rmRecords, loading, onNewRMClick, onEdit, onDelete }: R
 			<>
 				{/* Loading en mobile */}
 				<div className="sm:hidden flex items-center justify-center py-8">
-					<Loader2 className="w-6 h-6 animate-spin text-lime-400" />
+					<Loader2 className="w-6 h-6 animate-spin text-primary" />
 				</div>
 				{/* Loading en desktop */}
 				<Card className="hidden sm:block">
 					<CardContent>
 						<div className="flex items-center justify-center py-8">
-							<Loader2 className="w-6 h-6 animate-spin text-lime-400" />
+							<Loader2 className="w-6 h-6 animate-spin text-primary" />
 						</div>
 					</CardContent>
 				</Card>

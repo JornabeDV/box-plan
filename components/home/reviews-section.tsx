@@ -104,109 +104,82 @@ export function ReviewsSection({
 
   return (
     <section>
-      <div className="container mx-auto sm:px-4">
+      <div className="max-w-7xl mx-auto">
         {showTitle && (
-          <div className="text-center mb-2 sm:mb-3">
-            <h2 className="text-xl md:text-2xl font-bold mb-2">
-              Lo que dicen nuestros atletas
-            </h2>
-            <p className="text-sm md:text-base text-muted-foreground max-w-xl mx-auto">
-              Únete a cientos de atletas mejorando su rendimiento
-            </p>
-          </div>
+          <h2 className="font-headline text-3xl font-bold tracking-tighter uppercase text-center mb-2">
+            LO QUE DICEN{" "}
+            <span className="text-primary italic text-glow">
+              NUESTROS ATLETAS
+            </span>
+          </h2>
         )}
 
         {useCarousel ? (
-          <div className="max-w-6xl mx-auto">
-            <Carousel
-              opts={{
-                align: "start",
-                loop: true,
-                dragFree: true,
-              }}
-              className="w-full"
-            >
-              <CarouselContent className="-ml-2 md:-ml-4">
-                {displayReviews.map((review) => (
-                  <CarouselItem
-                    key={review.id}
-                    className="pl-2 md:pl-4 basis-full md:basis-1/2 lg:basis-1/3"
+          <Carousel
+            opts={{
+              align: "start",
+              loop: true,
+            }}
+            className="w-full"
+          >
+            <CarouselContent className="-ml-4">
+              {displayReviews.map((review, index) => (
+                <CarouselItem
+                  key={review.id}
+                  className="pl-4 basis-full md:basis-1/2 lg:basis-1/3"
+                >
+                  <Card
+                    className={cn(
+                      "border-l-0 bg-surface-container p-4 relative hover:border-primary/30 transition-colors h-full",
+                      index === 1 &&
+                        "scale-105 border-t-4 border-primary z-10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]",
+                    )}
                   >
-                    <Card className="h-full">
-                      <CardContent className="p-4">
-                        {/* Header con avatar y nombre */}
-                        <div className="flex items-start gap-3 mb-3">
-                          <Avatar className="h-10 w-10 border border-lime-400">
-                            <AvatarFallback className="text-white font-semibold text-xs">
-                              {review.avatar}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-sm truncate">
-                              {review.name}
-                            </h3>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {review.role}
-                              {review.plan && (
-                                <span className="ml-1">• {review.plan}</span>
-                              )}
-                            </p>
-                          </div>
+                    <p className="text-on-surface-variant italic mb-2 md:mb-4 text-sm leading-relaxed">
+                      "{review.text}"
+                    </p>
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-slate-800 overflow-hidden border border-primary/20">
+                        <div className="w-full h-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                          {review.avatar}
                         </div>
-
-                        {/* Rating */}
-                        <div className="flex items-center gap-1 mb-2">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={cn(
-                                "h-3 w-3",
-                                i < review.rating
-                                  ? "text-yellow-400 fill-yellow-400"
-                                  : "text-muted-foreground/30"
-                              )}
-                            />
-                          ))}
-                          {review.date && (
-                            <span className="ml-2 text-xs text-muted-foreground">
-                              {review.date}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Texto de la reseña */}
-                        <p className="text-xs text-foreground leading-relaxed line-clamp-4">
-                          "{review.text}"
+                      </div>
+                      <div>
+                        <h5 className="text-white font-bold text-sm">
+                          {review.name}
+                        </h5>
+                        <p className="text-primary text-[10px] font-bold tracking-widest uppercase">
+                          {review.role}
                         </p>
-                      </CardContent>
-                    </Card>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious className="hidden md:flex -left-4 lg:-left-6 h-8 w-8" />
-              <CarouselNext className="hidden md:flex -right-4 lg:-right-6 h-8 w-8" />
-            </Carousel>
-          </div>
+                      </div>
+                    </div>
+                  </Card>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="left-2 md:-left-12" />
+            <CarouselNext className="right-2 md:-right-12" />
+          </Carousel>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
             {displayReviews.map((review) => (
               <Card
                 key={review.id}
-                className="bg-card/80 backdrop-blur-sm hover:shadow-xl transition-all duration-300 border-border/50"
+                className="bg-surface-container p-6 rounded-lg relative hover:border-primary/30 transition-colors"
               >
-                <CardContent className="p-6">
+                <CardContent className="p-0">
                   {/* Header con avatar y nombre */}
                   <div className="flex items-start gap-3 mb-3">
-                    <Avatar className="h-10 w-10 bg-gradient-to-br from-primary to-accent">
-                      <AvatarFallback className="text-white font-semibold text-xs">
+                    <div className="w-10 h-10 rounded-full bg-slate-800 overflow-hidden border border-primary/20 flex items-center justify-center">
+                      <span className="text-primary font-bold text-xs">
                         {review.avatar}
-                      </AvatarFallback>
-                    </Avatar>
+                      </span>
+                    </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-sm truncate">
+                      <h3 className="font-semibold text-sm truncate text-white">
                         {review.name}
                       </h3>
-                      <p className="text-xs text-muted-foreground truncate">
+                      <p className="text-xs text-on-surface-variant truncate">
                         {review.role}
                         {review.plan && (
                           <span className="ml-1">• {review.plan}</span>
@@ -216,7 +189,7 @@ export function ReviewsSection({
                   </div>
 
                   {/* Rating */}
-                  <div className="flex items-center gap-1 mb-2">
+                  <div className="flex items-center gap-1 mb-3">
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
@@ -224,7 +197,7 @@ export function ReviewsSection({
                           "h-3 w-3",
                           i < review.rating
                             ? "text-yellow-400 fill-yellow-400"
-                            : "text-muted-foreground/30"
+                            : "text-muted-foreground/30",
                         )}
                       />
                     ))}
@@ -236,32 +209,12 @@ export function ReviewsSection({
                   </div>
 
                   {/* Texto de la reseña */}
-                  <p className="text-xs text-foreground leading-relaxed">
+                  <p className="text-sm text-on-surface-variant leading-relaxed">
                     "{review.text}"
                   </p>
                 </CardContent>
               </Card>
             ))}
-          </div>
-        )}
-
-        {/* Promedio de valoración */}
-        {showTitle && (
-          <div className="mt-6 text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full">
-              <div className="flex items-center gap-0.5">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className="h-3 w-3 text-yellow-400 fill-yellow-400"
-                  />
-                ))}
-              </div>
-              <span className="font-semibold text-sm ml-1">4.9/5</span>
-              <span className="text-xs text-muted-foreground ml-1">
-                • {reviews.length}+ reseñas
-              </span>
-            </div>
           </div>
         )}
       </div>

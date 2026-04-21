@@ -11,7 +11,7 @@ export const RankingEmptyState = ({ isLoading }: RankingEmptyStateProps) => {
       <CardContent className="pt-6 text-center py-12">
         {isLoading ? (
           <>
-            <Loader2 className="w-12 h-12 mx-auto mb-4 animate-spin text-lime-400 opacity-50" />
+            <Loader2 className="w-12 h-12 mx-auto mb-4 animate-spin text-primary opacity-50" />
             <p className="text-muted-foreground">Cargando ranking...</p>
           </>
         ) : (
