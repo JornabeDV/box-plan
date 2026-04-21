@@ -53,6 +53,7 @@
     "@radix-ui/react-tooltip": "1.1.6",
     "@remix-run/react": "latest",
     "@serwist/next": "^9.5.7",
+    "@serwist/window": "^9.5.7",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/supabase-js": "^2.57.4",
     "@sveltejs/kit": "latest",

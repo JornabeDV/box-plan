@@ -1,7 +1,7 @@
 {
   "name": "Box Plan - Planificación y Seguimiento",
   "short_name": "Box Plan",
-  "description": "App PWA para planificación y seguimiento de entrenamientos CrossFit",
+  "description": "App PWA para planificación y seguimiento de entrenamientos",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

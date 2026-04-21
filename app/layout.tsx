@@ -9,6 +9,7 @@ import { SessionProvider } from "next-auth/react"
 import { Toaster } from "@/components/ui/toaster"
 import { ClearCacheScript } from "@/components/clear-cache-script"
 import { Header } from "@/components/layout/header"
+import { SerwistProvider } from "@/components/pwa/serwist-provider"
 import "./globals.css"
 
 // Display & Headlines — geometric, tech-forward
@@ -41,7 +42,7 @@ const bebasNeue = Bebas_Neue({
 
 export const metadata: Metadata = {
   title: "Box Plan — Planificación y Seguimiento",
-  description: "App PWA para planificación y seguimiento de entrenamientos CrossFit",
+  description: "App PWA para planificación y seguimiento de entrenamientos",
   generator: "v0.app",
   manifest: "/manifest.json",
   appleWebApp: {
@@ -50,10 +51,9 @@ export const metadata: Metadata = {
     title: "Box Plan",
   },
   icons: {
-    apple: "/icon-192.jpg",
+    apple: "/apple-touch-icon.png",
     icon: "/favicon-32.png",
     shortcut: "/favicon-32.png",
-    apple: "/apple-touch-icon.png",
   },
   other: {
     "mobile-web-app-capable": "yes",
@@ -89,14 +89,16 @@ export default function RootLayout({
         <meta httpEquiv="Expires" content="0" />
       </head>
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} ${bebasNeue.variable} ${spaceGrotesk.variable} ${oswald.variable} ${inter.variable} antialiased`}>
-          <SessionProvider>
-            <div className="min-h-[100dvh] bg-background text-foreground relative overflow-hidden">
-              <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
-              <Header />
-              {children}
-            </div>
-            <Toaster />
-          </SessionProvider>
+          <SerwistProvider>
+            <SessionProvider>
+              <div className="min-h-[100dvh] bg-background text-foreground relative overflow-hidden">
+                <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
+                <Header />
+                {children}
+              </div>
+              <Toaster />
+            </SessionProvider>
+          </SerwistProvider>
       </body>
     </html>
   )
