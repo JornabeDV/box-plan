@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { CoachSignUpForm } from '@/components/auth/coach-signup-form'
+import { AuthLayout } from '@/components/auth/auth-layout'
 import { useAuth } from '@/hooks/use-auth'
 import { Loader2 } from 'lucide-react'
 
@@ -38,40 +39,21 @@ export default function CoachRegisterPage() {
 
 	if (loading || authLoading) {
 		return (
-			<div className="min-h-[100dvh] relative overflow-hidden bg-gradient-to-br from-background via-background to-card text-foreground flex items-center justify-center">
-			  <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
+			<div className="min-h-screen flex items-center justify-center">
 				<div className="flex items-center gap-2">
-					<Loader2 className="w-6 h-6 animate-spin" />
-					<span>Cargando...</span>
+					<Loader2 className="w-6 h-6 animate-spin text-primary" />
+					<span className="text-muted-foreground">Cargando...</span>
 				</div>
 			</div>
 		)
 	}
 
 	return (
-		<div className="min-h-[100dvh] relative overflow-hidden bg-gradient-to-br from-background via-background to-card text-foreground">
-		  <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
-			{/* Header */}
-			<header className="relative overflow-hidden bg-gradient-to-r from-card via-card/95 to-primary/10 border-b border-primary/20 backdrop-blur-sm">
-				<div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5"></div>
-				<div className="relative flex items-center justify-center p-6">
-					<div className="flex items-center gap-4">
-						<h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
-							Box Plan - Para Coaches
-						</h1>
-					</div>
-				</div>
-			</header>
-
-			{/* Main Content */}
-			<main className="flex items-center justify-center min-h-[calc(100vh-200px)] p-6">
-				<div className="w-full max-w-md space-y-6">
-					<CoachSignUpForm 
-						onSuccess={handleSuccess}
-						onSwitchToLogin={switchToLogin}
-					/>
-				</div>
-			</main>
-		</div>
+		<AuthLayout title="Registro Coach" subtitle="Para Coaches">
+			<CoachSignUpForm 
+				onSuccess={handleSuccess}
+				onSwitchToLogin={switchToLogin}
+			/>
+		</AuthLayout>
 	)
 }
