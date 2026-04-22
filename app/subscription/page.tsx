@@ -21,6 +21,7 @@ import {
   Clock,
   Loader2,
   ArrowLeft,
+  AlertTriangle,
 } from "lucide-react";
 
 interface PaymentHistoryItem {
@@ -118,6 +119,7 @@ export default function SubscriptionPage() {
   // Verificar pago exitoso al volver de MercadoPago (solución optimista)
   const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [paymentVerified, setPaymentVerified] = useState(false);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined" || verifyingPayment || paymentVerified) return;
@@ -128,16 +130,18 @@ export default function SubscriptionPage() {
       urlParams.get("collection_status") === "approved" ||
       urlParams.get("status") === "approved";
     const preferenceId = urlParams.get("preference_id");
+    const externalReference = urlParams.get("external_reference");
 
-    if (isSuccess && preferenceId) {
+    if (isSuccess && (preferenceId || externalReference)) {
       setVerifyingPayment(true);
+      setVerifyError(null);
 
       fetch("/api/confirm-payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           preference_id: preferenceId,
-          external_reference: urlParams.get("external_reference"),
+          external_reference: externalReference,
         }),
       })
         .then((res) => res.json())
@@ -147,9 +151,13 @@ export default function SubscriptionPage() {
             window.history.replaceState({}, "", "/subscription");
           } else {
             console.error("Error confirmando pago:", data.error);
+            setVerifyError(data.error || "No se pudo activar la suscripción");
           }
         })
-        .catch((err) => console.error("Error confirmando pago:", err))
+        .catch((err) => {
+          console.error("Error confirmando pago:", err);
+          setVerifyError("Error de conexión al activar la suscripción");
+        })
         .finally(() => setVerifyingPayment(false));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -260,6 +268,17 @@ export default function SubscriptionPage() {
               Historial
             </TabsTrigger>
           </TabsList>
+
+          {/* Error de activación de pago */}
+          {verifyError && (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3 flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+              <div className="text-sm">
+                <p className="font-medium">No se pudo activar la suscripción automáticamente</p>
+                <p className="text-muted-foreground">{verifyError}</p>
+              </div>
+            </div>
+          )}
 
           {/* Banner de suscripción vencida */}
           {currentSubscription && (currentSubscription.status === "expired" || currentSubscription.is_expired) && (
