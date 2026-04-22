@@ -221,8 +221,8 @@ export function MercadoPagoConnect({ coachId }: MercadoPagoConnectProps) {
                 </div>
               )}
               <p className="text-sm text-muted-foreground">
-                Los pagos de tus estudiantes se distribuirán automáticamente
-                entre tu cuenta y la plataforma.
+                Los pagos de tus estudiantes se acreditan directamente en tu
+                cuenta de MercadoPago.
               </p>
               <Button
                 variant="outline"
