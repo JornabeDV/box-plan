@@ -46,7 +46,6 @@ self.addEventListener("push", (event: PushEvent) => {
   event.waitUntil(
     self.registration.showNotification(title || "Box Plan", {
       body: body || "",
-      icon: "/badge-96x96.png",
       data: { url: url || "/" },
     }),
   );
