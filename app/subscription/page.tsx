@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -115,6 +115,53 @@ export default function SubscriptionPage() {
     }
   }, [loading, currentSubscription]);
 
+  // Verificar pago exitoso al volver de MercadoPago (solución optimista)
+  const searchParams = useSearchParams();
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
+  const [paymentVerified, setPaymentVerified] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || verifyingPayment || paymentVerified) return;
+
+    const isSuccess =
+      searchParams.get("success") === "true" ||
+      searchParams.get("collection_status") === "approved" ||
+      searchParams.get("status") === "approved";
+    const preferenceId = searchParams.get("preference_id");
+
+    if (isSuccess && preferenceId) {
+      setVerifyingPayment(true);
+
+      fetch("/api/confirm-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          preference_id: preferenceId,
+          external_reference: searchParams.get("external_reference"),
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            setPaymentVerified(true);
+            window.history.replaceState({}, "", "/subscription");
+          } else {
+            console.error("Error confirmando pago:", data.error);
+          }
+        })
+        .catch((err) => console.error("Error confirmando pago:", err))
+        .finally(() => setVerifyingPayment(false));
+    }
+  }, [searchParams, verifyingPayment, paymentVerified]);
+
+  // Recargar suscripción cuando se verifica el pago
+  useEffect(() => {
+    if (paymentVerified) {
+      loadCurrentSubscription();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentVerified]);
+
   // Cargar historial de pagos
   const loadPaymentHistory = async () => {
     setLoadingHistory(true);
@@ -137,14 +184,16 @@ export default function SubscriptionPage() {
     }
   }, [activeTab]);
 
-  if (loading) {
+  if (loading || verifyingPayment) {
     return (
       <div className="min-h-[100dvh] relative overflow-hidden bg-gradient-to-br from-background via-background to-card text-foreground flex items-center justify-center">
         <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
         <div className="text-center space-y-4">
           <Loader2 className="w-8 h-8 animate-spin mx-auto" />
           <p className="text-muted-foreground">
-            Cargando gestión de suscripción...
+            {verifyingPayment
+              ? "Activando tu suscripción..."
+              : "Cargando gestión de suscripción..."}
           </p>
         </div>
       </div>
