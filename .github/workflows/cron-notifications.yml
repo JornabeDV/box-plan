@@ -13,7 +13,7 @@ jobs:
     steps:
       - name: Send expiration reminders
         run: |
-          APP_URL="${{ vars.APP_URL || vars.NEXT_PUBLIC_APP_URL }}"
+          APP_URL="${{ secrets.APP_URL || vars.APP_URL || vars.NEXT_PUBLIC_APP_URL }}"
 
           if [ -z "$APP_URL" ]; then
             echo "❌ ERROR: Configure APP_URL o NEXT_PUBLIC_APP_URL en las variables del repositorio (Settings > Secrets and variables > Actions > Variables)"
