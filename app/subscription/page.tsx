@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -116,18 +116,18 @@ export default function SubscriptionPage() {
   }, [loading, currentSubscription]);
 
   // Verificar pago exitoso al volver de MercadoPago (solución optimista)
-  const searchParams = useSearchParams();
   const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [paymentVerified, setPaymentVerified] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined" || verifyingPayment || paymentVerified) return;
 
+    const urlParams = new URLSearchParams(window.location.search);
     const isSuccess =
-      searchParams.get("success") === "true" ||
-      searchParams.get("collection_status") === "approved" ||
-      searchParams.get("status") === "approved";
-    const preferenceId = searchParams.get("preference_id");
+      urlParams.get("success") === "true" ||
+      urlParams.get("collection_status") === "approved" ||
+      urlParams.get("status") === "approved";
+    const preferenceId = urlParams.get("preference_id");
 
     if (isSuccess && preferenceId) {
       setVerifyingPayment(true);
@@ -137,7 +137,7 @@ export default function SubscriptionPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           preference_id: preferenceId,
-          external_reference: searchParams.get("external_reference"),
+          external_reference: urlParams.get("external_reference"),
         }),
       })
         .then((res) => res.json())
@@ -152,7 +152,8 @@ export default function SubscriptionPage() {
         .catch((err) => console.error("Error confirmando pago:", err))
         .finally(() => setVerifyingPayment(false));
     }
-  }, [searchParams, verifyingPayment, paymentVerified]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Recargar suscripción cuando se verifica el pago
   useEffect(() => {
