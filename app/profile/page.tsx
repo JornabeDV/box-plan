@@ -154,12 +154,6 @@ export default function ProfilePage() {
               {profile?.full_name || user?.name || "Atleta"}
             </span>
           </h2>
-          <p className="body-lg text-muted-foreground text-foreground">
-            Miembro desde{" "}
-            {profile?.created_at
-              ? format(new Date(profile.created_at), "MMM yyyy", { locale: es })
-              : "N/A"}
-          </p>
         </div>
 
         <Card>

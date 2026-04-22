@@ -4,7 +4,6 @@ import { prisma } from '@/lib/prisma'
 import { MercadoPagoConfig, Payment } from 'mercadopago'
 import { sendPushNotification } from '@/lib/push-notifications'
 import { decryptToken } from '@/lib/crypto'
-import { calculatePaymentSplit } from '@/lib/payment-helpers'
 
 // ---------------------------------------------------------------------------
 // Signature validation
@@ -286,38 +285,6 @@ async function createSubscription({
             mercadopagoPaymentId: paymentId,
             mercadopagoPreferenceId: preferenceId,
             paymentMethod: 'mercadopago'
-          }
-        })
-      }
-    }
-
-    // --- Registrar comisión del coach ---
-    if (coachId) {
-      const coachProfile = await tx.coachProfile.findUnique({
-        where: { id: coachId },
-        select: { commissionRate: true, platformCommissionRate: true }
-      })
-
-      if (coachProfile) {
-        const split = calculatePaymentSplit(
-          expectedAmount,
-          Number(coachProfile.commissionRate),
-          Number(coachProfile.platformCommissionRate)
-        )
-
-        await tx.coachCommission.create({
-          data: {
-            coachId,
-            studentSubscriptionId: subscription.id,
-            studentId: userId,
-            commissionAmount: split.coachAmount,
-            commissionRate: split.coachRate,
-            platformCommissionAmount: split.platformAmount,
-            platformCommissionRate: split.platformRate,
-            studentSubscriptionAmount: expectedAmount,
-            periodStart: now,
-            periodEnd,
-            status: 'pending'
           }
         })
       }
