@@ -47,7 +47,7 @@ self.addEventListener("push", (event: PushEvent) => {
     self.registration.showNotification(title || "Box Plan", {
       body: body || "",
       icon: icon || "/icon-192.png",
-      badge: "/badge-96x96.png",
+      badge: "https://raw.githubusercontent.com/GoogleChrome/samples/gh-pages/push-messaging-and-notifications/images/badge.png",      
       data: { url: url || "/" },
     }),
   );
