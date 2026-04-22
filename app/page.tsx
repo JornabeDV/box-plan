@@ -146,6 +146,20 @@ export default function BoxPlanApp() {
     }
   }, [authLoading, isCoach, user?.id, router, isRedirectingCoach]);
 
+  // Para alumnos nuevos sin plan, redirigir directo a elegir plan
+  useEffect(() => {
+    if (
+      !authLoading &&
+      !subscriptionLoading &&
+      user &&
+      !isCoach &&
+      !isSubscribed &&
+      !isExpired
+    ) {
+      router.replace("/choose-plan");
+    }
+  }, [authLoading, subscriptionLoading, user, isCoach, isSubscribed, isExpired, router]);
+
   // Manejar parámetros de pago después de redirección desde MercadoPago
   useEffect(() => {
     if (paymentStatusHandled || typeof window === "undefined") return;
@@ -770,6 +784,23 @@ export default function BoxPlanApp() {
   // Para usuarios logueados, verificar si tiene suscripción activa
   // Si no tiene suscripción, mostrar pantalla de acceso restringido (Beta)
   if (!subscriptionLoading && !isSubscribed) {
+    // Alumno nuevo sin plan: redirigir a elegir plan (el useEffect arriba lo maneja,
+    // mostramos un loading mientras tanto para evitar el flash de la card)
+    if (!isExpired) {
+      return (
+        <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground flex items-center justify-center">
+          <div
+            className="absolute inset-0 kinetic-grid-bg pointer-events-none"
+            aria-hidden="true"
+          />
+          <div className="flex items-center gap-2">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            <span>Redirigiendo...</span>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground">
         <div
@@ -830,7 +861,7 @@ export default function BoxPlanApp() {
                   <Button
                     size="lg"
                     className="w-full"
-                    onClick={() => router.push("/subscription")}
+                    onClick={() => router.push("/choose-plan")}
                   >
                     Ver planes disponibles
                   </Button>

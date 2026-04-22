@@ -81,7 +81,7 @@ export function SubscriptionGuard({ children }: SubscriptionGuardProps) {
               </p>
               <Button
                 variant="outline"
-                onClick={() => router.push('/subscription')}
+                onClick={() => router.push('/choose-plan')}
                 className="w-full"
               >
                 Ver Planes Disponibles
