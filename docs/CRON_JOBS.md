@@ -198,6 +198,70 @@ curl https://tu-dominio.com/api/cron/check-expired-subscriptions
 
 ---
 
+## Notificaciones Push de Vencimiento (Nuevo)
+
+Este cron job envía notificaciones push a los alumnos cuando su plan está por vencer:
+- **3 días antes** del vencimiento
+- **1 día antes** del vencimiento
+
+### Endpoint
+
+**URL**: `/api/cron/notify-expiring-subscriptions`
+
+**Método**: `GET` o `POST`
+
+**Headers**:
+```
+Authorization: Bearer TU_CRON_SECRET
+```
+
+**Respuesta exitosa**:
+```json
+{
+  "success": true,
+  "threeDays": {
+    "checked": 5,
+    "notified": 4
+  },
+  "oneDay": {
+    "checked": 2,
+    "notified": 2
+  }
+}
+```
+
+### Requisitos
+
+- Las suscripciones deben tener `status: 'active'` y `cancelAtPeriodEnd: false`
+- El alumno debe haber activado las notificaciones push en su perfil
+- `CRON_SECRET` debe estar configurado
+
+---
+
+## GitHub Actions (Recomendado)
+
+En lugar de cron-job.org, puedes usar GitHub Actions para ejecutar ambos cron jobs diariamente.
+
+### Configuración
+
+1. Ve a **Settings > Secrets and variables > Actions > Secrets** y agrega:
+   - `CRON_SECRET`: el mismo secret que usas en la app
+
+2. Ve a **Settings > Secrets and variables > Actions > Variables** y agrega:
+   - `APP_URL` o `NEXT_PUBLIC_APP_URL`: la URL de producción (ej: `https://tu-dominio.com`)
+
+3. El workflow `.github/workflows/cron-notifications.yml` ya está incluido en el repo y se ejecuta:
+   - Automáticamente todos los días a las 10:00 AM (hora Argentina)
+   - Manualmente via `workflow_dispatch`
+
+### Workflow disponible
+
+| Job | Descripción | Schedule |
+|-----|-------------|----------|
+| `notify-expiring-subscriptions` | Envía push a alumnos con plan por vencer | Diario 13:00 UTC |
+
+---
+
 ## Próximos Pasos
 
 Después de configurar el cron:
