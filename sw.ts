@@ -1,7 +1,13 @@
 /// <reference lib="webworker" />
-import { defaultCache } from "@serwist/next/worker";
+
 import type { PrecacheEntry } from "serwist";
-import { NetworkFirst, Serwist } from "serwist";
+import {
+  CacheableResponsePlugin,
+  ExpirationPlugin,
+  NetworkFirst,
+  Serwist,
+  StaleWhileRevalidate,
+} from "serwist";
 
 declare const self: ServiceWorkerGlobalScope & {
   __SW_MANIFEST: (PrecacheEntry | string)[] | undefined;
@@ -11,67 +17,107 @@ const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
   skipWaiting: true,
   clientsClaim: true,
-  navigationPreload: false,
-  runtimeCaching: defaultCache,
-});
-
-// Use NetworkFirst for navigation requests to avoid "no-response" errors
-serwist.setDefaultHandler(new NetworkFirst({
-  cacheName: "pages",
-  plugins: [
+  navigationPreload: true,
+  runtimeCaching: [
+    // Páginas (navegación): network-first con fallback a caché
     {
-      cacheWillUpdate: async ({ response }) => {
-        if (response && response.status === 200) {
-          return response;
-        }
-        return null;
-      },
+      matcher: ({ request }) => request.mode === "navigate",
+      handler: new NetworkFirst({
+        cacheName: "pages",
+        plugins: [
+          new CacheableResponsePlugin({ statuses: [200] }),
+          new ExpirationPlugin({ maxEntries: 30 }),
+        ],
+        networkTimeoutSeconds: 5,
+      }),
+    },
+    // Fuentes de Google
+    {
+      matcher: ({ url }) => url.origin === "https://fonts.gstatic.com",
+      handler: new StaleWhileRevalidate({
+        cacheName: "google-fonts",
+        plugins: [
+          new CacheableResponsePlugin({ statuses: [0, 200] }),
+          new ExpirationPlugin({ maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 }),
+        ],
+      }),
+    },
+    // Estáticos Next.js (_next/static)
+    {
+      matcher: ({ url }) => url.pathname.startsWith("/_next/static"),
+      handler: new StaleWhileRevalidate({
+        cacheName: "next-static",
+        plugins: [
+          new CacheableResponsePlugin({ statuses: [0, 200] }),
+        ],
+      }),
+    },
+    // Imágenes
+    {
+      matcher: ({ request }) => request.destination === "image",
+      handler: new StaleWhileRevalidate({
+        cacheName: "images",
+        plugins: [
+          new CacheableResponsePlugin({ statuses: [0, 200] }),
+          new ExpirationPlugin({ maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 30 }),
+        ],
+      }),
     },
   ],
-}));
+  fallbacks: {
+    entries: [
+      {
+        url: "/offline",
+        matcher({ request }) {
+          return request.destination === "document";
+        },
+      },
+    ],
+  },
+});
 
-// Push notifications support (preserved from original sw.js)
+serwist.addEventListeners();
+
+// ── Push Notifications ────────────────────────────────────────────────────────
+
 self.addEventListener("push", (event: PushEvent) => {
   if (!event.data) return;
 
-  let data;
-  try {
-    data = event.data.json();
-  } catch {
-    data = { title: "Box Plan", body: event.data.text() };
-  }
+  const data = event.data.json() as {
+    title?: string;
+    body?: string;
+    icon?: string;
+    url?: string;
+    tag?: string;
+  };
 
-  const { title, body, icon, url } = data;
+  const title = data.title ?? "Box Plan";
+  const options: NotificationOptions & { renotify?: boolean } = {
+    body: data.body ?? "",
+    icon: data.icon ?? "/icon-192.png",
+    badge: "/badge-96x96.png",
+    data: { url: data.url ?? "/" },
+    tag: data.tag,
+    renotify: !!data.tag,
+  };
 
-  event.waitUntil(
-    self.registration.showNotification(title || "Box Plan", {
-      body: body || "",
-      icon: icon || "/icon-192.png",
-      badge: "/badge-96x96.png",
-      data: { url: url || "/" },
-    }),
-  );
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener("notificationclick", (event: NotificationEvent) => {
   event.notification.close();
-
-  const url = event.notification.data?.url || "/";
+  const url: string = (event.notification.data?.url as string) ?? "/";
 
   event.waitUntil(
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })
-      .then((clients: readonly WindowClient[]) => {
-        const existing = clients.find((c: WindowClient) =>
-          c.url.includes(self.location.origin),
-        );
-        if (existing) {
-          existing.focus();
-          return existing.navigate(url);
+      .then((clientList) => {
+        for (const client of clientList) {
+          if (client.url === url && "focus" in client) {
+            return (client as WindowClient).focus();
+          }
         }
         return self.clients.openWindow(url);
       }),
   );
 });
-
-serwist.addEventListeners();
