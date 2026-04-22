@@ -148,7 +148,7 @@ export default function SubscriptionPage() {
         .then((data) => {
           if (data.success) {
             setPaymentVerified(true);
-            window.history.replaceState({}, "", "/subscription");
+            router.push("/?activated=true");
           } else {
             console.error("Error confirmando pago:", data.error);
             setVerifyError(data.error || "No se pudo activar la suscripción");
@@ -163,13 +163,20 @@ export default function SubscriptionPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Recargar suscripción cuando se verifica el pago
+  // Si volvimos de MercadoPago y el webhook ya creó la suscripción, redirigir a home
   useEffect(() => {
-    if (paymentVerified) {
-      loadCurrentSubscription();
+    if (typeof window === "undefined" || loading || !currentSubscription) return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const isSuccess =
+      urlParams.get("success") === "true" ||
+      urlParams.get("collection_status") === "approved" ||
+      urlParams.get("status") === "approved";
+
+    if (isSuccess && currentSubscription.status === "active") {
+      router.push("/?activated=true");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paymentVerified]);
+  }, [loading, currentSubscription, router]);
 
   // Cargar historial de pagos
   const loadPaymentHistory = async () => {

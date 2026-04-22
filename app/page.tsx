@@ -160,11 +160,21 @@ export default function BoxPlanApp() {
     }
   }, [authLoading, subscriptionLoading, user, isCoach, isSubscribed, isExpired, router]);
 
-  // Manejar parámetros de pago después de redirección desde MercadoPago
+  // Mostrar toast cuando se activa una suscripción desde /subscription
   useEffect(() => {
-    if (paymentStatusHandled || typeof window === "undefined") return;
-
+    if (typeof window === "undefined") return;
     const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("activated") === "true") {
+      toast({
+        title: "¡Plan activado! 🎉",
+        description: "Tu suscripción está lista. ¡A entrenar!",
+      });
+      router.replace("/", { scroll: false });
+      return;
+    }
+
+    // Manejar parámetros de pago después de redirección desde MercadoPago
+    if (paymentStatusHandled) return;
     const paymentStatus = urlParams.get("payment");
 
     if (paymentStatus && !paymentStatusHandled) {
