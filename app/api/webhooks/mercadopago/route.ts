@@ -333,7 +333,7 @@ async function notifyStudent(userId: number, planName: string, periodEnd: Date) 
           {
             title: '¡Pago confirmado! ✅',
             body: `Tu plan ${planName} está activo hasta el ${expiryDate}. ¡A entrenar!`,
-            icon: '/icon-192.jpg',
+            icon: '/icon-192.png',
             url: '/planification'
           }
         )
@@ -371,7 +371,7 @@ async function notifyCoach(
       body: amountText
         ? `${studentName} pagó ${amountText} por el plan ${planName}.`
         : `${studentName} se suscribió al plan ${planName}.`,
-      icon: '/icon-192.jpg',
+      icon: '/icon-192.png',
       url: '/admin-dashboard'
     })
   } catch (err) {
