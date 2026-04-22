@@ -59,7 +59,7 @@ async function notifyExpiringSubscriptions(
       const result = await sendPushToUsers(sub.user.id, {
         title,
         body,
-        icon: '/icon-192.jpg',
+        icon: '/icon-192.png',
         url: '/subscription',
       })
 

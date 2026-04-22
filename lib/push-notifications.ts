@@ -35,7 +35,7 @@ export async function sendPushNotification(
       JSON.stringify({
         title: payload.title,
         body: payload.body,
-        icon: payload.icon ?? '/icon-192.jpg',
+        icon: payload.icon ?? '/icon-192.png',
         url: payload.url ?? '/',
       })
     )
