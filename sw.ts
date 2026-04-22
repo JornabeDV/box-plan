@@ -1,3 +1,4 @@
+/// <reference lib="webworker" />
 import { defaultCache } from "@serwist/next/worker";
 import type { PrecacheEntry } from "serwist";
 import { NetworkFirst, Serwist } from "serwist";
@@ -30,7 +31,7 @@ serwist.setDefaultHandler(new NetworkFirst({
 }));
 
 // Push notifications support (preserved from original sw.js)
-self.addEventListener("push", (event) => {
+self.addEventListener("push", (event: PushEvent) => {
   if (!event.data) return;
 
   let data;
@@ -46,14 +47,13 @@ self.addEventListener("push", (event) => {
     self.registration.showNotification(title || "Box Plan", {
       body: body || "",
       icon: icon || "/icon-192.png",
-      badge: "/icon-192.png",
+      // badge: se deja vacio para que Android use la campanita por defecto
       data: { url: url || "/" },
-      vibrate: [100, 50, 100],
     }),
   );
 });
 
-self.addEventListener("notificationclick", (event) => {
+self.addEventListener("notificationclick", (event: NotificationEvent) => {
   event.notification.close();
 
   const url = event.notification.data?.url || "/";
@@ -61,8 +61,8 @@ self.addEventListener("notificationclick", (event) => {
   event.waitUntil(
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })
-      .then((clients) => {
-        const existing = clients.find((c) =>
+      .then((clients: readonly WindowClient[]) => {
+        const existing = clients.find((c: WindowClient) =>
           c.url.includes(self.location.origin),
         );
         if (existing) {
