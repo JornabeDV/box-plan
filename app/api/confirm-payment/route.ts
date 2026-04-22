@@ -19,42 +19,39 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    console.log('[confirm-payment] Recibido:', { preference_id, external_reference })
+
     let userId: number | null = null
     let planId: number | null = null
     let paymentRecord = null
 
-    // 1. Buscar por preference_id
-    if (preference_id) {
-      paymentRecord = await prisma.paymentHistory.findFirst({
-        where: { mercadopagoPreferenceId: String(preference_id) },
-        orderBy: { createdAt: 'desc' }
-      })
-    }
-
-    // 2. Si no se encuentra, intentar parsear external_reference
+    // 1. Intentar obtener userId y planId desde external_reference (más confiable)
     // Formato: subscription_${user_id}_${plan_id}_${timestamp}
-    if (!paymentRecord && external_reference) {
+    if (external_reference) {
       const parts = String(external_reference).split('_')
+      console.log('[confirm-payment] Parseando external_reference:', parts)
       if (parts.length >= 3 && parts[0] === 'subscription') {
         userId = parseInt(parts[1], 10)
         planId = parseInt(parts[2], 10)
       }
     }
 
-    // 3. Si encontramos el paymentRecord, extraer datos
-    if (paymentRecord) {
+    // 2. Buscar paymentHistory por preference_id (para actualizarlo después)
+    if (preference_id) {
+      paymentRecord = await prisma.paymentHistory.findFirst({
+        where: { mercadopagoPreferenceId: String(preference_id) },
+        orderBy: { createdAt: 'desc' }
+      })
+      console.log('[confirm-payment] PaymentRecord por preference_id:', paymentRecord?.id)
+    }
+
+    // 3. Si no tenemos userId desde external_reference, usar el del paymentRecord
+    if (!userId && paymentRecord) {
       userId = paymentRecord.userId
-      // Intentar obtener planId del registro de pago (si tiene subscriptionId)
-      if (paymentRecord.subscriptionId) {
-        const sub = await prisma.subscription.findUnique({
-          where: { id: paymentRecord.subscriptionId },
-          select: { planId: true }
-        })
-        if (sub) planId = sub.planId
-      }
     }
 
     if (!userId || isNaN(userId)) {
+      console.error('[confirm-payment] No se pudo determinar userId')
       return NextResponse.json(
         { error: 'No se pudo determinar el usuario del pago' },
         { status: 400 }
@@ -76,6 +73,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (existingSubscription) {
+      console.log('[confirm-payment] Suscripción ya existe:', existingSubscription.id)
       return NextResponse.json({
         success: true,
         subscription: existingSubscription,
@@ -83,8 +81,17 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // 5. Si no tenemos planId, buscar el último plan del paymentHistory del usuario
-    if (!planId || isNaN(planId)) {
+    // 5. Si no tenemos planId, intentar obtenerlo del paymentRecord
+    if (!planId && paymentRecord?.subscriptionId) {
+      const sub = await prisma.subscription.findUnique({
+        where: { id: paymentRecord.subscriptionId },
+        select: { planId: true }
+      })
+      if (sub) planId = sub.planId
+    }
+
+    // 6. Si todavía no tenemos planId, buscar el último paymentHistory del usuario
+    if (!planId) {
       const lastPayment = await prisma.paymentHistory.findFirst({
         where: { userId },
         orderBy: { createdAt: 'desc' }
@@ -99,13 +106,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (!planId || isNaN(planId)) {
+      console.error('[confirm-payment] No se pudo determinar planId. userId:', userId)
       return NextResponse.json(
         { error: 'No se pudo determinar el plan del pago' },
         { status: 400 }
       )
     }
 
-    // 6. Buscar el plan
+    // 7. Buscar el plan
     const plan = await prisma.subscriptionPlan.findUnique({
       where: { id: planId }
     })
@@ -117,16 +125,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 7. Buscar el coach del estudiante
+    // 8. Buscar el coach del estudiante
     const relationship = await prisma.coachStudentRelationship.findFirst({
       where: { studentId: userId, status: 'active' }
     })
     const coachId = relationship?.coachId ?? null
 
-    // 8. Crear la suscripción
+    // 9. Crear la suscripción
     const now = new Date()
     const periodEnd = new Date()
     periodEnd.setMonth(periodEnd.getMonth() + (plan.interval === 'year' ? 12 : 1))
+
+    console.log('[confirm-payment] Creando suscripción:', { userId, planId, coachId })
 
     const subscription = await prisma.$transaction(async (tx) => {
       const newSubscription = await tx.subscription.create({
@@ -176,13 +186,15 @@ export async function POST(request: NextRequest) {
       return newSubscription
     })
 
+    console.log('[confirm-payment] Suscripción creada:', subscription.id)
+
     return NextResponse.json({
       success: true,
       subscription,
       message: 'Suscripción activada correctamente'
     })
   } catch (error) {
-    console.error('Error confirmando pago:', error)
+    console.error('[confirm-payment] Error:', error)
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : 'Error al confirmar pago',
