@@ -735,7 +735,7 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg p-4 sm:p-6">
+      <DialogContent className="w-full max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg">
         <DialogHeader className="pb-0">
           <div className="flex items-end justify-between gap-4">
             <div className="flex-1">

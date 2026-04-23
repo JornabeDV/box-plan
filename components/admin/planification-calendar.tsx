@@ -9,7 +9,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ChevronLeft, ChevronRight, Info } from "lucide-react";
+import { ChevronLeft, ChevronRight, Info, Upload } from "lucide-react";
 import { Planification } from "@/hooks/use-planifications";
 import { useCoachPlanFeatures } from "@/hooks/use-coach-plan-features";
 
@@ -23,6 +23,7 @@ interface PlanificationCalendarProps {
     date: Date,
     planifications: Planification[],
   ) => void;
+  onBulkImport?: () => void;
 }
 
 export function PlanificationCalendar({
@@ -32,6 +33,7 @@ export function PlanificationCalendar({
   onEditPlanification,
   onDeletePlanification,
   onViewDayPlanifications,
+  onBulkImport,
 }: PlanificationCalendarProps) {
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -306,8 +308,8 @@ export function PlanificationCalendar({
           </Button>
         </div>
 
-        {/* Botón Hoy */}
-        <div className="flex justify-center mt-4">
+        {/* Botones de acción */}
+        <div className="flex justify-center mt-4 gap-2 flex-wrap">
           <Button
             variant="outline"
             size="sm"
@@ -316,6 +318,17 @@ export function PlanificationCalendar({
           >
             Ir a Hoy
           </Button>
+          {onBulkImport && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onBulkImport}
+              className="text-sm font-semibold hover:bg-primary/10 hover:text-primary border-dashed border-2"
+            >
+              <Upload className="w-4 h-4 mr-1.5" />
+              Importar múltiples días
+            </Button>
+          )}
         </div>
       </CardHeader>
 
