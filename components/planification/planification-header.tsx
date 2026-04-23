@@ -9,7 +9,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { DisciplineLevel } from "@/hooks/use-planification-data";
-
+import { Button } from "../ui/button";
+import { ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface DisciplineOption {
   id: number;
@@ -44,13 +46,24 @@ export function PlanificationHeader({
   onDisciplineChange,
   availableDisciplineOptions,
 }: PlanificationHeaderProps) {
+  const router = useRouter();
+
   const hasMultipleDisciplines =
     availableDisciplineOptions && availableDisciplineOptions.length > 1;
 
   return (
     <div className="space-y-6">
       {/* Label + Título */}
-      <div className="flex justify-between items-start">
+      <div className="flex justify-start md:justify-between items-start gap-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => router.push("/")}
+          className="flex items-center gap-2 md:order-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span className="hidden sm:inline">Volver</span>
+        </Button>
         <div>
           <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground mb-1">
             Sesión Actual
@@ -64,7 +77,6 @@ export function PlanificationHeader({
             </p>
           )}
         </div>
-
       </div>
 
       {/* Selectores */}

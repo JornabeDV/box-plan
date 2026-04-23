@@ -150,7 +150,7 @@ export function MonthlyCalendar() {
               {hasPlan ? (
                 <button
                   onClick={() => handleDayClick(day)}
-                  className="w-full flex items-center gap-4 group py-2"
+                  className="w-full flex items-center gap-4 group py-2 cursor-pointer hover:bg-surface-container-high rounded transition-colors"
                 >
                   {/* Fecha */}
                   <div
@@ -183,9 +183,6 @@ export function MonthlyCalendar() {
                       {status.label}
                     </p>
                   </div>
-
-                  {/* Flecha */}
-                  <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                 </button>
               ) : (
                 <div className="w-full flex items-center gap-4 py-2">
