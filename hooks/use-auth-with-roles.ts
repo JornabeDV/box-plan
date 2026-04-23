@@ -164,11 +164,9 @@ export function useAuthWithRoles() {
     loadingRef.current = false
     lastUserIdRef.current = undefined
     
-    // Hacer logout de NextAuth
-    await nextAuthSignOut({ redirect: false })
-    
-    // Forzar un refresh de la página para limpiar cualquier cache
-    window.location.href = '/login'
+    // NextAuth maneja la redirección directamente para evitar
+    // pantallas intermedias ("No autorizado" / doble loading)
+    await nextAuthSignOut({ redirect: true, callbackUrl: '/login' })
   }
 
   const isAdmin = roleOverride ? roleOverride === 'admin' : userRole?.role === 'admin'
