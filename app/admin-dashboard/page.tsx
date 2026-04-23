@@ -29,6 +29,7 @@ import { PlanificationModal } from "@/components/admin/planification-modal";
 import { PlanificationCalendar } from "@/components/admin/planification-calendar";
 import { PlanificationDayModal } from "@/components/admin/planification-day-modal";
 import { ReplicatePlanificationModal } from "@/components/admin/replicate-planification-modal";
+import { BulkImportModal } from "@/components/admin/bulk-import-modal";
 import { StudentPlansManager } from "@/components/coach/student-plans-manager";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
@@ -104,6 +105,7 @@ export default function AdminDashboardPage() {
     planifications: any[];
     sourceDate: Date | null;
   }>();
+  const bulkImportModal = useModalState();
 
   // Hook para operaciones CRUD con refresh automático
   const { handleCRUDOperation } = useDashboardCRUD(refreshDashboard);
@@ -353,7 +355,7 @@ export default function AdminDashboardPage() {
     fileInputRef.current?.click();
   };
 
-  // Handler para procesar el archivo importado
+  // Handler para procesar el archivo importado (un solo día desde modal)
   const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -375,28 +377,45 @@ export default function AdminDashboardPage() {
         body: formData,
       });
 
-      const result = await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Error al importar');
+        throw new Error(data.error || 'Error al importar');
       }
+
+      // El endpoint ahora devuelve { results, summary } siempre
+      const results = data.results || [];
+      const summary = data.summary;
 
       // Refrescar datos del dashboard (calendario)
       await refreshDashboard();
 
-      const isPersonalized = result.type === 'Personalizada';
-      const studentInfo = isPersonalized && result.student ? ` para ${result.student}` : '';
-      
-      toast({
-        title: result.action === 'created' ? 
-          (isPersonalized ? "Planificación personalizada creada" : "Planificación creada") : 
-          (isPersonalized ? "Planificación personalizada actualizada" : "Planificación actualizada"),
-        description: `${result.message}${studentInfo}. Se importaron ${result.blocksCount} bloques con ${result.exercisesCount} ejercicios.`,
-      });
+      // Si hay múltiples días importados, mostrar resumen
+      if (results.length > 1) {
+        const successCount = summary?.success || results.filter((r: any) => r.success).length;
+        const failedCount = summary?.failed || results.filter((r: any) => !r.success).length;
+        
+        toast({
+          title: failedCount > 0 ? "Importación parcial" : "Importación completada",
+          description: `${successCount} de ${results.length} planificaciones importadas correctamente.${failedCount > 0 ? ` ${failedCount} con error.` : ''}`,
+          variant: failedCount > 0 ? "destructive" : "default",
+        });
+      } else if (results.length === 1) {
+        // Formato compatible con importación de un solo día
+        const result = results[0];
+        const isPersonalized = result.type === 'Personalizada';
+        const studentInfo = isPersonalized && result.student ? ` para ${result.student}` : '';
+        
+        toast({
+          title: result.action === 'created' ? 
+            (isPersonalized ? "Planificación personalizada creada" : "Planificación creada") : 
+            (isPersonalized ? "Planificación personalizada actualizada" : "Planificación actualizada"),
+          description: `${result.message}${studentInfo}. Se importaron ${result.blocksCount} bloques con ${result.exercisesCount} ejercicios.`,
+        });
+      }
 
       // Si estamos en el modal del día, recargar las planificaciones del día
       if (dayModal.isOpen && selectedDate) {
-        // Buscar la planificación recién importada y actualizar la lista
         const normalizedDate = (date: Date) => {
           const year = date.getFullYear();
           const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -404,7 +423,6 @@ export default function AdminDashboardPage() {
           return `${year}-${month}-${day}`;
         };
 
-        // Refrescar las planificaciones del día desde el servidor
         const dateStr = normalizedDate(selectedDate);
         const response = await fetch(`/api/planifications?coachId=${profileId}`);
         if (response.ok) {
@@ -724,6 +742,7 @@ export default function AdminDashboardPage() {
               onEditPlanification={handleEditPlanification}
               onDeletePlanification={handleDeletePlanification}
               onViewDayPlanifications={handleViewDayPlanifications}
+              onBulkImport={bulkImportModal.open}
             />
           </TabsContent>
 
@@ -859,6 +878,13 @@ export default function AdminDashboardPage() {
         confirmText="Eliminar"
         cancelText="Cancelar"
         variant="destructive"
+      />
+
+      {/* Modal de importación masiva */}
+      <BulkImportModal
+        open={bulkImportModal.isOpen}
+        onOpenChange={bulkImportModal.handleOpenChange}
+        onSuccess={refreshDashboard}
       />
 
       {/* Diálogo de error al eliminar disciplina */}
