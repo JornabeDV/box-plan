@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       '2026-04-24',
     ]
 
-    // Datos de ejemplo para cada día
+    // Datos de ejemplo para cada día (con timers en bloques y sub-bloques)
     const dayExamples = [
       {
         date: exampleDates[0],
@@ -44,6 +44,8 @@ export async function GET(request: NextRequest) {
             title: 'Calentamiento',
             order: 1,
             notes: 'Movilidad articular y activación muscular',
+            timerMode: '',
+            timerConfig: null,
             exercises: ['500m rowing ligero', '10 shoulder dislocates', '15 air squats'],
             subBlocks: []
           },
@@ -51,10 +53,12 @@ export async function GET(request: NextRequest) {
             title: 'Fuerza',
             order: 2,
             notes: 'Enfocarse en la profundidad del squat',
+            timerMode: 'emom',
+            timerConfig: { totalRounds: '10' },
             exercises: [],
             subBlocks: [
-              { subtitle: 'Back Squat', exercises: ['Back squat 5x5 @ 80% RM'] },
-              { subtitle: 'Accesorio', exercises: ['RDL 3x8 @ 60kg', 'Plank 3x45 seg'] }
+              { subtitle: 'Back Squat', exercises: ['Back squat 5x5 @ 80% RM'], timerMode: '', timerConfig: null },
+              { subtitle: 'Accesorio', exercises: ['RDL 3x8 @ 60kg', 'Plank 3x45 seg'], timerMode: '', timerConfig: null }
             ]
           }
         ],
@@ -67,6 +71,8 @@ export async function GET(request: NextRequest) {
             title: 'Calentamiento',
             order: 1,
             notes: 'Preparar hombros y cadera',
+            timerMode: '',
+            timerConfig: null,
             exercises: ['400m run suave', '10 push-ups', '10 good mornings con PVC'],
             subBlocks: []
           },
@@ -74,9 +80,11 @@ export async function GET(request: NextRequest) {
             title: 'Gimnástico',
             order: 2,
             notes: 'Progresiones según nivel',
+            timerMode: '',
+            timerConfig: null,
             exercises: ['Pull-ups 4x6-8 (o band assisted)', 'Dips 3x8-10 (o bench dips)'],
             subBlocks: [
-              { subtitle: 'Core', exercises: ['Hollow hold 3x30 seg', 'Arch hold 3x30 seg'] }
+              { subtitle: 'Core', exercises: ['Hollow hold 3x30 seg', 'Arch hold 3x30 seg'], timerMode: 'tabata', timerConfig: { workTime: '20', restTime: '10', totalRounds: '8' } }
             ]
           }
         ],
@@ -89,6 +97,8 @@ export async function GET(request: NextRequest) {
             title: 'Calentamiento',
             order: 1,
             notes: 'Activar el sistema cardiovascular',
+            timerMode: '',
+            timerConfig: null,
             exercises: ['600m bike erg', '10 scap pull-ups', '10 cossack squats por lado'],
             subBlocks: []
           },
@@ -96,9 +106,11 @@ export async function GET(request: NextRequest) {
             title: 'Potencia',
             order: 2,
             notes: 'Máxima explosividad en cada repetición',
+            timerMode: '',
+            timerConfig: null,
             exercises: ['Power clean 5x2 @ 70% RM', 'Box jump 4x5 (24/20 pulgadas)'],
             subBlocks: [
-              { subtitle: 'Olympic', exercises: ['Hang snatch 4x2 @ 60% RM'] }
+              { subtitle: 'Olympic', exercises: ['Hang snatch 4x2 @ 60% RM'], timerMode: '', timerConfig: null }
             ]
           }
         ],
@@ -111,6 +123,8 @@ export async function GET(request: NextRequest) {
             title: 'Calentamiento',
             order: 1,
             notes: 'Movilidad de tobillos y caderas',
+            timerMode: '',
+            timerConfig: null,
             exercises: ['5 min saltar la soga', '10 pasos lunges con rotación', '10 inchworms'],
             subBlocks: []
           },
@@ -118,9 +132,11 @@ export async function GET(request: NextRequest) {
             title: 'WOD',
             order: 2,
             notes: 'Mantener un ritmo sostenible',
+            timerMode: 'fortime',
+            timerConfig: null,
             exercises: ['21-15-9: thrusters (43/30kg) + pull-ups', 'Time cap: 12 minutos'],
             subBlocks: [
-              { subtitle: 'Cooldown', exercises: ['5 min caminata', 'Foam rolling 5 min'] }
+              { subtitle: 'Cooldown', exercises: ['5 min caminata', 'Foam rolling 5 min'], timerMode: '', timerConfig: null }
             ]
           }
         ],
@@ -133,6 +149,8 @@ export async function GET(request: NextRequest) {
             title: 'Calentamiento',
             order: 1,
             notes: 'Activación glútea y core',
+            timerMode: '',
+            timerConfig: null,
             exercises: ['300m run', '10 banded side steps por lado', '10 bird dogs por lado'],
             subBlocks: []
           },
@@ -140,9 +158,11 @@ export async function GET(request: NextRequest) {
             title: 'Accesorio',
             order: 2,
             notes: 'Trabajo unilateral y estabilidad',
+            timerMode: 'amrap',
+            timerConfig: { amrapTime: '15', totalRounds: '1' },
             exercises: ['Bulgarian split squat 3x8 por pierna', 'Single-arm DB press 3x10 por brazo'],
             subBlocks: [
-              { subtitle: 'Core & Stability', exercises: ['Pallof press 3x12 por lado', 'Dead bug 3x8 por lado'] }
+              { subtitle: 'Core & Stability', exercises: ['Pallof press 3x12 por lado', 'Dead bug 3x8 por lado'], timerMode: '', timerConfig: null }
             ]
           }
         ],
@@ -169,7 +189,17 @@ export async function GET(request: NextRequest) {
               'Sub-bloque': '',
               'Ejercicio': block.exercises[i],
               'Notas Bloque': i === 0 ? block.notes : '',
-              'Notas General': i === 0 ? day.generalNotes : ''
+              'Notas General': i === 0 ? day.generalNotes : '',
+              'Timer Modo': i === 0 ? (block as any).timerMode || '' : '',
+              'Timer Trabajo': i === 0 ? (block as any).timerConfig?.workTime || '' : '',
+              'Timer Descanso': i === 0 ? (block as any).timerConfig?.restTime || '' : '',
+              'Timer Rondas': i === 0 ? (block as any).timerConfig?.totalRounds || '' : '',
+              'Timer AMRAP': i === 0 ? (block as any).timerConfig?.amrapTime || '' : '',
+              'Timer Sub-bloque Modo': '',
+              'Timer Sub-bloque Trabajo': '',
+              'Timer Sub-bloque Descanso': '',
+              'Timer Sub-bloque Rondas': '',
+              'Timer Sub-bloque AMRAP': ''
             })
           }
         }
@@ -188,7 +218,17 @@ export async function GET(request: NextRequest) {
               'Sub-bloque': subBlock.subtitle,
               'Ejercicio': subBlock.exercises[i],
               'Notas Bloque': i === 0 ? block.notes : '',
-              'Notas General': i === 0 ? day.generalNotes : ''
+              'Notas General': i === 0 ? day.generalNotes : '',
+              'Timer Modo': i === 0 ? (block as any).timerMode || '' : '',
+              'Timer Trabajo': i === 0 ? (block as any).timerConfig?.workTime || '' : '',
+              'Timer Descanso': i === 0 ? (block as any).timerConfig?.restTime || '' : '',
+              'Timer Rondas': i === 0 ? (block as any).timerConfig?.totalRounds || '' : '',
+              'Timer AMRAP': i === 0 ? (block as any).timerConfig?.amrapTime || '' : '',
+              'Timer Sub-bloque Modo': i === 0 ? (subBlock as any).timerMode || '' : '',
+              'Timer Sub-bloque Trabajo': i === 0 ? (subBlock as any).timerConfig?.workTime || '' : '',
+              'Timer Sub-bloque Descanso': i === 0 ? (subBlock as any).timerConfig?.restTime || '' : '',
+              'Timer Sub-bloque Rondas': i === 0 ? (subBlock as any).timerConfig?.totalRounds || '' : '',
+              'Timer Sub-bloque AMRAP': i === 0 ? (subBlock as any).timerConfig?.amrapTime || '' : ''
             })
           }
         }
@@ -206,7 +246,17 @@ export async function GET(request: NextRequest) {
             'Sub-bloque': '',
             'Ejercicio': '',
             'Notas Bloque': block.notes,
-            'Notas General': day.generalNotes
+            'Notas General': day.generalNotes,
+            'Timer Modo': (block as any).timerMode || '',
+            'Timer Trabajo': (block as any).timerConfig?.workTime || '',
+            'Timer Descanso': (block as any).timerConfig?.restTime || '',
+            'Timer Rondas': (block as any).timerConfig?.totalRounds || '',
+            'Timer AMRAP': (block as any).timerConfig?.amrapTime || '',
+            'Timer Sub-bloque Modo': '',
+            'Timer Sub-bloque Trabajo': '',
+            'Timer Sub-bloque Descanso': '',
+            'Timer Sub-bloque Rondas': '',
+            'Timer Sub-bloque AMRAP': ''
           })
         }
       }
@@ -231,6 +281,16 @@ export async function GET(request: NextRequest) {
       { wch: 35 },  // Ejercicio
       { wch: 35 },  // Notas Bloque
       { wch: 45 },  // Notas General
+      { wch: 15 },  // Timer Modo
+      { wch: 15 },  // Timer Trabajo
+      { wch: 15 },  // Timer Descanso
+      { wch: 15 },  // Timer Rondas
+      { wch: 15 },  // Timer AMRAP
+      { wch: 20 },  // Timer Sub-bloque Modo
+      { wch: 20 },  // Timer Sub-bloque Trabajo
+      { wch: 20 },  // Timer Sub-bloque Descanso
+      { wch: 20 },  // Timer Sub-bloque Rondas
+      { wch: 20 },  // Timer Sub-bloque AMRAP
     ]
     worksheet['!cols'] = colWidths
 
@@ -262,6 +322,14 @@ export async function GET(request: NextRequest) {
       { 'INSTRUCCIONES': '10. Columna Notas Bloque: notas específicas de ese bloque. Se toma de la primera fila del bloque.' },
       { 'INSTRUCCIONES': '' },
       { 'INSTRUCCIONES': '11. Columna Notas General: notas del día completo. Se toma de la primera fila del día.' },
+      { 'INSTRUCCIONES': '' },
+      { 'INSTRUCCIONES': '12. Columnas Timer (opcionales): asignan un temporizador a cada bloque o sub-bloque.' },
+      { 'INSTRUCCIONES': '    • Timer Modo: normal | fortime | tabata | amrap | emom | otm. Se lee desde la primera fila del bloque/sub-bloque.' },
+      { 'INSTRUCCIONES': '    • Timer Trabajo: segundos de trabajo (ej: 30, 60, 180).' },
+      { 'INSTRUCCIONES': '    • Timer Descanso: segundos de descanso entre intervalos/rondas.' },
+      { 'INSTRUCCIONES': '    • Timer Rondas: cantidad total de rondas/sets (ej: 5, 10, 20).' },
+      { 'INSTRUCCIONES': '    • Timer AMRAP: duración total en segundos para el modo AMRAP (ej: 600 = 10 min).' },
+      { 'INSTRUCCIONES': '    • Timer Sub-bloque X: mismos campos pero aplicados al sub-bloque en vez del bloque padre.' },
       { 'INSTRUCCIONES': '' },
       { 'INSTRUCCIONES': 'IMPORTACIÓN MÚLTIPLE (VARIOS DÍAS)' },
       { 'INSTRUCCIONES': '' },

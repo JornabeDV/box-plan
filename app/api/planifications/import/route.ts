@@ -21,6 +21,16 @@ interface ExcelRow {
   Ejercicio: string
   'Notas Bloque'?: string
   'Notas General'?: string
+  'Timer Modo'?: string
+  'Timer Trabajo'?: string | number
+  'Timer Descanso'?: string | number
+  'Timer Rondas'?: string | number
+  'Timer AMRAP'?: string | number
+  'Timer Sub-bloque Modo'?: string
+  'Timer Sub-bloque Trabajo'?: string | number
+  'Timer Sub-bloque Descanso'?: string | number
+  'Timer Sub-bloque Rondas'?: string | number
+  'Timer Sub-bloque AMRAP'?: string | number
 }
 
 interface ImportResult {
@@ -249,13 +259,20 @@ async function processSinglePlanification(
     }
   }
 
-  // Agrupar filas por bloque para reconstruir la estructura con sub-bloques
+  // Agrupar filas por bloque para reconstruir la estructura con sub-bloques y timers
   const blocksMap = new Map<string, {
     title: string
     order: number
     items: string[]
     notes: string
-    subBlocksMap: Map<string, { subtitle: string; items: string[] }>
+    timerMode: string | null
+    timerConfig: { workTime?: string; restTime?: string; totalRounds?: string; amrapTime?: string } | null
+    subBlocksMap: Map<string, {
+      subtitle: string
+      items: string[]
+      timerMode: string | null
+      timerConfig: { workTime?: string; restTime?: string; totalRounds?: string; amrapTime?: string } | null
+    }>
   }>()
 
   for (const row of rows) {
@@ -274,6 +291,8 @@ async function processSinglePlanification(
         order: orderNum,
         items: [],
         notes: String(row['Notas Bloque'] || '').trim(),
+        timerMode: null,
+        timerConfig: null,
         subBlocksMap: new Map()
       })
     }
@@ -288,14 +307,55 @@ async function processSinglePlanification(
       block.notes = rowNotes
     }
 
+    // Extraer timer del bloque principal (de la primera fila del bloque que tenga timer)
+    if (!block.timerMode) {
+      const timerMode = String(row['Timer Modo'] || '').trim().toLowerCase()
+      if (timerMode && ['normal', 'tabata', 'fortime', 'amrap', 'emom', 'otm'].includes(timerMode)) {
+        block.timerMode = timerMode
+        block.timerConfig = {
+          workTime: String(row['Timer Trabajo'] || '').trim() || undefined,
+          restTime: String(row['Timer Descanso'] || '').trim() || undefined,
+          totalRounds: String(row['Timer Rondas'] || '').trim() || undefined,
+          amrapTime: String(row['Timer AMRAP'] || '').trim() || undefined,
+        }
+        // Limpiar valores vacíos
+        Object.keys(block.timerConfig).forEach(key => {
+          if (!(block.timerConfig as any)[key]) delete (block.timerConfig as any)[key]
+        })
+      }
+    }
+
     if (!exercise) continue
 
     if (subBlockTitle) {
       // Ejercicio pertenece a un sub-bloque
       if (!block.subBlocksMap.has(subBlockTitle)) {
-        block.subBlocksMap.set(subBlockTitle, { subtitle: subBlockTitle, items: [] })
+        block.subBlocksMap.set(subBlockTitle, {
+          subtitle: subBlockTitle,
+          items: [],
+          timerMode: null,
+          timerConfig: null
+        })
       }
-      block.subBlocksMap.get(subBlockTitle)!.items.push(exercise)
+      const subBlock = block.subBlocksMap.get(subBlockTitle)!
+      subBlock.items.push(exercise)
+
+      // Extraer timer del sub-bloque (de la primera fila del sub-bloque que tenga timer)
+      if (!subBlock.timerMode) {
+        const subTimerMode = String(row['Timer Sub-bloque Modo'] || '').trim().toLowerCase()
+        if (subTimerMode && ['normal', 'tabata', 'fortime', 'amrap', 'emom', 'otm'].includes(subTimerMode)) {
+          subBlock.timerMode = subTimerMode
+          subBlock.timerConfig = {
+            workTime: String(row['Timer Sub-bloque Trabajo'] || '').trim() || undefined,
+            restTime: String(row['Timer Sub-bloque Descanso'] || '').trim() || undefined,
+            totalRounds: String(row['Timer Sub-bloque Rondas'] || '').trim() || undefined,
+            amrapTime: String(row['Timer Sub-bloque AMRAP'] || '').trim() || undefined,
+          }
+          Object.keys(subBlock.timerConfig).forEach(key => {
+            if (!(subBlock.timerConfig as any)[key]) delete (subBlock.timerConfig as any)[key]
+          })
+        }
+      }
     } else {
       // Ejercicio del bloque principal
       block.items.push(exercise)
@@ -305,15 +365,29 @@ async function processSinglePlanification(
   // Convertir mapa a array ordenado, aplanando sub-bloques
   const blocks = Array.from(blocksMap.values())
     .sort((a, b) => a.order - b.order)
-    .map(({ subBlocksMap, ...block }) => ({
-      ...block,
-      id: String(Date.now() + Math.random()),
-      subBlocks: Array.from(subBlocksMap.values()).map(sub => ({
+    .map(({ subBlocksMap, timerMode, timerConfig, ...block }) => {
+      const result: any = {
+        ...block,
         id: String(Date.now() + Math.random()),
-        subtitle: sub.subtitle,
-        items: sub.items
-      }))
-    }))
+        subBlocks: Array.from(subBlocksMap.values()).map(sub => {
+          const subResult: any = {
+            id: String(Date.now() + Math.random()),
+            subtitle: sub.subtitle,
+            items: sub.items
+          }
+          if (sub.timerMode) {
+            subResult.timer_mode = sub.timerMode
+            subResult.timer_config = sub.timerConfig
+          }
+          return subResult
+        })
+      }
+      if (timerMode) {
+        result.timer_mode = timerMode
+        result.timer_config = timerConfig
+      }
+      return result
+    })
 
   if (blocks.length === 0) {
     return {

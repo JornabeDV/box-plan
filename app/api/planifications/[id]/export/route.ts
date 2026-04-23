@@ -79,10 +79,14 @@ export async function POST(
       items: string[]
       order: number
       notes?: string
+      timer_mode?: string | null
+      timer_config?: { workTime?: string; restTime?: string; totalRounds?: string; amrapTime?: string } | null
       subBlocks?: Array<{
         id?: string
         subtitle: string
         items: string[]
+        timer_mode?: string | null
+        timer_config?: { workTime?: string; restTime?: string; totalRounds?: string; amrapTime?: string } | null
       }>
     }> || []
 
@@ -99,6 +103,16 @@ export async function POST(
       Ejercicio: string
       'Notas Bloque': string
       'Notas General': string
+      'Timer Modo': string
+      'Timer Trabajo': string
+      'Timer Descanso': string
+      'Timer Rondas': string
+      'Timer AMRAP': string
+      'Timer Sub-bloque Modo': string
+      'Timer Sub-bloque Trabajo': string
+      'Timer Sub-bloque Descanso': string
+      'Timer Sub-bloque Rondas': string
+      'Timer Sub-bloque AMRAP': string
     }> = []
 
     // Normalizar fecha
@@ -124,32 +138,50 @@ export async function POST(
       blockTitle: string,
       blockOrder: number,
       blockNotes: string,
+      blockTimerMode: string,
+      blockTimerConfig: { workTime?: string; restTime?: string; totalRounds?: string; amrapTime?: string } | null | undefined,
       subBlockTitle: string,
+      subBlockTimerMode: string,
+      subBlockTimerConfig: { workTime?: string; restTime?: string; totalRounds?: string; amrapTime?: string } | null | undefined,
       items: string[]
     ) => {
+      const timerCols = {
+        'Timer Modo': blockTimerMode,
+        'Timer Trabajo': blockTimerConfig?.workTime || '',
+        'Timer Descanso': blockTimerConfig?.restTime || '',
+        'Timer Rondas': blockTimerConfig?.totalRounds || '',
+        'Timer AMRAP': blockTimerConfig?.amrapTime || '',
+        'Timer Sub-bloque Modo': subBlockTimerMode,
+        'Timer Sub-bloque Trabajo': subBlockTimerConfig?.workTime || '',
+        'Timer Sub-bloque Descanso': subBlockTimerConfig?.restTime || '',
+        'Timer Sub-bloque Rondas': subBlockTimerConfig?.totalRounds || '',
+        'Timer Sub-bloque AMRAP': subBlockTimerConfig?.amrapTime || '',
+      }
       if (items.length === 0) {
-        rows.push({ ...baseRow, Bloque: blockTitle, 'Orden Bloque': blockOrder, 'Sub-bloque': subBlockTitle, Ejercicio: '', 'Notas Bloque': blockNotes, 'Notas General': planification.notes || '' })
+        rows.push({ ...baseRow, ...timerCols, Bloque: blockTitle, 'Orden Bloque': blockOrder, 'Sub-bloque': subBlockTitle, Ejercicio: '', 'Notas Bloque': blockNotes, 'Notas General': planification.notes || '' })
       } else {
         for (const item of items) {
-          rows.push({ ...baseRow, Bloque: blockTitle, 'Orden Bloque': blockOrder, 'Sub-bloque': subBlockTitle, Ejercicio: item, 'Notas Bloque': blockNotes, 'Notas General': planification.notes || '' })
+          rows.push({ ...baseRow, ...timerCols, Bloque: blockTitle, 'Orden Bloque': blockOrder, 'Sub-bloque': subBlockTitle, Ejercicio: item, 'Notas Bloque': blockNotes, 'Notas General': planification.notes || '' })
         }
       }
     }
 
     // Si no hay ejercicios, crear al menos una fila vacía
     if (exercisesData.length === 0) {
-      rows.push({ ...baseRow, Bloque: '', 'Orden Bloque': 0, 'Sub-bloque': '', Ejercicio: '', 'Notas Bloque': '', 'Notas General': planification.notes || '' })
+      rows.push({ ...baseRow, Bloque: '', 'Orden Bloque': 0, 'Sub-bloque': '', Ejercicio: '', 'Notas Bloque': '', 'Notas General': planification.notes || '', 'Timer Modo': '', 'Timer Trabajo': '', 'Timer Descanso': '', 'Timer Rondas': '', 'Timer AMRAP': '', 'Timer Sub-bloque Modo': '', 'Timer Sub-bloque Trabajo': '', 'Timer Sub-bloque Descanso': '', 'Timer Sub-bloque Rondas': '', 'Timer Sub-bloque AMRAP': '' })
     } else {
       for (const block of exercisesData) {
         const blockNotes = block.notes || ''
+        const blockTimerMode = block.timer_mode || ''
+        const blockTimerConfig = block.timer_config
 
         // Items del bloque principal
-        addItemRows(block.title, block.order, blockNotes, '', block.items || [])
+        addItemRows(block.title, block.order, blockNotes, blockTimerMode, blockTimerConfig, '', '', undefined, block.items || [])
 
         // Items de cada sub-bloque
         if (block.subBlocks && block.subBlocks.length > 0) {
           for (const sub of block.subBlocks) {
-            addItemRows(block.title, block.order, blockNotes, sub.subtitle || '', sub.items || [])
+            addItemRows(block.title, block.order, blockNotes, blockTimerMode, blockTimerConfig, sub.subtitle || '', sub.timer_mode || '', sub.timer_config, sub.items || [])
           }
         }
       }
@@ -171,6 +203,16 @@ export async function POST(
       { wch: 40 },  // Ejercicio
       { wch: 30 },  // Notas Bloque
       { wch: 30 },  // Notas General
+      { wch: 15 },  // Timer Modo
+      { wch: 15 },  // Timer Trabajo
+      { wch: 15 },  // Timer Descanso
+      { wch: 15 },  // Timer Rondas
+      { wch: 15 },  // Timer AMRAP
+      { wch: 20 },  // Timer Sub-bloque Modo
+      { wch: 20 },  // Timer Sub-bloque Trabajo
+      { wch: 20 },  // Timer Sub-bloque Descanso
+      { wch: 20 },  // Timer Sub-bloque Rondas
+      { wch: 20 },  // Timer Sub-bloque AMRAP
     ]
     worksheet['!cols'] = colWidths
 
