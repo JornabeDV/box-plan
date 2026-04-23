@@ -11,14 +11,28 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Upload,
   Download,
   FileSpreadsheet,
   CheckCircle,
   XCircle,
   Loader2,
+  User,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+interface StudentOption {
+  id: string;
+  name: string | null;
+  email: string;
+}
 
 interface ImportResult {
   success: boolean;
@@ -47,6 +61,8 @@ interface BulkImportModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  students?: StudentOption[];
+  preselectedStudent?: StudentOption | null;
 }
 
 type ModalState = "idle" | "loading" | "results";
@@ -55,6 +71,8 @@ export function BulkImportModal({
   open,
   onOpenChange,
   onSuccess,
+  students = [],
+  preselectedStudent = null,
 }: BulkImportModalProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -62,6 +80,8 @@ export function BulkImportModal({
   const [results, setResults] = useState<ImportResult[]>([]);
   const [summary, setSummary] = useState<ImportSummary | null>(null);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState<string>("");
+  const [assignToStudent, setAssignToStudent] = useState(false);
 
   const handleClose = () => {
     onOpenChange(false);
@@ -69,6 +89,8 @@ export function BulkImportModal({
       setModalState("idle");
       setResults([]);
       setSummary(null);
+      setSelectedStudentId("");
+      setAssignToStudent(false);
     }, 200);
   };
 
@@ -119,6 +141,13 @@ export function BulkImportModal({
       const formData = new FormData();
       formData.append("file", file);
 
+      const targetStudentId = preselectedStudent
+        ? preselectedStudent.id
+        : selectedStudentId;
+      if (targetStudentId) {
+        formData.append("targetStudentId", targetStudentId);
+      }
+
       const response = await fetch("/api/planifications/import", {
         method: "POST",
         body: formData,
@@ -162,9 +191,11 @@ export function BulkImportModal({
     return `${day}/${month}/${year}`;
   };
 
+  const hasPersonalizedStudents = students.length > 0;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-none sm:rounded-lg">
+      <DialogContent className="w-full max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg">
         <DialogHeader className="pr-0 h-auto">
           <DialogTitle className="flex items-center gap-2">
             <Upload className="w-5 h-5" />
@@ -183,6 +214,81 @@ export function BulkImportModal({
         <div className="space-y-6 py-4">
           {modalState === "idle" && (
             <div className="space-y-6">
+              {/* Selector de estudiante (solo si hay estudiantes con plan personalizado) */}
+              {hasPersonalizedStudents && (
+                <div className="space-y-3">
+                  {preselectedStudent ? (
+                    <div className="flex items-center gap-2 p-3 rounded-lg border border-primary/30 bg-primary/5">
+                      <User className="w-4 h-4 text-primary shrink-0" />
+                      <span className="text-sm font-medium">
+                        {preselectedStudent.name || preselectedStudent.email}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        (preseleccionado)
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="import-mode"
+                          checked={!assignToStudent}
+                          onChange={() => {
+                            setAssignToStudent(false);
+                            setSelectedStudentId("");
+                          }}
+                          className="mt-0.5 w-4 h-4 accent-primary cursor-pointer"
+                        />
+                        <span className="text-sm">General</span>
+                      </label>
+                      <label className="flex flex-col items-start gap-3 cursor-pointer">
+                        <div className="flex items-start gap-3">
+                          <input
+                            type="radio"
+                            name="import-mode"
+                            checked={assignToStudent}
+                            onChange={() => setAssignToStudent(true)}
+                            className="mt-0.5 w-4 h-4 accent-primary cursor-pointer"
+                          />
+                          <div className="flex-1 space-y-2">
+                            <span className="text-sm">
+                              Personalizada para un atleta
+                            </span>
+                          </div>
+                        </div>
+
+                        {assignToStudent && (
+                          <Select
+                            value={selectedStudentId}
+                            onValueChange={setSelectedStudentId}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Seleccionar atleta..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {students.map((student) => (
+                                <SelectItem key={student.id} value={student.id}>
+                                  <span className="truncate block max-w-[280px]">
+                                    {student.name || student.email}
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </label>
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {preselectedStudent ||
+                    (assignToStudent && selectedStudentId)
+                      ? "Las planificaciones con Tipo = Personalizada se asignarán a este atleta. Ignora la columna Estudiante del Excel."
+                      : "El archivo debe tener la columna Estudiante si querés planificaciones personalizadas, o dejá el Tipo como General."}
+                  </p>
+                </div>
+              )}
+
               {/* Instrucciones */}
               <div className="bg-muted/50 rounded-lg p-4 space-y-3">
                 <h4 className="font-semibold text-sm flex items-center gap-2">
@@ -225,7 +331,7 @@ export function BulkImportModal({
                   className="w-full h-12 text-base whitespace-normal"
                 >
                   <Upload className="w-5 h-5 mr-2 shrink-0" />
-                  <span className="truncate  text-sm md:text-base">
+                  <span className="truncate text-sm md:text-base">
                     Seleccionar archivo Excel
                   </span>
                 </Button>

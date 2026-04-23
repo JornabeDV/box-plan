@@ -70,7 +70,8 @@ async function processSinglePlanification(
   rows: ExcelRow[],
   coachId: number,
   targetDateParam: string | null,
-  canCreatePersonalized: boolean
+  canCreatePersonalized: boolean,
+  targetStudentId?: number | null
 ): Promise<ImportResult> {
   const firstDataRow = rows[0]
 
@@ -78,9 +79,9 @@ async function processSinglePlanification(
   const tipo = String(firstDataRow.Tipo || '').trim()
   const isPersonalized = tipo.toLowerCase() === 'personalizada'
 
-  // Validar que si es personalizada, tenga estudiante
+  // Validar que si es personalizada, tenga estudiante (en el Excel o via targetStudentId desde la UI)
   const studentName = String(firstDataRow.Estudiante || '').trim()
-  if (isPersonalized && !studentName) {
+  if (isPersonalized && !studentName && !targetStudentId) {
     return {
       success: false,
       message: 'Las planificaciones personalizadas requieren el nombre del estudiante en la columna "Estudiante"',
@@ -119,45 +120,73 @@ async function processSinglePlanification(
       }
     }
 
-    // Buscar estudiantes activos del coach que coincidan con el nombre
-    const students = await prisma.coachStudentRelationship.findMany({
-      where: {
-        coachId: coachId,
-        status: 'active',
-        student: {
-          name: { contains: studentName, mode: 'insensitive' }
+    let student: { id: number; email: string; name: string | null } | null = null
+
+    if (targetStudentId) {
+      // Buscar estudiante por ID (viene desde la UI)
+      const relationship = await prisma.coachStudentRelationship.findFirst({
+        where: {
+          coachId: coachId,
+          status: 'active',
+          studentId: targetStudentId
+        },
+        include: {
+          student: {
+            select: { id: true, email: true, name: true }
+          }
         }
-      },
-      include: {
-        student: {
-          select: { id: true, email: true, name: true }
+      })
+
+      if (!relationship) {
+        return {
+          success: false,
+          message: `No se encontró un estudiante activo con ID ${targetStudentId} asignado a tu cuenta`,
+          error: 'Estudiante no encontrado',
         }
       }
-    })
 
-    if (students.length === 0) {
-      return {
-        success: false,
-        message: `No se encontró un estudiante activo con el nombre "${studentName}" asignado a tu cuenta`,
-        error: 'Estudiante no encontrado',
+      student = relationship.student ?? null
+    } else {
+      // Buscar estudiantes activos del coach que coincidan con el nombre del Excel
+      const students = await prisma.coachStudentRelationship.findMany({
+        where: {
+          coachId: coachId,
+          status: 'active',
+          student: {
+            name: { contains: studentName, mode: 'insensitive' }
+          }
+        },
+        include: {
+          student: {
+            select: { id: true, email: true, name: true }
+          }
+        }
+      })
+
+      if (students.length === 0) {
+        return {
+          success: false,
+          message: `No se encontró un estudiante activo con el nombre "${studentName}" asignado a tu cuenta`,
+          error: 'Estudiante no encontrado',
+        }
       }
-    }
 
-    // Si hay múltiples coincidencias, buscar coincidencia exacta
-    let student = students.find(s =>
-      s.student.name?.toLowerCase() === studentName.toLowerCase()
-    )?.student
+      // Si hay múltiples coincidencias, buscar coincidencia exacta
+      student = students.find(s =>
+        s.student.name?.toLowerCase() === studentName.toLowerCase()
+      )?.student ?? null
 
-    // Si no hay coincidencia exacta, usar la primera
-    if (!student && students.length > 0) {
-      student = students[0].student
-    }
+      // Si no hay coincidencia exacta, usar la primera
+      if (!student && students.length > 0) {
+        student = students[0].student
+      }
 
-    if (!student) {
-      return {
-        success: false,
-        message: `No se pudo identificar al estudiante "${studentName}"`,
-        error: 'Estudiante no identificado',
+      if (!student) {
+        return {
+          success: false,
+          message: `No se pudo identificar al estudiante "${studentName}"`,
+          error: 'Estudiante no identificado',
+        }
       }
     }
 
@@ -427,6 +456,8 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     const file = formData.get('file') as File
     const targetDateParam = formData.get('targetDate') as string | null
+    const targetStudentIdParam = formData.get('targetStudentId') as string | null
+    const targetStudentId = targetStudentIdParam ? parseInt(targetStudentIdParam, 10) : null
 
     if (!file) {
       return NextResponse.json({ error: 'No se proporcionó archivo' }, { status: 400 })
@@ -499,7 +530,8 @@ export async function POST(request: NextRequest) {
           dateRows,
           coachId,
           isBulkImport ? null : targetDateParam, // targetDate solo aplica a importación de un solo día
-          canCreatePersonalized
+          canCreatePersonalized,
+          targetStudentId
         )
         results.push(result)
       } catch (error: any) {
