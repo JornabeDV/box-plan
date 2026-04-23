@@ -102,15 +102,13 @@ export function useAuth() {
 
   const signOut = useCallback(async () => {
     try {
-      await nextAuthSignOut({ redirect: false })
-      // Forzar un refresh completo para limpiar cualquier cache
-      window.location.href = '/login'
-      return { error: null }
+      // NextAuth maneja la redirección directamente para evitar
+      // pantallas intermedias ("No autorizado" / doble loading)
+      await nextAuthSignOut({ redirect: true, callbackUrl: '/login' })
     } catch (err) {
       console.error('SignOut error:', err)
-      // Aún así redirigir al login
+      // Fallback manual si falla la redirección de NextAuth
       window.location.href = '/login'
-      return { error: null }
     }
   }, [])
 
