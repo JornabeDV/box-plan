@@ -1,0 +1,41 @@
+name: Cron Notifications — Plan Expiration Reminders
+
+on:
+  schedule:
+    # Todos los días a las 13:00 UTC (10:00 AM hora Argentina)
+    - cron: '0 13 * * *'
+  workflow_dispatch:
+
+jobs:
+  notify-expiring-subscriptions:
+    name: Notify expiring student subscriptions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send expiration reminders
+        run: |
+          APP_URL="${{ secrets.APP_URL || vars.APP_URL || vars.NEXT_PUBLIC_APP_URL }}"
+
+          if [ -z "$APP_URL" ]; then
+            echo "❌ ERROR: Configure APP_URL o NEXT_PUBLIC_APP_URL en las variables del repositorio (Settings > Secrets and variables > Actions > Variables)"
+            exit 1
+          fi
+
+          echo "🚀 Enviando notificaciones de vencimiento a $APP_URL..."
+
+          curl -s -X POST "$APP_URL/api/cron/notify-expiring-subscriptions" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --max-time 60 \
+            -w "\nHTTP Status: %{http_code}\n" \
+            -o response.json
+
+          echo "📄 Respuesta:"
+          cat response.json
+
+          HTTP_STATUS=$(cat response.json | grep -o '"success":true' || true)
+          if [ -z "$HTTP_STATUS" ]; then
+            echo "⚠️ La respuesta no indica éxito. Revisa los logs."
+            exit 1
+          fi
+
+          echo "✅ Notificaciones enviadas correctamente"

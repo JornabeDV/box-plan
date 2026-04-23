@@ -9,7 +9,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -19,14 +18,6 @@ import {
   Loader2,
   ExternalLink,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 interface MercadoPagoConnectProps {
   coachId?: number;
@@ -37,9 +28,6 @@ export function MercadoPagoConnect({ coachId }: MercadoPagoConnectProps) {
   const [accountId, setAccountId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isManualDialogOpen, setIsManualDialogOpen] = useState(false);
-  const [manualAccountId, setManualAccountId] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
   // Cargar estado de conexión
@@ -98,12 +86,7 @@ export function MercadoPagoConnect({ coachId }: MercadoPagoConnectProps) {
   const handleConnectOAuth = async () => {
     try {
       setIsConnecting(true);
-      // Usar URL absoluta para asegurar que use el dominio correcto
-      // El endpoint detectará automáticamente la URL desde la request
       const connectUrl = `${window.location.origin}/api/mercadopago/connect`;
-      console.log("Conectando a:", connectUrl);
-
-      // Redirigir a endpoint que inicia OAuth
       window.location.href = connectUrl;
     } catch (error) {
       toast({
@@ -112,54 +95,6 @@ export function MercadoPagoConnect({ coachId }: MercadoPagoConnectProps) {
         variant: "destructive",
       });
       setIsConnecting(false);
-    }
-  };
-
-  const handleManualSave = async () => {
-    if (!manualAccountId.trim()) {
-      toast({
-        title: "Error",
-        description: "Por favor ingresa un Account ID válido",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      setIsSaving(true);
-      const response = await fetch("/api/coaches/mercadopago-account", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ accountId: manualAccountId.trim() }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Error al guardar");
-      }
-
-      toast({
-        title: "Account ID guardado",
-        description:
-          "Tu Account ID de MercadoPago se ha guardado correctamente",
-      });
-
-      setIsManualDialogOpen(false);
-      setManualAccountId("");
-      loadConnectionStatus();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Error al guardar Account ID",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -172,6 +107,8 @@ export function MercadoPagoConnect({ coachId }: MercadoPagoConnectProps) {
       token_error: "Error al obtener token de autorización",
       user_info_error: "Error al obtener información de tu cuenta",
       no_account_id: "No se pudo obtener el Account ID de tu cuenta",
+      platform_account_id_mismatch:
+        "No puedes conectar la cuenta de la plataforma como coach. Usá otra cuenta de MercadoPago.",
       unknown_error: "Error desconocido al conectar con MercadoPago",
     };
     return errors[error] || "Error al conectar con MercadoPago";
@@ -194,148 +131,80 @@ export function MercadoPagoConnect({ coachId }: MercadoPagoConnectProps) {
   }
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Link2 className="h-5 w-5" />
-            Conexión con MercadoPago
-          </CardTitle>
-          <CardDescription>
-            Conecta tu cuenta de MercadoPago para recibir pagos automáticamente
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {connected ? (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                <CheckCircle2 className="h-5 w-5" />
-                <span className="font-medium">Cuenta conectada</span>
-              </div>
-              {accountId && (
-                <div className="p-3 bg-muted rounded-lg">
-                  <Label className="text-sm text-muted-foreground">
-                    Account ID:
-                  </Label>
-                  <p className="font-mono text-sm mt-1">{accountId}</p>
-                </div>
-              )}
-              <p className="text-sm text-muted-foreground">
-                Los pagos de tus estudiantes se distribuirán automáticamente
-                entre tu cuenta y la plataforma.
-              </p>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setManualAccountId(accountId || "");
-                  setIsManualDialogOpen(true);
-                }}
-              >
-                Actualizar Account ID
-              </Button>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Link2 className="h-5 w-5" />
+          Conexión con MercadoPago
+        </CardTitle>
+        <CardDescription>
+          Conectá tu cuenta para que tus estudiantes puedan pagarte
+          directamente
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {connected ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+              <CheckCircle2 className="h-5 w-5" />
+              <span className="font-medium">Cuenta conectada</span>
             </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <XCircle className="h-5 w-5" />
-                <span>Cuenta no conectada</span>
+            {accountId && (
+              <div className="p-3 bg-muted rounded-lg">
+                <Label className="text-sm text-muted-foreground">
+                  Account ID:
+                </Label>
+                <p className="font-mono text-sm mt-1">{accountId}</p>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Para recibir pagos automáticamente, necesitas conectar tu cuenta
-                de MercadoPago. Puedes hacerlo de dos formas:
-              </p>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button
-                  onClick={handleConnectOAuth}
-                  disabled={isConnecting}
-                  className="flex-1"
-                >
-                  {isConnecting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Conectando...
-                    </>
-                  ) : (
-                    <>
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Conectar con MercadoPago
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsManualDialogOpen(true)}
-                  className="flex-1"
-                >
-                  Ingresar Manualmente
-                </Button>
-              </div>
-              <div className="p-3 bg-muted rounded-lg text-sm text-muted-foreground">
-                <p className="font-medium mb-1">
-                  ¿Dónde encuentro mi Account ID?
-                </p>
-                <ol className="list-decimal list-inside space-y-1 ml-2">
-                  <li>Inicia sesión en tu cuenta de MercadoPago</li>
-                  <li>Ve a Configuración → Integraciones</li>
-                  <li>Tu Account ID aparece en la sección de credenciales</li>
-                  <li>O puedes encontrarlo en la URL de tu perfil</li>
-                </ol>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Dialog para ingreso manual */}
-      <Dialog open={isManualDialogOpen} onOpenChange={setIsManualDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Ingresar Account ID Manualmente</DialogTitle>
-            <DialogDescription>
-              Ingresa tu Account ID de MercadoPago. Lo puedes encontrar en tu
-              panel de MercadoPago.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="accountId">Account ID</Label>
-              <Input
-                id="accountId"
-                value={manualAccountId}
-                onChange={(e) => setManualAccountId(e.target.value)}
-                placeholder="123456789"
-                disabled={isSaving}
-              />
-              <p className="text-xs text-muted-foreground">
-                Ingresa solo números. Puedes encontrarlo en tu cuenta de
-                MercadoPago.
-              </p>
-            </div>
+            )}
+            <p className="text-sm text-muted-foreground">
+              Los pagos de tus estudiantes se acreditan directamente en tu
+              cuenta de MercadoPago.
+            </p>
           </div>
-          <DialogFooter>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <XCircle className="h-5 w-5" />
+              <span>Cuenta no conectada</span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Para recibir pagos de tus estudiantes debés autorizar a Box Plan
+              para operar en tu cuenta de MercadoPago. Hacé clic en el botón de
+              abajo para conectarte de forma segura.
+            </p>
             <Button
-              variant="outline"
-              onClick={() => {
-                setIsManualDialogOpen(false);
-                setManualAccountId("");
-              }}
-              disabled={isSaving}
+              onClick={handleConnectOAuth}
+              disabled={isConnecting}
+              className="w-full"
             >
-              Cancelar
-            </Button>
-            <Button onClick={handleManualSave} disabled={isSaving}>
-              {isSaving ? (
+              {isConnecting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Guardando...
+                  Conectando...
                 </>
               ) : (
-                "Guardar"
+                <>
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Conectar con MercadoPago
+                </>
               )}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+            <div className="p-3 bg-muted rounded-lg text-sm text-muted-foreground">
+              <p className="font-medium mb-1">¿Cómo funciona?</p>
+              <ol className="list-decimal list-inside space-y-1 ml-2">
+                <li>
+                  Serás redirigido a MercadoPago para iniciar sesión
+                </li>
+                <li>Autorizás a Box Plan a crear cobros en tu nombre</li>
+                <li>
+                  Volvés automáticamente con tu cuenta lista para recibir pagos
+                </li>
+              </ol>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

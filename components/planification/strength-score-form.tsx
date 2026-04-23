@@ -68,16 +68,16 @@ export function StrengthScoreForm({
     <Card>
       <CardHeader>
         <CardTitle className="text-xl flex items-center gap-2 text-white">
-          <Dumbbell className="w-6 h-6 text-lime-400" />
+          <Dumbbell className="w-6 h-6 text-primary" />
           Score de Fuerza
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {existingWorkout && existingWorkout.weight && (
-          <div className="flex items-center gap-2 p-3 bg-lime-400/10 border border-lime-400/20 rounded-md">
-            <CheckCircle2 className="w-5 h-5 text-lime-400 flex-shrink-0" />
+          <div className="flex items-center gap-2 p-3 bg-primary/10 border border-primary/20 rounded-md">
+            <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-lime-400">
+              <p className="text-sm font-medium text-primary">
                 Peso registrado
               </p>
               <p className="text-lg font-bold text-white">

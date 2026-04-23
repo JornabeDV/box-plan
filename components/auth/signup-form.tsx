@@ -4,18 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/use-auth";
 import { CoachSelector } from "@/components/auth/coach-selector";
-import { Loader2, Eye, EyeOff, CheckCircle } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
 interface SignUpFormProps {
   onSuccess?: () => void;
@@ -41,7 +33,7 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
   const [loading, setLoading] = useState(false);
   const [selectingCoach, setSelectingCoach] = useState(false);
 
-  const { signUp, signIn } = useAuth();
+  const { signIn } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
@@ -55,7 +47,6 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
     setError(null);
     setLoading(true);
 
-    // Validaciones
     if (formData.password !== formData.confirmPassword) {
       setError("Las contraseñas no coinciden");
       setLoading(false);
@@ -69,7 +60,6 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
     }
 
     try {
-      // Crear cuenta
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: {
@@ -83,7 +73,6 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
         }),
       });
 
-      // Verificar si la respuesta es JSON válido
       let data;
       try {
         data = await response.json();
@@ -95,7 +84,6 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
       }
 
       if (!response.ok) {
-        // Mostrar el error específico del servidor
         const errorMessage =
           data?.error || `Error ${response.status}: ${response.statusText}`;
         setError(errorMessage);
@@ -103,7 +91,6 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
         return;
       }
 
-      // Verificar que userId esté presente
       if (!data.userId) {
         console.error("Response missing userId:", data);
         setError(
@@ -113,12 +100,10 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
         return;
       }
 
-      // Guardar userId y pasar al siguiente paso
       setUserId(data.userId);
       setStep("select-coach");
     } catch (err: any) {
       console.error("Error in handleSubmit:", err);
-      // Mostrar mensaje de error más específico
       if (err.message) {
         setError(`Error: ${err.message}`);
       } else if (err instanceof TypeError && err.message.includes("fetch")) {
@@ -140,7 +125,6 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
       setSelectingCoach(true);
       setError(null);
 
-      // Primero autenticar al usuario
       const signInResult = await signIn(formData.email, formData.password);
 
       if (signInResult.error) {
@@ -151,16 +135,14 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
         return;
       }
 
-      // Esperar un momento para que la sesión se establezca
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Luego asignar el coach
       const response = await fetch("/api/coaches/select", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include", // Asegurar que se envíen las cookies de sesión
+        credentials: "include",
         body: JSON.stringify({ coachId }),
       });
 
@@ -172,13 +154,11 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
         return;
       }
 
-      // Éxito - redirigir al dashboard
       if (typeof window !== "undefined") {
         localStorage.setItem("hasAccount", "true");
         localStorage.setItem("hasVisitedLogin", "true");
       }
 
-      // Recargar la página para asegurar que la sesión esté disponible
       window.location.href = "/";
     } catch (err: any) {
       setError(err.message || "Error al seleccionar el coach");
@@ -186,7 +166,6 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
     }
   };
 
-  // Mostrar selector de coach después del registro
   if (step === "select-coach" && userId) {
     return (
       <div className="w-full">
@@ -196,144 +175,146 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold">Crear Cuenta</CardTitle>
-        <CardDescription>Únete a la comunidad Box Plan</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+    <div className="w-full space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-          <div className="space-y-2">
-            <Label htmlFor="fullName">Nombre Completo</Label>
+        <div className="space-y-2">
+          <label htmlFor="fullName" className="label-md">
+            Nombre Completo
+          </label>
+          <Input
+            id="fullName"
+            name="fullName"
+            type="text"
+            placeholder="Tu nombre completo"
+            value={formData.fullName}
+            onChange={handleChange}
+            required
+            disabled={loading}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="email" className="label-md">
+            Email
+          </label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            placeholder="tu@email.com"
+            value={formData.email}
+            onChange={handleChange}
+            required
+            disabled={loading}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="phone" className="label-md">
+            Celular (Opcional)
+          </label>
+          <Input
+            id="phone"
+            name="phone"
+            type="tel"
+            placeholder="+54 9 11 1234-5678"
+            value={formData.phone}
+            onChange={handleChange}
+            disabled={loading}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="password" className="label-md">
+            Contraseña
+          </label>
+          <div className="relative">
             <Input
-              id="fullName"
-              name="fullName"
-              type="text"
-              placeholder="Tu nombre completo"
-              value={formData.fullName}
+              id="password"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Mínimo 6 caracteres"
+              value={formData.password}
               onChange={handleChange}
-              className="text-sm placeholder:text-sm"
               required
               disabled={loading}
+              className="pr-10"
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="tu@email.com"
-              className="text-sm placeholder:text-sm"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              disabled={loading}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="phone">Celular (Opcional)</Label>
-            <Input
-              id="phone"
-              name="phone"
-              type="tel"
-              placeholder="+54 9 11 1234-5678"
-              className="text-sm placeholder:text-sm"
-              value={formData.phone}
-              onChange={handleChange}
-              disabled={loading}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password">Contraseña</Label>
-            <div className="relative">
-              <Input
-                id="password"
-                name="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="Mínimo 6 caracteres"
-                value={formData.password}
-                className="text-sm placeholder:text-sm"
-                onChange={handleChange}
-                required
-                disabled={loading}
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                onClick={() => setShowPassword(!showPassword)}
-                disabled={loading}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
-            <div className="relative">
-              <Input
-                id="confirmPassword"
-                name="confirmPassword"
-                type={showConfirmPassword ? "text" : "password"}
-                placeholder="Confirma tu contraseña"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className="text-sm placeholder:text-sm"
-                required
-                disabled={loading}
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                disabled={loading}
-              >
-                {showConfirmPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          </div>
-
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Crear Cuenta
-          </Button>
-
-          <div className="text-center text-sm">
-            <span className="text-muted-foreground">¿Ya tienes cuenta? </span>
-            <Button
+            <button
               type="button"
-              variant="link"
-              className="p-0 h-auto font-semibold"
-              onClick={onSwitchToLogin}
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
               disabled={loading}
             >
-              Inicia sesión aquí
-            </Button>
+              {showPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
           </div>
-        </form>
-      </CardContent>
-    </Card>
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="confirmPassword" className="label-md">
+            Confirmar Contraseña
+          </label>
+          <div className="relative">
+            <Input
+              id="confirmPassword"
+              name="confirmPassword"
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder="Confirma tu contraseña"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              required
+              disabled={loading}
+              className="pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              disabled={loading}
+            >
+              {showConfirmPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full uppercase tracking-[0.15em] text-base"
+          disabled={loading}
+        >
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Crear Cuenta
+        </Button>
+      </form>
+
+      <div className="text-center">
+        <span className="text-sm text-muted-foreground">
+          ¿Ya tienes cuenta?{" "}
+        </span>
+        <button
+          type="button"
+          onClick={onSwitchToLogin}
+          className="text-sm font-semibold text-primary hover:text-primary-dim transition-colors"
+        >
+          Inicia sesión aquí
+        </button>
+      </div>
+    </div>
   );
 }

@@ -5,17 +5,17 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Loader2,
+  Eye,
+  EyeOff,
+  AtSign,
+  Lock,
+  Plane,
+} from "lucide-react";
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -35,15 +35,15 @@ export function LoginForm({
   const [loading, setLoading] = useState(false);
 
   const { signIn } = useAuth();
-  const { data: session, update: updateSession } = useSession();
+  const { update: updateSession } = useSession();
   const router = useRouter();
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    // Validaciones básicas
     if (!email || !password) {
       setError("Por favor completa todos los campos");
       setLoading(false);
@@ -87,27 +87,20 @@ export function LoginForm({
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold text-white">
-          Iniciar Sesión
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <Alert
-              variant="destructive"
-              className="bg-red-900 border-red-700 text-red-100"
-            >
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+    <div className="w-full space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-white">
-              Email
-            </Label>
+        {/* Email */}
+        <div className="space-y-2">
+          <label htmlFor="email" className="label-md">
+            Email
+          </label>
+          <div className="relative">
             <Input
               id="email"
               type="email"
@@ -115,97 +108,93 @@ export function LoginForm({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="text-sm placeholder:text-sm"
               disabled={loading}
+              className="pr-10"
             />
+            <AtSign className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-white">
+        {/* Password */}
+        <div className="space-y-0.5">
+          <div className="flex items-end justify-between">
+            <label htmlFor="password" className="label-md">
               Contraseña
-            </Label>
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="Tu contraseña"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="text-sm placeholder:text-sm"
-                required
-                disabled={loading}
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-gray-400"
-                onClick={() => setShowPassword(!showPassword)}
-                disabled={loading}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
+            </label>
+            <button
+              type="button"
+              onClick={onForgotPassword}
+              className="text-[10px] font-medium uppercase tracking-wider text-primary hover:text-primary-dim transition-colors flex items-end mb-0.5"
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
           </div>
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={loading}
+              className="pr-20"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute -right-0 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              disabled={loading}
+            >
+              {showPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+        </div>
 
-          <Button
-            type="submit"
-            className="w-full neon-button"
-            disabled={loading}
+        {/* Submit */}
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full uppercase tracking-[0.15em] text-base"
+          disabled={loading}
+        >
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Iniciar Sesión
+        </Button>
+      </form>
+      
+      {/* Footer Links */}
+      <div className="space-y-4 pt-2 text-center">
+        <p className="text-sm text-muted-foreground">
+          ¿No tienes cuenta?{" "}
+          <button
+            type="button"
+            onClick={onSwitchToSignUp}
+            className="font-semibold text-primary hover:text-primary-dim transition-colors"
           >
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Iniciar Sesión
-          </Button>
+            Regístrate aquí
+          </button>
+        </p>
 
-          <div className="space-y-3">
-            <div className="text-center text-sm">
-              <span className="text-gray-400">¿No tienes cuenta? </span>
-              <Button
-                type="button"
-                variant="link"
-                className="p-0 h-auto font-semibold text-lime-400 hover:text-lime-300"
-                onClick={onSwitchToSignUp}
-                disabled={loading}
-              >
-                Regístrate aquí
-              </Button>
-            </div>
-
-            <div className="text-center text-sm">
-              <span className="text-gray-400">¿Eres coach? </span>
-              <Button
-                type="button"
-                variant="link"
-                className="p-0 h-auto font-semibold text-lime-400 hover:text-lime-300"
-                onClick={() => {
-                  if (typeof window !== "undefined") {
-                    window.location.href = "/register/coach";
-                  }
-                }}
-                disabled={loading}
-              >
-                Regístrate como coach
-              </Button>
-            </div>
-
-            <div className="text-center">
-              <Button
-                type="button"
-                variant="link"
-                className="p-0 h-auto text-sm text-lime-400 hover:text-lime-300 hover:underline"
-                onClick={onForgotPassword}
-                disabled={loading}
-              >
-                ¿Olvidaste tu contraseña?
-              </Button>
-            </div>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+        <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
+          ¿Eres coach?{" "}
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== "undefined") {
+                window.location.href = "/register/coach";
+              }
+            }}
+            className="font-semibold text-primary hover:text-primary-dim transition-colors"
+          >
+            Registrate como coach
+          </button>
+        </p>
+      </div>
+    </div>
   );
 }

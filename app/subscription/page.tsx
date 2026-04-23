@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Header } from "@/components/layout/header";
 import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { SubscriptionManagement } from "@/components/subscription/subscription-management";
 import { PlanSwitcher } from "@/components/subscription/plan-switcher";
@@ -22,6 +21,7 @@ import {
   Clock,
   Loader2,
   ArrowLeft,
+  AlertTriangle,
 } from "lucide-react";
 
 interface PaymentHistoryItem {
@@ -116,6 +116,68 @@ export default function SubscriptionPage() {
     }
   }, [loading, currentSubscription]);
 
+  // Verificar pago exitoso al volver de MercadoPago (solución optimista)
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
+  const [paymentVerified, setPaymentVerified] = useState(false);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || verifyingPayment || paymentVerified) return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const isSuccess =
+      urlParams.get("success") === "true" ||
+      urlParams.get("collection_status") === "approved" ||
+      urlParams.get("status") === "approved";
+    const preferenceId = urlParams.get("preference_id");
+    const externalReference = urlParams.get("external_reference");
+
+    if (isSuccess && (preferenceId || externalReference)) {
+      setVerifyingPayment(true);
+      setVerifyError(null);
+
+      fetch("/api/confirm-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          preference_id: preferenceId,
+          external_reference: externalReference,
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            setPaymentVerified(true);
+            router.push("/?activated=true");
+          } else {
+            console.error("Error confirmando pago:", data.error);
+            setVerifyError(data.error || "No se pudo activar la suscripción");
+          }
+        })
+        .catch((err) => {
+          console.error("Error confirmando pago:", err);
+          setVerifyError("Error de conexión al activar la suscripción");
+        })
+        .finally(() => setVerifyingPayment(false));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Si volvimos de MercadoPago y el webhook ya creó la suscripción, redirigir a home
+  useEffect(() => {
+    if (typeof window === "undefined" || loading || !currentSubscription) return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const isSuccess =
+      urlParams.get("success") === "true" ||
+      urlParams.get("collection_status") === "approved" ||
+      urlParams.get("status") === "approved";
+
+    if (isSuccess && currentSubscription.status === "active") {
+      router.push("/?activated=true");
+    }
+  }, [loading, currentSubscription, router]);
+
   // Cargar historial de pagos
   const loadPaymentHistory = async () => {
     setLoadingHistory(true);
@@ -138,13 +200,16 @@ export default function SubscriptionPage() {
     }
   }, [activeTab]);
 
-  if (loading) {
+  if (loading || verifyingPayment) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground flex items-center justify-center">
+      <div className="min-h-[100dvh] relative overflow-hidden bg-gradient-to-br from-background via-background to-card text-foreground flex items-center justify-center">
+        <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
         <div className="text-center space-y-4">
           <Loader2 className="w-8 h-8 animate-spin mx-auto" />
           <p className="text-muted-foreground">
-            Cargando gestión de suscripción...
+            {verifyingPayment
+              ? "Activando tu suscripción..."
+              : "Cargando gestión de suscripción..."}
           </p>
         </div>
       </div>
@@ -152,8 +217,8 @@ export default function SubscriptionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground">
-      <Header />
+    <div className="min-h-[100dvh] relative overflow-hidden bg-gradient-to-br from-background via-background to-card text-foreground">
+      <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
 
       <main className="container mx-auto px-6 py-8 pb-32">
         {/* Título */}
@@ -168,9 +233,14 @@ export default function SubscriptionPage() {
               <ArrowLeft className="h-4 w-4" />
               <span className="hidden sm:inline">Volver</span>
             </Button>
-            <h1 className="text-2xl font-bold md:order-1">
-              Gestión de Suscripción
-            </h1>
+            <div className="md:order-1">
+              <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground mb-1">
+                Miembro
+              </p>
+              <h1 className="text-3xl md:text-4xl font-bold italic text-primary">
+                Suscripción
+              </h1>
+            </div>
           </div>
           <p className="text-muted-foreground">
             Administra tu suscripción y plan de entrenamiento
@@ -205,6 +275,17 @@ export default function SubscriptionPage() {
               Historial
             </TabsTrigger>
           </TabsList>
+
+          {/* Error de activación de pago */}
+          {verifyError && (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3 flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+              <div className="text-sm">
+                <p className="font-medium">No se pudo activar la suscripción automáticamente</p>
+                <p className="text-muted-foreground">{verifyError}</p>
+              </div>
+            </div>
+          )}
 
           {/* Banner de suscripción vencida */}
           {currentSubscription && (currentSubscription.status === "expired" || currentSubscription.is_expired) && (

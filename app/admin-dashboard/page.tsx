@@ -31,7 +31,7 @@ import { PlanificationDayModal } from "@/components/admin/planification-day-moda
 import { ReplicatePlanificationModal } from "@/components/admin/replicate-planification-modal";
 import { StudentPlansManager } from "@/components/coach/student-plans-manager";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
-import { DashboardHeader } from "@/components/admin/dashboard/dashboard-header";
+
 import { TrialBanner } from "@/components/admin/dashboard/trial-banner";
 import { AccessRestricted } from "@/components/admin/dashboard/access-restricted";
 import { TrialExpired } from "@/components/admin/dashboard/trial-expired";
@@ -578,7 +578,8 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-card text-foreground">
+    <div className="min-h-[100dvh] relative overflow-hidden bg-gradient-to-br from-background via-background to-card text-foreground">
+      <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
       {/* Banner de período de prueba */}
       {coachAccess?.isTrial && coachAccess.hasAccess && (
         <TrialBanner
@@ -589,19 +590,26 @@ export default function AdminDashboardPage() {
       )}
 
       {/* Header */}
-      <DashboardHeader businessName={coachProfile?.businessName} />
+      <div className="container mx-auto px-4 pt-8 pb-4">
+        <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground mb-1">
+          Panel de Control
+        </p>
+        <h1 className="text-3xl md:text-4xl font-bold italic text-primary">
+          Dashboard Coach
+        </h1>
+      </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-2 md:py-8">
         <Tabs
           value={activeTab}
           onValueChange={handleTabChange}
           className="space-y-6"
         >
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 gap-1 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 gap-2 h-auto">
             <TabsTrigger
               value="overview"
-              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300 data-[state=active]:bg-lime-400/10 data-[state=active]:border-lime-400 data-[state=active]:shadow-[0_4px_15px_rgba(204,255,0,0.3)]"
+              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-primary/50 bg-transparent text-primary font-semibold hover:shadow-[0_4px_15px_rgba(230, 255, 43,0.2)] transition-all duration-300 data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-[0_4px_15px_rgba(230, 255, 43,0.3)]"
             >
               <div className="flex flex-col items-center gap-1">
                 <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -611,7 +619,7 @@ export default function AdminDashboardPage() {
             </TabsTrigger>
             <TabsTrigger
               value="disciplines"
-              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300 data-[state=active]:bg-lime-400/10 data-[state=active]:border-lime-400 data-[state=active]:shadow-[0_4px_15px_rgba(204,255,0,0.3)]"
+              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-primary/50 bg-transparent text-primary font-semibold hover:shadow-[0_4px_15px_rgba(230, 255, 43,0.2)] transition-all duration-300 data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-[0_4px_15px_rgba(230, 255, 43,0.3)]"
             >
               <div className="flex flex-col items-center gap-1">
                 <Target className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -621,7 +629,7 @@ export default function AdminDashboardPage() {
             </TabsTrigger>
             <TabsTrigger
               value="planning"
-              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300 data-[state=active]:bg-lime-400/10 data-[state=active]:border-lime-400 data-[state=active]:shadow-[0_4px_15px_rgba(204,255,0,0.3)]"
+              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-primary/50 bg-transparent text-primary font-semibold hover:shadow-[0_4px_15px_rgba(230, 255, 43,0.2)] transition-all duration-300 data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-[0_4px_15px_rgba(230, 255, 43,0.3)]"
             >
               <div className="flex flex-col items-center gap-1">
                 <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -631,7 +639,7 @@ export default function AdminDashboardPage() {
             </TabsTrigger>
             <TabsTrigger
               value="users"
-              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300 data-[state=active]:bg-lime-400/10 data-[state=active]:border-lime-400 data-[state=active]:shadow-[0_4px_15px_rgba(204,255,0,0.3)]"
+              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-primary/50 bg-transparent text-primary font-semibold hover:shadow-[0_4px_15px_rgba(230, 255, 43,0.2)] transition-all duration-300 data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-[0_4px_15px_rgba(230, 255, 43,0.3)]"
             >
               <div className="flex flex-col items-center gap-1">
                 <Users className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -641,7 +649,7 @@ export default function AdminDashboardPage() {
             </TabsTrigger>
             <TabsTrigger
               value="plans"
-              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300 data-[state=active]:bg-lime-400/10 data-[state=active]:border-lime-400 data-[state=active]:shadow-[0_4px_15px_rgba(204,255,0,0.3)]"
+              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-primary/50 bg-transparent text-primary font-semibold hover:shadow-[0_4px_15px_rgba(230, 255, 43,0.2)] transition-all duration-300 data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-[0_4px_15px_rgba(230, 255, 43,0.3)]"
             >
               <div className="flex flex-col items-center gap-1">
                 <DollarSign className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -651,7 +659,7 @@ export default function AdminDashboardPage() {
             </TabsTrigger>
             <TabsTrigger
               value="my-plan"
-              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300 data-[state=active]:bg-lime-400/10 data-[state=active]:border-lime-400 data-[state=active]:shadow-[0_4px_15px_rgba(204,255,0,0.3)]"
+              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-primary/50 bg-transparent text-primary font-semibold hover:shadow-[0_4px_15px_rgba(230, 255, 43,0.2)] transition-all duration-300 data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-[0_4px_15px_rgba(230, 255, 43,0.3)]"
             >
               <div className="flex flex-col items-center gap-1">
                 <Package className="w-3 h-3 sm:w-4 sm:h-4" />

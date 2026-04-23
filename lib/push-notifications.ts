@@ -35,7 +35,7 @@ export async function sendPushNotification(
       JSON.stringify({
         title: payload.title,
         body: payload.body,
-        icon: payload.icon ?? '/icon-192.jpg',
+        icon: payload.icon ?? '/icon-192.png',
         url: payload.url ?? '/',
       })
     )
@@ -44,6 +44,55 @@ export async function sendPushNotification(
     // 410 Gone = suscripción expirada, hay que eliminarla
     return { success: false, error: err?.statusCode === 410 ? 'gone' : String(err) }
   }
+}
+
+import { prisma } from './prisma'
+
+/**
+ * Envía notificaciones push a uno o varios usuarios.
+ * Limpia automáticamente las suscripciones caducadas (410 Gone).
+ */
+export async function sendPushToUsers(
+  userIds: number | number[],
+  payload: PushPayload
+): Promise<{ sent: number; total: number; cleaned: number }> {
+  const ids = Array.isArray(userIds) ? userIds : [userIds]
+  if (ids.length === 0) return { sent: 0, total: 0, cleaned: 0 }
+
+  const subscriptions = await prisma.pushSubscription.findMany({
+    where: { userId: { in: ids } },
+  })
+
+  if (subscriptions.length === 0) return { sent: 0, total: 0, cleaned: 0 }
+
+  const staleEndpoints: string[] = []
+
+  const results = await Promise.allSettled(
+    subscriptions.map((sub) =>
+      sendPushNotification(
+        { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
+        payload
+      )
+    )
+  )
+
+  results.forEach((result, i) => {
+    if (result.status === 'fulfilled' && result.value.error === 'gone') {
+      staleEndpoints.push(subscriptions[i].endpoint)
+    }
+  })
+
+  if (staleEndpoints.length > 0) {
+    await prisma.pushSubscription.deleteMany({
+      where: { endpoint: { in: staleEndpoints } },
+    })
+  }
+
+  const sent = results.filter(
+    (r) => r.status === 'fulfilled' && r.value.success
+  ).length
+
+  return { sent, total: subscriptions.length, cleaned: staleEndpoints.length }
 }
 
 export { webpush }

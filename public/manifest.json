@@ -1,25 +1,25 @@
 {
   "name": "Box Plan - Planificación y Seguimiento",
   "short_name": "Box Plan",
-  "description": "App PWA para planificación y seguimiento de entrenamientos CrossFit",
+  "description": "App PWA para planificación y seguimiento de entrenamientos",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#000000",
-  "theme_color": "#059669",
-  "orientation": "any",
+  "theme_color": "#001115",
+  "orientation": "portrait",
   "dir": "ltr",
   "lang": "es",
   "categories": ["fitness", "health", "sports"],
   "icons": [
     {
-      "src": "/icon-192.jpg",
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "/icon-512.jpg",
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable any"

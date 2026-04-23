@@ -222,7 +222,7 @@ export function TrialCalendar({ onDateClick, coachId }: TrialCalendarProps) {
             variant="ghost"
             size="icon"
             onClick={goToPreviousMonth}
-            className="w-8 h-8 md:w-16 md:h-16 border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300"
+            className="w-8 h-8 md:w-16 md:h-16 border-2 border-primary/50 bg-transparent text-primary font-semibold hover:shadow-[0_4px_15px_rgba(230, 255, 43,0.2)] transition-all duration-300"
           >
             <ChevronLeft className="w-4 h-4 md:w-10 md:h-10" />
           </Button>
@@ -235,7 +235,7 @@ export function TrialCalendar({ onDateClick, coachId }: TrialCalendarProps) {
             variant="ghost"
             size="icon"
             onClick={goToNextMonth}
-            className="w-8 h-8 md:w-16 md:h-16 border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300"
+            className="w-8 h-8 md:w-16 md:h-16 border-2 border-primary/50 bg-transparent text-primary font-semibold hover:shadow-[0_4px_15px_rgba(230, 255, 43,0.2)] transition-all duration-300"
           >
             <ChevronRight className="w-4 h-4 md:w-10 md:h-10" />
           </Button>

@@ -1,5 +1,7 @@
 /**
  * Helpers para cálculo y manejo de splits de pagos en el modelo B2B2C
+ * @deprecated El modelo de split está desactivado por el momento. Los pagos
+ * van directamente a la cuenta del coach. Conservado para referencia futura.
  */
 
 export interface PaymentSplit {

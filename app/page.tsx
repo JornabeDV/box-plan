@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Header } from "@/components/layout/header";
 import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { useAuthWithRoles } from "@/hooks/use-auth-with-roles";
 import { useProfile } from "@/hooks/use-profile";
@@ -10,7 +9,8 @@ import { useUserCoach } from "@/hooks/use-user-coach";
 import { useStudentSubscription } from "@/hooks/use-student-subscription";
 import { useStudentCoach } from "@/hooks/use-student-coach";
 import { TodaySection } from "@/components/dashboard/today-section";
-import { StatsCards } from "@/components/dashboard/stats-cards";
+import { KineticWorkoutCard } from "@/components/dashboard/kinetic-workout-card";
+import { WeeklyPerformance } from "@/components/dashboard/weekly-performance";
 import { ReviewsSection } from "@/components/home/reviews-section";
 import { CoachInfoCard } from "@/components/dashboard/coach-info-card";
 import { CoachSelector } from "@/components/auth/coach-selector";
@@ -91,13 +91,14 @@ export default function BoxPlanApp() {
   // Verificar si hay al menos un acceso rápido disponible
   const hasAnyQuickAccess = hasProgressAccess || hasRankingAccess;
   const { loading: preferencesLoading } = useCurrentUserPreferences();
-  const { disciplines: userDisciplines, loading: disciplinesLoading } = useUserDisciplines();
+  const { disciplines: userDisciplines, loading: disciplinesLoading } =
+    useUserDisciplines();
 
   // Verificar si el usuario tiene suscripción activa
   const hasActiveSubscription = subscription?.status === "active";
 
   // El estudiante puede ver el calendario si el coach le asignó al menos una disciplina con nivel
-  const hasPreferences = userDisciplines.some(d => d.levelId !== null);
+  const hasPreferences = userDisciplines.some((d) => d.levelId !== null);
 
   // Obtener frases motivacionales del coach (si tiene coach)
   const { quotes: coachQuotes, loading: coachQuotesLoading } =
@@ -145,11 +146,35 @@ export default function BoxPlanApp() {
     }
   }, [authLoading, isCoach, user?.id, router, isRedirectingCoach]);
 
-  // Manejar parámetros de pago después de redirección desde MercadoPago
+  // Para alumnos nuevos sin plan, redirigir directo a elegir plan
   useEffect(() => {
-    if (paymentStatusHandled || typeof window === "undefined") return;
+    if (
+      !authLoading &&
+      !subscriptionLoading &&
+      user &&
+      !isCoach &&
+      !isSubscribed &&
+      !isExpired
+    ) {
+      router.replace("/choose-plan");
+    }
+  }, [authLoading, subscriptionLoading, user, isCoach, isSubscribed, isExpired, router]);
 
+  // Mostrar toast cuando se activa una suscripción desde /subscription
+  useEffect(() => {
+    if (typeof window === "undefined") return;
     const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("activated") === "true") {
+      toast({
+        title: "¡Plan activado! 🎉",
+        description: "Tu suscripción está lista. ¡A entrenar!",
+      });
+      router.replace("/", { scroll: false });
+      return;
+    }
+
+    // Manejar parámetros de pago después de redirección desde MercadoPago
+    if (paymentStatusHandled) return;
     const paymentStatus = urlParams.get("payment");
 
     if (paymentStatus && !paymentStatusHandled) {
@@ -212,39 +237,26 @@ export default function BoxPlanApp() {
     disciplinesLoading ||
     (shouldLoadTodayPlanification && todayPlanificationLoading);
 
-  // Debug: Log which hooks are loading
-  useEffect(() => {
-    if (isLoadingCriticalData) {
-      console.log('[BoxPlanApp] Loading states:', {
-        authLoading,
-        profileLoading,
-        subscriptionLoading,
-        disciplinesLoading,
-        shouldLoadTodayPlanification,
-        todayPlanificationLoading,
-        hasUser: !!user,
-        userId: user?.id,
-        isCoach,
-        hasActiveSubscription,
-        hasPreferences,
-      });
-    }
-  }, [authLoading, profileLoading, subscriptionLoading, disciplinesLoading, todayPlanificationLoading, shouldLoadTodayPlanification, user, isCoach, hasActiveSubscription, hasPreferences]);
-
   // Timeout para detectar loading infinito (10 segundos para desarrollo)
   const { hasTimedOut } = useLoadingTimeout(isLoadingCriticalData, {
     timeout: 10000,
     onTimeout: () => {
-      console.error('[BoxPlanApp] Loading timeout - possible infinite loading detected');
-    }
+      console.error(
+        "[BoxPlanApp] Loading timeout - possible infinite loading detected",
+      );
+    },
   });
 
   // Mostrar loading mientras se verifica la autenticación o se redirige
   if (isLoadingCriticalData && !hasTimedOut) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+      <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground flex items-center justify-center">
+        <div
+          className="absolute inset-0 kinetic-grid-bg pointer-events-none"
+          aria-hidden="true"
+        />
         <div className="flex items-center gap-2">
-          <Loader2 className="w-6 h-6 animate-spin text-lime-400" />
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
           <span>Cargando...</span>
         </div>
       </div>
@@ -254,34 +266,49 @@ export default function BoxPlanApp() {
   // Si hay timeout, mostrar opción de reintentar con diagnóstico
   if (hasTimedOut) {
     const loadingStatuses = [
-      { name: 'Autenticación', loading: authLoading },
-      { name: 'Perfil', loading: profileLoading },
-      { name: 'Suscripción', loading: subscriptionLoading },
-      { name: 'Disciplinas', loading: disciplinesLoading },
-      { name: 'Planificación hoy', loading: shouldLoadTodayPlanification && todayPlanificationLoading },
+      { name: "Autenticación", loading: authLoading },
+      { name: "Perfil", loading: profileLoading },
+      { name: "Suscripción", loading: subscriptionLoading },
+      { name: "Disciplinas", loading: disciplinesLoading },
+      {
+        name: "Planificación hoy",
+        loading: shouldLoadTodayPlanification && todayPlanificationLoading,
+      },
     ];
 
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
+      <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground flex items-center justify-center p-6">
+        <div
+          className="absolute inset-0 kinetic-grid-bg pointer-events-none"
+          aria-hidden="true"
+        />
         <Card className="max-w-md w-full">
           <CardContent className="pt-6 text-center space-y-4">
             <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto">
               <AlertTriangle className="w-8 h-8 text-amber-500" />
             </div>
             <div className="space-y-2">
-              <h2 className="text-xl font-semibold">Tiempo de espera agotado</h2>
+              <h2 className="text-xl font-semibold">
+                Tiempo de espera agotado
+              </h2>
               <p className="text-muted-foreground text-sm">
                 La aplicación está tardando más de lo esperado en cargar.
               </p>
             </div>
-            
+
             {/* Diagnóstico */}
             <div className="text-left bg-muted/50 rounded-lg p-3 space-y-1">
-              <p className="text-xs font-semibold text-muted-foreground uppercase">Estado de carga:</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase">
+                Estado de carga:
+              </p>
               {loadingStatuses.map((status) => (
                 <div key={status.name} className="flex justify-between text-sm">
                   <span>{status.name}:</span>
-                  <span className={status.loading ? "text-amber-500" : "text-green-500"}>
+                  <span
+                    className={
+                      status.loading ? "text-amber-500" : "text-green-500"
+                    }
+                  >
                     {status.loading ? "Cargando..." : "Listo"}
                   </span>
                 </div>
@@ -289,22 +316,22 @@ export default function BoxPlanApp() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <Button 
-                onClick={() => window.location.reload()} 
+              <Button
+                onClick={() => window.location.reload()}
                 className="w-full"
               >
                 Reintentar
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => {
                   // Limpiar caché y recargar
-                  if (typeof window !== 'undefined') {
+                  if (typeof window !== "undefined") {
                     localStorage.clear();
                     sessionStorage.clear();
-                    window.location.href = '/login';
+                    window.location.href = "/login";
                   }
-                }} 
+                }}
                 className="w-full"
               >
                 Limpiar datos y volver a login
@@ -319,9 +346,13 @@ export default function BoxPlanApp() {
   // Si debe redirigir, mostrar loading durante la redirección
   if (shouldRedirect || isRedirectingCoach) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+      <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground flex items-center justify-center">
+        <div
+          className="absolute inset-0 kinetic-grid-bg pointer-events-none"
+          aria-hidden="true"
+        />
         <div className="flex items-center gap-2">
-          <Loader2 className="w-6 h-6 animate-spin text-lime-400" />
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
           <span>Redirigiendo...</span>
         </div>
       </div>
@@ -331,21 +362,28 @@ export default function BoxPlanApp() {
   // Si no hay usuario autenticado y es primera visita, mostrar landing page
   if (!user) {
     return (
-      <div className="min-h-screen bg-background text-foreground">
-        <Header />
+      <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground">
+        <div
+          className="absolute inset-0 kinetic-grid-bg pointer-events-none"
+          aria-hidden="true"
+        />
 
         <main className="w-full">
           {/* Hero Section */}
           <section className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-16 md:py-24">
             <div className="container mx-auto px-6 text-center max-w-4xl">
-              <Badge className="mb-6 bg-lime-400/10 text-lime-400 border-lime-400/30 hover:bg-lime-400/20">
+              <Badge className="mb-6 bg-primary/10 text-primary border-primary/30 hover:bg-primary/20">
                 Plataforma de entrenamiento
               </Badge>
               <h1 className="text-4xl md:text-6xl font-display tracking-wide mb-6">
-                La herramienta para <span className="text-lime-400">coaches</span> y <span className="text-lime-400">atletas</span>
+                La herramienta para{" "}
+                <span className="text-primary">coaches</span> y{" "}
+                <span className="text-primary">atletas</span>
               </h1>
               <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto mb-10">
-                Box Plan conecta coaches con sus atletas. Planificaciones profesionales, seguimiento de progreso y pagos — todo en un solo lugar.
+                Box Plan conecta coaches con sus atletas. Planificaciones
+                profesionales, seguimiento de progreso y pagos — todo en un solo
+                lugar.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button
@@ -392,28 +430,51 @@ export default function BoxPlanApp() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Coach Card */}
-                <Card className="border-lime-400/30 bg-gradient-to-br from-lime-400/5 to-transparent">
+                <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
                   <CardHeader className="pb-4">
-                    <div className="w-12 h-12 rounded-xl bg-lime-400/10 flex items-center justify-center mb-4">
-                      <Settings className="w-6 h-6 text-lime-400" />
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+                      <Settings className="w-6 h-6 text-primary" />
                     </div>
-                    <CardTitle className="text-2xl font-display tracking-wide">Para Coaches</CardTitle>
+                    <CardTitle className="text-2xl font-display tracking-wide">
+                      Para Coaches
+                    </CardTitle>
                     <CardDescription className="text-base">
-                      Gestioná tu box, tus alumnos y tus ingresos desde un solo panel.
+                      Gestioná tu box, tus alumnos y tus ingresos desde un solo
+                      panel.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {[
-                      { icon: FileText, text: "Creá y publicá planificaciones por nivel y disciplina" },
-                      { icon: Users, text: "Asigná alumnos a planes y controlá su acceso" },
-                      { icon: Calendar, text: "Organizá el calendario de entrenamientos" },
-                      { icon: TrendingUp, text: "Seguí el progreso y las marcas de tus atletas" },
-                      { icon: MessageCircle, text: "Enviá notificaciones push a tus alumnos" },
-                      { icon: Zap, text: "Cobrá suscripciones vía MercadoPago automáticamente" },
+                      {
+                        icon: FileText,
+                        text: "Creá y publicá planificaciones por nivel y disciplina",
+                      },
+                      {
+                        icon: Users,
+                        text: "Asigná alumnos a planes y controlá su acceso",
+                      },
+                      {
+                        icon: Calendar,
+                        text: "Organizá el calendario de entrenamientos",
+                      },
+                      {
+                        icon: TrendingUp,
+                        text: "Seguí el progreso y las marcas de tus atletas",
+                      },
+                      {
+                        icon: MessageCircle,
+                        text: "Enviá notificaciones push a tus alumnos",
+                      },
+                      {
+                        icon: Zap,
+                        text: "Cobrá suscripciones vía MercadoPago automáticamente",
+                      },
                     ].map((item, i) => (
                       <div key={i} className="flex items-center gap-3 text-sm">
-                        <item.icon className="w-4 h-4 text-lime-400 shrink-0" />
-                        <span className="text-muted-foreground">{item.text}</span>
+                        <item.icon className="w-4 h-4 text-primary shrink-0" />
+                        <span className="text-muted-foreground">
+                          {item.text}
+                        </span>
                       </div>
                     ))}
                     <div className="pt-4">
@@ -435,23 +496,46 @@ export default function BoxPlanApp() {
                     <div className="w-12 h-12 rounded-xl bg-blue-400/10 flex items-center justify-center mb-4">
                       <Target className="w-6 h-6 text-blue-400" />
                     </div>
-                    <CardTitle className="text-2xl font-display tracking-wide">Para Atletas</CardTitle>
+                    <CardTitle className="text-2xl font-display tracking-wide">
+                      Para Atletas
+                    </CardTitle>
                     <CardDescription className="text-base">
-                      Accedé a las planificaciones de tu coach y entrenás con todas las herramientas.
+                      Accedé a las planificaciones de tu coach y entrenás con
+                      todas las herramientas.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {[
-                      { icon: FileText, text: "Accedé a las planificaciones de tu coach" },
-                      { icon: Timer, text: "Timer profesional: Tabata, AMRAP, EMOM, For Time" },
-                      { icon: TrendingUp, text: "Registrá tus marcas y seguí tu progreso" },
-                      { icon: Trophy, text: "Ranking y comparativa con tu box" },
-                      { icon: Calculator, text: "Calculadora de 1RM y porcentajes" },
-                      { icon: Star, text: "Notificaciones de entrenamientos y novedades" },
+                      {
+                        icon: FileText,
+                        text: "Accedé a las planificaciones de tu coach",
+                      },
+                      {
+                        icon: Timer,
+                        text: "Timer profesional: Tabata, AMRAP, EMOM, For Time",
+                      },
+                      {
+                        icon: TrendingUp,
+                        text: "Registrá tus marcas y seguí tu progreso",
+                      },
+                      {
+                        icon: Trophy,
+                        text: "Ranking y comparativa con tu box",
+                      },
+                      {
+                        icon: Calculator,
+                        text: "Calculadora de 1RM y porcentajes",
+                      },
+                      {
+                        icon: Star,
+                        text: "Notificaciones de entrenamientos y novedades",
+                      },
                     ].map((item, i) => (
                       <div key={i} className="flex items-center gap-3 text-sm">
                         <item.icon className="w-4 h-4 text-blue-400 shrink-0" />
-                        <span className="text-muted-foreground">{item.text}</span>
+                        <span className="text-muted-foreground">
+                          {item.text}
+                        </span>
                       </div>
                     ))}
                     <div className="pt-4">
@@ -487,24 +571,42 @@ export default function BoxPlanApp() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                 {/* Coach flow */}
                 <div>
-                  <h3 className="text-xl font-semibold text-lime-400 mb-6 flex items-center gap-2">
+                  <h3 className="text-xl font-semibold text-primary mb-6 flex items-center gap-2">
                     <Settings className="w-5 h-5" />
                     Para el Coach
                   </h3>
                   <div className="space-y-6">
                     {[
-                      { step: "1", title: "Creá tu cuenta de coach", desc: "Registrate y elegí un plan según la cantidad de alumnos que manejás." },
-                      { step: "2", title: "Cargá tus planificaciones", desc: "Creá bloques de entrenamiento, asigná días y niveles, y publicalos." },
-                      { step: "3", title: "Sumá a tus alumnos", desc: "Invitá a tus atletas a la plataforma y asignalos a los planes que correspondan." },
-                      { step: "4", title: "Cobrá automáticamente", desc: "Tus alumnos pagan la suscripción vía MercadoPago y el dinero llega directo a vos." },
+                      {
+                        step: "1",
+                        title: "Creá tu cuenta de coach",
+                        desc: "Registrate y elegí un plan según la cantidad de alumnos que manejás.",
+                      },
+                      {
+                        step: "2",
+                        title: "Cargá tus planificaciones",
+                        desc: "Creá bloques de entrenamiento, asigná días y niveles, y publicalos.",
+                      },
+                      {
+                        step: "3",
+                        title: "Sumá a tus alumnos",
+                        desc: "Invitá a tus atletas a la plataforma y asignalos a los planes que correspondan.",
+                      },
+                      {
+                        step: "4",
+                        title: "Cobrá automáticamente",
+                        desc: "Tus alumnos pagan la suscripción vía MercadoPago y el dinero llega directo a vos.",
+                      },
                     ].map((item) => (
                       <div key={item.step} className="flex gap-4">
-                        <div className="w-8 h-8 rounded-full bg-lime-400/10 border border-lime-400/30 flex items-center justify-center text-lime-400 font-bold text-sm shrink-0 mt-0.5">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-primary font-bold text-sm shrink-0 mt-0.5">
                           {item.step}
                         </div>
                         <div>
                           <p className="font-semibold text-sm">{item.title}</p>
-                          <p className="text-muted-foreground text-sm mt-0.5">{item.desc}</p>
+                          <p className="text-muted-foreground text-sm mt-0.5">
+                            {item.desc}
+                          </p>
                         </div>
                       </div>
                     ))}
@@ -519,10 +621,26 @@ export default function BoxPlanApp() {
                   </h3>
                   <div className="space-y-6">
                     {[
-                      { step: "1", title: "Tu coach te registra o te invita", desc: "El coach crea tu cuenta o vos te registrás con el código de tu box." },
-                      { step: "2", title: "Elegís tu plan", desc: "Seleccionás el plan que ofrece tu coach y completás el pago." },
-                      { step: "3", title: "Accedés a tus entrenamientos", desc: "Desde el día 1 tenés acceso a las planificaciones, el timer y el seguimiento." },
-                      { step: "4", title: "Entrenás y progresás", desc: "Registrá tus marcas, seguí tu progreso y recibí las novedades de tu coach." },
+                      {
+                        step: "1",
+                        title: "Tu coach te registra o te invita",
+                        desc: "El coach crea tu cuenta o vos te registrás con el código de tu box.",
+                      },
+                      {
+                        step: "2",
+                        title: "Elegís tu plan",
+                        desc: "Seleccionás el plan que ofrece tu coach y completás el pago.",
+                      },
+                      {
+                        step: "3",
+                        title: "Accedés a tus entrenamientos",
+                        desc: "Desde el día 1 tenés acceso a las planificaciones, el timer y el seguimiento.",
+                      },
+                      {
+                        step: "4",
+                        title: "Entrenás y progresás",
+                        desc: "Registrá tus marcas, seguí tu progreso y recibí las novedades de tu coach.",
+                      },
                     ].map((item) => (
                       <div key={item.step} className="flex gap-4">
                         <div className="w-8 h-8 rounded-full bg-blue-400/10 border border-blue-400/30 flex items-center justify-center text-blue-400 font-bold text-sm shrink-0 mt-0.5">
@@ -530,7 +648,9 @@ export default function BoxPlanApp() {
                         </div>
                         <div>
                           <p className="font-semibold text-sm">{item.title}</p>
-                          <p className="text-muted-foreground text-sm mt-0.5">{item.desc}</p>
+                          <p className="text-muted-foreground text-sm mt-0.5">
+                            {item.desc}
+                          </p>
                         </div>
                       </div>
                     ))}
@@ -558,43 +678,68 @@ export default function BoxPlanApp() {
                     ¿Quién usa Box Plan?
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground">
-                    Box Plan está diseñado para coaches de distintas disciplinas y sus atletas. El coach administra la plataforma, crea los planes y cobra las suscripciones. Los atletas acceden al contenido y las herramientas incluidas en su plan.
+                    Box Plan está diseñado para coaches de distintas disciplinas
+                    y sus atletas. El coach administra la plataforma, crea los
+                    planes y cobra las suscripciones. Los atletas acceden al
+                    contenido y las herramientas incluidas en su plan.
                   </AccordionContent>
                 </AccordionItem>
 
-                <AccordionItem value="athlete-signup" className="bg-card rounded-lg px-4">
+                <AccordionItem
+                  value="athlete-signup"
+                  className="bg-card rounded-lg px-4"
+                >
                   <AccordionTrigger className="hover:no-underline">
                     ¿Cómo me registro si soy atleta?
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground">
-                    Tu coach te crea una cuenta o te comparte el acceso. Si ya tenés cuenta, ingresá con tu email y contraseña. Para acceder al contenido necesitás un plan activo asignado por tu coach.
+                    Tu coach te crea una cuenta o te comparte el acceso. Si ya
+                    tenés cuenta, ingresá con tu email y contraseña. Para
+                    acceder al contenido necesitás un plan activo asignado por
+                    tu coach.
                   </AccordionContent>
                 </AccordionItem>
 
-                <AccordionItem value="payment" className="bg-card rounded-lg px-4">
+                <AccordionItem
+                  value="payment"
+                  className="bg-card rounded-lg px-4"
+                >
                   <AccordionTrigger className="hover:no-underline">
                     ¿Cómo funcionan los pagos?
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground">
-                    Los pagos se procesan vía MercadoPago. El atleta paga la suscripción al coach directamente — el dinero llega a la cuenta del coach. Se aceptan tarjetas de crédito, débito, transferencias y billeteras digitales.
+                    Los pagos se procesan vía MercadoPago. El atleta paga la
+                    suscripción al coach directamente — el dinero llega a la
+                    cuenta del coach. Se aceptan tarjetas de crédito, débito,
+                    transferencias y billeteras digitales.
                   </AccordionContent>
                 </AccordionItem>
 
-                <AccordionItem value="cancel" className="bg-card rounded-lg px-4">
+                <AccordionItem
+                  value="cancel"
+                  className="bg-card rounded-lg px-4"
+                >
                   <AccordionTrigger className="hover:no-underline">
                     ¿Puedo cancelar cuando quiera?
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground">
-                    Sí. Los coaches pueden cancelar su suscripción a Box Plan en cualquier momento. Los atletas pueden dejar de renovar su plan con el coach sin penalizaciones.
+                    Sí. Los coaches pueden cancelar su suscripción a Box Plan en
+                    cualquier momento. Los atletas pueden dejar de renovar su
+                    plan con el coach sin penalizaciones.
                   </AccordionContent>
                 </AccordionItem>
 
-                <AccordionItem value="device" className="bg-card rounded-lg px-4">
+                <AccordionItem
+                  value="device"
+                  className="bg-card rounded-lg px-4"
+                >
                   <AccordionTrigger className="hover:no-underline">
                     ¿Funciona en el celular?
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground">
-                    Sí, Box Plan es una PWA (Progressive Web App). Podés instalarla en tu teléfono Android o iOS y usarla como una app nativa, con notificaciones push incluidas.
+                    Sí, Box Plan es una PWA (Progressive Web App). Podés
+                    instalarla en tu teléfono Android o iOS y usarla como una
+                    app nativa, con notificaciones push incluidas.
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
@@ -608,7 +753,8 @@ export default function BoxPlanApp() {
                 ¿Sos coach? Empezá hoy.
               </h2>
               <p className="text-lg text-gray-300 mb-8">
-                Creá tu cuenta, cargá tus planificaciones y empezá a cobrar suscripciones a tus atletas.
+                Creá tu cuenta, cargá tus planificaciones y empezá a cobrar
+                suscripciones a tus atletas.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button
@@ -648,9 +794,29 @@ export default function BoxPlanApp() {
   // Para usuarios logueados, verificar si tiene suscripción activa
   // Si no tiene suscripción, mostrar pantalla de acceso restringido (Beta)
   if (!subscriptionLoading && !isSubscribed) {
+    // Alumno nuevo sin plan: redirigir a elegir plan (el useEffect arriba lo maneja,
+    // mostramos un loading mientras tanto para evitar el flash de la card)
+    if (!isExpired) {
+      return (
+        <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground flex items-center justify-center">
+          <div
+            className="absolute inset-0 kinetic-grid-bg pointer-events-none"
+            aria-hidden="true"
+          />
+          <div className="flex items-center gap-2">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            <span>Redirigiendo...</span>
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <div className="min-h-screen bg-background text-foreground">
-        <Header />
+      <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground">
+        <div
+          className="absolute inset-0 kinetic-grid-bg pointer-events-none"
+          aria-hidden="true"
+        />
         <main
           className={`p-6 space-y-6 max-w-4xl mx-auto ${
             isSubscribed ? "pb-32" : ""
@@ -666,8 +832,8 @@ export default function BoxPlanApp() {
                   <div className="space-y-1">
                     <h2 className="text-xl font-bold">Tu suscripción venció</h2>
                     <p className="text-muted-foreground text-sm">
-                      Tu plan{" "}
-                      <strong>{studentSubscription.planName}</strong> venció el{" "}
+                      Tu plan <strong>{studentSubscription.planName}</strong>{" "}
+                      venció el{" "}
                       <strong>
                         {new Date(
                           studentSubscription.currentPeriodEnd,
@@ -705,7 +871,7 @@ export default function BoxPlanApp() {
                   <Button
                     size="lg"
                     className="w-full"
-                    onClick={() => router.push("/subscription")}
+                    onClick={() => router.push("/choose-plan")}
                   >
                     Ver planes disponibles
                   </Button>
@@ -721,55 +887,74 @@ export default function BoxPlanApp() {
 
   // Para usuarios logueados con suscripción activa, mostrar dashboard personalizado
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <Header />
+    <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground">
+      <div
+        className="absolute inset-0 kinetic-grid-bg pointer-events-none"
+        aria-hidden="true"
+      />
 
-      <main className="p-6 space-y-8 pb-28 gap-6 mt-6 pt-4 border-t border-border max-w-6xl mx-auto">
+      <main className="px-5 py-6 space-y-8 pb-24 max-w-md mx-auto md:max-w-2xl">
         {/* Saludo personalizado */}
-        <section className="mb-3 sm:mb-8">
-          <div className="space-y-3">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-4">
-              <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-                ¡Hola{user?.name ? `, ${user.name.split(" ")[0]}` : ""}! 👋
-              </h1>
-              <p className="text-muted-foreground text-base md:text-lg md:whitespace-nowrap">
-                {new Date().toLocaleDateString("es-ES", {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "long",
-                })}
-              </p>
-            </div>
-            {/* Frase motivacional - Para usuarios con suscripción activa */}
-            {!profileLoading && subscription?.status === "active" && (
-              <p className="text-lime-400 text-base md:text-lg font-medium italic">
-                {getDailyMotivationalQuote()}
-              </p>
-            )}
-          </div>
+        <section className="space-y-2">
+          <span className="label-md text-primary tracking-[0.2em]">
+            Dashboard
+          </span>
+          <h1 className="display-lg text-foreground">
+            <span className="italic">¡Hola</span>
+            <span className="italic text-primary">
+              , {user?.name ? user.name.split(" ")[0] : "Atleta"}!
+            </span>
+          </h1>
+          <p className="body-lg text-sm font-semibold text-muted-foreground uppercase">
+            {new Date().toLocaleDateString("es-ES", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+            })}
+          </p>
         </section>
+
+        {/* Frase motivacional */}
+        {!profileLoading && subscription?.status === "active" && (
+          <Card className="accent-left">
+            <CardContent>
+              <div className="relative">
+                <span className="text-4xl text-primary leading-none absolute -top-2 -left-2">
+                  &ldquo;
+                </span>
+
+                <p className="body-lg text-foreground italic px-4">
+                  {getDailyMotivationalQuote()}
+                </p>
+
+                <span className="text-4xl text-primary leading-none absolute -bottom-2 -right-2">
+                  &rdquo;
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Calendario de prueba - Para usuarios sin suscripción */}
         {user?.id && !hasActiveSubscription && !profileLoading && (
           <section className="space-y-6">
-            {/* Frase motivacional - Para usuarios con coach sin suscripción */}
             {!coachLoading && userCoach && (
-              <p className="text-lime-400 text-base md:text-lg font-medium italic">
-                {getDailyMotivationalQuote()}
-              </p>
+              <Card className="accent-left">
+                <CardContent>
+                  <p className="body-lg text-foreground italic">
+                    {getDailyMotivationalQuote()}
+                  </p>
+                </CardContent>
+              </Card>
             )}
-            {/* Calendario de entrenamientos - Solo si tiene coach */}
             {!coachLoading && userCoach && (
               <TrialCalendar
                 coachId={userCoach.id}
                 onDateClick={(date) => {
-                  // Formatear fecha como YYYY-MM-DD
                   const year = date.getFullYear();
                   const month = String(date.getMonth() + 1).padStart(2, "0");
                   const day = String(date.getDate()).padStart(2, "0");
                   const dateString = `${year}-${month}-${day}`;
-
-                  // Redirigir a la página de planificación con la fecha
                   router.push(`/planification?date=${dateString}`);
                 }}
               />
@@ -777,78 +962,82 @@ export default function BoxPlanApp() {
           </section>
         )}
 
-        {/* Estadísticas rápidas - Solo para usuarios con suscripción activa */}
+        {/* Planificación de hoy */}
         {user?.id && hasActiveSubscription && (
-          <section className="mb-3 sm:mb-8">
-            <StatsCards />
+          <section>
+            <KineticWorkoutCard />
           </section>
         )}
 
-        {/* Sección del día - Solo para usuarios con suscripción activa y con disciplinas asignadas */}
+        {/* Calendario mensual */}
         {user?.id && hasActiveSubscription && hasPreferences && (
-          <section className="mb-3 sm:mb-8">
+          <section>
             <TodaySection />
           </section>
         )}
 
-        {/* Accesos rápidos - Solo para usuarios con suscripción activa y que tengan al menos un acceso disponible */}
-        {user?.id && hasActiveSubscription && hasAnyQuickAccess && (
-          <section className="mb-3 sm:mb-8">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="w-5 h-5" />
-                  Accesos Rápidos
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-3 gap-2 md:gap-4">
-                  {hasProgressAccess && (
-                    <Button
-                      variant="outline"
-                      className="flex flex-col items-center gap-1 md:gap-2 h-auto py-3 md:py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
-                      onClick={() => router.push("/progress")}
-                    >
-                      <BarChart3 className="w-4 h-4 md:w-6 md:h-6" />
-                      <span className="text-xs md:text-base">Progreso</span>
-                    </Button>
-                  )}
-                  {canTrackProgress && (
-                    <Button
-                      variant="outline"
-                      className="flex flex-col items-center gap-1 md:gap-2 h-auto py-3 md:py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
-                      onClick={() => router.push("/log-rm")}
-                    >
-                      <Weight className="w-4 h-4 md:w-6 md:h-6" />
-                      <span className="text-xs md:text-base">Carga RM</span>
-                    </Button>
-                  )}
-                  {hasRankingAccess && (
-                    <Button
-                      variant="outline"
-                      className="flex flex-col items-center gap-1 md:gap-2 h-auto py-3 md:py-6 hover:bg-primary/5 hover:border-primary/30 transition-colors"
-                      onClick={() => router.push("/ranking")}
-                    >
-                      <Trophy className="w-4 h-4 md:w-6 md:h-6" />
-                      <span className="text-xs md:text-base">Ranking</span>
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+        {/* Rendimiento semanal */}
+        {user?.id && hasActiveSubscription && (
+          <section>
+            <WeeklyPerformance />
           </section>
         )}
 
-        {/* Información del coach - Antes del carrusel de opiniones */}
+        {/* Accesos rápidos */}
+        {user?.id && hasActiveSubscription && hasAnyQuickAccess && (
+          <section className="space-y-3">
+            <h2 className="headline-md text-foreground">Accesos Rápidos</h2>
+            <div className="grid grid-cols-3 gap-3">
+              {hasProgressAccess && (
+                <Button
+                  variant="ghost"
+                  onClick={() => router.push("/progress")}
+                  className="h-auto flex-col gap-2 rounded-2xl bg-surface-container p-4 hover:bg-surface-container-high"
+                >
+                  <BarChart3 className="w-5 h-5 text-primary" />
+                  <span className="text-xs font-medium text-foreground">
+                    Progreso
+                  </span>
+                </Button>
+              )}
+              {canTrackProgress && (
+                <Button
+                  variant="ghost"
+                  onClick={() => router.push("/log-rm")}
+                  className="h-auto flex-col gap-2 rounded-2xl bg-surface-container p-4 hover:bg-surface-container-high"
+                >
+                  <Weight className="w-5 h-5 text-primary" />
+                  <span className="text-xs font-medium text-foreground">
+                    Carga RM
+                  </span>
+                </Button>
+              )}
+              {hasRankingAccess && (
+                <Button
+                  variant="ghost"
+                  onClick={() => router.push("/ranking")}
+                  className="h-auto flex-col gap-2 rounded-2xl bg-surface-container p-4 hover:bg-surface-container-high"
+                >
+                  <Trophy className="w-5 h-5 text-primary" />
+                  <span className="text-xs font-medium text-foreground">
+                    Ranking
+                  </span>
+                </Button>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Información del coach */}
         {user?.id && !coachLoading && userCoach && (
-          <section className="mb-3 sm:mb-8">
+          <section>
             <CoachInfoCard coach={userCoach} />
           </section>
         )}
 
-        {/* Card para seleccionar coach si no tiene uno */}
+        {/* Seleccionar coach */}
         {user?.id && !coachLoading && !userCoach && !isCoach && (
-          <section className="mb-3 sm:mb-8">
+          <section>
             <CoachSelector
               userId={user.id}
               onSelect={async (coachId: number) => {
@@ -866,7 +1055,6 @@ export default function BoxPlanApp() {
                     );
                   }
 
-                  // Recargar la página para actualizar el estado
                   window.location.reload();
                 } catch (error: any) {
                   toast({
@@ -882,9 +1070,9 @@ export default function BoxPlanApp() {
           </section>
         )}
 
-        {/* Reviews Section - Al final del dashboard */}
+        {/* Reviews */}
         {user?.id && (
-          <section className="mb-3 sm:mb-8">
+          <section>
             <ReviewsSection variant="default" />
           </section>
         )}
@@ -892,7 +1080,6 @@ export default function BoxPlanApp() {
 
       <BottomNavigation />
 
-      {/* Botón flotante de WhatsApp para contactar al coach */}
       {!coachLoading &&
         !subscriptionLoading &&
         userCoach &&

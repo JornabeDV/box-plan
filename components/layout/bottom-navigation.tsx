@@ -1,117 +1,105 @@
+"use client";
+
 import { memo, useMemo } from "react";
-import { Button } from "@/components/ui/button";
-import { User, Timer, Calculator, Settings, Hash, HomeIcon } from "lucide-react";
+import { User, Timer, Calculator, Settings, HomeIcon } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAuthWithRoles } from "@/hooks/use-auth-with-roles";
 import { useStudentSubscription } from "@/hooks/use-student-subscription";
 
+function NavItem({
+  href,
+  icon: Icon,
+  label,
+  isActive,
+}: {
+  href: string;
+  icon: React.ElementType;
+  label: string;
+  isActive: boolean;
+}) {
+  return (
+    <Link href={href} className="flex flex-col items-center justify-center gap-1 py-2 px-3 min-w-[64px] touch-manipulation">
+      <div className="relative flex items-center justify-center">
+        <Icon
+          className={`w-5 h-5 transition-colors duration-200 ${
+            isActive ? "text-primary" : "text-muted-foreground"
+          }`}
+          strokeWidth={isActive ? 2.5 : 2}
+        />
+      </div>
+      <span
+        className={`text-[10px] font-medium tracking-wide uppercase transition-colors duration-200 ${
+          isActive ? "text-primary" : "text-muted-foreground"
+        }`}
+      >
+        {label}
+      </span>
+      {isActive && (
+        <span className="absolute bottom-1 w-1 h-1 rounded-full bg-primary" />
+      )}
+    </Link>
+  );
+}
+
 export const BottomNavigation = memo(function BottomNavigation() {
+  const pathname = usePathname();
   const { isAdmin, isCoach, isStudent } = useAuthWithRoles();
-  const { 
-    canUseTimer, 
-    loading: subscriptionLoading 
-  } = useStudentSubscription();
-  
-  // Memoizar los valores para evitar re-renders innecesarios
-  const showRMButton = true; // RM siempre disponible para todos
-  
+  const { canUseTimer, loading: subscriptionLoading } = useStudentSubscription();
+
   const showTimerButton = useMemo(() => {
-    // Para coaches: siempre mostrar (no hay restricción específica de timer para coaches)
-    // Para estudiantes: verificar canUseTimer
-    if (isCoach) {
-      return true;
-    }
-    if (isStudent) {
-      return !subscriptionLoading && canUseTimer;
-    }
-    return true; // Default para admin u otros roles
+    if (isCoach) return true;
+    if (isStudent) return !subscriptionLoading && canUseTimer;
+    return true;
   }, [subscriptionLoading, canUseTimer, isCoach, isStudent]);
-  
-  const showCoachDashboard = useMemo(() => {
-    return isCoach;
-  }, [isCoach]);
-  
-  const showAdminDashboard = useMemo(() => {
-    return isAdmin && !isCoach;
-  }, [isAdmin, isCoach]);
+
+  const showCoachDashboard = useMemo(() => isCoach, [isCoach]);
+  const showAdminDashboard = useMemo(() => isAdmin && !isCoach, [isAdmin, isCoach]);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-muted border-t border-border">
-      <div className="flex items-center justify-around py-3 px-2">
-        <Link href="/" className="flex items-center justify-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="justify-center items-center whitespace-nowrap transition-all duration-300 cursor-pointer disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-ring aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] w-16 h-16 rounded-lg p-0 text-xs flex flex-col gap-1"
-          >
-            <HomeIcon className="w-5 h-5" />
-            <span className="text-xs font-medium">Home</span>
-          </Button>
-        </Link>
-
-        <Link href="/profile" className="flex items-center justify-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="justify-center items-center whitespace-nowrap transition-all duration-300 cursor-pointer disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-ring aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] w-16 h-16 rounded-lg p-0 text-xs flex flex-col gap-1"
-          >
-            <User className="w-5 h-5" />
-            <span className="text-xs font-medium">Perfil</span>
-          </Button>
-        </Link>
-
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-2xl border-t border-primary/10">
+      <div className="flex items-center justify-around py-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] max-w-md mx-auto">
+        <NavItem
+          href="/"
+          icon={HomeIcon}
+          label="Home"
+          isActive={pathname === "/"}
+        />
+        <NavItem
+          href="/profile"
+          icon={User}
+          label="Perfil"
+          isActive={pathname === "/profile"}
+        />
         {showTimerButton && (
-          <Link href="/timer" className="flex items-center justify-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="justify-center items-center whitespace-nowrap transition-all duration-300 cursor-pointer disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-ring aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] w-16 h-16 rounded-lg p-0 text-xs flex flex-col gap-1"
-            >
-              <Timer className="w-5 h-5" />
-              <span className="text-xs font-medium">Timer</span>
-            </Button>
-          </Link>
+          <NavItem
+            href="/timer"
+            icon={Timer}
+            label="Timer"
+            isActive={pathname === "/timer"}
+          />
         )}
-
-        <Link href="/log-rm" className="flex items-center justify-center">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="justify-center items-center whitespace-nowrap transition-all duration-300 cursor-pointer disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-ring aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] w-16 h-16 rounded-lg p-0 text-xs flex flex-col gap-1"
-        >
-          <Calculator className="w-5 h-5" />
-          <span className="text-xs font-medium">RM</span>
-        </Button>
-      </Link>
-
+        <NavItem
+          href="/log-rm"
+          icon={Calculator}
+          label="RM"
+          isActive={pathname === "/log-rm"}
+        />
         {showCoachDashboard && (
-          <Link
+          <NavItem
             href="/admin-dashboard"
-            className="flex items-center justify-center"
-          >
-            <Button
-              variant="ghost"
-              className="justify-center items-center whitespace-nowrap transition-all duration-300 cursor-pointer disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-ring aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] w-16 h-16 rounded-lg p-0 text-xs flex flex-col gap-1"
-            >
-              <Settings className="w-5 h-5" />
-              <span className="text-xs font-medium">Dashboard</span>
-            </Button>
-          </Link>
+            icon={Settings}
+            label="Dashboard"
+            isActive={pathname === "/admin-dashboard"}
+          />
         )}
-
         {showAdminDashboard && (
-          <Link
+          <NavItem
             href="/admin-dashboard"
-            className="flex items-center justify-center"
-          >
-            <Button
-              variant="ghost"
-              className="justify-center items-center whitespace-nowrap transition-all duration-300 cursor-pointer disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-ring aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive relative overflow-hidden group border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] w-16 h-16 rounded-lg p-0 text-xs flex flex-col gap-1"
-            >
-              <Settings className="w-5 h-5" />
-              <span className="text-xs font-medium">Admin</span>
-            </Button>
-          </Link>
+            icon={Settings}
+            label="Admin"
+            isActive={pathname === "/admin-dashboard"}
+          />
         )}
       </div>
     </nav>

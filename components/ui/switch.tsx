@@ -88,10 +88,10 @@ function Switch({
           'w-11 h-6 rounded-full cursor-pointer transition-all duration-200 ease-in-out flex items-center outline-none',
           // Estados de color
           isChecked 
-            ? 'bg-lime-400' 
+            ? 'bg-primary' 
             : 'bg-gray-400 dark:bg-gray-600 border border-gray-500 dark:border-gray-500',
           // Estados de foco
-          isFocused && 'ring-2 ring-lime-400/50 ring-offset-2 ring-offset-background',
+          isFocused && 'ring-2 ring-primary/30 ring-offset-2 ring-offset-background',
           // Estado deshabilitado
           disabled && 'opacity-50 cursor-not-allowed',
           // Hover

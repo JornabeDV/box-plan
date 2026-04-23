@@ -180,11 +180,11 @@ export function CoachLogoUploadInline() {
       {logoUrl ? (
         <div
           onClick={handleLogoClick}
-          className="relative w-24 h-24 flex-shrink-0 border-2 border-border rounded-lg overflow-hidden bg-background cursor-pointer hover:border-lime-400/50 transition-all duration-300 hover:shadow-md"
+          className="relative w-24 h-24 flex-shrink-0 border-2 border-border rounded-lg overflow-hidden bg-background cursor-pointer hover:border-primary/50 transition-all duration-300 hover:shadow-md"
         >
           {uploading && (
             <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
-              <Loader2 className="w-5 h-5 animate-spin text-lime-400" />
+              <Loader2 className="w-5 h-5 animate-spin text-primary" />
             </div>
           )}
           <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors duration-300 flex items-center justify-center z-10">
@@ -207,10 +207,10 @@ export function CoachLogoUploadInline() {
       ) : (
         <div
           onClick={handleLogoClick}
-          className="relative w-24 h-24 flex-shrink-0 border-2 border-dashed border-border rounded-lg overflow-hidden bg-muted/50 cursor-pointer hover:border-lime-400/50 hover:bg-muted transition-all duration-300 flex flex-col items-center justify-center gap-2"
+          className="relative w-24 h-24 flex-shrink-0 border-2 border-dashed border-border rounded-lg overflow-hidden bg-muted/50 cursor-pointer hover:border-primary/50 hover:bg-muted transition-all duration-300 flex flex-col items-center justify-center gap-2"
         >
           {uploading ? (
-            <Loader2 className="w-6 h-6 animate-spin text-lime-400" />
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
           ) : (
             <>
               <ImageIcon className="w-6 h-6 text-muted-foreground" />

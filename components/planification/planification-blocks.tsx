@@ -173,7 +173,7 @@ function BlockTimerDisplay({
               variant="ghost"
               size="icon"
               onClick={() => setSoundEnabled(!soundEnabled)}
-              className="text-white/80 hover:text-white hover:bg-white/10 h-10 w-10"
+              className="text-foreground hover:text-white hover:bg-white/10 h-10 w-10"
             >
               {effectiveSoundEnabled ? (
                 <Volume2 className="w-5 h-5" />
@@ -198,7 +198,7 @@ function BlockTimerDisplay({
             mode === "otm" ||
             (mode === "amrap" && parseInt(totalRounds) > 1)) &&
             !countdown && (
-              <div className="text-2xl md:text-4xl font-bold text-lime-400 mb-4">
+              <div className="text-2xl md:text-4xl font-bold text-primary mb-4">
                 Ronda {currentRound} de {totalRounds}
               </div>
             )}
@@ -231,7 +231,7 @@ function BlockTimerDisplay({
             {!isRunning ? (
               <Button
                 onClick={handleStart}
-                className="flex-1 bg-lime-400 hover:bg-lime-500 text-black h-14 text-lg"
+                className="flex-1 bg-primary hover:bg-primary-container text-black h-14 text-lg"
               >
                 <Play className="w-5 h-5 mr-2" />
                 Iniciar
@@ -272,17 +272,22 @@ function BlockTimerDisplay({
 
   return (
     <div ref={timerRef} className="w-full">
-    <Card className="border-lime-400/30 overflow-hidden py-0 md:py-0 gap-0 md:gap-0">
+    <div className="bg-surface-container-high border-primary border-l-2 overflow-hidden">
       {/* Header - siempre visible */}
       <div 
-        className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-muted/30 transition-colors"
+        className="flex items-center justify-between px-2 md:px-4 py-3 cursor-pointer hover:bg-surface-container transition-colors"
         onClick={toggleTimer}
       >
-        <div className="flex items-center gap-2">
-          <Timer className="w-5 h-5 text-lime-400" />
-          <span className="text-sm font-semibold text-white">
-            Timer
-          </span>
+        <div className="flex items-center gap-3 ">
+          <div className="w-8 h-8 flex items-center justify-center text-primary">
+            <Timer className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-xs font-bold tracking-[0.15em] uppercase text-primary leading-none">
+              {modeLabels[timerMode]}
+            </p>
+            <p className="text-xs font-bold text-foreground mt-0.5">TIMER</p>
+          </div>
         </div>
         <div className="flex items-center gap-1">
           <Button
@@ -292,7 +297,7 @@ function BlockTimerDisplay({
               e.stopPropagation();
               setSoundEnabled(!soundEnabled);
             }}
-            className="h-8 w-8 p-0"
+            className="h-8 w-8 p-0 text-foreground hover:text-foreground"
           >
             {effectiveSoundEnabled ? (
               <Volume2 className="w-4 h-4" />
@@ -307,13 +312,13 @@ function BlockTimerDisplay({
               e.stopPropagation();
               toggleFullscreen();
             }}
-            className="h-8 w-8 p-0"
+            className="h-8 w-8 p-0 text-foreground hover:text-foreground"
           >
             <Maximize2 className="w-4 h-4" />
           </Button>
           <ChevronDown 
             className={cn(
-              "w-5 h-5 text-muted-foreground transition-transform duration-300",
+              "w-11 h-6 text-foreground transition-transform duration-300",
               !isCollapsed && "rotate-180"
             )} 
           />
@@ -420,13 +425,13 @@ function BlockTimerDisplay({
             </div>
           )}
 
-          <div className="text-center py-2 bg-zinc-900/50 rounded-lg">
+          <div className="text-center py-2 bg-surface-container">
             {(mode === "tabata" ||
               mode === "emom" ||
               mode === "otm" ||
               (mode === "amrap" && parseInt(totalRounds) > 1)) &&
               !countdown && (
-                <div className="text-sm font-medium text-lime-400 mb-1">
+                <div className="text-sm font-medium text-primary mb-1">
                   Ronda {currentRound} de {totalRounds}
                 </div>
               )}
@@ -435,9 +440,9 @@ function BlockTimerDisplay({
                 {phaseText}
               </div>
             )}
-            <div className="text-3xl font-mono font-bold text-white">{displayTime}</div>
+            <div className="text-3xl font-mono font-bold text-foreground">{displayTime}</div>
             {(mode === "emom" || mode === "otm") && !countdown && (
-              <div className="text-sm text-white/70 mt-1">
+              <div className="text-sm text-muted-foreground mt-1">
                 Total: {mode === "emom" ? getEmomTotalTime() : getOtmTotalTime()}
               </div>
             )}
@@ -447,7 +452,7 @@ function BlockTimerDisplay({
             {!isRunning ? (
               <Button
                 onClick={handleStart}
-                className="flex-1 bg-lime-400 hover:bg-lime-500 text-black h-9"
+                className="flex-1 bg-primary hover:bg-primary-container text-black h-9"
               >
                 <Play className="w-4 h-4 mr-1" />
                 Iniciar
@@ -468,7 +473,7 @@ function BlockTimerDisplay({
           </div>
         </CardContent>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
@@ -484,26 +489,27 @@ export function PlanificationBlocks({
   }
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-xl font-semibold flex items-center gap-2 text-white">
-        <FileText className="w-6 h-6 text-lime-400" />
-        Bloques de Entrenamiento
-      </h3>
+    <div className="space-y-5">
+      <div className="flex items-center gap-3">
+        <FileText className="w-5 h-5 text-primary" />
+        <h2 className="text-lg font-bold tracking-[0.03em] uppercase text-foreground">
+          Bloques de Entrenamiento
+        </h2>
+      </div>
       {sortedBlocks.map((block, index) => (
-        <Card key={block.id || index}>
+        <Card key={block.id || index} className="bg-surface-container">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-3 text-lg text-white">
-                <span
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-md"
-                  style={{
-                    backgroundColor: disciplineColor || "hsl(var(--primary))",
-                  }}
-                >
+            <div className="flex flex-col items-center justify-between gap-4">
+              <div className="flex items-baseline gap-3 w-full">
+                <span className="text-3xl font-bold text-primary leading-none">
                   {index + 1}
                 </span>
-                {block.title}
-              </CardTitle>
+                <div>
+                  <CardTitle className="text-xl md:text-2xl uppercase italic text-foreground leading-tight">
+                    {block.title}
+                  </CardTitle>
+                </div>
+              </div>
               {block.timer_mode && (
                 <BlockTimerDisplay
                   timerMode={block.timer_mode}
@@ -524,7 +530,7 @@ export function PlanificationBlocks({
                         color: disciplineColor || "hsl(var(--primary))",
                       }}
                     />
-                    <span className="text-base text-zinc-100">{item}</span>
+                    <span className="text-sm text-foreground">{item}</span>
                   </li>
                 ))}
               </ul>
@@ -533,20 +539,8 @@ export function PlanificationBlocks({
             {block.subBlocks && block.subBlocks.length > 0 && (
               <div className="space-y-4">
                 {block.subBlocks.map((subBlock) => (
-                  <div key={subBlock.id}>
-                    <div className="flex flex-col items-start justify-between gap-2 mb-2 ml-3">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="w-1 h-4 rounded-full flex-shrink-0"
-                          style={{
-                            backgroundColor:
-                              disciplineColor || "hsl(var(--primary))",
-                          }}
-                        />
-                        <h4 className="text-sm font-semibold text-zinc-300">
-                          {subBlock.subtitle}
-                        </h4>
-                      </div>
+                  <div key={subBlock.id} className="bg-surface-container border-l-0 border-primary">
+                    <div className="flex flex-col items-start justify-between gap-2 mb-3">
                       {subBlock.timer_mode && (
                         <BlockTimerDisplay
                           timerMode={subBlock.timer_mode}
@@ -556,7 +550,7 @@ export function PlanificationBlocks({
                       )}
                     </div>
                     {subBlock.items.length > 0 ? (
-                      <ul className="space-y-2 pl-3">
+                      <ul className="space-y-2">
                         {subBlock.items.map((item, i) => (
                           <li key={i} className="flex items-start gap-3">
                             <CheckCircle
@@ -565,12 +559,12 @@ export function PlanificationBlocks({
                                 color: disciplineColor || "hsl(var(--primary))",
                               }}
                             />
-                            <span className="text-sm text-zinc-100">{item}</span>
+                            <span className="text-sm text-foreground">{item}</span>
                           </li>
                         ))}
                       </ul>
                     ) : (
-                      <p className="text-xs text-zinc-400 pl-3">Sin ejercicios</p>
+                      <p className="text-xs text-muted-foreground">Sin ejercicios</p>
                     )}
                   </div>
                 ))}
@@ -579,17 +573,17 @@ export function PlanificationBlocks({
 
             {(!block.items || block.items.length === 0) &&
               (!block.subBlocks || block.subBlocks.length === 0) && (
-                <p className="text-sm text-zinc-400 mb-4">
+                <p className="text-sm text-muted-foreground mb-4">
                   Sin ejercicios específicos
                 </p>
               )}
 
             {block.notes && (
-              <div className="mt-4 pt-4 border-t border-zinc-800/50">
-                <p className="text-xs font-medium text-zinc-400 mb-2">
-                  Notas del bloque:
+              <div className="mt-4 pt-4 border-t border-outline/10">
+                <p className="text-xs font-bold tracking-[0.15em] uppercase text-muted-foreground mb-2">
+                  Notas del bloque
                 </p>
-                <p className="text-sm text-zinc-200 bg-zinc-950/60 p-3 rounded-md whitespace-pre-wrap border border-zinc-800/40">
+                <p className="text-sm text-foreground bg-surface-container-low p-3 whitespace-pre-wrap border border-outline/10">
                   {block.notes}
                 </p>
               </div>

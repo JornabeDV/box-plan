@@ -2,9 +2,8 @@ import { createHmac } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { MercadoPagoConfig, Payment } from 'mercadopago'
-import { sendPushNotification } from '@/lib/push-notifications'
+import { sendPushNotification, sendPushToUsers } from '@/lib/push-notifications'
 import { decryptToken } from '@/lib/crypto'
-import { calculatePaymentSplit } from '@/lib/payment-helpers'
 
 // ---------------------------------------------------------------------------
 // Signature validation
@@ -291,38 +290,6 @@ async function createSubscription({
       }
     }
 
-    // --- Registrar comisión del coach ---
-    if (coachId) {
-      const coachProfile = await tx.coachProfile.findUnique({
-        where: { id: coachId },
-        select: { commissionRate: true, platformCommissionRate: true }
-      })
-
-      if (coachProfile) {
-        const split = calculatePaymentSplit(
-          expectedAmount,
-          Number(coachProfile.commissionRate),
-          Number(coachProfile.platformCommissionRate)
-        )
-
-        await tx.coachCommission.create({
-          data: {
-            coachId,
-            studentSubscriptionId: subscription.id,
-            studentId: userId,
-            commissionAmount: split.coachAmount,
-            commissionRate: split.coachRate,
-            platformCommissionAmount: split.platformAmount,
-            platformCommissionRate: split.platformRate,
-            studentSubscriptionAmount: expectedAmount,
-            periodStart: now,
-            periodEnd,
-            status: 'pending'
-          }
-        })
-      }
-    }
-
     // Resetear preferencias para el nuevo período
     await tx.userPreference.updateMany({
       where: { userId },
@@ -332,6 +299,11 @@ async function createSubscription({
 
   // Enviar notificación push al estudiante (fuera de la transacción)
   await notifyStudent(userId, plan.name, periodEnd)
+
+  // Enviar notificación push al coach (fuera de la transacción)
+  if (coachId) {
+    await notifyCoach(coachId, userId, transactionAmount, plan.name)
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -361,7 +333,7 @@ async function notifyStudent(userId: number, planName: string, periodEnd: Date) 
           {
             title: '¡Pago confirmado! ✅',
             body: `Tu plan ${planName} está activo hasta el ${expiryDate}. ¡A entrenar!`,
-            icon: '/icon-192.jpg',
+            icon: '/icon-192.png',
             url: '/planification'
           }
         )
@@ -374,5 +346,35 @@ async function notifyStudent(userId: number, planName: string, periodEnd: Date) 
     }
   } catch (err) {
     console.error('Error sending push notification after payment:', err)
+  }
+}
+
+async function notifyCoach(
+  coachId: number,
+  studentId: number,
+  amount: number | undefined,
+  planName: string
+) {
+  try {
+    const student = await prisma.user.findUnique({
+      where: { id: studentId },
+      select: { name: true, email: true }
+    })
+
+    const studentName = student?.name || student?.email || 'Un alumno'
+    const amountText = amount !== undefined
+      ? `$${amount.toLocaleString('es-AR')}`
+      : ''
+
+    await sendPushToUsers(coachId, {
+      title: '💰 Nuevo pago recibido',
+      body: amountText
+        ? `${studentName} pagó ${amountText} por el plan ${planName}.`
+        : `${studentName} se suscribió al plan ${planName}.`,
+      icon: '/icon-192.png',
+      url: '/admin-dashboard'
+    })
+  } catch (err) {
+    console.error('Error sending push notification to coach after payment:', err)
   }
 }

@@ -3,31 +3,24 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { ArrowLeft, Mail, CheckCircle, Eye, EyeOff } from 'lucide-react'
+import { Mail, CheckCircle, ArrowLeft, Loader2 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 
 interface ForgotPasswordFormProps {
   onBack: () => void
 }
 
-/**
- * Formulario de recuperación de contraseña
- * Permite a los usuarios solicitar un enlace para restablecer su contraseña
- */
 export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [emailSent, setEmailSent] = useState(false)
-  const [showEmail, setShowEmail] = useState(false)
   const { resetPassword } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!email) {
       setMessage({ type: 'error', text: 'Por favor ingresa tu email' })
       return
@@ -43,10 +36,10 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
 
     try {
       const { error } = await resetPassword(email)
-      
+
       if (error) {
         let errorMessage = error.message
-        
+
         if (error.message.includes('Invalid email')) {
           errorMessage = 'Email no válido'
         } else if (error.message.includes('User not found')) {
@@ -54,19 +47,19 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
         } else if (error.message.includes('Too many requests')) {
           errorMessage = 'Demasiados intentos. Intenta más tarde'
         }
-        
+
         setMessage({ type: 'error', text: errorMessage })
       } else {
         setEmailSent(true)
-        setMessage({ 
-          type: 'success', 
-          text: 'Te hemos enviado un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada.' 
+        setMessage({
+          type: 'success',
+          text: 'Te hemos enviado un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada.',
         })
       }
     } catch (err) {
-      setMessage({ 
-        type: 'error', 
-        text: 'Error inesperado. Intenta nuevamente.' 
+      setMessage({
+        type: 'error',
+        text: 'Error inesperado. Intenta nuevamente.',
       })
     } finally {
       setLoading(false)
@@ -79,13 +72,13 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
 
     try {
       const { error } = await resetPassword(email)
-      
+
       if (error) {
         setMessage({ type: 'error', text: 'Error al reenviar el email' })
       } else {
-        setMessage({ 
-          type: 'success', 
-          text: 'Email reenviado correctamente' 
+        setMessage({
+          type: 'success',
+          text: 'Email reenviado correctamente',
         })
       }
     } catch (err) {
@@ -97,130 +90,104 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
 
   if (emailSent) {
     return (
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader className="text-center">
-          <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
-            <CheckCircle className="w-6 h-6 text-green-600" />
+      <div className="w-full space-y-6">
+        <div className="text-center space-y-2">
+          <div className="mx-auto w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
+            <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
           </div>
-          <CardTitle className="text-2xl font-bold text-gray-900">
-            ¡Email enviado!
-          </CardTitle>
-          <CardDescription className="text-gray-600">
+          <h3 className="text-xl font-bold">¡Email enviado!</h3>
+          <p className="text-sm text-muted-foreground">
             Te hemos enviado un enlace para restablecer tu contraseña
-          </CardDescription>
-        </CardHeader>
-        
-        <CardContent className="space-y-4">
-          <div className="text-center text-sm text-gray-600">
-            <p>Revisa tu bandeja de entrada y sigue las instrucciones del email.</p>
-            <p className="mt-2">Si no ves el email, revisa tu carpeta de spam.</p>
-          </div>
+          </p>
+        </div>
 
-          {message && (
-            <Alert className={message.type === 'error' ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}>
-              <AlertDescription className={message.type === 'error' ? 'text-red-800' : 'text-green-800'}>
-                {message.text}
-              </AlertDescription>
-            </Alert>
-          )}
+        <div className="text-center text-sm text-muted-foreground space-y-1">
+          <p>Revisa tu bandeja de entrada y sigue las instrucciones del email.</p>
+          <p>Si no ves el email, revisa tu carpeta de spam.</p>
+        </div>
 
-          <div className="space-y-3">
-            <Button
-              onClick={handleResendEmail}
-              disabled={loading}
-              variant="outline"
-              className="w-full"
-            >
-              <Mail className="w-4 h-4 mr-2" />
-              {loading ? 'Reenviando...' : 'Reenviar email'}
-            </Button>
-            
-            <Button
-              onClick={onBack}
-              variant="ghost"
-              className="w-full"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Volver al login
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        {message && (
+          <Alert className={message.type === 'error' ? 'border-red-200 bg-red-50 dark:border-red-900/30 dark:bg-red-900/10' : 'border-green-200 bg-green-50 dark:border-green-900/30 dark:bg-green-900/10'}>
+            <AlertDescription className={message.type === 'error' ? 'text-red-800 dark:text-red-300' : 'text-green-800 dark:text-green-300'}>
+              {message.text}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <div className="space-y-3">
+          <Button
+            onClick={handleResendEmail}
+            disabled={loading}
+            variant="outline"
+            className="w-full"
+          >
+            <Mail className="w-4 h-4 mr-2" />
+            {loading ? 'Reenviando...' : 'Reenviar email'}
+          </Button>
+
+          <Button
+            onClick={onBack}
+            variant="ghost"
+            className="w-full"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Volver al login
+          </Button>
+        </div>
+      </div>
     )
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold">
-          ¿Olvidaste tu contraseña?
-        </CardTitle>
-        <CardDescription>
-          Ingresa tu email y te enviaremos un enlace para restablecer tu contraseña
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <div className="relative">
-              <Input
-                id="email"
-                type={showEmail ? 'text' : 'email'}
-                placeholder="tu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
-                required
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                onClick={() => setShowEmail(!showEmail)}
-                disabled={loading}
-              >
-                {showEmail ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          </div>
-
-          {message && (
-            <Alert className={message.type === 'error' ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}>
-              <AlertDescription className={message.type === 'error' ? 'text-red-800' : 'text-green-800'}>
-                {message.text}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          <div className="space-y-3">
-            <Button
-              type="submit"
+    <div className="w-full space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="space-y-2">
+          <label htmlFor="email" className="label-md">
+            Email
+          </label>
+          <div className="relative">
+            <Input
+              id="email"
+              type="email"
+              placeholder="tu@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
-              className="w-full"
-            >
-              <Mail className="w-4 h-4 mr-2" />
-              {loading ? 'Enviando...' : 'Enviar enlace de recuperación'}
-            </Button>
-            
-            <Button
-              type="button"
-              onClick={onBack}
-              variant="ghost"
-              className="w-full"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Volver al login
-            </Button>
+              required
+              className="pr-10"
+            />
+            <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
           </div>
-        </form>
-      </CardContent>
-    </Card>
+        </div>
+
+        {message && (
+          <Alert className={message.type === 'error' ? 'border-red-200 bg-red-50 dark:border-red-900/30 dark:bg-red-900/10' : 'border-green-200 bg-green-50 dark:border-green-900/30 dark:bg-green-900/10'}>
+            <AlertDescription className={message.type === 'error' ? 'text-red-800 dark:text-red-300' : 'text-green-800 dark:text-green-300'}>
+              {message.text}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full uppercase tracking-[0.15em] text-base"
+          disabled={loading}
+        >
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Enviar enlace de recuperación
+        </Button>
+      </form>
+
+      <div className="text-center">
+        <button
+          type="button"
+          onClick={onBack}
+          className="text-sm font-semibold text-primary hover:text-primary-dim transition-colors"
+        >
+          Volver al login
+        </button>
+      </div>
+    </div>
   )
 }

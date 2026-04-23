@@ -1,5 +1,5 @@
 import { useRouter } from "next/navigation";
-import { Trophy, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const RankingHeader = () => {
@@ -17,10 +17,14 @@ export const RankingHeader = () => {
           <ArrowLeft className="h-4 w-4" />
           <span className="hidden sm:inline">Volver</span>
         </Button>
-        <h1 className="text-3xl font-bold flex items-center gap-2 md:order-1">
-          <Trophy className="w-8 h-8 text-lime-400" />
-          Ranking
-        </h1>
+        <div className="md:order-1">
+          <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground mb-1">
+            Competencia
+          </p>
+          <h1 className="text-3xl md:text-4xl font-bold italic text-primary">
+            Ranking
+          </h1>
+        </div>
       </div>
     </div>
   );

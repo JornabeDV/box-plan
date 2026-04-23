@@ -233,7 +233,7 @@ export function PlanificationTimer({
             mode === "otm" ||
             (mode === "amrap" && parseInt(totalRounds) > 1)) &&
             !isCountdownActive && (
-              <div className="text-2xl md:text-4xl font-bold text-lime-400 mb-4">
+              <div className="text-2xl md:text-4xl font-bold text-primary mb-4">
                 Ronda {currentRound} de {totalRounds}
               </div>
             )}
@@ -266,7 +266,7 @@ export function PlanificationTimer({
             {!isRunning ? (
               <Button
                 onClick={handleStart}
-                className="flex-1 bg-lime-400 hover:bg-lime-500 text-black h-14 text-lg"
+                className="flex-1 bg-primary hover:bg-primary-container text-black h-14 text-lg"
               >
                 <Play className="w-5 h-5 mr-2" />
                 Iniciar
@@ -315,8 +315,8 @@ export function PlanificationTimer({
         <CardContent>
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-full bg-lime-400/10 flex items-center justify-center flex-shrink-0">
-                <Timer className="w-5 h-5 text-lime-400" />
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Timer className="w-5 h-5 text-primary" />
               </div>
               <div className="min-w-0">
                 <h3 className="font-semibold text-white max-sm:text-lg">
@@ -341,7 +341,7 @@ export function PlanificationTimer({
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Timer className="w-5 h-5 text-lime-400" />
+              <Timer className="w-5 h-5 text-primary" />
               Timer
             </CardTitle>
             <div className="flex items-center gap-1">
@@ -520,7 +520,7 @@ export function PlanificationTimer({
               mode === "otm" ||
               (mode === "amrap" && parseInt(totalRounds) > 1)) &&
               !isCountdownActive && (
-                <div className="text-sm font-medium text-lime-400 mb-1">
+                <div className="text-sm font-medium text-primary mb-1">
                   Ronda {currentRound} de {totalRounds}
                 </div>
               )}
@@ -556,7 +556,7 @@ export function PlanificationTimer({
             {!isRunning ? (
               <Button
                 onClick={handleStart}
-                className="flex-1 bg-lime-400 hover:bg-lime-500 text-black h-12 sm:h-11 text-base"
+                className="flex-1 bg-primary hover:bg-primary-container text-black h-12 sm:h-11 text-base"
               >
                 <Play className="w-5 h-5 mr-2" />
                 Iniciar

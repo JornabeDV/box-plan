@@ -21,9 +21,9 @@ export function usePushNotifications() {
 
     setPermission(Notification.permission as PermissionState)
 
-    // Registrar service worker y verificar si ya está suscripto
+    // Serwist ya registra el SW automáticamente. Solo verificamos si está listo.
     navigator.serviceWorker
-      .register('/sw.js')
+      .ready
       .then(async (reg) => {
         setSwReady(true)
         const sub = await reg.pushManager.getSubscription()

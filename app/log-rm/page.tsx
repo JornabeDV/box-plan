@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Header } from "@/components/layout/header";
 import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useRMs } from "@/hooks/use-rms";
@@ -168,9 +167,10 @@ export default function CargaRMPage() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+      <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground flex items-center justify-center">
+        <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
         <div className="flex items-center gap-2">
-          <Loader2 className="w-6 h-6 animate-spin text-lime-400" />
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
           <span>Cargando...</span>
         </div>
       </div>
@@ -179,7 +179,8 @@ export default function CargaRMPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+      <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground flex items-center justify-center">
+        <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
         <div className="text-center">
           <h2 className="text-xl font-bold mb-4">No autorizado</h2>
           <button
@@ -229,10 +230,10 @@ export default function CargaRMPage() {
   // }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <Header />
+    <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground">
+      <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
 
-      <main className="p-6 space-y-6 pb-32 max-w-4xl mx-auto">
+      <main className="p-6 space-y-6 pb-24 max-w-4xl mx-auto">
         <RMHeader onNewRMClick={handleNewRMClick} />
 
         <RMList

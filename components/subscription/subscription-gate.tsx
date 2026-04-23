@@ -77,7 +77,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
           <Button
             className="w-full"
             size="lg"
-            onClick={() => router.push("/subscription")}
+            onClick={() => router.push("/choose-plan")}
           >
             Ver planes disponibles
           </Button>

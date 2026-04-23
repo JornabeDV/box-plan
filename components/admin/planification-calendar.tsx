@@ -287,7 +287,7 @@ export function PlanificationCalendar({
             variant="ghost"
             size="icon"
             onClick={goToPreviousMonth}
-            className="w-8 h-8 md:w-16 md:h-16 border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300"
+            className="w-8 h-8 md:w-16 md:h-16 border-2 border-primary/50 bg-transparent text-primary font-semibold hover:shadow-[0_4px_15px_rgba(230, 255, 43,0.2)] transition-all duration-300"
           >
             <ChevronLeft className="w-4 h-4 md:w-10 md:h-10" />
           </Button>
@@ -300,7 +300,7 @@ export function PlanificationCalendar({
             variant="ghost"
             size="icon"
             onClick={goToNextMonth}
-            className="w-8 h-8 md:w-16 md:h-16 border-2 border-lime-400/50 bg-transparent text-lime-400 font-semibold hover:shadow-[0_4px_15px_rgba(204,255,0,0.2)] transition-all duration-300"
+            className="w-8 h-8 md:w-16 md:h-16 border-2 border-primary/50 bg-transparent text-primary font-semibold hover:shadow-[0_4px_15px_rgba(230, 255, 43,0.2)] transition-all duration-300"
           >
             <ChevronRight className="w-4 h-4 md:w-10 md:h-10" />
           </Button>
@@ -363,19 +363,19 @@ export function PlanificationCalendar({
                 return "bg-primary text-primary-foreground shadow-accent animate-pulse-glow cursor-pointer";
               }
 
-              // Con AMBOS tipos: mix de colores
+              // Con AMBOS tipos
               if (hasPersonalized && generalCount > 0) {
-                return "bg-gradient-to-br from-purple-500/20 to-emerald-500/20 text-foreground hover:from-purple-500/30 hover:to-emerald-500/30 hover:scale-105 border-2 border-purple-500/30 cursor-pointer";
+                return "bg-primary/15 text-primary hover:bg-primary/25 hover:scale-105 border-2 border-primary/40 cursor-pointer";
               }
 
               // Solo planificaciones personalizadas
               if (hasPersonalized) {
-                return "bg-purple-500/20 text-purple-600 dark:text-purple-400 hover:bg-purple-500/30 hover:scale-105 border-2 border-purple-500/40 cursor-pointer";
+                return "bg-secondary/30 text-secondary-foreground hover:bg-secondary/40 hover:scale-105 border-2 border-secondary/40 cursor-pointer";
               }
 
               // Solo planificaciones generales
               if (generalCount > 0) {
-                return "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/30 hover:scale-105 border-2 border-emerald-500/40 cursor-pointer";
+                return "bg-primary/15 text-primary hover:bg-primary/25 hover:scale-105 border-2 border-primary/40 cursor-pointer";
               }
 
               // Día bloqueado sin planificaciones
@@ -389,15 +389,15 @@ export function PlanificationCalendar({
 
             const dayContent = (
               <div
-                className={`w-full h-full flex items-center justify-center text-sm font-semibold rounded-xl transition-all duration-200 relative ${getDayStyles()}`}
+                className={`w-full h-full flex items-center justify-center text-sm font-semibold transition-all duration-200 relative ${getDayStyles()}`}
                 onClick={() => handleDayClick(day)}
               >
                 <span className="text-sm">{day}</span>
                 
-                {/* Badge PÚRPURA (arriba-derecha): Planificaciones personalizadas */}
+                {/* Badge: Planificaciones personalizadas */}
                 {hasPersonalized && (
                   <span
-                    className={`absolute -top-1 -right-1 sm:top-1 sm:right-1 bg-purple-500 text-white text-[9px] sm:text-xs font-bold rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center ${
+                    className={`absolute -top-1 -right-1 sm:top-1 sm:right-1 bg-secondary text-secondary-foreground text-[9px] sm:text-xs font-bold w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center ${
                       isPast ? "opacity-70" : ""
                     }`}
                     title={`${personalizedCount} planificación${personalizedCount > 1 ? 'es' : ''} personalizada${personalizedCount > 1 ? 's' : ''}`}
@@ -405,11 +405,11 @@ export function PlanificationCalendar({
                     {personalizedCount}
                   </span>
                 )}
-                
-                {/* Badge VERDE (abajo-derecha): Planificaciones generales */}
+
+                {/* Badge: Planificaciones generales */}
                 {generalCount > 0 && (
                   <span
-                    className={`absolute -bottom-1 -right-1 sm:bottom-1 sm:right-1 bg-emerald-500 text-white text-[9px] sm:text-xs font-bold rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center ${
+                    className={`absolute -bottom-1 -right-1 sm:bottom-1 sm:right-1 bg-primary text-primary-foreground text-[9px] sm:text-xs font-bold w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center ${
                       isPast ? "opacity-50" : ""
                     }`}
                     title={`${generalCount} planificación${generalCount > 1 ? 'es' : ''} general${generalCount > 1 ? 'es' : ''}`}
@@ -434,7 +434,7 @@ export function PlanificationCalendar({
                     <TooltipTrigger asChild>{dayContent}</TooltipTrigger>
                     <TooltipContent
                       side="top"
-                      className="max-w-xs bg-black border-2 border-lime-400 text-white cursor-pointer [&>svg]:hidden"
+                      className="max-w-xs bg-black border-2 border-primary text-white cursor-pointer [&>svg]:hidden"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -457,7 +457,7 @@ export function PlanificationCalendar({
                         Actualiza tu plan para crear planificaciones más
                         adelante
                       </p>
-                      <p className="text-xs text-lime-400 font-semibold mt-2 underline">
+                      <p className="text-xs text-primary font-semibold mt-2 underline">
                         Ver planes disponibles
                       </p>
                     </TooltipContent>
@@ -473,24 +473,30 @@ export function PlanificationCalendar({
         {/* Leyenda */}
         <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 mt-6 pt-4 border-t border-border">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-primary rounded-full"></div>
+            <div className="w-3 h-3 bg-primary"></div>
             <span className="text-xs text-muted-foreground">Hoy</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-accent/20 border-2 border-accent/30 rounded-full"></div>
+            <div className="w-3 h-3 bg-primary/15 border-2 border-primary/40"></div>
             <span className="text-xs text-muted-foreground">
               Con planificaciones
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-background border-2 border-muted-foreground/40 rounded-full"></div>
+            <div className="w-3 h-3 bg-secondary/30 border-2 border-secondary/40"></div>
+            <span className="text-xs text-muted-foreground">
+              Personalizadas
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-background border-2 border-muted-foreground/40"></div>
             <span className="text-xs text-muted-foreground">
               Sin planificaciones
             </span>
           </div>
           {!canLoadUnlimitedPlanifications && (
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-background border-2 border-dashed border-muted-foreground/30 rounded-full opacity-50"></div>
+              <div className="w-3 h-3 bg-background border-2 border-dashed border-muted-foreground/30 opacity-50"></div>
               <span className="text-xs text-muted-foreground">
                 Bloqueado por plan
               </span>
