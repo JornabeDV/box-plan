@@ -31,7 +31,11 @@ interface StudentPlan {
   };
 }
 
-export function StudentPlansManager() {
+interface StudentPlansManagerProps {
+  onPlansChanged?: () => void;
+}
+
+export function StudentPlansManager({ onPlansChanged }: StudentPlansManagerProps) {
   const {
     planInfo,
     loading: planLoading,
@@ -87,6 +91,7 @@ export function StudentPlansManager() {
 
       setShowForm(false);
       loadPlans(); // Recargar lista
+      onPlansChanged?.();
     } catch (error: any) {
       toast({
         title: "Error al crear el plan",
@@ -126,6 +131,7 @@ export function StudentPlansManager() {
       setShowForm(false);
       setEditingPlan(null);
       loadPlans(); // Recargar lista
+      onPlansChanged?.();
     } catch (error: any) {
       toast({
         title: "Error al actualizar el plan",
@@ -179,6 +185,7 @@ export function StudentPlansManager() {
       setShowDeleteDialog(false);
       setPlanToDelete(null);
       loadPlans(); // Recargar lista
+      onPlansChanged?.();
     } catch (error: any) {
       toast({
         title: "Error al eliminar el plan",

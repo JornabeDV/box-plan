@@ -759,7 +759,7 @@ export default function AdminDashboardPage() {
           {/* Planes Tab */}
           <TabsContent value="plans" className="space-y-6">
             {/* Conexión con MercadoPago */}
-            <StudentPlansManager />
+            <StudentPlansManager onPlansChanged={refreshDashboard} />
             <MercadoPagoConnect coachId={coachProfile?.id} />
           </TabsContent>
 
