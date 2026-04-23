@@ -105,7 +105,11 @@ export default function AdminDashboardPage() {
     planifications: any[];
     sourceDate: Date | null;
   }>();
-  const bulkImportModal = useModalState();
+  const bulkImportModal = useModalState<{
+    id: string;
+    name: string | null;
+    email: string;
+  } | null>();
 
   // Hook para operaciones CRUD con refresh automático
   const { handleCRUDOperation } = useDashboardCRUD(refreshDashboard);
@@ -742,7 +746,10 @@ export default function AdminDashboardPage() {
               onEditPlanification={handleEditPlanification}
               onDeletePlanification={handleDeletePlanification}
               onViewDayPlanifications={handleViewDayPlanifications}
-              onBulkImport={bulkImportModal.open}
+              onBulkImport={() => {
+                bulkImportModal.setSelectedItem(null);
+                bulkImportModal.open();
+              }}
             />
           </TabsContent>
 
@@ -753,13 +760,22 @@ export default function AdminDashboardPage() {
               initialUsers={users}
               initialPlans={dashboardSubscriptionPlans}
               onRefresh={refreshDashboard}
+              onImportPlanification={(user) => {
+                if (user) {
+                  bulkImportModal.open({
+                    id: String(user.id),
+                    name: user.full_name || user.name || null,
+                    email: user.email,
+                  });
+                }
+              }}
             />
           </TabsContent>
 
           {/* Planes Tab */}
           <TabsContent value="plans" className="space-y-6">
             {/* Conexión con MercadoPago */}
-            <StudentPlansManager />
+            <StudentPlansManager onPlansChanged={refreshDashboard} />
             <MercadoPagoConnect coachId={coachProfile?.id} />
           </TabsContent>
 
@@ -885,6 +901,17 @@ export default function AdminDashboardPage() {
         open={bulkImportModal.isOpen}
         onOpenChange={bulkImportModal.handleOpenChange}
         onSuccess={refreshDashboard}
+        students={users
+          .filter((user: any) => {
+            const features = user.subscription?.plan?.features as { personalizedWorkouts?: boolean } | null;
+            return features?.personalizedWorkouts === true;
+          })
+          .map((user: any) => ({
+            id: String(user.id),
+            name: user.full_name || user.name || null,
+            email: user.email,
+          }))}
+        preselectedStudent={bulkImportModal.selectedItem}
       />
 
       {/* Diálogo de error al eliminar disciplina */}

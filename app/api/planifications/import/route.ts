@@ -21,6 +21,16 @@ interface ExcelRow {
   Ejercicio: string
   'Notas Bloque'?: string
   'Notas General'?: string
+  'Timer Modo'?: string
+  'Timer Trabajo'?: string | number
+  'Timer Descanso'?: string | number
+  'Timer Rondas'?: string | number
+  'Timer AMRAP'?: string | number
+  'Timer Sub-bloque Modo'?: string
+  'Timer Sub-bloque Trabajo'?: string | number
+  'Timer Sub-bloque Descanso'?: string | number
+  'Timer Sub-bloque Rondas'?: string | number
+  'Timer Sub-bloque AMRAP'?: string | number
 }
 
 interface ImportResult {
@@ -70,7 +80,8 @@ async function processSinglePlanification(
   rows: ExcelRow[],
   coachId: number,
   targetDateParam: string | null,
-  canCreatePersonalized: boolean
+  canCreatePersonalized: boolean,
+  targetStudentId?: number | null
 ): Promise<ImportResult> {
   const firstDataRow = rows[0]
 
@@ -78,9 +89,9 @@ async function processSinglePlanification(
   const tipo = String(firstDataRow.Tipo || '').trim()
   const isPersonalized = tipo.toLowerCase() === 'personalizada'
 
-  // Validar que si es personalizada, tenga estudiante
+  // Validar que si es personalizada, tenga estudiante (en el Excel o via targetStudentId desde la UI)
   const studentName = String(firstDataRow.Estudiante || '').trim()
-  if (isPersonalized && !studentName) {
+  if (isPersonalized && !studentName && !targetStudentId) {
     return {
       success: false,
       message: 'Las planificaciones personalizadas requieren el nombre del estudiante en la columna "Estudiante"',
@@ -119,45 +130,73 @@ async function processSinglePlanification(
       }
     }
 
-    // Buscar estudiantes activos del coach que coincidan con el nombre
-    const students = await prisma.coachStudentRelationship.findMany({
-      where: {
-        coachId: coachId,
-        status: 'active',
-        student: {
-          name: { contains: studentName, mode: 'insensitive' }
+    let student: { id: number; email: string; name: string | null } | null = null
+
+    if (targetStudentId) {
+      // Buscar estudiante por ID (viene desde la UI)
+      const relationship = await prisma.coachStudentRelationship.findFirst({
+        where: {
+          coachId: coachId,
+          status: 'active',
+          studentId: targetStudentId
+        },
+        include: {
+          student: {
+            select: { id: true, email: true, name: true }
+          }
         }
-      },
-      include: {
-        student: {
-          select: { id: true, email: true, name: true }
+      })
+
+      if (!relationship) {
+        return {
+          success: false,
+          message: `No se encontró un estudiante activo con ID ${targetStudentId} asignado a tu cuenta`,
+          error: 'Estudiante no encontrado',
         }
       }
-    })
 
-    if (students.length === 0) {
-      return {
-        success: false,
-        message: `No se encontró un estudiante activo con el nombre "${studentName}" asignado a tu cuenta`,
-        error: 'Estudiante no encontrado',
+      student = relationship.student ?? null
+    } else {
+      // Buscar estudiantes activos del coach que coincidan con el nombre del Excel
+      const students = await prisma.coachStudentRelationship.findMany({
+        where: {
+          coachId: coachId,
+          status: 'active',
+          student: {
+            name: { contains: studentName, mode: 'insensitive' }
+          }
+        },
+        include: {
+          student: {
+            select: { id: true, email: true, name: true }
+          }
+        }
+      })
+
+      if (students.length === 0) {
+        return {
+          success: false,
+          message: `No se encontró un estudiante activo con el nombre "${studentName}" asignado a tu cuenta`,
+          error: 'Estudiante no encontrado',
+        }
       }
-    }
 
-    // Si hay múltiples coincidencias, buscar coincidencia exacta
-    let student = students.find(s =>
-      s.student.name?.toLowerCase() === studentName.toLowerCase()
-    )?.student
+      // Si hay múltiples coincidencias, buscar coincidencia exacta
+      student = students.find(s =>
+        s.student.name?.toLowerCase() === studentName.toLowerCase()
+      )?.student ?? null
 
-    // Si no hay coincidencia exacta, usar la primera
-    if (!student && students.length > 0) {
-      student = students[0].student
-    }
+      // Si no hay coincidencia exacta, usar la primera
+      if (!student && students.length > 0) {
+        student = students[0].student
+      }
 
-    if (!student) {
-      return {
-        success: false,
-        message: `No se pudo identificar al estudiante "${studentName}"`,
-        error: 'Estudiante no identificado',
+      if (!student) {
+        return {
+          success: false,
+          message: `No se pudo identificar al estudiante "${studentName}"`,
+          error: 'Estudiante no identificado',
+        }
       }
     }
 
@@ -220,13 +259,20 @@ async function processSinglePlanification(
     }
   }
 
-  // Agrupar filas por bloque para reconstruir la estructura con sub-bloques
+  // Agrupar filas por bloque para reconstruir la estructura con sub-bloques y timers
   const blocksMap = new Map<string, {
     title: string
     order: number
     items: string[]
     notes: string
-    subBlocksMap: Map<string, { subtitle: string; items: string[] }>
+    timerMode: string | null
+    timerConfig: { workTime?: string; restTime?: string; totalRounds?: string; amrapTime?: string } | null
+    subBlocksMap: Map<string, {
+      subtitle: string
+      items: string[]
+      timerMode: string | null
+      timerConfig: { workTime?: string; restTime?: string; totalRounds?: string; amrapTime?: string } | null
+    }>
   }>()
 
   for (const row of rows) {
@@ -245,6 +291,8 @@ async function processSinglePlanification(
         order: orderNum,
         items: [],
         notes: String(row['Notas Bloque'] || '').trim(),
+        timerMode: null,
+        timerConfig: null,
         subBlocksMap: new Map()
       })
     }
@@ -259,14 +307,55 @@ async function processSinglePlanification(
       block.notes = rowNotes
     }
 
+    // Extraer timer del bloque principal (de la primera fila del bloque que tenga timer)
+    if (!block.timerMode) {
+      const timerMode = String(row['Timer Modo'] || '').trim().toLowerCase()
+      if (timerMode && ['normal', 'tabata', 'fortime', 'amrap', 'emom', 'otm'].includes(timerMode)) {
+        block.timerMode = timerMode
+        block.timerConfig = {
+          workTime: String(row['Timer Trabajo'] || '').trim() || undefined,
+          restTime: String(row['Timer Descanso'] || '').trim() || undefined,
+          totalRounds: String(row['Timer Rondas'] || '').trim() || undefined,
+          amrapTime: String(row['Timer AMRAP'] || '').trim() || undefined,
+        }
+        // Limpiar valores vacíos
+        Object.keys(block.timerConfig).forEach(key => {
+          if (!(block.timerConfig as any)[key]) delete (block.timerConfig as any)[key]
+        })
+      }
+    }
+
     if (!exercise) continue
 
     if (subBlockTitle) {
       // Ejercicio pertenece a un sub-bloque
       if (!block.subBlocksMap.has(subBlockTitle)) {
-        block.subBlocksMap.set(subBlockTitle, { subtitle: subBlockTitle, items: [] })
+        block.subBlocksMap.set(subBlockTitle, {
+          subtitle: subBlockTitle,
+          items: [],
+          timerMode: null,
+          timerConfig: null
+        })
       }
-      block.subBlocksMap.get(subBlockTitle)!.items.push(exercise)
+      const subBlock = block.subBlocksMap.get(subBlockTitle)!
+      subBlock.items.push(exercise)
+
+      // Extraer timer del sub-bloque (de la primera fila del sub-bloque que tenga timer)
+      if (!subBlock.timerMode) {
+        const subTimerMode = String(row['Timer Sub-bloque Modo'] || '').trim().toLowerCase()
+        if (subTimerMode && ['normal', 'tabata', 'fortime', 'amrap', 'emom', 'otm'].includes(subTimerMode)) {
+          subBlock.timerMode = subTimerMode
+          subBlock.timerConfig = {
+            workTime: String(row['Timer Sub-bloque Trabajo'] || '').trim() || undefined,
+            restTime: String(row['Timer Sub-bloque Descanso'] || '').trim() || undefined,
+            totalRounds: String(row['Timer Sub-bloque Rondas'] || '').trim() || undefined,
+            amrapTime: String(row['Timer Sub-bloque AMRAP'] || '').trim() || undefined,
+          }
+          Object.keys(subBlock.timerConfig).forEach(key => {
+            if (!(subBlock.timerConfig as any)[key]) delete (subBlock.timerConfig as any)[key]
+          })
+        }
+      }
     } else {
       // Ejercicio del bloque principal
       block.items.push(exercise)
@@ -276,15 +365,29 @@ async function processSinglePlanification(
   // Convertir mapa a array ordenado, aplanando sub-bloques
   const blocks = Array.from(blocksMap.values())
     .sort((a, b) => a.order - b.order)
-    .map(({ subBlocksMap, ...block }) => ({
-      ...block,
-      id: String(Date.now() + Math.random()),
-      subBlocks: Array.from(subBlocksMap.values()).map(sub => ({
+    .map(({ subBlocksMap, timerMode, timerConfig, ...block }) => {
+      const result: any = {
+        ...block,
         id: String(Date.now() + Math.random()),
-        subtitle: sub.subtitle,
-        items: sub.items
-      }))
-    }))
+        subBlocks: Array.from(subBlocksMap.values()).map(sub => {
+          const subResult: any = {
+            id: String(Date.now() + Math.random()),
+            subtitle: sub.subtitle,
+            items: sub.items
+          }
+          if (sub.timerMode) {
+            subResult.timer_mode = sub.timerMode
+            subResult.timer_config = sub.timerConfig
+          }
+          return subResult
+        })
+      }
+      if (timerMode) {
+        result.timer_mode = timerMode
+        result.timer_config = timerConfig
+      }
+      return result
+    })
 
   if (blocks.length === 0) {
     return {
@@ -427,6 +530,8 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     const file = formData.get('file') as File
     const targetDateParam = formData.get('targetDate') as string | null
+    const targetStudentIdParam = formData.get('targetStudentId') as string | null
+    const targetStudentId = targetStudentIdParam ? parseInt(targetStudentIdParam, 10) : null
 
     if (!file) {
       return NextResponse.json({ error: 'No se proporcionó archivo' }, { status: 400 })
@@ -499,7 +604,8 @@ export async function POST(request: NextRequest) {
           dateRows,
           coachId,
           isBulkImport ? null : targetDateParam, // targetDate solo aplica a importación de un solo día
-          canCreatePersonalized
+          canCreatePersonalized,
+          targetStudentId
         )
         results.push(result)
       } catch (error: any) {

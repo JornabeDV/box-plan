@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     // VALIDACIÓN 1: Cantidad máxima de planes
     // ==========================================
     const currentPlansCount = await prisma.subscriptionPlan.count({
-      where: { coachId }
+      where: { coachId, isActive: true }
     })
 
     if (currentPlansCount >= coachPlan.maxStudentPlans) {

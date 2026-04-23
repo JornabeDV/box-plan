@@ -505,6 +505,9 @@ export function PlanificationBlocks({
                   {index + 1}
                 </span>
                 <div>
+                  <span className="inline-block text-[10px] font-bold tracking-[0.2em] uppercase text-primary bg-primary/10 px-2 py-0.5 rounded mb-1">
+                    Bloque
+                  </span>
                   <CardTitle className="text-xl md:text-2xl uppercase italic text-foreground leading-tight">
                     {block.title}
                   </CardTitle>
@@ -540,6 +543,16 @@ export function PlanificationBlocks({
               <div className="space-y-4">
                 {block.subBlocks.map((subBlock) => (
                   <div key={subBlock.id} className="bg-surface-container border-l-0 border-primary">
+                    {subBlock.subtitle && (
+                      <div className="mb-2">
+                        <span className="inline-block text-[10px] font-bold tracking-[0.2em] uppercase text-primary bg-primary/10 px-2 py-0.5 rounded mb-1">
+                          Sub-bloque
+                        </span>
+                        <h4 className="text-base font-bold uppercase tracking-wide text-foreground">
+                          {subBlock.subtitle}
+                        </h4>
+                      </div>
+                    )}
                     <div className="flex flex-col items-start justify-between gap-2 mb-3">
                       {subBlock.timer_mode && (
                         <BlockTimerDisplay

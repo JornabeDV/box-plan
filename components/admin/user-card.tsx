@@ -15,7 +15,8 @@ import {
   Mail, 
   Calendar,
   ArrowRightLeft,
-  RefreshCw
+  RefreshCw,
+  Upload
 } from 'lucide-react'
 
 interface UserWithSubscription {
@@ -84,6 +85,7 @@ interface UserCardProps {
   onEditUser: (user: UserWithSubscription) => void
   onDeleteUser: (userId: string) => Promise<{ error: string | null }>
   onAssignmentComplete?: () => void
+  onImportPlanification?: (user: UserWithSubscription) => void
 }
 
 export function UserCard({ 
@@ -96,7 +98,8 @@ export function UserCard({
   onReactivateSubscription,
   onEditUser,
   onDeleteUser,
-  onAssignmentComplete
+  onAssignmentComplete,
+  onImportPlanification
 }: UserCardProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showAssignPlanModal, setShowAssignPlanModal] = useState(false)
@@ -110,6 +113,8 @@ export function UserCard({
 
   // Determinar si la suscripción está pendiente de cancelación (cancelada pero aún activa)
   const isPendingCancellation = user.subscription?.cancel_at_period_end && user.subscription_status === 'active'
+  // Determinar si el estudiante tiene planificaciones personalizadas habilitadas
+  const hasPersonalizedWorkouts = (user.subscription?.plan?.features as { personalizedWorkouts?: boolean } | null)?.personalizedWorkouts === true
   // Determinar si la suscripción está cancelada/vencida (no mostrar botón cancelar, sí reactivar)
   const isCanceledOrExpired = user.subscription_status === 'canceled' || user.subscription_status === 'past_due' || user.subscription_status === 'unpaid'
   // Determinar si se puede reactivar (pendiente de cancelación, cancelada o vencida)
@@ -293,6 +298,17 @@ export function UserCard({
                   </Button>
                 )}
               </>
+            )}
+            {hasPersonalizedWorkouts && onImportPlanification && (
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => onImportPlanification(user)}
+                className="hover:scale-100 active:scale-100 border-dashed border-2"
+              >
+                <Upload className="h-3.5 w-3.5 mr-1.5" />
+                Importar planificación
+              </Button>
             )}
             <Button 
               size="sm" 

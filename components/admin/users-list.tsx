@@ -12,9 +12,10 @@ interface UsersListProps {
   initialUsers?: any[]
   initialPlans?: any[]
   onRefresh?: () => void
+  onImportPlanification?: (user: any) => void
 }
 
-export function UsersList({ coachId, initialUsers, initialPlans, onRefresh }: UsersListProps) {
+export function UsersList({ coachId, initialUsers, initialPlans, onRefresh, onImportPlanification }: UsersListProps) {
   const { users: hookUsers, plans: hookPlans, loading, assignSubscription, cancelSubscription, changePlan, reactivateSubscription, deleteUser, loadUsers } = useUsersManagement(coachId)
   
   // Priorizar datos del hook si están disponibles (indica que se han cargado/actualizado)
@@ -114,6 +115,7 @@ export function UsersList({ coachId, initialUsers, initialPlans, onRefresh }: Us
               onEditUser={handleEditUser}
               onDeleteUser={deleteUser}
               onAssignmentComplete={handleUserUpdated}
+              onImportPlanification={onImportPlanification}
             />
           ))}
         </div>
