@@ -190,7 +190,7 @@ export function SubscriptionManagement({
             <Alert className="border-yellow-200 bg-yellow-50">
               <AlertTriangle className="h-4 w-4 text-yellow-600" />
               <AlertDescription className="text-yellow-800">
-                Tu suscripción expira en {formatDistanceToNow(new Date(subscription.current_period_end), { 
+                Tu suscripción expira {formatDistanceToNow(new Date(subscription.current_period_end), { 
                   addSuffix: true, 
                   locale: es 
                 })}. 

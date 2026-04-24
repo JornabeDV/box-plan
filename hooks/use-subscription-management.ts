@@ -112,6 +112,66 @@ export function useSubscriptionManagement() {
     }
   }
 
+  // Crear preferencia de pago en MercadoPago y redirigir
+  const redirectToPayment = async (planId: string) => {
+    if (!session?.user?.id) {
+      throw new Error('Usuario no autenticado')
+    }
+
+    const userId = typeof session.user.id === 'string' ? session.user.id : String(session.user.id)
+    const planIdNum = typeof planId === 'string' ? parseInt(planId, 10) : planId
+    
+    if (isNaN(planIdNum)) {
+      throw new Error('ID de plan inválido')
+    }
+    
+    // Obtener información del plan para crear la preferencia de pago
+    const plan = plans.find(p => p.id === planId || String(p.id) === String(planId))
+    
+    if (!plan) {
+      throw new Error('Plan no encontrado')
+    }
+
+    // Asegurar que el precio sea un número
+    const planPrice = typeof plan.price === 'string' ? parseFloat(plan.price) : Number(plan.price)
+    
+    if (isNaN(planPrice)) {
+      throw new Error('Precio del plan inválido')
+    }
+
+    // Crear preferencia de pago en MercadoPago (esto activará el split si está configurado)
+    const preferenceResponse = await fetch('/api/create-payment-preference', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        plan_id: String(planIdNum),
+        user_id: userId,
+        plan: {
+          id: String(planIdNum),
+          name: plan.name,
+          price: planPrice,
+          currency: plan.currency,
+          interval: plan.interval
+        }
+      })
+    })
+
+    if (!preferenceResponse.ok) {
+      const errorData = await preferenceResponse.json()
+      throw new Error(errorData.error || 'Error al crear preferencia de pago')
+    }
+
+    const { preference } = await preferenceResponse.json()
+    
+    // Redirigir a MercadoPago para completar el pago
+    if (preference?.init_point) {
+      window.location.href = preference.init_point
+      return // No continuar, el usuario será redirigido
+    } else {
+      throw new Error('No se recibió URL de pago de MercadoPago')
+    }
+  }
+
   // Cambiar plan o crear nueva suscripción
   const changePlan = async (newPlanId: string) => {
     setActionLoading(true)
@@ -119,62 +179,7 @@ export function useSubscriptionManagement() {
       // Si no hay suscripción o está vencida, redirigir a MercadoPago
       const isExpiredSubscription = currentSubscription?.status === 'expired' || currentSubscription?.is_expired
       if (!currentSubscription || isExpiredSubscription) {
-        if (!session?.user?.id) {
-          throw new Error('Usuario no autenticado')
-        }
-
-        const userId = typeof session.user.id === 'string' ? session.user.id : String(session.user.id)
-        const planIdNum = typeof newPlanId === 'string' ? parseInt(newPlanId, 10) : newPlanId
-        
-        if (isNaN(planIdNum)) {
-          throw new Error('ID de plan inválido')
-        }
-        
-        // Obtener información del plan para crear la preferencia de pago
-        const plan = plans.find(p => p.id === newPlanId || String(p.id) === String(newPlanId))
-        
-        if (!plan) {
-          throw new Error('Plan no encontrado')
-        }
-
-        // Asegurar que el precio sea un número
-        const planPrice = typeof plan.price === 'string' ? parseFloat(plan.price) : Number(plan.price)
-        
-        if (isNaN(planPrice)) {
-          throw new Error('Precio del plan inválido')
-        }
-
-        // Crear preferencia de pago en MercadoPago (esto activará el split si está configurado)
-        const preferenceResponse = await fetch('/api/create-payment-preference', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            plan_id: String(planIdNum),
-            user_id: userId,
-            plan: {
-              id: String(planIdNum),
-              name: plan.name,
-              price: planPrice,
-              currency: plan.currency,
-              interval: plan.interval
-            }
-          })
-        })
-
-        if (!preferenceResponse.ok) {
-          const errorData = await preferenceResponse.json()
-          throw new Error(errorData.error || 'Error al crear preferencia de pago')
-        }
-
-        const { preference } = await preferenceResponse.json()
-        
-        // Redirigir a MercadoPago para completar el pago
-        if (preference?.init_point) {
-          window.location.href = preference.init_point
-          return // No continuar, el usuario será redirigido
-        } else {
-          throw new Error('No se recibió URL de pago de MercadoPago')
-        }
+        await redirectToPayment(newPlanId)
       } else {
         // Si hay suscripción, cambiar de plan
         const response = await fetch('/api/subscriptions/change-plan', {
@@ -288,23 +293,8 @@ export function useSubscriptionManagement() {
 
     setActionLoading(true)
     try {
-      const response = await fetch(`/api/subscriptions/${currentSubscription.id}/renew`, {
-        method: 'PATCH'
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Error al renovar suscripción')
-      }
-
-      // Recargar la suscripción después de renovar
-      await loadCurrentSubscription()
-
-      toast({
-        title: "Suscripción renovada",
-        description: "Tu suscripción ha sido renovada exitosamente",
-      })
-
+      // Redirigir a MercadoPago para pagar la renovación del plan actual
+      await redirectToPayment(currentSubscription.plan_id)
     } catch (error) {
       console.error('Error renewing subscription:', error)
       toast({

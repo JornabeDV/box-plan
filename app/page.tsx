@@ -46,6 +46,8 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { formatDistanceToNow } from "date-fns";
+import { es } from "date-fns/locale";
 import { MOTIVATIONAL_QUOTES } from "@/lib/constants";
 import { useCoachMotivationalQuotes } from "@/hooks/use-coach-motivational-quotes";
 import { useTodayPlanification } from "@/hooks/use-today-planification";
@@ -475,6 +477,22 @@ export default function BoxPlanApp() {
   }
 
   // Para usuarios logueados con suscripción activa, mostrar dashboard personalizado
+
+  // Calcular si la suscripción está por vencer (≤7 días, urgente si ≤1 día)
+  const subscriptionExpiryInfo = (() => {
+    if (!subscription?.current_period_end || subscription.status !== "active")
+      return null;
+    const endDate = new Date(subscription.current_period_end);
+    const now = new Date();
+    const daysUntilExpiry = Math.ceil(
+      (endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    if (daysUntilExpiry <= 7) {
+      return { urgent: daysUntilExpiry <= 1, days: daysUntilExpiry, endDate };
+    }
+    return null;
+  })();
+
   return (
     <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground">
       <div
@@ -501,6 +519,23 @@ export default function BoxPlanApp() {
               month: "long",
             })}
           </p>
+          {subscriptionExpiryInfo && (
+            <button
+              onClick={() => router.push("/subscription")}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mt-0.5"
+            >
+              <span
+                className={
+                  subscriptionExpiryInfo.urgent
+                    ? "w-1.5 h-1.5 rounded-full bg-red-500"
+                    : "w-1.5 h-1.5 rounded-full bg-amber-500"
+                }
+              />
+              {subscriptionExpiryInfo.urgent
+                ? `Tu plan vence ${formatDistanceToNow(subscriptionExpiryInfo.endDate, { addSuffix: true, locale: es })}`
+                : `Tu plan vence en ${subscriptionExpiryInfo.days} días`}
+            </button>
+          )}
         </section>
 
         {/* Frase motivacional */}

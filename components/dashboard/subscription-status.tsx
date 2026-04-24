@@ -292,7 +292,7 @@ export function SubscriptionStatus() {
         )}
 
         {isExpiringSoon() && !subscription.cancel_at_period_end && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <p className="text-sm text-yellow-800">
               ⏰ Tu suscripción expira en{" "}
               {formatDistanceToNow(new Date(subscription.current_period_end), {
@@ -300,6 +300,15 @@ export function SubscriptionStatus() {
                 locale: es,
               })}
             </p>
+            <Link href="/subscription">
+              <Button
+                variant="link"
+                size="sm"
+                className="p-0 h-auto text-yellow-800 font-semibold underline"
+              >
+                Gestionar suscripción →
+              </Button>
+            </Link>
           </div>
         )}
       </CardContent>
