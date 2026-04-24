@@ -121,6 +121,7 @@ export default function SubscriptionPage() {
   const [paymentVerified, setPaymentVerified] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
 
+  // Verificar pago exitoso al volver de MercadoPago
   useEffect(() => {
     if (typeof window === "undefined" || verifyingPayment || paymentVerified) return;
 
@@ -129,54 +130,57 @@ export default function SubscriptionPage() {
       urlParams.get("success") === "true" ||
       urlParams.get("collection_status") === "approved" ||
       urlParams.get("status") === "approved";
+
+    if (!isSuccess) return;
+
+    // Si el webhook ya actualizó la suscripción (tiene más de 2 días de vigencia),
+    // redirigir directamente sin llamar a confirm-payment
+    if (currentSubscription?.status === "active" && currentSubscription?.current_period_end) {
+      const periodEnd = new Date(currentSubscription.current_period_end);
+      const now = new Date();
+      const daysUntilExpiry = Math.ceil(
+        (periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      if (daysUntilExpiry > 2) {
+        router.push("/?activated=true");
+        return;
+      }
+    }
+
+    // Si no, ejecutar confirm-payment para renovar/activar la suscripción
     const preferenceId = urlParams.get("preference_id");
     const externalReference = urlParams.get("external_reference");
+    const collectionId = urlParams.get("collection_id") || urlParams.get("payment_id");
 
-    if (isSuccess && (preferenceId || externalReference)) {
-      setVerifyingPayment(true);
-      setVerifyError(null);
+    setVerifyingPayment(true);
+    setVerifyError(null);
 
-      fetch("/api/confirm-payment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          preference_id: preferenceId,
-          external_reference: externalReference,
-        }),
+    fetch("/api/confirm-payment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        preference_id: preferenceId,
+        external_reference: externalReference,
+        collection_id: collectionId,
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setPaymentVerified(true);
+          router.push("/?activated=true");
+        } else {
+          console.error("Error confirmando pago:", data.error);
+          setVerifyError(data.error || "No se pudo activar la suscripción");
+        }
       })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success) {
-            setPaymentVerified(true);
-            router.push("/?activated=true");
-          } else {
-            console.error("Error confirmando pago:", data.error);
-            setVerifyError(data.error || "No se pudo activar la suscripción");
-          }
-        })
-        .catch((err) => {
-          console.error("Error confirmando pago:", err);
-          setVerifyError("Error de conexión al activar la suscripción");
-        })
-        .finally(() => setVerifyingPayment(false));
-    }
+      .catch((err) => {
+        console.error("Error confirmando pago:", err);
+        setVerifyError("Error de conexión al activar la suscripción");
+      })
+      .finally(() => setVerifyingPayment(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Si volvimos de MercadoPago y el webhook ya creó la suscripción, redirigir a home
-  useEffect(() => {
-    if (typeof window === "undefined" || loading || !currentSubscription) return;
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const isSuccess =
-      urlParams.get("success") === "true" ||
-      urlParams.get("collection_status") === "approved" ||
-      urlParams.get("status") === "approved";
-
-    if (isSuccess && currentSubscription.status === "active") {
-      router.push("/?activated=true");
-    }
-  }, [loading, currentSubscription, router]);
+  }, [currentSubscription, loading]);
 
   // Cargar historial de pagos
   const loadPaymentHistory = async () => {

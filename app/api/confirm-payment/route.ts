@@ -10,16 +10,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { preference_id, external_reference } = body
+    const { preference_id, external_reference, collection_id } = body
 
-    if (!preference_id && !external_reference) {
-      return NextResponse.json(
-        { error: 'Se requiere preference_id o external_reference' },
-        { status: 400 }
-      )
-    }
-
-    console.log('[confirm-payment] Recibido:', { preference_id, external_reference })
+    console.log('[confirm-payment] Recibido:', { preference_id, external_reference, collection_id })
 
     let userId: number | null = null
     let planId: number | null = null
@@ -50,6 +43,22 @@ export async function POST(request: NextRequest) {
       userId = paymentRecord.userId
     }
 
+    // 4. Fallback: si no hay preference_id ni external_reference, usar el usuario autenticado
+    // y buscar su último paymentHistory pendiente (creado en los últimos 30 minutos)
+    if (!userId) {
+      userId = parseInt(String(session.user.id), 10)
+      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000)
+      paymentRecord = await prisma.paymentHistory.findFirst({
+        where: {
+          userId,
+          status: 'pending',
+          createdAt: { gte: thirtyMinutesAgo }
+        },
+        orderBy: { createdAt: 'desc' }
+      })
+      console.log('[confirm-payment] Fallback paymentRecord:', paymentRecord?.id)
+    }
+
     if (!userId || isNaN(userId)) {
       console.error('[confirm-payment] No se pudo determinar userId')
       return NextResponse.json(
@@ -66,20 +75,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 4. Idempotencia: si ya tiene suscripción activa, retornarla
+    // 4. Buscar suscripción existente para renovar (si existe)
     const existingSubscription = await prisma.subscription.findFirst({
       where: { userId, status: 'active' },
       include: { plan: true }
     })
-
-    if (existingSubscription) {
-      console.log('[confirm-payment] Suscripción ya existe:', existingSubscription.id)
-      return NextResponse.json({
-        success: true,
-        subscription: existingSubscription,
-        message: 'Suscripción ya activa'
-      })
-    }
 
     // 5. Si no tenemos planId, intentar obtenerlo del paymentRecord
     if (!planId && paymentRecord?.subscriptionId) {
@@ -103,6 +103,11 @@ export async function POST(request: NextRequest) {
         })
         if (sub) planId = sub.planId
       }
+    }
+
+    // 7. Fallback: usar el planId de la suscripción activa existente (renovaciones)
+    if (!planId && existingSubscription) {
+      planId = existingSubscription.planId
     }
 
     if (!planId || isNaN(planId)) {
@@ -131,26 +136,38 @@ export async function POST(request: NextRequest) {
     })
     const coachId = relationship?.coachId ?? null
 
-    // 9. Crear la suscripción
+    // 9. Crear o renovar la suscripción
     const now = new Date()
     const periodEnd = new Date()
     periodEnd.setMonth(periodEnd.getMonth() + (plan.interval === 'year' ? 12 : 1))
 
-    console.log('[confirm-payment] Creando suscripción:', { userId, planId, coachId })
+    console.log('[confirm-payment] Creando/actualizando suscripción:', { userId, planId, coachId, existingId: existingSubscription?.id })
 
     const subscription = await prisma.$transaction(async (tx) => {
-      const newSubscription = await tx.subscription.create({
-        data: {
-          userId,
-          planId,
-          status: 'active',
-          currentPeriodStart: now,
-          currentPeriodEnd: periodEnd,
-          paymentMethod: 'mercadopago',
-          cancelAtPeriodEnd: false,
-          ...(coachId && { coachId })
-        }
-      })
+      const upsertedSubscription = existingSubscription
+        ? await tx.subscription.update({
+            where: { id: existingSubscription.id },
+            data: {
+              planId,
+              ...(coachId && { coachId }),
+              currentPeriodStart: now,
+              currentPeriodEnd: periodEnd,
+              paymentMethod: 'mercadopago',
+              cancelAtPeriodEnd: false
+            }
+          })
+        : await tx.subscription.create({
+            data: {
+              userId,
+              planId,
+              status: 'active',
+              currentPeriodStart: now,
+              currentPeriodEnd: periodEnd,
+              paymentMethod: 'mercadopago',
+              cancelAtPeriodEnd: false,
+              ...(coachId && { coachId })
+            }
+          })
 
       // Actualizar el paymentHistory si existe
       if (paymentRecord) {
@@ -158,7 +175,7 @@ export async function POST(request: NextRequest) {
           where: { id: paymentRecord.id },
           data: {
             status: 'approved',
-            subscriptionId: newSubscription.id
+            subscriptionId: upsertedSubscription.id
           }
         })
       } else if (preference_id) {
@@ -166,7 +183,7 @@ export async function POST(request: NextRequest) {
         await tx.paymentHistory.create({
           data: {
             userId,
-            subscriptionId: newSubscription.id,
+            subscriptionId: upsertedSubscription.id,
             amount: Number(plan.price),
             currency: plan.currency,
             status: 'approved',
@@ -183,7 +200,7 @@ export async function POST(request: NextRequest) {
         data: { lastPreferenceChangeDate: null }
       })
 
-      return newSubscription
+      return upsertedSubscription
     })
 
     console.log('[confirm-payment] Suscripción creada:', subscription.id)
