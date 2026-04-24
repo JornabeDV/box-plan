@@ -15,6 +15,13 @@ export default function LoginPage() {
     "login",
   );
   const router = useRouter();
+
+  // Marcar que el usuario visitó login para que la landing redirija directamente la próxima vez
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("hasVisitedLogin", "true");
+    }
+  }, []);
   const { data: session, status: sessionStatus } = useSession();
   const {
     user,
