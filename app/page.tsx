@@ -601,11 +601,11 @@ export default function BoxPlanApp() {
         )}
 
         {/* Rendimiento semanal */}
-        {user?.id && hasActiveSubscription && (
+        {/* {user?.id && hasActiveSubscription && (
           <section>
             <WeeklyPerformance />
           </section>
-        )}
+        )} */}
 
         {/* Accesos rápidos */}
         {user?.id && hasActiveSubscription && hasAnyQuickAccess && (
@@ -695,11 +695,11 @@ export default function BoxPlanApp() {
         )}
 
         {/* Reviews */}
-        {user?.id && (
+        {/* {user?.id && (
           <section>
             <ReviewsSection variant="default" />
           </section>
-        )}
+        )} */}
       </main>
 
       <BottomNavigation />
