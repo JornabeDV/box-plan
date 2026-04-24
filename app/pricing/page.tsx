@@ -6,6 +6,7 @@ import { CoachPlanCard } from "@/components/pricing/coach-plan-card";
 import { useSession } from "next-auth/react";
 import { Shield, Users, TrendingUp, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { LandingNavbar } from "@/components/landing/landing-navbar";
 
 interface CoachPlan {
   id: number;
@@ -116,8 +117,9 @@ export default function PricingPage() {
   return (
     <div className="min-h-[100dvh] relative overflow-hidden bg-background">
       <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
+      <LandingNavbar />
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary/5 to-accent/5 py-6">
+      <div className="bg-gradient-to-r from-primary/5 to-accent/5 py-6 pt-20">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-2xl md:text-3xl font-bold mb-2">
             Planes para Coaches

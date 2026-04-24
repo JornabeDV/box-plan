@@ -44,27 +44,20 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { MOTIVATIONAL_QUOTES } from "@/lib/constants";
 import { useCoachMotivationalQuotes } from "@/hooks/use-coach-motivational-quotes";
 import { useTodayPlanification } from "@/hooks/use-today-planification";
 import { useLoadingTimeout } from "@/hooks/use-loading-timeout";
+import { LandingPage } from "@/components/landing/landing-page";
 
 export default function BoxPlanApp() {
   const [shouldRedirect, setShouldRedirect] = useState(false);
   const [paymentStatusHandled, setPaymentStatusHandled] = useState(false);
   const [isRedirectingCoach, setIsRedirectingCoach] = useState(false);
+  const [isRedirectingStudent, setIsRedirectingStudent] = useState(false);
+  const [showLandingOnce, setShowLandingOnce] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const { user, loading: authLoading, isCoach } = useAuthWithRoles();
@@ -154,11 +147,13 @@ export default function BoxPlanApp() {
       user &&
       !isCoach &&
       !isSubscribed &&
-      !isExpired
+      !isExpired &&
+      !isRedirectingStudent
     ) {
+      setIsRedirectingStudent(true);
       router.replace("/choose-plan");
     }
-  }, [authLoading, subscriptionLoading, user, isCoach, isSubscribed, isExpired, router]);
+  }, [authLoading, subscriptionLoading, user, isCoach, isSubscribed, isExpired, router, isRedirectingStudent]);
 
   // Mostrar toast cuando se activa una suscripción desde /subscription
   useEffect(() => {
@@ -211,9 +206,16 @@ export default function BoxPlanApp() {
     }
   }, [paymentStatusHandled, toast, router]);
 
+  // Leer flag de una sola vez al montar (persiste durante la vida del componente)
+  useEffect(() => {
+    if (typeof window !== "undefined" && sessionStorage.getItem("showLandingOnce") === "true") {
+      setShowLandingOnce(true);
+    }
+  }, []);
+
   // Verificar si debe redirigir a login (después del mount)
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (!authLoading && !user && !shouldRedirect && !showLandingOnce) {
       const hasVisitedLogin =
         typeof window !== "undefined" &&
         localStorage.getItem("hasVisitedLogin");
@@ -226,16 +228,57 @@ export default function BoxPlanApp() {
         router.push("/login");
       }
     }
-  }, [authLoading, user, router]);
+  }, [authLoading, user, router, shouldRedirect, showLandingOnce]);
 
   // Calcular si estamos cargando datos críticos
   // Solo esperar la planificación de hoy si tiene suscripción activa y preferencias
-  const isLoadingCriticalData =
-    authLoading ||
-    profileLoading ||
-    subscriptionLoading ||
-    disciplinesLoading ||
-    (shouldLoadTodayPlanification && todayPlanificationLoading);
+  // Para usuarios no autenticados, solo esperar authLoading para permitir redirección rápida
+  const isLoadingCriticalData = user
+    ? authLoading ||
+      profileLoading ||
+      subscriptionLoading ||
+      disciplinesLoading ||
+      (shouldLoadTodayPlanification && todayPlanificationLoading)
+    : authLoading;
+
+  // Determinar si vamos a redirigir (para mostrar un único loading unificado)
+  const hasVisitedLogin =
+    typeof window !== "undefined" &&
+    localStorage.getItem("hasVisitedLogin");
+  const hasAccount =
+    typeof window !== "undefined" && localStorage.getItem("hasAccount");
+
+  const willRedirectCoach = !authLoading && isCoach && !!user?.id;
+  const willRedirectLogin =
+    !authLoading &&
+    !user &&
+    !!(hasAccount || hasVisitedLogin) &&
+    !showLandingOnce;
+  const willRedirectStudent =
+    !authLoading &&
+    !subscriptionLoading &&
+    !!user &&
+    !isCoach &&
+    !isSubscribed &&
+    !isExpired;
+
+  const isRedirecting =
+    willRedirectCoach ||
+    willRedirectLogin ||
+    willRedirectStudent ||
+    shouldRedirect ||
+    isRedirectingCoach ||
+    isRedirectingStudent;
+
+  // Limpiar el flag de sessionStorage después de que la landing se haya mostrado
+  useEffect(() => {
+    if (showLandingOnce && typeof window !== "undefined") {
+      const timer = setTimeout(() => {
+        sessionStorage.removeItem("showLandingOnce");
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showLandingOnce]);
 
   // Timeout para detectar loading infinito (10 segundos para desarrollo)
   const { hasTimedOut } = useLoadingTimeout(isLoadingCriticalData, {
@@ -248,7 +291,7 @@ export default function BoxPlanApp() {
   });
 
   // Mostrar loading mientras se verifica la autenticación o se redirige
-  if (isLoadingCriticalData && !hasTimedOut) {
+  if ((isLoadingCriticalData || isRedirecting) && !hasTimedOut) {
     return (
       <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground flex items-center justify-center">
         <div
@@ -343,472 +386,18 @@ export default function BoxPlanApp() {
     );
   }
 
-  // Si debe redirigir, mostrar loading durante la redirección
-  if (shouldRedirect || isRedirectingCoach) {
-    return (
-      <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground flex items-center justify-center">
-        <div
-          className="absolute inset-0 kinetic-grid-bg pointer-events-none"
-          aria-hidden="true"
-        />
-        <div className="flex items-center gap-2">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
-          <span>Redirigiendo...</span>
-        </div>
-      </div>
-    );
-  }
-
-  // Si no hay usuario autenticado y es primera visita, mostrar landing page
+  // Si no hay usuario autenticado, mostrar landing page
   if (!user) {
-    return (
-      <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground">
-        <div
-          className="absolute inset-0 kinetic-grid-bg pointer-events-none"
-          aria-hidden="true"
-        />
-
-        <main className="w-full">
-          {/* Hero Section */}
-          <section className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-16 md:py-24">
-            <div className="container mx-auto px-6 text-center max-w-4xl">
-              <Badge className="mb-6 bg-primary/10 text-primary border-primary/30 hover:bg-primary/20">
-                Plataforma de entrenamiento
-              </Badge>
-              <h1 className="text-4xl md:text-6xl font-display tracking-wide mb-6">
-                La herramienta para{" "}
-                <span className="text-primary">coaches</span> y{" "}
-                <span className="text-primary">atletas</span>
-              </h1>
-              <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto mb-10">
-                Box Plan conecta coaches con sus atletas. Planificaciones
-                profesionales, seguimiento de progreso y pagos — todo en un solo
-                lugar.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button
-                  onClick={() => router.push("/pricing")}
-                  size="xl"
-                  variant="default"
-                  className="touch-manipulation"
-                >
-                  <Settings className="w-5 h-5" />
-                  Soy Coach
-                </Button>
-                <Button
-                  onClick={() => {
-                    if (typeof window !== "undefined") {
-                      localStorage.setItem("hasVisitedLogin", "true");
-                    }
-                    router.push("/login");
-                  }}
-                  size="xl"
-                  variant="glass"
-                  className="touch-manipulation"
-                >
-                  Soy Atleta
-                  <ArrowRight className="w-5 h-5" />
-                </Button>
-              </div>
-            </div>
-            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-              <ChevronDown className="w-6 h-6 text-gray-400" />
-            </div>
-          </section>
-
-          {/* Dual Audience Section */}
-          <section className="py-16 md:py-24 bg-card">
-            <div className="container mx-auto px-6 max-w-6xl">
-              <div className="text-center mb-12">
-                <h2 className="text-3xl md:text-4xl font-display tracking-wide mb-4">
-                  ¿Qué ofrece Box Plan?
-                </h2>
-                <p className="text-muted-foreground text-lg">
-                  Una solución distinta para cada rol
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Coach Card */}
-                <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
-                  <CardHeader className="pb-4">
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                      <Settings className="w-6 h-6 text-primary" />
-                    </div>
-                    <CardTitle className="text-2xl font-display tracking-wide">
-                      Para Coaches
-                    </CardTitle>
-                    <CardDescription className="text-base">
-                      Gestioná tu box, tus alumnos y tus ingresos desde un solo
-                      panel.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {[
-                      {
-                        icon: FileText,
-                        text: "Creá y publicá planificaciones por nivel y disciplina",
-                      },
-                      {
-                        icon: Users,
-                        text: "Asigná alumnos a planes y controlá su acceso",
-                      },
-                      {
-                        icon: Calendar,
-                        text: "Organizá el calendario de entrenamientos",
-                      },
-                      {
-                        icon: TrendingUp,
-                        text: "Seguí el progreso y las marcas de tus atletas",
-                      },
-                      {
-                        icon: MessageCircle,
-                        text: "Enviá notificaciones push a tus alumnos",
-                      },
-                      {
-                        icon: Zap,
-                        text: "Cobrá suscripciones vía MercadoPago automáticamente",
-                      },
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-center gap-3 text-sm">
-                        <item.icon className="w-4 h-4 text-primary shrink-0" />
-                        <span className="text-muted-foreground">
-                          {item.text}
-                        </span>
-                      </div>
-                    ))}
-                    <div className="pt-4">
-                      <Button
-                        onClick={() => router.push("/pricing")}
-                        className="w-full"
-                        variant="default"
-                      >
-                        Ver planes para coaches
-                        <ArrowRight className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Athlete Card */}
-                <Card className="border-blue-400/30 bg-gradient-to-br from-blue-400/5 to-transparent">
-                  <CardHeader className="pb-4">
-                    <div className="w-12 h-12 rounded-xl bg-blue-400/10 flex items-center justify-center mb-4">
-                      <Target className="w-6 h-6 text-blue-400" />
-                    </div>
-                    <CardTitle className="text-2xl font-display tracking-wide">
-                      Para Atletas
-                    </CardTitle>
-                    <CardDescription className="text-base">
-                      Accedé a las planificaciones de tu coach y entrenás con
-                      todas las herramientas.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {[
-                      {
-                        icon: FileText,
-                        text: "Accedé a las planificaciones de tu coach",
-                      },
-                      {
-                        icon: Timer,
-                        text: "Timer profesional: Tabata, AMRAP, EMOM, For Time",
-                      },
-                      {
-                        icon: TrendingUp,
-                        text: "Registrá tus marcas y seguí tu progreso",
-                      },
-                      {
-                        icon: Trophy,
-                        text: "Ranking y comparativa con tu box",
-                      },
-                      {
-                        icon: Calculator,
-                        text: "Calculadora de 1RM y porcentajes",
-                      },
-                      {
-                        icon: Star,
-                        text: "Notificaciones de entrenamientos y novedades",
-                      },
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-center gap-3 text-sm">
-                        <item.icon className="w-4 h-4 text-blue-400 shrink-0" />
-                        <span className="text-muted-foreground">
-                          {item.text}
-                        </span>
-                      </div>
-                    ))}
-                    <div className="pt-4">
-                      <Button
-                        onClick={() => {
-                          if (typeof window !== "undefined") {
-                            localStorage.setItem("hasVisitedLogin", "true");
-                          }
-                          router.push("/login");
-                        }}
-                        className="w-full"
-                        variant="outline"
-                      >
-                        Ya tengo cuenta, ingresar
-                        <ArrowRight className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </section>
-
-          {/* How it works */}
-          <section className="py-16 md:py-24 bg-background">
-            <div className="container mx-auto px-6 max-w-5xl">
-              <div className="text-center mb-12">
-                <h2 className="text-3xl md:text-4xl font-display tracking-wide mb-4">
-                  ¿Cómo funciona?
-                </h2>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                {/* Coach flow */}
-                <div>
-                  <h3 className="text-xl font-semibold text-primary mb-6 flex items-center gap-2">
-                    <Settings className="w-5 h-5" />
-                    Para el Coach
-                  </h3>
-                  <div className="space-y-6">
-                    {[
-                      {
-                        step: "1",
-                        title: "Creá tu cuenta de coach",
-                        desc: "Registrate y elegí un plan según la cantidad de alumnos que manejás.",
-                      },
-                      {
-                        step: "2",
-                        title: "Cargá tus planificaciones",
-                        desc: "Creá bloques de entrenamiento, asigná días y niveles, y publicalos.",
-                      },
-                      {
-                        step: "3",
-                        title: "Sumá a tus alumnos",
-                        desc: "Invitá a tus atletas a la plataforma y asignalos a los planes que correspondan.",
-                      },
-                      {
-                        step: "4",
-                        title: "Cobrá automáticamente",
-                        desc: "Tus alumnos pagan la suscripción vía MercadoPago y el dinero llega directo a vos.",
-                      },
-                    ].map((item) => (
-                      <div key={item.step} className="flex gap-4">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-primary font-bold text-sm shrink-0 mt-0.5">
-                          {item.step}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm">{item.title}</p>
-                          <p className="text-muted-foreground text-sm mt-0.5">
-                            {item.desc}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Athlete flow */}
-                <div>
-                  <h3 className="text-xl font-semibold text-blue-400 mb-6 flex items-center gap-2">
-                    <Target className="w-5 h-5" />
-                    Para el Atleta
-                  </h3>
-                  <div className="space-y-6">
-                    {[
-                      {
-                        step: "1",
-                        title: "Tu coach te registra o te invita",
-                        desc: "El coach crea tu cuenta o vos te registrás con el código de tu box.",
-                      },
-                      {
-                        step: "2",
-                        title: "Elegís tu plan",
-                        desc: "Seleccionás el plan que ofrece tu coach y completás el pago.",
-                      },
-                      {
-                        step: "3",
-                        title: "Accedés a tus entrenamientos",
-                        desc: "Desde el día 1 tenés acceso a las planificaciones, el timer y el seguimiento.",
-                      },
-                      {
-                        step: "4",
-                        title: "Entrenás y progresás",
-                        desc: "Registrá tus marcas, seguí tu progreso y recibí las novedades de tu coach.",
-                      },
-                    ].map((item) => (
-                      <div key={item.step} className="flex gap-4">
-                        <div className="w-8 h-8 rounded-full bg-blue-400/10 border border-blue-400/30 flex items-center justify-center text-blue-400 font-bold text-sm shrink-0 mt-0.5">
-                          {item.step}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm">{item.title}</p>
-                          <p className="text-muted-foreground text-sm mt-0.5">
-                            {item.desc}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Reviews Section */}
-          <ReviewsSection className="bg-gradient-to-br from-gray-900/50 to-gray-800/50" />
-
-          {/* FAQ Section */}
-          <section className="py-16 md:py-24 bg-background">
-            <div className="container mx-auto px-6 max-w-3xl">
-              <div className="text-center mb-12">
-                <h2 className="text-3xl md:text-4xl font-display mb-4 tracking-wide">
-                  Preguntas frecuentes
-                </h2>
-              </div>
-
-              <Accordion type="single" collapsible className="space-y-4">
-                <AccordionItem value="who" className="bg-card rounded-lg px-4">
-                  <AccordionTrigger className="hover:no-underline">
-                    ¿Quién usa Box Plan?
-                  </AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground">
-                    Box Plan está diseñado para coaches de distintas disciplinas
-                    y sus atletas. El coach administra la plataforma, crea los
-                    planes y cobra las suscripciones. Los atletas acceden al
-                    contenido y las herramientas incluidas en su plan.
-                  </AccordionContent>
-                </AccordionItem>
-
-                <AccordionItem
-                  value="athlete-signup"
-                  className="bg-card rounded-lg px-4"
-                >
-                  <AccordionTrigger className="hover:no-underline">
-                    ¿Cómo me registro si soy atleta?
-                  </AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground">
-                    Tu coach te crea una cuenta o te comparte el acceso. Si ya
-                    tenés cuenta, ingresá con tu email y contraseña. Para
-                    acceder al contenido necesitás un plan activo asignado por
-                    tu coach.
-                  </AccordionContent>
-                </AccordionItem>
-
-                <AccordionItem
-                  value="payment"
-                  className="bg-card rounded-lg px-4"
-                >
-                  <AccordionTrigger className="hover:no-underline">
-                    ¿Cómo funcionan los pagos?
-                  </AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground">
-                    Los pagos se procesan vía MercadoPago. El atleta paga la
-                    suscripción al coach directamente — el dinero llega a la
-                    cuenta del coach. Se aceptan tarjetas de crédito, débito,
-                    transferencias y billeteras digitales.
-                  </AccordionContent>
-                </AccordionItem>
-
-                <AccordionItem
-                  value="cancel"
-                  className="bg-card rounded-lg px-4"
-                >
-                  <AccordionTrigger className="hover:no-underline">
-                    ¿Puedo cancelar cuando quiera?
-                  </AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground">
-                    Sí. Los coaches pueden cancelar su suscripción a Box Plan en
-                    cualquier momento. Los atletas pueden dejar de renovar su
-                    plan con el coach sin penalizaciones.
-                  </AccordionContent>
-                </AccordionItem>
-
-                <AccordionItem
-                  value="device"
-                  className="bg-card rounded-lg px-4"
-                >
-                  <AccordionTrigger className="hover:no-underline">
-                    ¿Funciona en el celular?
-                  </AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground">
-                    Sí, Box Plan es una PWA (Progressive Web App). Podés
-                    instalarla en tu teléfono Android o iOS y usarla como una
-                    app nativa, con notificaciones push incluidas.
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </div>
-          </section>
-
-          {/* Final CTA */}
-          <section className="py-16 md:py-24 bg-gradient-to-r from-gray-900 to-gray-800">
-            <div className="container mx-auto px-6 text-center max-w-3xl">
-              <h2 className="text-3xl md:text-5xl font-display mb-4 tracking-wide">
-                ¿Sos coach? Empezá hoy.
-              </h2>
-              <p className="text-lg text-gray-300 mb-8">
-                Creá tu cuenta, cargá tus planificaciones y empezá a cobrar
-                suscripciones a tus atletas.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button
-                  onClick={() => router.push("/pricing")}
-                  size="xl"
-                  variant="default"
-                  className="touch-manipulation"
-                >
-                  <Zap className="w-5 h-5" />
-                  Ver planes para coaches
-                </Button>
-                <Button
-                  onClick={() => {
-                    if (typeof window !== "undefined") {
-                      localStorage.setItem("hasVisitedLogin", "true");
-                    }
-                    router.push("/login");
-                  }}
-                  size="xl"
-                  variant="glass"
-                  className="touch-manipulation"
-                >
-                  Ya tengo cuenta
-                </Button>
-              </div>
-              <p className="text-sm text-gray-400 mt-6">
-                <Shield className="w-4 h-4 inline mr-1" />
-                Cancela cuando quieras. Sin cargos ocultos.
-              </p>
-            </div>
-          </section>
-        </main>
-      </div>
-    );
+    return <LandingPage />;
   }
 
   // Para usuarios logueados, verificar si tiene suscripción activa
   // Si no tiene suscripción, mostrar pantalla de acceso restringido (Beta)
   if (!subscriptionLoading && !isSubscribed) {
     // Alumno nuevo sin plan: redirigir a elegir plan (el useEffect arriba lo maneja,
-    // mostramos un loading mientras tanto para evitar el flash de la card)
+    // el loading unificado ya se muestra gracias a willRedirectStudent)
     if (!isExpired) {
-      return (
-        <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground flex items-center justify-center">
-          <div
-            className="absolute inset-0 kinetic-grid-bg pointer-events-none"
-            aria-hidden="true"
-          />
-          <div className="flex items-center gap-2">
-            <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            <span>Redirigiendo...</span>
-          </div>
-        </div>
-      );
+      return null;
     }
 
     return (

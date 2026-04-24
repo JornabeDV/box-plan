@@ -176,7 +176,7 @@ export function LoginForm({
             onClick={onSwitchToSignUp}
             className="font-semibold text-primary hover:text-primary-dim transition-colors"
           >
-            Regístrate aquí
+            Registrate acá
           </button>
         </p>
 
@@ -192,6 +192,21 @@ export function LoginForm({
             className="font-semibold text-primary hover:text-primary-dim transition-colors"
           >
             Registrate como coach
+          </button>
+        </p>
+
+        <p className="text-sm text-muted-foreground">
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== "undefined") {
+                sessionStorage.setItem("showLandingOnce", "true");
+              }
+              window.location.href = "/";
+            }}
+            className="font-semibold text-primary hover:text-primary-dim transition-colors"
+          >
+            Ir a la página principal
           </button>
         </p>
       </div>
