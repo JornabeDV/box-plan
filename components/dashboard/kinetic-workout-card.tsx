@@ -77,7 +77,7 @@ export function KineticWorkoutCard() {
 
       {/* Main Card */}
       <Card>
-        <CardContent className="space-y-5 pt-5">
+        <CardContent className="space-y-5">
           {/* Title + Duration */}
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -137,13 +137,6 @@ export function KineticWorkoutCard() {
           </Button>
         </CardContent>
       </Card>
-
-      {/* Blocks count */}
-      {blockCount > 0 && (
-        <p className="text-center text-xs text-muted-foreground">
-          {String(blockCount).padStart(2, "0")} Bloques Totales
-        </p>
-      )}
     </div>
   );
 }
