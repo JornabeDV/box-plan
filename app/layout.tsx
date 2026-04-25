@@ -10,6 +10,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { ClearCacheScript } from "@/components/clear-cache-script"
 import { Header } from "@/components/layout/header"
 import { SerwistProvider } from "@/components/pwa/serwist-provider"
+import { PwaAutoUpdate } from "@/components/pwa/pwa-auto-update"
 import "./globals.css"
 
 // Display & Headlines — geometric, tech-forward
@@ -90,6 +91,7 @@ export default function RootLayout({
       </head>
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} ${bebasNeue.variable} ${spaceGrotesk.variable} ${oswald.variable} ${inter.variable} antialiased`}>
           <SerwistProvider>
+            <PwaAutoUpdate />
             <SessionProvider>
               <div className="min-h-[100dvh] bg-background text-foreground relative overflow-hidden">
                 <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
