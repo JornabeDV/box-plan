@@ -76,8 +76,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Buscar suscripción existente para renovar (si existe)
+    // Buscar tanto activas como expiradas para poder renovar la existente
     const existingSubscription = await prisma.subscription.findFirst({
-      where: { userId, status: 'active' },
+      where: { userId, status: { in: ['active', 'expired'] } },
       include: { plan: true }
     })
 

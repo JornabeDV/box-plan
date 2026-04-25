@@ -162,6 +162,12 @@ export default function BoxPlanApp() {
     if (typeof window === "undefined") return;
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get("activated") === "true") {
+      // Limpiar cache de suscripción por si acaso para forzar datos frescos
+      if (typeof window !== 'undefined') {
+        Object.keys(localStorage)
+          .filter(key => key.startsWith('student_subscription_'))
+          .forEach(key => localStorage.removeItem(key));
+      }
       toast({
         title: "¡Plan activado! 🎉",
         description: "Tu suscripción está lista. ¡A entrenar!",

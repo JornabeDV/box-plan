@@ -142,7 +142,13 @@ export default function SubscriptionPage() {
         (periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
       );
       if (daysUntilExpiry > 2) {
-        router.push("/?activated=true");
+        // Limpiar cache y forzar full reload para datos frescos
+        if (typeof window !== 'undefined') {
+          Object.keys(localStorage)
+            .filter(key => key.startsWith('student_subscription_'))
+            .forEach(key => localStorage.removeItem(key));
+        }
+        window.location.href = '/?activated=true';
         return;
       }
     }
@@ -168,7 +174,14 @@ export default function SubscriptionPage() {
       .then((data) => {
         if (data.success) {
           setPaymentVerified(true);
-          router.push("/?activated=true");
+          // Limpiar cache de suscripción para forzar datos frescos en la home
+          if (typeof window !== 'undefined') {
+            Object.keys(localStorage)
+              .filter(key => key.startsWith('student_subscription_'))
+              .forEach(key => localStorage.removeItem(key));
+          }
+          // Forzar full reload para que todos los hooks carguen desde cero
+          window.location.href = '/?activated=true';
         } else {
           console.error("Error confirmando pago:", data.error);
           setVerifyError(data.error || "No se pudo activar la suscripción");
