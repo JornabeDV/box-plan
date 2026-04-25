@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   Dialog,
   DialogContent,
@@ -23,7 +22,8 @@ import {
   AlertTriangle,
   Crown,
   Zap,
-  Star
+  Star,
+  Timer
 } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
@@ -99,19 +99,23 @@ export function SubscriptionManagement({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Alert>
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              No tienes una suscripción activa. 
-                <Button 
-                  variant="link" 
-                  className="p-0 h-auto ml-1"
-                  onClick={onPlanChange}
-                >
-                  Suscribirse ahora
-                </Button>
-            </AlertDescription>
-          </Alert>
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-4 flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-destructive/20 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-destructive">
+                No tienes una suscripción activa
+              </p>
+              <Button 
+                variant="link" 
+                className="p-0 h-auto mt-1 text-destructive/90 hover:text-destructive font-semibold"
+                onClick={onPlanChange}
+              >
+                Suscribirse ahora →
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     )
@@ -163,7 +167,7 @@ export function SubscriptionManagement({
           </div>
 
           {/* Fechas importantes */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
               <Calendar className="w-4 h-4 text-muted-foreground" />
               <div>
@@ -187,16 +191,23 @@ export function SubscriptionManagement({
           {/* Alertas */}
           
           {isExpiringSoon && !isExpired && (
-            <Alert className="border-yellow-200 bg-yellow-50">
-              <AlertTriangle className="h-4 w-4 text-yellow-600" />
-              <AlertDescription className="text-yellow-800">
-                Tu suscripción expira {formatDistanceToNow(new Date(subscription.current_period_end), { 
-                  addSuffix: true, 
-                  locale: es 
-                })}. 
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-4 flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                <Timer className="w-5 h-5 text-amber-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-amber-400">
+                  Tu suscripción expira pronto
+                </p>
+                <p className="text-sm text-amber-200/70 mt-1">
+                  Tu suscripción expira {formatDistanceToNow(new Date(subscription.current_period_end), { 
+                    addSuffix: true, 
+                    locale: es 
+                  })}.
+                </p>
                 <Button 
                   variant="link" 
-                  className="p-0 h-auto ml-1 text-yellow-800"
+                  className="p-0 h-auto mt-2 text-amber-400 hover:text-amber-300 font-semibold"
                   onClick={() => {
                     if (onRenew) {
                       onRenew()
@@ -205,10 +216,10 @@ export function SubscriptionManagement({
                     }
                   }}
                 >
-                  Renovar ahora
+                  Renovar ahora →
                 </Button>
-              </AlertDescription>
-            </Alert>
+              </div>
+            </div>
           )}
 
           {/* Acciones */}

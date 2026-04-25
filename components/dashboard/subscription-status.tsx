@@ -16,6 +16,7 @@ import {
   Star,
   Sparkles,
   ArrowRight,
+  Timer,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -284,31 +285,46 @@ export function SubscriptionStatus() {
         </div>
 
         {subscription.cancel_at_period_end && (
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-            <p className="text-sm text-orange-800">
-              ⚠️ Tu suscripción se cancelará al final del período actual
-            </p>
+          <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 px-4 py-4 flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-orange-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-orange-400">
+                Suscripción programada para cancelar
+              </p>
+              <p className="text-sm text-orange-200/70 mt-1">
+                Tu suscripción se cancelará al final del período actual.
+              </p>
+            </div>
           </div>
         )}
 
         {isExpiringSoon() && !subscription.cancel_at_period_end && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <p className="text-sm text-yellow-800">
-              ⏰ Tu suscripción expira en{" "}
-              {formatDistanceToNow(new Date(subscription.current_period_end), {
-                addSuffix: true,
-                locale: es,
-              })}
-            </p>
-            <Link href="/subscription">
-              <Button
-                variant="link"
-                size="sm"
-                className="p-0 h-auto text-yellow-800 font-semibold underline"
-              >
-                Gestionar suscripción →
-              </Button>
-            </Link>
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-4 flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+              <Timer className="w-5 h-5 text-amber-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-amber-400">
+                Tu suscripción expira pronto
+              </p>
+              <p className="text-sm text-amber-200/70 mt-1">
+                Tu suscripción expira {" "}
+                {formatDistanceToNow(new Date(subscription.current_period_end), {
+                  addSuffix: true,
+                  locale: es,
+                })}.
+              </p>
+              <Link href="/subscription">
+                <Button
+                  variant="link"
+                  className="p-0 h-auto mt-2 text-amber-400 hover:text-amber-300 font-semibold"
+                >
+                  Gestionar suscripción →
+                </Button>
+              </Link>
+            </div>
           </div>
         )}
       </CardContent>

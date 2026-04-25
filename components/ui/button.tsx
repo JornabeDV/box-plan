@@ -21,6 +21,8 @@ const buttonVariants = cva(
           'bg-destructive text-destructive-foreground hover:bg-destructive/90',
         glass:
           'bg-surface-container-high/60 backdrop-blur-xl border border-outline/10 text-foreground hover:bg-surface-container-high/80 hover:border-outline/20',
+        link:
+          'text-primary underline-offset-4 hover:underline',
       },
       size: {
         default: 'px-5 py-2.5',
