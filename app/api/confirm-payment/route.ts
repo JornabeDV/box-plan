@@ -76,10 +76,11 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Buscar suscripción existente para renovar (si existe)
-    // Buscar tanto activas como expiradas para poder renovar la existente
+    // Buscar activas, expiradas o past_due para poder renovar la existente
     const existingSubscription = await prisma.subscription.findFirst({
-      where: { userId, status: { in: ['active', 'expired'] } },
-      include: { plan: true }
+      where: { userId, status: { in: ['active', 'expired', 'past_due'] } },
+      include: { plan: true },
+      orderBy: { createdAt: 'desc' }
     })
 
     // 5. Si no tenemos planId, intentar obtenerlo del paymentRecord
@@ -150,6 +151,7 @@ export async function POST(request: NextRequest) {
             where: { id: existingSubscription.id },
             data: {
               planId,
+              status: 'active',
               ...(coachId && { coachId }),
               currentPeriodStart: now,
               currentPeriodEnd: periodEnd,
