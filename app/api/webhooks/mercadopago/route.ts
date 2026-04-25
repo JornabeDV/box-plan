@@ -232,8 +232,10 @@ async function createSubscription({
 
   await prisma.$transaction(async (tx) => {
     // Crear o renovar la suscripción
+    // Buscar suscripciones activas, expiradas o past_due para renovar la existente
     const existing = await tx.subscription.findFirst({
-      where: { userId, status: 'active' }
+      where: { userId, status: { in: ['active', 'expired', 'past_due'] } },
+      orderBy: { createdAt: 'desc' }
     })
 
     const subscription = existing
@@ -241,11 +243,13 @@ async function createSubscription({
           where: { id: existing.id },
           data: {
             planId,
+            status: 'active',
             ...(coachId && { coachId }),
             currentPeriodStart: now,
             currentPeriodEnd: periodEnd,
             mercadopagoPaymentId: paymentId,
-            paymentMethod: 'mercadopago'
+            paymentMethod: 'mercadopago',
+            cancelAtPeriodEnd: false
           }
         })
       : await tx.subscription.create({

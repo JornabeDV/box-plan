@@ -131,6 +131,10 @@ export default function SubscriptionPage() {
       urlParams.get("collection_status") === "approved" ||
       urlParams.get("status") === "approved";
 
+    console.log('[MP Redirect] URL params:', window.location.search);
+    console.log('[MP Redirect] isSuccess:', isSuccess);
+    console.log('[MP Redirect] currentSubscription:', currentSubscription);
+
     if (!isSuccess) return;
 
     // Si el webhook ya actualizó la suscripción (tiene más de 2 días de vigencia),
@@ -161,6 +165,8 @@ export default function SubscriptionPage() {
     setVerifyingPayment(true);
     setVerifyError(null);
 
+    console.log('[MP Redirect] Calling confirm-payment with:', { preferenceId, externalReference, collectionId });
+
     fetch("/api/confirm-payment", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -172,6 +178,7 @@ export default function SubscriptionPage() {
     })
       .then((res) => res.json())
       .then((data) => {
+        console.log('[MP Redirect] confirm-payment response:', data);
         if (data.success) {
           setPaymentVerified(true);
           // Limpiar cache de suscripción para forzar datos frescos en la home

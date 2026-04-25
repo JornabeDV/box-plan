@@ -19,11 +19,11 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Buscar suscripción activa o expirada (para mostrar info de renovación)
+    // Buscar suscripción activa, expirada o past_due (para mostrar info de renovación)
     const subscription = await prisma.subscription.findFirst({
       where: {
         userId,
-        status: { in: ['active', 'expired'] }
+        status: { in: ['active', 'expired', 'past_due'] }
       },
       include: {
         plan: {
@@ -48,8 +48,8 @@ export async function GET(request: NextRequest) {
     const now = new Date()
     const isExpired = subscription.currentPeriodEnd < now
 
-    // Auto-expirar en DB si sigue marcada como active pero ya venció
-    if (subscription.status === 'active' && isExpired) {
+    // Auto-expirar en DB si sigue marcada como active o past_due pero ya venció
+    if ((subscription.status === 'active' || subscription.status === 'past_due') && isExpired) {
       await prisma.subscription.update({
         where: { id: subscription.id },
         data: { status: 'expired' }
