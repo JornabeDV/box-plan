@@ -298,6 +298,11 @@ export default function BoxPlanApp() {
     },
   });
 
+  // Detectar si viene de una activación de pago para mostrar mensaje continuo
+  const isActivating =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("activated") === "true";
+
   // Mostrar loading mientras se verifica la autenticación o se redirige
   if ((isLoadingCriticalData || isRedirecting) && !hasTimedOut) {
     return (
@@ -306,9 +311,11 @@ export default function BoxPlanApp() {
           className="absolute inset-0 kinetic-grid-bg pointer-events-none"
           aria-hidden="true"
         />
-        <div className="flex items-center gap-2">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
-          <span>Cargando...</span>
+        <div className="text-center space-y-4">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+          <p className="text-muted-foreground">
+            {isActivating ? "Activando tu suscripción..." : "Cargando..."}
+          </p>
         </div>
       </div>
     );
