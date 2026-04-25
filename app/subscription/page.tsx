@@ -146,13 +146,13 @@ export default function SubscriptionPage() {
         (periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
       );
       if (daysUntilExpiry > 2) {
-        // Limpiar cache y forzar full reload para datos frescos
+        // Limpiar cache y redirigir a home para activación
         if (typeof window !== 'undefined') {
           Object.keys(localStorage)
             .filter(key => key.startsWith('student_subscription_'))
             .forEach(key => localStorage.removeItem(key));
         }
-        window.location.href = '/?activated=true';
+        router.push('/?activated=true');
         return;
       }
     }
@@ -187,8 +187,8 @@ export default function SubscriptionPage() {
               .filter(key => key.startsWith('student_subscription_'))
               .forEach(key => localStorage.removeItem(key));
           }
-          // Forzar full reload para que todos los hooks carguen desde cero
-          window.location.href = '/?activated=true';
+          // Redirigir a home (navegación cliente, sin reload completo)
+          router.push('/?activated=true');
         } else {
           console.error("Error confirmando pago:", data.error);
           setVerifyError(data.error || "No se pudo activar la suscripción");
