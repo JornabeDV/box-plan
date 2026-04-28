@@ -57,7 +57,14 @@ interface SubBlock {
   id: string;
   subtitle: string;
   items: ItemData[];
-  timer_mode?: 'normal' | 'tabata' | 'fortime' | 'amrap' | 'emom' | 'otm' | null;
+  timer_mode?:
+    | "normal"
+    | "tabata"
+    | "fortime"
+    | "amrap"
+    | "emom"
+    | "otm"
+    | null;
   timer_config?: {
     workTime?: string;
     restTime?: string;
@@ -72,7 +79,14 @@ interface Block {
   items: ItemData[];
   order: number;
   notes?: string;
-  timer_mode?: 'normal' | 'tabata' | 'fortime' | 'amrap' | 'emom' | 'otm' | null;
+  timer_mode?:
+    | "normal"
+    | "tabata"
+    | "fortime"
+    | "amrap"
+    | "emom"
+    | "otm"
+    | null;
   timer_config?: {
     workTime?: string;
     restTime?: string;
@@ -262,20 +276,27 @@ export function PlanificationModal({
         });
         const blocksToSet =
           planification.blocks || planificationAny.exercises || [];
-        
+
         // Normalizar items del backend al formato interno
         function normalizeItemFromBackend(item: any): ItemData {
-          if (typeof item === 'string') {
-            return { id: Date.now().toString() + Math.random(), description: item };
+          if (typeof item === "string") {
+            return {
+              id: Date.now().toString() + Math.random(),
+              description: item,
+            };
           }
           return {
             id: item.id || Date.now().toString() + Math.random(),
-            description: item.description || item.text || '',
-            exerciseId: item.exerciseId || (item.exercise ? parseInt(item.exercise.id) : null),
-            exerciseName: item.exerciseName || (item.exercise ? item.exercise.name : undefined),
+            description: item.description || item.text || "",
+            exerciseId:
+              item.exerciseId ||
+              (item.exercise ? parseInt(item.exercise.id) : null),
+            exerciseName:
+              item.exerciseName ||
+              (item.exercise ? item.exercise.name : undefined),
           };
         }
-        
+
         function normalizeBlockFromBackend(block: any): Block {
           return {
             ...block,
@@ -288,8 +309,12 @@ export function PlanificationModal({
             })),
           };
         }
-        
-        setBlocks(Array.isArray(blocksToSet) ? blocksToSet.map(normalizeBlockFromBackend) : []);
+
+        setBlocks(
+          Array.isArray(blocksToSet)
+            ? blocksToSet.map(normalizeBlockFromBackend)
+            : [],
+        );
         setIsPersonalized(planification.is_personalized || false);
         setSelectedStudent(planification.target_user_id || "");
 
@@ -412,7 +437,17 @@ export function PlanificationModal({
     );
   };
 
-const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'fortime' | 'amrap' | 'emom' | 'otm' | null) => {
+  const updateBlockTimer = (
+    blockId: string,
+    timerMode:
+      | "normal"
+      | "tabata"
+      | "fortime"
+      | "amrap"
+      | "emom"
+      | "otm"
+      | null,
+  ) => {
     setBlocks((prev) =>
       prev.map((block) =>
         block.id === blockId ? { ...block, timer_mode: timerMode } : block,
@@ -420,7 +455,15 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
     );
   };
 
-  const updateBlockTimerConfig = (blockId: string, config: { workTime?: string; restTime?: string; totalRounds?: string; amrapTime?: string }) => {
+  const updateBlockTimerConfig = (
+    blockId: string,
+    config: {
+      workTime?: string;
+      restTime?: string;
+      totalRounds?: string;
+      amrapTime?: string;
+    },
+  ) => {
     setBlocks((prev) =>
       prev.map((block) =>
         block.id === blockId ? { ...block, timer_config: config } : block,
@@ -431,7 +474,14 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
   const updateSubBlockTimer = (
     blockId: string,
     subBlockId: string,
-    timerMode: 'normal' | 'tabata' | 'fortime' | 'amrap' | 'emom' | 'otm' | null,
+    timerMode:
+      | "normal"
+      | "tabata"
+      | "fortime"
+      | "amrap"
+      | "emom"
+      | "otm"
+      | null,
   ) => {
     setBlocks((prev) =>
       prev.map((block) =>
@@ -447,7 +497,16 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
     );
   };
 
-  const updateSubBlockTimerConfig = (blockId: string, subBlockId: string, config: { workTime?: string; restTime?: string; totalRounds?: string; amrapTime?: string }) => {
+  const updateSubBlockTimerConfig = (
+    blockId: string,
+    subBlockId: string,
+    config: {
+      workTime?: string;
+      restTime?: string;
+      totalRounds?: string;
+      amrapTime?: string;
+    },
+  ) => {
     setBlocks((prev) =>
       prev.map((block) =>
         block.id === blockId
@@ -468,7 +527,10 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
     const itemText = blockItemInputs[blockId]?.trim();
     if (itemText) {
       if (editingItem) cancelEditingItem();
-      const newItem: ItemData = { id: Date.now().toString(), description: itemText };
+      const newItem: ItemData = {
+        id: Date.now().toString(),
+        description: itemText,
+      };
       setBlocks((prev) =>
         prev.map((block) =>
           block.id === blockId
@@ -566,7 +628,10 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
     const itemText = subBlockItemInputs[key]?.trim();
     if (!itemText) return;
     if (editingItem) cancelEditingItem();
-    const newItem: ItemData = { id: Date.now().toString(), description: itemText };
+    const newItem: ItemData = {
+      id: Date.now().toString(),
+      description: itemText,
+    };
     setBlocks((prev) =>
       prev.map((block) =>
         block.id === blockId
@@ -687,13 +752,15 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
   const loadExercises = async () => {
     if (!coachId) return;
     try {
-      const res = await fetch(`/api/exercises?search=${encodeURIComponent(exerciseSearch)}`);
+      const res = await fetch(
+        `/api/exercises?search=${encodeURIComponent(exerciseSearch)}`,
+      );
       if (res.ok) {
         const data = await res.json();
         setExercises(data);
       }
     } catch (err) {
-      console.error('Error loading exercises:', err);
+      console.error("Error loading exercises:", err);
     }
   };
 
@@ -701,7 +768,7 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
     blockId: string,
     itemIndex: number,
     exercise: any,
-    subBlockId?: string
+    subBlockId?: string,
   ) => {
     setBlocks((prev) =>
       prev.map((block) => {
@@ -715,8 +782,12 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                 ...sb,
                 items: sb.items.map((item, idx) =>
                   idx === itemIndex
-                    ? { ...item, exerciseId: parseInt(exercise.id), exerciseName: exercise.name }
-                    : item
+                    ? {
+                        ...item,
+                        exerciseId: parseInt(exercise.id),
+                        exerciseName: exercise.name,
+                      }
+                    : item,
                 ),
               };
             }),
@@ -726,11 +797,15 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
           ...block,
           items: block.items.map((item, idx) =>
             idx === itemIndex
-              ? { ...item, exerciseId: parseInt(exercise.id), exerciseName: exercise.name }
-              : item
+              ? {
+                  ...item,
+                  exerciseId: parseInt(exercise.id),
+                  exerciseName: exercise.name,
+                }
+              : item,
           ),
         };
-      })
+      }),
     );
     setActiveExerciseSelector(null);
   };
@@ -738,7 +813,7 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
   const removeExerciseFromItem = (
     blockId: string,
     itemIndex: number,
-    subBlockId?: string
+    subBlockId?: string,
   ) => {
     setBlocks((prev) =>
       prev.map((block) => {
@@ -753,7 +828,7 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                 items: sb.items.map((item, idx) =>
                   idx === itemIndex
                     ? { ...item, exerciseId: null, exerciseName: undefined }
-                    : item
+                    : item,
                 ),
               };
             }),
@@ -764,10 +839,10 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
           items: block.items.map((item, idx) =>
             idx === itemIndex
               ? { ...item, exerciseId: null, exerciseName: undefined }
-              : item
+              : item,
           ),
         };
-      })
+      }),
     );
   };
 
@@ -869,7 +944,7 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg">
+      <DialogContent className="w-full max-w-3xl xl:max-w-5xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg">
         <DialogHeader className="pb-0">
           <div className="flex items-end justify-between gap-4">
             <div className="flex-1">
@@ -1159,7 +1234,7 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                   onValueChange={(value) =>
                                     updateBlockTimer(
                                       block.id,
-                                      value === "none" ? null : value as any,
+                                      value === "none" ? null : (value as any),
                                     )
                                   }
                                 >
@@ -1167,13 +1242,21 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                     <SelectValue placeholder="Sin timer" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="none">Sin timer</SelectItem>
-                                    <SelectItem value="normal">Cronómetro</SelectItem>
-                                    <SelectItem value="fortime">FOR TIME</SelectItem>
+                                    <SelectItem value="none">
+                                      Sin timer
+                                    </SelectItem>
+                                    <SelectItem value="normal">
+                                      Cronómetro
+                                    </SelectItem>
+                                    <SelectItem value="fortime">
+                                      FOR TIME
+                                    </SelectItem>
                                     <SelectItem value="amrap">AMRAP</SelectItem>
                                     <SelectItem value="emom">EMOM</SelectItem>
                                     <SelectItem value="otm">OTM</SelectItem>
-                                    <SelectItem value="tabata">TABATA</SelectItem>
+                                    <SelectItem value="tabata">
+                                      TABATA
+                                    </SelectItem>
                                   </SelectContent>
                                 </Select>
                               </div>
@@ -1182,10 +1265,14 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                               {block.timer_mode === "tabata" && (
                                 <div className="ml-6 sm:ml-9 grid grid-cols-3 gap-2">
                                   <div className="space-y-1">
-                                    <Label className="text-xs text-muted-foreground">Trabajo</Label>
+                                    <Label className="text-xs text-muted-foreground">
+                                      Trabajo
+                                    </Label>
                                     <Input
                                       type="number"
-                                      value={block.timer_config?.workTime || "20"}
+                                      value={
+                                        block.timer_config?.workTime || "20"
+                                      }
                                       onChange={(e) =>
                                         updateBlockTimerConfig(block.id, {
                                           ...block.timer_config,
@@ -1196,10 +1283,14 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                     />
                                   </div>
                                   <div className="space-y-1">
-                                    <Label className="text-xs text-muted-foreground">Descanso</Label>
+                                    <Label className="text-xs text-muted-foreground">
+                                      Descanso
+                                    </Label>
                                     <Input
                                       type="number"
-                                      value={block.timer_config?.restTime || "10"}
+                                      value={
+                                        block.timer_config?.restTime || "10"
+                                      }
                                       onChange={(e) =>
                                         updateBlockTimerConfig(block.id, {
                                           ...block.timer_config,
@@ -1210,10 +1301,14 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                     />
                                   </div>
                                   <div className="space-y-1">
-                                    <Label className="text-xs text-muted-foreground">Rondas</Label>
+                                    <Label className="text-xs text-muted-foreground">
+                                      Rondas
+                                    </Label>
                                     <Input
                                       type="number"
-                                      value={block.timer_config?.totalRounds || "8"}
+                                      value={
+                                        block.timer_config?.totalRounds || "8"
+                                      }
                                       onChange={(e) =>
                                         updateBlockTimerConfig(block.id, {
                                           ...block.timer_config,
@@ -1229,10 +1324,14 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                               {block.timer_mode === "amrap" && (
                                 <div className="ml-6 sm:ml-9 grid grid-cols-2 gap-2">
                                   <div className="space-y-1">
-                                    <Label className="text-xs text-muted-foreground">Tiempo (min)</Label>
+                                    <Label className="text-xs text-muted-foreground">
+                                      Tiempo (min)
+                                    </Label>
                                     <Input
                                       type="number"
-                                      value={block.timer_config?.amrapTime || "10"}
+                                      value={
+                                        block.timer_config?.amrapTime || "10"
+                                      }
                                       onChange={(e) =>
                                         updateBlockTimerConfig(block.id, {
                                           ...block.timer_config,
@@ -1243,10 +1342,14 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                     />
                                   </div>
                                   <div className="space-y-1">
-                                    <Label className="text-xs text-muted-foreground">Rondas</Label>
+                                    <Label className="text-xs text-muted-foreground">
+                                      Rondas
+                                    </Label>
                                     <Input
                                       type="number"
-                                      value={block.timer_config?.totalRounds || "1"}
+                                      value={
+                                        block.timer_config?.totalRounds || "1"
+                                      }
                                       onChange={(e) =>
                                         updateBlockTimerConfig(block.id, {
                                           ...block.timer_config,
@@ -1259,13 +1362,18 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                 </div>
                               )}
 
-                              {(block.timer_mode === "emom" || block.timer_mode === "otm") && (
+                              {(block.timer_mode === "emom" ||
+                                block.timer_mode === "otm") && (
                                 <div className="ml-6 sm:ml-9 grid grid-cols-2 gap-2">
                                   <div className="space-y-1">
-                                    <Label className="text-xs text-muted-foreground">Rondas</Label>
+                                    <Label className="text-xs text-muted-foreground">
+                                      Rondas
+                                    </Label>
                                     <Input
                                       type="number"
-                                      value={block.timer_config?.totalRounds || "10"}
+                                      value={
+                                        block.timer_config?.totalRounds || "10"
+                                      }
                                       onChange={(e) =>
                                         updateBlockTimerConfig(block.id, {
                                           ...block.timer_config,
@@ -1277,10 +1385,14 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                   </div>
                                   {block.timer_mode === "otm" && (
                                     <div className="space-y-1">
-                                      <Label className="text-xs text-muted-foreground">Min/ronda</Label>
+                                      <Label className="text-xs text-muted-foreground">
+                                        Min/ronda
+                                      </Label>
                                       <Input
                                         type="number"
-                                        value={block.timer_config?.workTime || "2"}
+                                        value={
+                                          block.timer_config?.workTime || "2"
+                                        }
                                         onChange={(e) =>
                                           updateBlockTimerConfig(block.id, {
                                             ...block.timer_config,
@@ -1294,7 +1406,7 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                 </div>
                               )}
 
-                              <div className="ml-6 sm:ml-9 space-y-2">
+                              <div className="sm:ml-9 space-y-2">
                                 {/* Items directos del bloque */}
                                 {block.items.map((item, itemIndex) => {
                                   const isEditing =
@@ -1304,11 +1416,8 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                   return (
                                     <div
                                       key={itemIndex}
-                                      className="flex items-center gap-2 relative"
+                                      className="flex items-start gap-2 relative flex sm:flex-nowrap"
                                     >
-                                      <span className="text-muted-foreground">
-                                        -
-                                      </span>
                                       {isEditing ? (
                                         <>
                                           <Input
@@ -1352,121 +1461,158 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                         </>
                                       ) : (
                                         <>
-                                          <div className="flex-1">
-                                            <span
-                                              className="text-sm cursor-pointer hover:bg-muted/50 rounded px-2 py-1 -mx-2 -my-1 inline-block"
-                                              onClick={() =>
-                                                startEditingItem(
-                                                  block.id,
-                                                  itemIndex,
-                                                )
-                                              }
-                                              title="Haz clic para editar"
-                                            >
-                                              {item.description}
-                                            </span>
-                                            {item.exerciseName && (
-                                              <span className="inline-flex items-center gap-1 ml-2 text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">
-                                                <Play className="w-3 h-3" />
-                                                {item.exerciseName}
-                                                <button
-                                                  type="button"
-                                                  onClick={() => removeExerciseFromItem(block.id, itemIndex)}
-                                                  className="hover:text-blue-900 ml-1"
+                                          <div className="flex-col items-center gap-2">
+                                            <div className="flex items-center gap-2">
+                                              <div className="flex min-w-0 justify-between items-center w-full">
+                                                <span className="text-muted-foreground mr-2">
+                                                  -
+                                                </span>
+                                                <span
+                                                  className="text-sm cursor-pointer hover:bg-muted/50 rounded px-2 py-1 -mx-2 -my-1 inline-block flex truncate max-w-[120px]"
+                                                  onClick={() =>
+                                                    startEditingItem(
+                                                      block.id,
+                                                      itemIndex,
+                                                    )
+                                                  }
+                                                  title="Haz clic para editar"
                                                 >
-                                                  <X className="w-3 h-3" />
-                                                </button>
-                                              </span>
-                                            )}
-                                          </div>
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() =>
-                                              setActiveExerciseSelector({
-                                                blockId: block.id,
-                                                itemIndex,
-                                              })
-                                            }
-                                            className="text-muted-foreground hover:text-foreground h-6 w-6 p-0"
-                                            title="Asignar ejercicio"
-                                          >
-                                            <Plus className="w-3 h-3" />
-                                          </Button>
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() =>
-                                              startEditingItem(
-                                                block.id,
-                                                itemIndex,
-                                              )
-                                            }
-                                            className="text-muted-foreground hover:text-foreground h-6 w-6 p-0"
-                                          >
-                                            <Pencil className="w-3 h-3" />
-                                          </Button>
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() =>
-                                              removeItemFromBlock(
-                                                block.id,
-                                                itemIndex,
-                                              )
-                                            }
-                                            className="text-destructive hover:text-destructive-foreground hover:bg-destructive h-6 w-6 p-0"
-                                          >
-                                            <X className="w-3 h-3" />
-                                          </Button>
-
-                                          {/* Selector de ejercicio */}
-                                          {activeExerciseSelector?.blockId === block.id &&
-                                            activeExerciseSelector?.itemIndex === itemIndex &&
-                                            !activeExerciseSelector?.subBlockId && (
-                                            <div className="absolute right-0 top-8 z-20 bg-card border rounded-md shadow-lg p-2 w-64">
-                                              <div className="flex items-center gap-2 mb-2">
-                                                <Input
-                                                  className="h-7 text-xs"
-                                                  placeholder="Buscar ejercicio..."
-                                                  value={exerciseSearch}
-                                                  onChange={(e) => {
-                                                    setExerciseSearch(e.target.value);
-                                                    loadExercises();
-                                                  }}
-                                                  autoFocus
-                                                />
+                                                  {item.description}
+                                                </span>
+                                              </div>
+                                              <div className="flex items-center gap-0.5 sm:mt-0 w-full sm:w-auto justify-end sm:justify-start">
                                                 <Button
                                                   type="button"
                                                   variant="ghost"
                                                   size="sm"
-                                                  onClick={() => setActiveExerciseSelector(null)}
-                                                  className="h-6 w-6 p-0"
+                                                  onClick={() =>
+                                                    setActiveExerciseSelector({
+                                                      blockId: block.id,
+                                                      itemIndex,
+                                                    })
+                                                  }
+                                                  className="text-muted-foreground hover:text-foreground h-4 w-4 md:h-6 md:w-6 p-0"
+                                                  title="Asignar ejercicio"
+                                                >
+                                                  <Plus className="w-3 h-3" />
+                                                </Button>
+                                                <Button
+                                                  type="button"
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  onClick={() =>
+                                                    startEditingItem(
+                                                      block.id,
+                                                      itemIndex,
+                                                    )
+                                                  }
+                                                  className="text-muted-foreground hover:text-foreground h-4 w-4 md:h-6 md:w-6 p-0"
+                                                >
+                                                  <Pencil className="w-3 h-3" />
+                                                </Button>
+                                                <Button
+                                                  type="button"
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  onClick={() =>
+                                                    removeItemFromBlock(
+                                                      block.id,
+                                                      itemIndex,
+                                                    )
+                                                  }
+                                                  className="text-destructive hover:text-destructive-foreground hover:bg-destructive h-4 w-4 md:h-6 md:w-6 p-0"
                                                 >
                                                   <X className="w-3 h-3" />
                                                 </Button>
                                               </div>
-                                              <div className="max-h-40 overflow-y-auto space-y-1">
-                                                {exercises.length === 0 && (
-                                                  <p className="text-xs text-muted-foreground px-2">No hay ejercicios</p>
-                                                )}
-                                                {exercises.map((ex) => (
-                                                  <button
-                                                    key={ex.id}
-                                                    type="button"
-                                                    onClick={() => assignExerciseToItem(block.id, itemIndex, ex)}
-                                                    className="w-full text-left text-xs px-2 py-1.5 hover:bg-muted rounded flex items-center gap-2"
-                                                  >
-                                                    <span className="flex-1 truncate">{ex.name}</span>
-                                                    {ex.video_url && <Play className="w-3 h-3 text-blue-500" />}
-                                                  </button>
-                                                ))}
-                                              </div>
                                             </div>
-                                          )}
+                                            {item.exerciseName && (
+                                              <span className="inline-flex items-center justify-between gap-1 sm:mt-0 sm:ml-2 text-xs bg-primary/10 text-primary dark:bg-primary/20 border border-primary/20 px-2 py-0.5 rounded-full w-full">
+                                                <div className="flex items-center w-11 h-11 justify-center">
+                                                  <Play className="h-11 w-5 h-5 flex-shrink-0" />
+                                                </div>
+                                                <span className="truncate text-sm max-w-[100px] sm:max-w-[160px]">
+                                                  {item.exerciseName}
+                                                </span>
+                                                <button
+                                                  type="button"
+                                                  onClick={() =>
+                                                    removeExerciseFromItem(
+                                                      block.id,
+                                                      itemIndex,
+                                                    )
+                                                  }
+                                                  className="hover:text-primary/80 p-0.5 rounded-full hover:bg-primary/20 flex justify-center items-center"
+                                                >
+                                                  <X className="w-5 h-5" />
+                                                </button>
+                                              </span>
+                                            )}
+                                          </div>
+                                          {/* Selector de ejercicio */}
+                                          {activeExerciseSelector?.blockId ===
+                                            block.id &&
+                                            activeExerciseSelector?.itemIndex ===
+                                              itemIndex &&
+                                            !activeExerciseSelector?.subBlockId && (
+                                              <div className="absolute left-0 sm:left-auto sm:right-0 top-8 z-20 bg-card border rounded-md shadow-lg p-2 w-full sm:w-64">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                  <Input
+                                                    className="h-7 text-xs"
+                                                    placeholder="Buscar ejercicio..."
+                                                    value={exerciseSearch}
+                                                    onChange={(e) => {
+                                                      setExerciseSearch(
+                                                        e.target.value,
+                                                      );
+                                                      loadExercises();
+                                                    }}
+                                                    autoFocus
+                                                  />
+                                                  <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                      setActiveExerciseSelector(
+                                                        null,
+                                                      )
+                                                    }
+                                                    className="h-6 w-6 p-0"
+                                                  >
+                                                    <X className="w-3 h-3" />
+                                                  </Button>
+                                                </div>
+                                                <div className="max-h-40 overflow-y-auto space-y-1">
+                                                  {exercises.length === 0 && (
+                                                    <p className="text-xs text-muted-foreground px-2">
+                                                      No hay ejercicios
+                                                    </p>
+                                                  )}
+                                                  {exercises.map((ex) => (
+                                                    <button
+                                                      key={ex.id}
+                                                      type="button"
+                                                      onClick={() =>
+                                                        assignExerciseToItem(
+                                                          block.id,
+                                                          itemIndex,
+                                                          ex,
+                                                        )
+                                                      }
+                                                      className="w-full text-left text-xs px-2 py-1.5 hover:bg-muted rounded flex items-center gap-2"
+                                                    >
+                                                      <span className="flex-1 truncate max-w-[100px]">
+                                                        {ex.name}
+                                                      </span>
+                                                      {ex.video_url && (
+                                                        <Play className="w-3 h-3 text-primary flex-shrink-0" />
+                                                      )}
+                                                    </button>
+                                                  ))}
+                                                </div>
+                                              </div>
+                                            )}
                                         </>
                                       )}
                                     </div>
@@ -1554,12 +1700,16 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                           <div className="flex items-center gap-2 pl-6">
                                             <Clock className="w-3 h-3 text-muted-foreground" />
                                             <Select
-                                              value={subBlock.timer_mode || "none"}
+                                              value={
+                                                subBlock.timer_mode || "none"
+                                              }
                                               onValueChange={(value) =>
                                                 updateSubBlockTimer(
                                                   block.id,
                                                   subBlock.id,
-                                                  value === "none" ? null : value as any,
+                                                  value === "none"
+                                                    ? null
+                                                    : (value as any),
                                                 )
                                               }
                                             >
@@ -1567,13 +1717,27 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                                 <SelectValue placeholder="Sin timer" />
                                               </SelectTrigger>
                                               <SelectContent>
-                                                <SelectItem value="none">Sin timer</SelectItem>
-                                                <SelectItem value="normal">Cronómetro</SelectItem>
-                                                <SelectItem value="fortime">FOR TIME</SelectItem>
-                                                <SelectItem value="amrap">AMRAP</SelectItem>
-                                                <SelectItem value="emom">EMOM</SelectItem>
-                                                <SelectItem value="otm">OTM</SelectItem>
-                                                <SelectItem value="tabata">TABATA</SelectItem>
+                                                <SelectItem value="none">
+                                                  Sin timer
+                                                </SelectItem>
+                                                <SelectItem value="normal">
+                                                  Cronómetro
+                                                </SelectItem>
+                                                <SelectItem value="fortime">
+                                                  FOR TIME
+                                                </SelectItem>
+                                                <SelectItem value="amrap">
+                                                  AMRAP
+                                                </SelectItem>
+                                                <SelectItem value="emom">
+                                                  EMOM
+                                                </SelectItem>
+                                                <SelectItem value="otm">
+                                                  OTM
+                                                </SelectItem>
+                                                <SelectItem value="tabata">
+                                                  TABATA
+                                                </SelectItem>
                                               </SelectContent>
                                             </Select>
                                           </div>
@@ -1582,43 +1746,73 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                           {subBlock.timer_mode === "tabata" && (
                                             <div className="grid grid-cols-3 gap-2 pl-6">
                                               <div className="space-y-1">
-                                                <Label className="text-xs text-muted-foreground">Trabajo</Label>
+                                                <Label className="text-xs text-muted-foreground">
+                                                  Trabajo
+                                                </Label>
                                                 <Input
                                                   type="number"
-                                                  value={subBlock.timer_config?.workTime || "20"}
+                                                  value={
+                                                    subBlock.timer_config
+                                                      ?.workTime || "20"
+                                                  }
                                                   onChange={(e) =>
-                                                    updateSubBlockTimerConfig(block.id, subBlock.id, {
-                                                      ...subBlock.timer_config,
-                                                      workTime: e.target.value,
-                                                    })
+                                                    updateSubBlockTimerConfig(
+                                                      block.id,
+                                                      subBlock.id,
+                                                      {
+                                                        ...subBlock.timer_config,
+                                                        workTime:
+                                                          e.target.value,
+                                                      },
+                                                    )
                                                   }
                                                   className="h-7 text-xs"
                                                 />
                                               </div>
                                               <div className="space-y-1">
-                                                <Label className="text-xs text-muted-foreground">Descanso</Label>
+                                                <Label className="text-xs text-muted-foreground">
+                                                  Descanso
+                                                </Label>
                                                 <Input
                                                   type="number"
-                                                  value={subBlock.timer_config?.restTime || "10"}
+                                                  value={
+                                                    subBlock.timer_config
+                                                      ?.restTime || "10"
+                                                  }
                                                   onChange={(e) =>
-                                                    updateSubBlockTimerConfig(block.id, subBlock.id, {
-                                                      ...subBlock.timer_config,
-                                                      restTime: e.target.value,
-                                                    })
+                                                    updateSubBlockTimerConfig(
+                                                      block.id,
+                                                      subBlock.id,
+                                                      {
+                                                        ...subBlock.timer_config,
+                                                        restTime:
+                                                          e.target.value,
+                                                      },
+                                                    )
                                                   }
                                                   className="h-7 text-xs"
                                                 />
                                               </div>
                                               <div className="space-y-1">
-                                                <Label className="text-xs text-muted-foreground">Rondas</Label>
+                                                <Label className="text-xs text-muted-foreground">
+                                                  Rondas
+                                                </Label>
                                                 <Input
                                                   type="number"
-                                                  value={subBlock.timer_config?.totalRounds || "8"}
+                                                  value={
+                                                    subBlock.timer_config
+                                                      ?.totalRounds || "8"
+                                                  }
                                                   onChange={(e) =>
-                                                    updateSubBlockTimerConfig(block.id, subBlock.id, {
-                                                      ...subBlock.timer_config,
-                                                      totalRounds: e.target.value,
-                                                    })
+                                                    updateSubBlockTimerConfig(
+                                                      block.id,
+                                                      subBlock.id,
+                                                      {
+                                                        ...subBlock.timer_config,
+                                                        totalRounds:
+                                                          e.target.value,
+                                                      },
+                                                    )
                                                   }
                                                   className="h-7 text-xs"
                                                 />
@@ -1629,29 +1823,49 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                           {subBlock.timer_mode === "amrap" && (
                                             <div className="grid grid-cols-2 gap-2 pl-6">
                                               <div className="space-y-1">
-                                                <Label className="text-xs text-muted-foreground">Tiempo</Label>
+                                                <Label className="text-xs text-muted-foreground">
+                                                  Tiempo
+                                                </Label>
                                                 <Input
                                                   type="number"
-                                                  value={subBlock.timer_config?.amrapTime || "10"}
+                                                  value={
+                                                    subBlock.timer_config
+                                                      ?.amrapTime || "10"
+                                                  }
                                                   onChange={(e) =>
-                                                    updateSubBlockTimerConfig(block.id, subBlock.id, {
-                                                      ...subBlock.timer_config,
-                                                      amrapTime: e.target.value,
-                                                    })
+                                                    updateSubBlockTimerConfig(
+                                                      block.id,
+                                                      subBlock.id,
+                                                      {
+                                                        ...subBlock.timer_config,
+                                                        amrapTime:
+                                                          e.target.value,
+                                                      },
+                                                    )
                                                   }
                                                   className="h-7 text-xs"
                                                 />
                                               </div>
                                               <div className="space-y-1">
-                                                <Label className="text-xs text-muted-foreground">Rondas</Label>
+                                                <Label className="text-xs text-muted-foreground">
+                                                  Rondas
+                                                </Label>
                                                 <Input
                                                   type="number"
-                                                  value={subBlock.timer_config?.totalRounds || "1"}
+                                                  value={
+                                                    subBlock.timer_config
+                                                      ?.totalRounds || "1"
+                                                  }
                                                   onChange={(e) =>
-                                                    updateSubBlockTimerConfig(block.id, subBlock.id, {
-                                                      ...subBlock.timer_config,
-                                                      totalRounds: e.target.value,
-                                                    })
+                                                    updateSubBlockTimerConfig(
+                                                      block.id,
+                                                      subBlock.id,
+                                                      {
+                                                        ...subBlock.timer_config,
+                                                        totalRounds:
+                                                          e.target.value,
+                                                      },
+                                                    )
                                                   }
                                                   className="h-7 text-xs"
                                                 />
@@ -1659,33 +1873,55 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                             </div>
                                           )}
 
-                                          {(subBlock.timer_mode === "emom" || subBlock.timer_mode === "otm") && (
+                                          {(subBlock.timer_mode === "emom" ||
+                                            subBlock.timer_mode === "otm") && (
                                             <div className="grid grid-cols-2 gap-2 pl-6">
                                               <div className="space-y-1">
-                                                <Label className="text-xs text-muted-foreground">Rondas</Label>
+                                                <Label className="text-xs text-muted-foreground">
+                                                  Rondas
+                                                </Label>
                                                 <Input
                                                   type="number"
-                                                  value={subBlock.timer_config?.totalRounds || "10"}
+                                                  value={
+                                                    subBlock.timer_config
+                                                      ?.totalRounds || "10"
+                                                  }
                                                   onChange={(e) =>
-                                                    updateSubBlockTimerConfig(block.id, subBlock.id, {
-                                                      ...subBlock.timer_config,
-                                                      totalRounds: e.target.value,
-                                                    })
+                                                    updateSubBlockTimerConfig(
+                                                      block.id,
+                                                      subBlock.id,
+                                                      {
+                                                        ...subBlock.timer_config,
+                                                        totalRounds:
+                                                          e.target.value,
+                                                      },
+                                                    )
                                                   }
                                                   className="h-7 text-xs"
                                                 />
                                               </div>
-                                              {subBlock.timer_mode === "otm" && (
+                                              {subBlock.timer_mode ===
+                                                "otm" && (
                                                 <div className="space-y-1">
-                                                  <Label className="text-xs text-muted-foreground">Min/ronda</Label>
+                                                  <Label className="text-xs text-muted-foreground">
+                                                    Min/ronda
+                                                  </Label>
                                                   <Input
                                                     type="number"
-                                                    value={subBlock.timer_config?.workTime || "2"}
+                                                    value={
+                                                      subBlock.timer_config
+                                                        ?.workTime || "2"
+                                                    }
                                                     onChange={(e) =>
-                                                      updateSubBlockTimerConfig(block.id, subBlock.id, {
-                                                        ...subBlock.timer_config,
-                                                        workTime: e.target.value,
-                                                      })
+                                                      updateSubBlockTimerConfig(
+                                                        block.id,
+                                                        subBlock.id,
+                                                        {
+                                                          ...subBlock.timer_config,
+                                                          workTime:
+                                                            e.target.value,
+                                                        },
+                                                      )
                                                     }
                                                     className="h-7 text-xs"
                                                   />
@@ -1695,7 +1931,7 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                           )}
 
                                           {/* Items del sub-bloque */}
-                                          <div className="space-y-1 pl-4">
+                                          <div className="space-y-1 md:pl-4">
                                             {subBlock.items.map(
                                               (item, itemIndex) => {
                                                 const isEditing =
@@ -1708,7 +1944,7 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                                 return (
                                                   <div
                                                     key={itemIndex}
-                                                    className="flex items-center gap-2 relative"
+                                                    className="flex items-center gap-2 relative flex sm:flex-nowrap"
                                                   >
                                                     <span className="text-muted-foreground text-xs">
                                                       -
@@ -1716,7 +1952,7 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                                     {isEditing ? (
                                                       <>
                                                         <Input
-                                                          className="text-sm flex-1 h-7"
+                                                          className="text-sm flex-1 h-7 px-1.5 py-0.5"
                                                           value={
                                                             editingItemValue
                                                           }
@@ -1768,9 +2004,9 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                                       </>
                                                     ) : (
                                                       <>
-                                                        <div className="flex-1">
+                                                        <div className="flex md:flex min-w-0 justify-between w-full items-center">
                                                           <span
-                                                            className="text-sm cursor-pointer hover:bg-muted/50 rounded px-2 py-0.5 -mx-2 inline-block"
+                                                            className="text-sm h-full cursor-pointer hover:bg-muted/50 rounded px-2 py-0.5 -mx-2 inline-block truncate flex max-w-[100px]"
                                                             onClick={() =>
                                                               startEditingItem(
                                                                 block.id,
@@ -1782,110 +2018,161 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                                             {item.description}
                                                           </span>
                                                           {item.exerciseName && (
-                                                            <span className="inline-flex items-center gap-1 ml-2 text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">
-                                                              <Play className="w-3 h-3" />
-                                                              {item.exerciseName}
+                                                            <span className="inline-flex items-center gap-1 mt-1 sm:mt-0 sm:ml-2 text-xs bg-primary/10 text-primary dark:bg-primary/20 border border-primary/20 px-2 py-0.5 rounded-full">
+                                                              <Play className="w-4 h-4 flex-shrink-0" />
+                                                              <span className="truncate max-w-[80px] sm:max-w-[160px]">
+                                                                {
+                                                                  item.exerciseName
+                                                                }
+                                                              </span>
                                                               <button
                                                                 type="button"
-                                                                onClick={() => removeExerciseFromItem(block.id, itemIndex, subBlock.id)}
-                                                                className="hover:text-blue-900 ml-1"
+                                                                onClick={() =>
+                                                                  removeExerciseFromItem(
+                                                                    block.id,
+                                                                    itemIndex,
+                                                                    subBlock.id,
+                                                                  )
+                                                                }
+                                                                className="hover:text-primary/80 p-0.5 rounded-full hover:bg-primary/20 flex items-center justify-center cursor-pointer"
                                                               >
-                                                                <X className="w-3 h-3" />
+                                                                <X className="w-5 h-5" />
                                                               </button>
                                                             </span>
                                                           )}
                                                         </div>
-                                                        <Button
-                                                          type="button"
-                                                          variant="ghost"
-                                                          size="sm"
-                                                          onClick={() =>
-                                                            setActiveExerciseSelector({
-                                                              blockId: block.id,
-                                                              itemIndex,
-                                                              subBlockId: subBlock.id,
-                                                            })
-                                                          }
-                                                          className="text-muted-foreground hover:text-foreground h-6 w-6 p-0"
-                                                          title="Asignar ejercicio"
-                                                        >
-                                                          <Plus className="w-3 h-3" />
-                                                        </Button>
-                                                        <Button
-                                                          type="button"
-                                                          variant="ghost"
-                                                          size="sm"
-                                                          onClick={() =>
-                                                            startEditingItem(
-                                                              block.id,
-                                                              itemIndex,
-                                                              subBlock.id,
-                                                            )
-                                                          }
-                                                          className="text-muted-foreground hover:text-foreground h-6 w-6 p-0"
-                                                        >
-                                                          <Pencil className="w-3 h-3" />
-                                                        </Button>
-                                                        <Button
-                                                          type="button"
-                                                          variant="ghost"
-                                                          size="sm"
-                                                          onClick={() =>
-                                                            removeItemFromSubBlock(
-                                                              block.id,
-                                                              subBlock.id,
-                                                              itemIndex,
-                                                            )
-                                                          }
-                                                          className="text-destructive hover:text-destructive-foreground hover:bg-destructive h-6 w-6 p-0"
-                                                        >
-                                                          <X className="w-3 h-3" />
-                                                        </Button>
+                                                        <div className="flex items-center gap-0.5 sm:mt-0 w-full sm:w-auto justify-end sm:justify-start">
+                                                          <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                              setActiveExerciseSelector(
+                                                                {
+                                                                  blockId:
+                                                                    block.id,
+                                                                  itemIndex,
+                                                                  subBlockId:
+                                                                    subBlock.id,
+                                                                },
+                                                              )
+                                                            }
+                                                            className="text-muted-foreground hover:text-foreground h-4 w-4 md:h-6 md:w-6 p-0"
+                                                            title="Asignar ejercicio"
+                                                          >
+                                                            <Plus className="w-3 h-3" />
+                                                          </Button>
+                                                          <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                              startEditingItem(
+                                                                block.id,
+                                                                itemIndex,
+                                                                subBlock.id,
+                                                              )
+                                                            }
+                                                            className="text-muted-foreground hover:text-foreground h-4 w-4 md:h-6 md:w-6 p-0"
+                                                          >
+                                                            <Pencil className="w-3 h-3" />
+                                                          </Button>
+                                                          <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                              removeItemFromSubBlock(
+                                                                block.id,
+                                                                subBlock.id,
+                                                                itemIndex,
+                                                              )
+                                                            }
+                                                            className="text-destructive hover:text-destructive-foreground hover:bg-destructive h-4 w-4 md:h-6 md:w-6 p-0"
+                                                          >
+                                                            <X className="w-3 h-3" />
+                                                          </Button>
+                                                        </div>
 
                                                         {/* Selector de ejercicio para sub-bloque */}
-                                                        {activeExerciseSelector?.blockId === block.id &&
-                                                          activeExerciseSelector?.itemIndex === itemIndex &&
-                                                          activeExerciseSelector?.subBlockId === subBlock.id && (
-                                                          <div className="absolute right-0 top-8 z-20 bg-card border rounded-md shadow-lg p-2 w-64">
-                                                            <div className="flex items-center gap-2 mb-2">
-                                                              <Input
-                                                                className="h-7 text-xs"
-                                                                placeholder="Buscar ejercicio..."
-                                                                value={exerciseSearch}
-                                                                onChange={(e) => {
-                                                                  setExerciseSearch(e.target.value);
-                                                                  loadExercises();
-                                                                }}
-                                                                autoFocus
-                                                              />
-                                                              <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => setActiveExerciseSelector(null)}
-                                                                className="h-6 w-6 p-0"
-                                                              >
-                                                                <X className="w-3 h-3" />
-                                                              </Button>
-                                                            </div>
-                                                            <div className="max-h-40 overflow-y-auto space-y-1">
-                                                              {exercises.length === 0 && (
-                                                                <p className="text-xs text-muted-foreground px-2">No hay ejercicios</p>
-                                                              )}
-                                                              {exercises.map((ex) => (
-                                                                <button
-                                                                  key={ex.id}
+                                                        {activeExerciseSelector?.blockId ===
+                                                          block.id &&
+                                                          activeExerciseSelector?.itemIndex ===
+                                                            itemIndex &&
+                                                          activeExerciseSelector?.subBlockId ===
+                                                            subBlock.id && (
+                                                            <div className="absolute left-0 sm:left-auto sm:right-0 top-8 z-20 bg-card border rounded-md shadow-lg p-2 w-full sm:w-64">
+                                                              <div className="flex items-center gap-2 mb-2">
+                                                                <Input
+                                                                  className="h-7 text-xs"
+                                                                  placeholder="Buscar ejercicio..."
+                                                                  value={
+                                                                    exerciseSearch
+                                                                  }
+                                                                  onChange={(
+                                                                    e,
+                                                                  ) => {
+                                                                    setExerciseSearch(
+                                                                      e.target
+                                                                        .value,
+                                                                    );
+                                                                    loadExercises();
+                                                                  }}
+                                                                  autoFocus
+                                                                />
+                                                                <Button
                                                                   type="button"
-                                                                  onClick={() => assignExerciseToItem(block.id, itemIndex, ex, subBlock.id)}
-                                                                  className="w-full text-left text-xs px-2 py-1.5 hover:bg-muted rounded flex items-center gap-2"
+                                                                  variant="ghost"
+                                                                  size="sm"
+                                                                  onClick={() =>
+                                                                    setActiveExerciseSelector(
+                                                                      null,
+                                                                    )
+                                                                  }
+                                                                  className="h-6 w-6 p-0"
                                                                 >
-                                                                  <span className="flex-1 truncate">{ex.name}</span>
-                                                                  {ex.video_url && <Play className="w-3 h-3 text-blue-500" />}
-                                                                </button>
-                                                              ))}
+                                                                  <X className="w-3 h-3" />
+                                                                </Button>
+                                                              </div>
+                                                              <div className="max-h-40 overflow-y-auto space-y-1">
+                                                                {exercises.length ===
+                                                                  0 && (
+                                                                  <p className="text-xs text-muted-foreground px-2">
+                                                                    No hay
+                                                                    ejercicios
+                                                                  </p>
+                                                                )}
+                                                                {exercises.map(
+                                                                  (ex) => (
+                                                                    <button
+                                                                      key={
+                                                                        ex.id
+                                                                      }
+                                                                      type="button"
+                                                                      onClick={() =>
+                                                                        assignExerciseToItem(
+                                                                          block.id,
+                                                                          itemIndex,
+                                                                          ex,
+                                                                          subBlock.id,
+                                                                        )
+                                                                      }
+                                                                      className="w-full text-left text-xs px-2 py-1.5 hover:bg-muted rounded flex items-center gap-2"
+                                                                    >
+                                                                      <span className="flex-1 truncate">
+                                                                        {
+                                                                          ex.name
+                                                                        }
+                                                                      </span>
+                                                                      {ex.video_url && (
+                                                                        <Play className="w-3 h-3 text-primary flex-shrink-0" />
+                                                                      )}
+                                                                    </button>
+                                                                  ),
+                                                                )}
+                                                              </div>
                                                             </div>
-                                                          </div>
-                                                        )}
+                                                          )}
                                                       </>
                                                     )}
                                                   </div>
@@ -1896,7 +2183,7 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                             {/* Input para agregar item al sub-bloque */}
                                             <div className="flex gap-2 mt-1">
                                               <Input
-                                                className="text-sm h-7 placeholder:text-xs"
+                                                className="text-sm h-auto placeholder:text-xs"
                                                 value={
                                                   subBlockItemInputs[
                                                     `${block.id}::${subBlock.id}`
@@ -1977,7 +2264,7 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                     }
                                     className="flex-shrink-0 h-auto"
                                   >
-                                    <Plus className="w-3 h-3" />                                    
+                                    <Plus className="w-3 h-3" />
                                   </Button>
                                 </div>
 

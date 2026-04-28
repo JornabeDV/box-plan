@@ -608,10 +608,11 @@ export function PlanificationBlocks({
                           href={item.exercise.video_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                          className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-full hover:bg-primary/20 transition-colors flex-shrink-0"
                         >
+                          <span className="hidden sm:inline">Ver cómo se hace</span>
+                          <span className="sm:hidden">Video</span>
                           <Play className="w-3 h-3" />
-                          Ver cómo se hace
                         </a>
                       )}
                     </div>
@@ -668,10 +669,13 @@ export function PlanificationBlocks({
                                     href={item.exercise.video_url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 ml-2 text-xs text-primary hover:underline"
+                                    className="inline-flex items-center gap-1 ml-2 text-xs bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-full hover:bg-primary/20 transition-colors flex-shrink-0"
                                   >
                                     <Play className="w-3 h-3" />
-                                    Ver cómo se hace
+                                    <span className="hidden sm:inline">
+                                      Ver cómo se hace
+                                    </span>
+                                    <span className="sm:hidden">Video</span>
                                   </a>
                                 )}
                             </div>
