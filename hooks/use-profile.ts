@@ -68,11 +68,9 @@ export function useProfile() {
   // Cargar perfil del usuario
   const loadProfile = async () => {
     try {
-      setState(prev => ({ ...prev, loading: true, error: null }))
-      
       const userId = session?.user?.id
       if (!userId) {
-        setState(prev => ({ ...prev, loading: false, profile: null }))
+        setState(prev => ({ ...prev, profile: null }))
         return
       }
 
@@ -88,7 +86,7 @@ export function useProfile() {
       if (!response.ok) {
         // Si es 401, el usuario no está autenticado, esto es esperado
         if (response.status === 401) {
-          setState(prev => ({ ...prev, loading: false, profile: null }))
+          setState(prev => ({ ...prev, profile: null }))
           return
         }
         // Si hay otro error, crear perfil básico
@@ -101,7 +99,7 @@ export function useProfile() {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }
-        setState(prev => ({ ...prev, profile: basicProfile, loading: false }))
+        setState(prev => ({ ...prev, profile: basicProfile }))
         return
       }
 
@@ -118,15 +116,14 @@ export function useProfile() {
            created_at: new Date().toISOString(),
            updated_at: new Date().toISOString()
          }
-        setState(prev => ({ ...prev, profile: basicProfile, loading: false }))
+        setState(prev => ({ ...prev, profile: basicProfile }))
       } else {
-        setState(prev => ({ ...prev, profile: data, loading: false }))
+        setState(prev => ({ ...prev, profile: data }))
       }
     } catch (error) {
       console.error('Error loading profile:', error)
       setState(prev => ({ 
         ...prev, 
-        loading: false, 
         error: error instanceof Error ? error.message : 'Error al cargar el perfil' 
       }))
     }
@@ -198,13 +195,15 @@ export function useProfile() {
   const loadAllData = async () => {
     setState(prev => ({ ...prev, loading: true, error: null }))
     
-    await Promise.all([
-      loadProfile(),
-      loadSubscription(),
-      loadPaymentHistory()
-    ])
-    
-    setState(prev => ({ ...prev, loading: false }))
+    try {
+      await Promise.all([
+        loadProfile(),
+        loadSubscription(),
+        loadPaymentHistory()
+      ])
+    } finally {
+      setState(prev => ({ ...prev, loading: false }))
+    }
   }
 
   // Actualizar perfil
