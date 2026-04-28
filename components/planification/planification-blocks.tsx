@@ -1,7 +1,18 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, CheckCircle, Timer, Play, Pause, RotateCcw, ChevronDown, Maximize2, Volume2, VolumeX } from "lucide-react";
+import {
+  FileText,
+  CheckCircle,
+  Timer,
+  Play,
+  Pause,
+  RotateCcw,
+  ChevronDown,
+  Maximize2,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import type { Planification, TimerMode } from "./types";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
@@ -97,24 +108,57 @@ function BlockTimerDisplay({
   const getDefaultValues = (mode: TimerMode) => {
     switch (mode) {
       case "amrap":
-        return { workTime: "20", restTime: "60", totalRounds: "1", amrapTime: "10" };
+        return {
+          workTime: "20",
+          restTime: "60",
+          totalRounds: "1",
+          amrapTime: "10",
+        };
       case "tabata":
-        return { workTime: "20", restTime: "10", totalRounds: "8", amrapTime: "10" };
+        return {
+          workTime: "20",
+          restTime: "10",
+          totalRounds: "8",
+          amrapTime: "10",
+        };
       case "emom":
-        return { workTime: "20", restTime: "10", totalRounds: "10", amrapTime: "10" };
+        return {
+          workTime: "20",
+          restTime: "10",
+          totalRounds: "10",
+          amrapTime: "10",
+        };
       case "otm":
-        return { workTime: "2", restTime: "0", totalRounds: "5", amrapTime: "10" };
+        return {
+          workTime: "2",
+          restTime: "0",
+          totalRounds: "5",
+          amrapTime: "10",
+        };
       default:
-        return { workTime: "20", restTime: "10", totalRounds: "8", amrapTime: "10" };
+        return {
+          workTime: "20",
+          restTime: "10",
+          totalRounds: "8",
+          amrapTime: "10",
+        };
     }
   };
 
   const defaults = getDefaultValues(timerMode);
   const [mode, setMode] = useState<TimerModeType>(timerMode as TimerModeType);
-  const [workTime, setWorkTime] = useState(timerConfig?.workTime || defaults.workTime);
-  const [restTime, setRestTime] = useState(timerConfig?.restTime || defaults.restTime);
-  const [totalRounds, setTotalRounds] = useState(timerConfig?.totalRounds || defaults.totalRounds);
-  const [amrapTime, setAmrapTime] = useState(timerConfig?.amrapTime || defaults.amrapTime);
+  const [workTime, setWorkTime] = useState(
+    timerConfig?.workTime || defaults.workTime,
+  );
+  const [restTime, setRestTime] = useState(
+    timerConfig?.restTime || defaults.restTime,
+  );
+  const [totalRounds, setTotalRounds] = useState(
+    timerConfig?.totalRounds || defaults.totalRounds,
+  );
+  const [amrapTime, setAmrapTime] = useState(
+    timerConfig?.amrapTime || defaults.amrapTime,
+  );
 
   const {
     isRunning,
@@ -272,109 +316,133 @@ function BlockTimerDisplay({
 
   return (
     <div ref={timerRef} className="w-full">
-    <div className="bg-surface-container-high border-primary border-l-2 overflow-hidden">
-      {/* Header - siempre visible */}
-      <div 
-        className="flex items-center justify-between px-2 md:px-4 py-3 cursor-pointer hover:bg-surface-container transition-colors"
-        onClick={toggleTimer}
-      >
-        <div className="flex items-center gap-3 ">
-          <div className="w-8 h-8 flex items-center justify-center text-primary">
-            <Timer className="w-4 h-4" />
+      <div className="bg-surface-container-high border-primary border-l-2 overflow-hidden">
+        {/* Header - siempre visible */}
+        <div
+          className="flex items-center justify-between px-2 md:px-4 py-3 cursor-pointer hover:bg-surface-container transition-colors"
+          onClick={toggleTimer}
+        >
+          <div className="flex items-center gap-3 ">
+            <div className="w-8 h-8 flex items-center justify-center text-primary">
+              <Timer className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-xs font-bold tracking-[0.15em] uppercase text-primary leading-none">
+                {modeLabels[timerMode]}
+              </p>
+              <p className="text-xs font-bold text-foreground mt-0.5">TIMER</p>
+            </div>
           </div>
-          <div>
-            <p className="text-xs font-bold tracking-[0.15em] uppercase text-primary leading-none">
-              {modeLabels[timerMode]}
-            </p>
-            <p className="text-xs font-bold text-foreground mt-0.5">TIMER</p>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSoundEnabled(!soundEnabled);
+              }}
+              className="h-8 w-8 p-0 text-foreground hover:text-foreground"
+            >
+              {effectiveSoundEnabled ? (
+                <Volume2 className="w-4 h-4" />
+              ) : (
+                <VolumeX className="w-4 h-4" />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleFullscreen();
+              }}
+              className="h-8 w-8 p-0 text-foreground hover:text-foreground"
+            >
+              <Maximize2 className="w-4 h-4" />
+            </Button>
+            <ChevronDown
+              className={cn(
+                "w-11 h-6 text-foreground transition-transform duration-300",
+                !isCollapsed && "rotate-180",
+              )}
+            />
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={(e) => {
-              e.stopPropagation();
-              setSoundEnabled(!soundEnabled);
-            }}
-            className="h-8 w-8 p-0 text-foreground hover:text-foreground"
-          >
-            {effectiveSoundEnabled ? (
-              <Volume2 className="w-4 h-4" />
-            ) : (
-              <VolumeX className="w-4 h-4" />
-            )}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleFullscreen();
-            }}
-            className="h-8 w-8 p-0 text-foreground hover:text-foreground"
-          >
-            <Maximize2 className="w-4 h-4" />
-          </Button>
-          <ChevronDown 
-            className={cn(
-              "w-11 h-6 text-foreground transition-transform duration-300",
-              !isCollapsed && "rotate-180"
-            )} 
-          />
-        </div>
-      </div>
 
-      {/* Contenido expandible */}
-      <div 
-        className={cn(
-          "overflow-hidden transition-all duration-300 ease-in-out",
-          isCollapsed ? "max-h-0 opacity-0" : "max-h-[500px] opacity-100"
-        )}
-      >
-        <CardContent className="space-y-3 pb-4">
-          <div className="flex items-center gap-2">
-            <Select value={mode} onValueChange={(v) => handleModeChange(v as TimerModeType)}>
-              <SelectTrigger className="w-28 h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="normal">Cronómetro</SelectItem>
-                <SelectItem value="fortime">FOR TIME</SelectItem>
-                <SelectItem value="amrap">AMRAP</SelectItem>
-                <SelectItem value="emom">EMOM</SelectItem>
-                <SelectItem value="otm">OTM</SelectItem>
-                <SelectItem value="tabata">TABATA</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        {/* Contenido expandible */}
+        <div
+          className={cn(
+            "overflow-hidden transition-all duration-300 ease-in-out",
+            isCollapsed ? "max-h-0 opacity-0" : "max-h-[500px] opacity-100",
+          )}
+        >
+          <CardContent className="space-y-3 pb-4">
+            <div className="flex items-center gap-2">
+              <Select
+                value={mode}
+                onValueChange={(v) => handleModeChange(v as TimerModeType)}
+              >
+                <SelectTrigger className="w-28 h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal">Cronómetro</SelectItem>
+                  <SelectItem value="fortime">FOR TIME</SelectItem>
+                  <SelectItem value="amrap">AMRAP</SelectItem>
+                  <SelectItem value="emom">EMOM</SelectItem>
+                  <SelectItem value="otm">OTM</SelectItem>
+                  <SelectItem value="tabata">TABATA</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          {(mode === "tabata" || mode === "emom" || mode === "otm") && (
-            <div className="grid grid-cols-3 gap-2">
-              {mode === "tabata" && (
-                <>
+            {(mode === "tabata" || mode === "emom" || mode === "otm") && (
+              <div className="grid grid-cols-3 gap-2">
+                {mode === "tabata" && (
+                  <>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">
+                        Trabajo
+                      </Label>
+                      <Input
+                        type="number"
+                        value={workTime}
+                        onChange={(e) => setWorkTime(e.target.value)}
+                        disabled={isRunning}
+                        className="h-8"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">
+                        Descanso
+                      </Label>
+                      <Input
+                        type="number"
+                        value={restTime}
+                        onChange={(e) => setRestTime(e.target.value)}
+                        disabled={isRunning}
+                        className="h-8"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">
+                        Rondas
+                      </Label>
+                      <Input
+                        type="number"
+                        value={totalRounds}
+                        onChange={(e) => setTotalRounds(e.target.value)}
+                        disabled={isRunning}
+                        className="h-8"
+                      />
+                    </div>
+                  </>
+                )}
+                {(mode === "emom" || mode === "otm") && (
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Trabajo</Label>
-                    <Input
-                      type="number"
-                      value={workTime}
-                      onChange={(e) => setWorkTime(e.target.value)}
-                      disabled={isRunning}
-                      className="h-8"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Descanso</Label>
-                    <Input
-                      type="number"
-                      value={restTime}
-                      onChange={(e) => setRestTime(e.target.value)}
-                      disabled={isRunning}
-                      className="h-8"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Rondas</Label>
+                    <Label className="text-xs text-muted-foreground">
+                      Rondas
+                    </Label>
                     <Input
                       type="number"
                       value={totalRounds}
@@ -383,11 +451,28 @@ function BlockTimerDisplay({
                       className="h-8"
                     />
                   </div>
-                </>
-              )}
-              {(mode === "emom" || mode === "otm") && (
+                )}
+              </div>
+            )}
+
+            {mode === "amrap" && (
+              <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Rondas</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Tiempo (min)
+                  </Label>
+                  <Input
+                    type="number"
+                    value={amrapTime}
+                    onChange={(e) => setAmrapTime(e.target.value)}
+                    disabled={isRunning}
+                    className="h-8"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">
+                    Rondas
+                  </Label>
                   <Input
                     type="number"
                     value={totalRounds}
@@ -396,82 +481,63 @@ function BlockTimerDisplay({
                     className="h-8"
                   />
                 </div>
-              )}
-            </div>
-          )}
-
-          {mode === "amrap" && (
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Tiempo (min)</Label>
-                <Input
-                  type="number"
-                  value={amrapTime}
-                  onChange={(e) => setAmrapTime(e.target.value)}
-                  disabled={isRunning}
-                  className="h-8"
-                />
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Rondas</Label>
-                <Input
-                  type="number"
-                  value={totalRounds}
-                  onChange={(e) => setTotalRounds(e.target.value)}
-                  disabled={isRunning}
-                  className="h-8"
-                />
-              </div>
-            </div>
-          )}
+            )}
 
-          <div className="text-center py-2 bg-surface-container">
-            {(mode === "tabata" ||
-              mode === "emom" ||
-              mode === "otm" ||
-              (mode === "amrap" && parseInt(totalRounds) > 1)) &&
-              !countdown && (
-                <div className="text-sm font-medium text-primary mb-1">
-                  Ronda {currentRound} de {totalRounds}
+            <div className="text-center py-2 bg-surface-container">
+              {(mode === "tabata" ||
+                mode === "emom" ||
+                mode === "otm" ||
+                (mode === "amrap" && parseInt(totalRounds) > 1)) &&
+                !countdown && (
+                  <div className="text-sm font-medium text-primary mb-1">
+                    Ronda {currentRound} de {totalRounds}
+                  </div>
+                )}
+              {(mode === "tabata" || mode === "amrap") && !countdown && (
+                <div className={cn("text-sm font-medium mb-1", phaseColor)}>
+                  {phaseText}
                 </div>
               )}
-            {(mode === "tabata" || mode === "amrap") && !countdown && (
-              <div className={cn("text-sm font-medium mb-1", phaseColor)}>
-                {phaseText}
+              <div className="text-3xl font-mono font-bold text-foreground">
+                {displayTime}
               </div>
-            )}
-            <div className="text-3xl font-mono font-bold text-foreground">{displayTime}</div>
-            {(mode === "emom" || mode === "otm") && !countdown && (
-              <div className="text-sm text-muted-foreground mt-1">
-                Total: {mode === "emom" ? getEmomTotalTime() : getOtmTotalTime()}
-              </div>
-            )}
-          </div>
+              {(mode === "emom" || mode === "otm") && !countdown && (
+                <div className="text-sm text-muted-foreground mt-1">
+                  Total:{" "}
+                  {mode === "emom" ? getEmomTotalTime() : getOtmTotalTime()}
+                </div>
+              )}
+            </div>
 
-          <div className="flex gap-2">
-            {!isRunning ? (
+            <div className="flex gap-2">
+              {!isRunning ? (
+                <Button
+                  onClick={handleStart}
+                  className="flex-1 bg-primary hover:bg-primary-container text-black h-9"
+                >
+                  <Play className="w-4 h-4 mr-1" />
+                  Iniciar
+                </Button>
+              ) : (
+                <Button
+                  onClick={handlePause}
+                  variant="outline"
+                  className="flex-1 h-9"
+                >
+                  <Pause className="w-4 h-4 mr-1" />
+                  Pausar
+                </Button>
+              )}
               <Button
-                onClick={handleStart}
-                className="flex-1 bg-primary hover:bg-primary-container text-black h-9"
-              >
-                <Play className="w-4 h-4 mr-1" />
-                Iniciar
-              </Button>
-            ) : (
-              <Button
-                onClick={handlePause}
+                onClick={() => handleReset()}
                 variant="outline"
-                className="flex-1 h-9"
+                className="h-9"
               >
-                <Pause className="w-4 h-4 mr-1" />
-                Pausar
+                <RotateCcw className="w-4 h-4" />
               </Button>
-            )}
-            <Button onClick={() => handleReset()} variant="outline" className="h-9">
-              <RotateCcw className="w-4 h-4" />
-            </Button>
-          </div>
-        </CardContent>
+            </div>
+          </CardContent>
         </div>
       </div>
     </div>
@@ -534,8 +600,10 @@ export function PlanificationBlocks({
                       }}
                     />
                     <div className="flex items-center justify-between w-full">
-                      <span className="text-sm text-foreground">{typeof item === 'string' ? item : item.description}</span>
-                      {typeof item !== 'string' && item.exercise?.video_url && (
+                      <span className="text-sm text-foreground">
+                        {typeof item === "string" ? item : item.description}
+                      </span>
+                      {typeof item !== "string" && item.exercise?.video_url && (
                         <a
                           href={item.exercise.video_url}
                           target="_blank"
@@ -555,7 +623,10 @@ export function PlanificationBlocks({
             {block.subBlocks && block.subBlocks.length > 0 && (
               <div className="space-y-4">
                 {block.subBlocks.map((subBlock) => (
-                  <div key={subBlock.id} className="bg-surface-container border-l-0 border-primary">
+                  <div
+                    key={subBlock.id}
+                    className="bg-surface-container border-l-0 border-primary"
+                  >
                     {subBlock.subtitle && (
                       <div className="mb-2">
                         <span className="inline-block text-[10px] font-bold tracking-[0.2em] uppercase text-primary bg-primary/10 px-2 py-0.5 rounded mb-1">
@@ -585,25 +656,32 @@ export function PlanificationBlocks({
                                 color: disciplineColor || "hsl(var(--primary))",
                               }}
                             />
-                            <div className="flex-1">
-                              <span className="text-sm text-foreground">{typeof item === 'string' ? item : item.description}</span>
-                              {typeof item !== 'string' && item.exercise?.video_url && (
-                                <a
-                                  href={item.exercise.video_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 ml-2 text-xs text-primary hover:underline"
-                                >
-                                  <Play className="w-3 h-3" />
-                                  Ver cómo se hace
-                                </a>
-                              )}
+                            <div className="flex items-center justify-between w-full">
+                              <span className="text-sm text-foreground">
+                                {typeof item === "string"
+                                  ? item
+                                  : item.description}
+                              </span>
+                              {typeof item !== "string" &&
+                                item.exercise?.video_url && (
+                                  <a
+                                    href={item.exercise.video_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 ml-2 text-xs text-primary hover:underline"
+                                  >
+                                    <Play className="w-3 h-3" />
+                                    Ver cómo se hace
+                                  </a>
+                                )}
                             </div>
                           </li>
                         ))}
                       </ul>
                     ) : (
-                      <p className="text-xs text-muted-foreground">Sin ejercicios</p>
+                      <p className="text-xs text-muted-foreground">
+                        Sin ejercicios
+                      </p>
                     )}
                   </div>
                 ))}

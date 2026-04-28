@@ -115,7 +115,7 @@ export function useStudentSubscription(): UseStudentSubscriptionReturn {
 					setSubscription(cached)
 					setLoading(false)
 				}
-				return
+				// No retornar: siempre revalidar con el servidor para evitar datos stale
 			}
 
 			if (!cancelled) setLoading(true)
