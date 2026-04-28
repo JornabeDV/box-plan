@@ -50,29 +50,17 @@ interface ImportResult {
 
 function parseExcelDate(value: string | number | Date): string | null {
   let dateStr: string
-
   if (value instanceof Date) {
-    const year = value.getFullYear()
-    const month = String(value.getMonth() + 1).padStart(2, '0')
-    const day = String(value.getDate()).padStart(2, '0')
-    dateStr = `${year}-${month}-${day}`
+    dateStr = `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`
   } else if (typeof value === 'number') {
-    // Excel serial number
     const excelEpoch = new Date(1899, 11, 30)
     const date = new Date(excelEpoch.getTime() + value * 24 * 60 * 60 * 1000)
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    dateStr = `${year}-${month}-${day}`
+    dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
   } else {
     dateStr = String(value || '').trim()
   }
-
-  // Validar formato de fecha
   const dateRegex = /^\d{4}-\d{2}-\d{2}$/
-  if (!dateRegex.test(dateStr)) {
-    return null
-  }
+  if (!dateRegex.test(dateStr)) return null
   return dateStr
 }
 
@@ -85,11 +73,9 @@ async function processSinglePlanification(
 ): Promise<ImportResult> {
   const firstDataRow = rows[0]
 
-  // Determinar tipo de planificación
   const tipo = String(firstDataRow.Tipo || '').trim()
   const isPersonalized = tipo.toLowerCase() === 'personalizada'
 
-  // Validar que si es personalizada, tenga estudiante (en el Excel o via targetStudentId desde la UI)
   const studentName = String(firstDataRow.Estudiante || '').trim()
   if (isPersonalized && !studentName && !targetStudentId) {
     return {
@@ -99,7 +85,6 @@ async function processSinglePlanification(
     }
   }
 
-  // Parsear y validar fecha
   let dateStr = parseExcelDate(firstDataRow.Fecha)
   if (!dateStr) {
     return {
@@ -109,8 +94,6 @@ async function processSinglePlanification(
     }
   }
 
-  // Si se envió una fecha destino válida Y hay una sola fecha en el archivo, usarla como override
-  // Para importación masiva (múltiples fechas), se ignora targetDate
   if (targetDateParam) {
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/
     if (dateRegex.test(targetDateParam.trim())) {
@@ -120,7 +103,6 @@ async function processSinglePlanification(
 
   let targetStudent: { id: number; email: string; name: string | null } | null = null
 
-  // Si es personalizada, buscar y validar el estudiante
   if (isPersonalized) {
     if (!canCreatePersonalized) {
       return {
@@ -133,20 +115,10 @@ async function processSinglePlanification(
     let student: { id: number; email: string; name: string | null } | null = null
 
     if (targetStudentId) {
-      // Buscar estudiante por ID (viene desde la UI)
       const relationship = await prisma.coachStudentRelationship.findFirst({
-        where: {
-          coachId: coachId,
-          status: 'active',
-          studentId: targetStudentId
-        },
-        include: {
-          student: {
-            select: { id: true, email: true, name: true }
-          }
-        }
+        where: { coachId, status: 'active', studentId: targetStudentId },
+        include: { student: { select: { id: true, email: true, name: true } } },
       })
-
       if (!relationship) {
         return {
           success: false,
@@ -154,23 +126,15 @@ async function processSinglePlanification(
           error: 'Estudiante no encontrado',
         }
       }
-
       student = relationship.student ?? null
     } else {
-      // Buscar estudiantes activos del coach que coincidan con el nombre del Excel
       const students = await prisma.coachStudentRelationship.findMany({
         where: {
-          coachId: coachId,
+          coachId,
           status: 'active',
-          student: {
-            name: { contains: studentName, mode: 'insensitive' }
-          }
+          student: { name: { contains: studentName, mode: 'insensitive' } },
         },
-        include: {
-          student: {
-            select: { id: true, email: true, name: true }
-          }
-        }
+        include: { student: { select: { id: true, email: true, name: true } } },
       })
 
       if (students.length === 0) {
@@ -181,43 +145,22 @@ async function processSinglePlanification(
         }
       }
 
-      // Si hay múltiples coincidencias, buscar coincidencia exacta
-      student = students.find(s =>
-        s.student.name?.toLowerCase() === studentName.toLowerCase()
-      )?.student ?? null
-
-      // Si no hay coincidencia exacta, usar la primera
+      student = students.find((s) => s.student.name?.toLowerCase() === studentName.toLowerCase())?.student ?? null
       if (!student && students.length > 0) {
         student = students[0].student
       }
-
-      if (!student) {
-        return {
-          success: false,
-          message: `No se pudo identificar al estudiante "${studentName}"`,
-          error: 'Estudiante no identificado',
-        }
-      }
     }
 
-    // Verificar que el estudiante tenga la feature personalizedWorkouts
     const studentSubscription = await prisma.subscription.findFirst({
-      where: {
-        userId: student.id,
-        status: 'active'
-      },
-      include: {
-        plan: {
-          select: { features: true }
-        }
-      }
+      where: { userId: student!.id, status: 'active' },
+      include: { plan: { select: { features: true } } },
     })
 
     const studentFeatures = studentSubscription?.plan?.features as { personalizedWorkouts?: boolean } | null
     if (!studentFeatures?.personalizedWorkouts) {
       return {
         success: false,
-        message: `El estudiante "${student.name || student.email}" no tiene habilitadas las planificaciones personalizadas en su plan actual`,
+        message: `El estudiante "${student!.name || student!.email}" no tiene habilitadas las planificaciones personalizadas en su plan actual`,
         error: 'Estudiante sin plan personalizado',
       }
     }
@@ -225,13 +168,9 @@ async function processSinglePlanification(
     targetStudent = student
   }
 
-  // Buscar disciplina por nombre
   const disciplineName = String(firstDataRow.Disciplina || '').trim()
   const discipline = await prisma.discipline.findFirst({
-    where: {
-      name: disciplineName,
-      coachId: coachId
-    }
+    where: { name: disciplineName, coachId },
   })
 
   if (!discipline) {
@@ -242,13 +181,9 @@ async function processSinglePlanification(
     }
   }
 
-  // Buscar nivel por nombre y disciplina
   const levelName = String(firstDataRow.Nivel || '').trim()
   const disciplineLevel = await prisma.disciplineLevel.findFirst({
-    where: {
-      name: levelName,
-      disciplineId: discipline.id
-    }
+    where: { name: levelName, disciplineId: discipline.id },
   })
 
   if (!disciplineLevel) {
@@ -259,19 +194,19 @@ async function processSinglePlanification(
     }
   }
 
-  // Agrupar filas por bloque para reconstruir la estructura con sub-bloques y timers
+  // Agrupar filas por bloque
   const blocksMap = new Map<string, {
     title: string
     order: number
     items: string[]
     notes: string
     timerMode: string | null
-    timerConfig: { workTime?: string; restTime?: string; totalRounds?: string; amrapTime?: string } | null
+    timerConfig: any
     subBlocksMap: Map<string, {
       subtitle: string
       items: string[]
       timerMode: string | null
-      timerConfig: { workTime?: string; restTime?: string; totalRounds?: string; amrapTime?: string } | null
+      timerConfig: any
     }>
   }>()
 
@@ -293,7 +228,7 @@ async function processSinglePlanification(
         notes: String(row['Notas Bloque'] || '').trim(),
         timerMode: null,
         timerConfig: null,
-        subBlocksMap: new Map()
+        subBlocksMap: new Map(),
       })
     }
 
@@ -301,13 +236,11 @@ async function processSinglePlanification(
     const exercise = String(row.Ejercicio || '').trim()
     const subBlockTitle = String(row['Sub-bloque'] || '').trim()
 
-    // Actualizar notas si no hay todavía
     const rowNotes = String(row['Notas Bloque'] || '').trim()
     if (rowNotes && !block.notes) {
       block.notes = rowNotes
     }
 
-    // Extraer timer del bloque principal (de la primera fila del bloque que tenga timer)
     if (!block.timerMode) {
       const timerMode = String(row['Timer Modo'] || '').trim().toLowerCase()
       if (timerMode && ['normal', 'tabata', 'fortime', 'amrap', 'emom', 'otm'].includes(timerMode)) {
@@ -318,8 +251,7 @@ async function processSinglePlanification(
           totalRounds: String(row['Timer Rondas'] || '').trim() || undefined,
           amrapTime: String(row['Timer AMRAP'] || '').trim() || undefined,
         }
-        // Limpiar valores vacíos
-        Object.keys(block.timerConfig).forEach(key => {
+        Object.keys(block.timerConfig).forEach((key) => {
           if (!(block.timerConfig as any)[key]) delete (block.timerConfig as any)[key]
         })
       }
@@ -328,19 +260,17 @@ async function processSinglePlanification(
     if (!exercise) continue
 
     if (subBlockTitle) {
-      // Ejercicio pertenece a un sub-bloque
       if (!block.subBlocksMap.has(subBlockTitle)) {
         block.subBlocksMap.set(subBlockTitle, {
           subtitle: subBlockTitle,
           items: [],
           timerMode: null,
-          timerConfig: null
+          timerConfig: null,
         })
       }
       const subBlock = block.subBlocksMap.get(subBlockTitle)!
       subBlock.items.push(exercise)
 
-      // Extraer timer del sub-bloque (de la primera fila del sub-bloque que tenga timer)
       if (!subBlock.timerMode) {
         const subTimerMode = String(row['Timer Sub-bloque Modo'] || '').trim().toLowerCase()
         if (subTimerMode && ['normal', 'tabata', 'fortime', 'amrap', 'emom', 'otm'].includes(subTimerMode)) {
@@ -351,42 +281,34 @@ async function processSinglePlanification(
             totalRounds: String(row['Timer Sub-bloque Rondas'] || '').trim() || undefined,
             amrapTime: String(row['Timer Sub-bloque AMRAP'] || '').trim() || undefined,
           }
-          Object.keys(subBlock.timerConfig).forEach(key => {
+          Object.keys(subBlock.timerConfig).forEach((key) => {
             if (!(subBlock.timerConfig as any)[key]) delete (subBlock.timerConfig as any)[key]
           })
         }
       }
     } else {
-      // Ejercicio del bloque principal
       block.items.push(exercise)
     }
   }
 
-  // Convertir mapa a array ordenado, aplanando sub-bloques
   const blocks = Array.from(blocksMap.values())
     .sort((a, b) => a.order - b.order)
     .map(({ subBlocksMap, timerMode, timerConfig, ...block }) => {
-      const result: any = {
+      return {
         ...block,
         id: String(Date.now() + Math.random()),
-        subBlocks: Array.from(subBlocksMap.values()).map(sub => {
-          const subResult: any = {
+        subBlocks: Array.from(subBlocksMap.values()).map((sub) => {
+          return {
             id: String(Date.now() + Math.random()),
             subtitle: sub.subtitle,
-            items: sub.items
+            items: sub.items,
+            timer_mode: sub.timerMode,
+            timer_config: sub.timerConfig,
           }
-          if (sub.timerMode) {
-            subResult.timer_mode = sub.timerMode
-            subResult.timer_config = sub.timerConfig
-          }
-          return subResult
-        })
+        }),
+        timer_mode: timerMode,
+        timer_config: timerConfig,
       }
-      if (timerMode) {
-        result.timer_mode = timerMode
-        result.timer_config = timerConfig
-      }
-      return result
     })
 
   if (blocks.length === 0) {
@@ -397,81 +319,180 @@ async function processSinglePlanification(
     }
   }
 
-  // Obtener notas generales (de la primera fila)
   const generalNotes = String(firstDataRow['Notas General'] || '').trim() || null
-
-  // Normalizar fecha para la base de datos
   const normalizedDate = normalizeDateForArgentina(dateStr)
 
   let existingPlanification = null
 
-  // Buscar planificación existente según el tipo
   if (isPersonalized) {
     existingPlanification = await prisma.planification.findFirst({
       where: {
-        coachId: coachId,
+        coachId,
         date: normalizedDate,
         targetUserId: targetStudent!.id,
-        isPersonalized: true
-      }
+        isPersonalized: true,
+      },
     })
   } else {
     existingPlanification = await prisma.planification.findFirst({
       where: {
-        coachId: coachId,
+        coachId,
         date: normalizedDate,
         disciplineId: discipline.id,
         disciplineLevelId: disciplineLevel.id,
-        isPersonalized: false
-      }
+        isPersonalized: false,
+      },
     })
   }
 
   let result: ImportResult
 
+  const exercisesCount = blocks.reduce(
+    (acc: number, b: any) =>
+      acc + b.items.length + (b.subBlocks || []).reduce((sacc: number, sb: any) => sacc + sb.items.length, 0),
+    0
+  )
+
   if (existingPlanification) {
-    // SOBREESCRIBIR la planificación existente
-    const updated = await prisma.planification.update({
-      where: { id: existingPlanification.id },
-      data: {
-        disciplineId: discipline.id,
-        disciplineLevelId: disciplineLevel.id,
-        exercises: blocks,
-        notes: generalNotes,
-        updatedAt: new Date()
+    // Sobrescribir: eliminar bloques existentes y recrear
+    await prisma.$transaction(async (tx) => {
+      await tx.planificationBlock.deleteMany({
+        where: { planificationId: existingPlanification!.id },
+      })
+
+      for (const block of blocks) {
+        const createdBlock = await tx.planificationBlock.create({
+          data: {
+            planificationId: existingPlanification!.id,
+            title: block.title || '',
+            order: block.order ?? 0,
+            notes: block.notes || null,
+            timerMode: block.timer_mode || null,
+            timerConfig: block.timer_config || null,
+          },
+        })
+
+        for (let i = 0; i < block.items.length; i++) {
+          await tx.planificationItem.create({
+            data: {
+              blockId: createdBlock.id,
+              description: block.items[i],
+              order: i,
+            },
+          })
+        }
+
+        for (const subBlock of block.subBlocks || []) {
+          const createdSubBlock = await tx.planificationSubBlock.create({
+            data: {
+              blockId: createdBlock.id,
+              subtitle: subBlock.subtitle || '',
+              order: subBlock.order ?? 0,
+              timerMode: subBlock.timer_mode || null,
+              timerConfig: subBlock.timer_config || null,
+            },
+          })
+
+          for (let i = 0; i < subBlock.items.length; i++) {
+            await tx.planificationItem.create({
+              data: {
+                subBlockId: createdSubBlock.id,
+                description: subBlock.items[i],
+                order: i,
+              },
+            })
+          }
+        }
       }
+
+      await tx.planification.update({
+        where: { id: existingPlanification!.id },
+        data: {
+          disciplineId: discipline.id,
+          disciplineLevelId: disciplineLevel.id,
+          notes: generalNotes,
+          updatedAt: new Date(),
+        },
+      })
     })
 
     result = {
       success: true,
       message: `Planificación ${isPersonalized ? 'personalizada' : 'general'} actualizada correctamente`,
-      planificationId: updated.id,
+      planificationId: existingPlanification.id,
       date: dateStr,
       discipline: disciplineName,
       level: levelName,
       type: isPersonalized ? 'Personalizada' : 'General',
       student: isPersonalized ? (targetStudent!.name || targetStudent!.email) : undefined,
       blocksCount: blocks.length,
-      exercisesCount: blocks.reduce((acc: number, b: { items: string[]; subBlocks: { items: string[] }[] }) =>
-        acc + b.items.length + b.subBlocks.reduce((sacc, sb) => sacc + sb.items.length, 0), 0),
-      action: 'updated'
+      exercisesCount,
+      action: 'updated',
     }
   } else {
-    // CREAR nueva planificación
-    const created = await prisma.planification.create({
-      data: {
-        coachId: coachId,
-        disciplineId: discipline.id,
-        disciplineLevelId: disciplineLevel.id,
-        date: normalizedDate,
-        title: null,
-        description: null,
-        exercises: blocks,
-        notes: generalNotes,
-        isCompleted: false,
-        isPersonalized: isPersonalized,
-        targetUserId: isPersonalized ? targetStudent!.id : null
+    // Crear nueva planificación con estructura relacional
+    const created = await prisma.$transaction(async (tx) => {
+      const planification = await tx.planification.create({
+        data: {
+          coachId,
+          disciplineId: discipline.id,
+          disciplineLevelId: disciplineLevel.id,
+          date: normalizedDate,
+          title: null,
+          description: null,
+          notes: generalNotes,
+          isCompleted: false,
+          isPersonalized: isPersonalized,
+          targetUserId: isPersonalized ? targetStudent!.id : null,
+        },
+      })
+
+      for (const block of blocks) {
+        const createdBlock = await tx.planificationBlock.create({
+          data: {
+            planificationId: planification.id,
+            title: block.title || '',
+            order: block.order ?? 0,
+            notes: block.notes || null,
+            timerMode: block.timer_mode || null,
+            timerConfig: block.timer_config || null,
+          },
+        })
+
+        for (let i = 0; i < block.items.length; i++) {
+          await tx.planificationItem.create({
+            data: {
+              blockId: createdBlock.id,
+              description: block.items[i],
+              order: i,
+            },
+          })
+        }
+
+        for (const subBlock of block.subBlocks || []) {
+          const createdSubBlock = await tx.planificationSubBlock.create({
+            data: {
+              blockId: createdBlock.id,
+              subtitle: subBlock.subtitle || '',
+              order: subBlock.order ?? 0,
+              timerMode: subBlock.timer_mode || null,
+              timerConfig: subBlock.timer_config || null,
+            },
+          })
+
+          for (let i = 0; i < subBlock.items.length; i++) {
+            await tx.planificationItem.create({
+              data: {
+                subBlockId: createdSubBlock.id,
+                description: subBlock.items[i],
+                order: i,
+              },
+            })
+          }
+        }
       }
+
+      return planification
     })
 
     result = {
@@ -484,31 +505,15 @@ async function processSinglePlanification(
       type: isPersonalized ? 'Personalizada' : 'General',
       student: isPersonalized ? (targetStudent!.name || targetStudent!.email) : undefined,
       blocksCount: blocks.length,
-      exercisesCount: blocks.reduce((acc: number, b: { items: string[]; subBlocks: { items: string[] }[] }) =>
-        acc + b.items.length + b.subBlocks.reduce((sacc, sb) => sacc + sb.items.length, 0), 0),
-      action: 'created'
+      exercisesCount,
+      action: 'created',
     }
   }
 
   return result
 }
 
-/**
- * POST /api/planifications/import
- * Importa planificaciones desde un archivo Excel.
- * 
- * Soporta:
- * - Un solo día (formato actual, compatible hacia atrás)
- * - Múltiples días (nuevo): agrupa filas por la columna Fecha y crea/actualiza
- *   una planificación por cada fecha encontrada.
- * 
- * Reglas:
- * - Soporta planificaciones Generales y Personalizadas
- * - Para Generales: sobrescribe si coincide fecha+disciplina+nivel
- * - Para Personalizadas: sobrescribe si coincide fecha+estudiante
- * - Valida que el estudiante exista, pertenezca al coach y tenga el feature activo
- * - Valida que el coach tenga permisos para crear planificaciones personalizadas
- */
+// POST /api/planifications/import
 export async function POST(request: NextRequest) {
   try {
     const session = await auth()
@@ -518,7 +523,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    // Verificar que el usuario es coach
     const authCheck = await isCoach(userId)
     if (!authCheck.isAuthorized || !authCheck.profile) {
       return NextResponse.json({ error: 'No autorizado. Solo coaches pueden importar planificaciones.' }, { status: 403 })
@@ -526,7 +530,6 @@ export async function POST(request: NextRequest) {
 
     const coachId = authCheck.profile.id
 
-    // Parsear el FormData
     const formData = await request.formData()
     const file = formData.get('file') as File
     const targetDateParam = formData.get('targetDate') as string | null
@@ -537,16 +540,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No se proporcionó archivo' }, { status: 400 })
     }
 
-    // Validar que sea un archivo Excel
     if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
       return NextResponse.json({ error: 'El archivo debe ser un Excel (.xlsx o .xls)' }, { status: 400 })
     }
 
-    // Leer el archivo
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    // Parsear Excel
     const workbook = XLSX.read(buffer, { type: 'buffer' })
     const worksheet = workbook.Sheets[workbook.SheetNames[0]]
     const rows = XLSX.utils.sheet_to_json(worksheet) as ExcelRow[]
@@ -555,22 +555,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'El archivo Excel está vacío' }, { status: 400 })
     }
 
-    // Validar columnas requeridas
     const firstRow = rows[0]
     const requiredColumns = ['Fecha', 'Disciplina', 'Nivel', 'Tipo', 'Bloque']
-    const missingColumns = requiredColumns.filter(col => !(col in firstRow))
+    const missingColumns = requiredColumns.filter((col) => !(col in firstRow))
 
     if (missingColumns.length > 0) {
       return NextResponse.json({
-        error: `Faltan columnas requeridas: ${missingColumns.join(', ')}`
+        error: `Faltan columnas requeridas: ${missingColumns.join(', ')}`,
       }, { status: 400 })
     }
 
-    // Verificar si el coach puede crear planificaciones personalizadas
-    // (lo cacheamos para no consultar en cada grupo)
     const canCreatePersonalized = await canCoachCreatePersonalizedPlanifications(coachId)
 
-    // Agrupar filas por fecha
     const rowsByDate = new Map<string, ExcelRow[]>()
     const parseErrors: string[] = []
 
@@ -588,14 +584,12 @@ export async function POST(request: NextRequest) {
 
     if (rowsByDate.size === 0) {
       return NextResponse.json({
-        error: `No se encontraron fechas válidas en el archivo. ${parseErrors.join('. ')}`
+        error: `No se encontraron fechas válidas en el archivo. ${parseErrors.join('. ')}`,
       }, { status: 400 })
     }
 
-    // Determinar si es importación de un solo día o masiva
     const isBulkImport = rowsByDate.size > 1
 
-    // Procesar cada grupo de fecha
     const results: ImportResult[] = []
 
     for (const [dateStr, dateRows] of rowsByDate) {
@@ -603,7 +597,7 @@ export async function POST(request: NextRequest) {
         const result = await processSinglePlanification(
           dateRows,
           coachId,
-          isBulkImport ? null : targetDateParam, // targetDate solo aplica a importación de un solo día
+          isBulkImport ? null : targetDateParam,
           canCreatePersonalized,
           targetStudentId
         )
@@ -618,11 +612,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Calcular resumen
-    const successful = results.filter(r => r.success)
-    const failed = results.filter(r => !r.success)
-    const created = successful.filter(r => r.action === 'created')
-    const updated = successful.filter(r => r.action === 'updated')
+    const successful = results.filter((r) => r.success)
+    const failed = results.filter((r) => !r.success)
+    const created = successful.filter((r) => r.action === 'created')
+    const updated = successful.filter((r) => r.action === 'updated')
 
     return NextResponse.json({
       results,
@@ -632,9 +625,8 @@ export async function POST(request: NextRequest) {
         failed: failed.length,
         created: created.length,
         updated: updated.length,
-      }
+      },
     })
-
   } catch (error: any) {
     console.error('Error importing planification:', error)
     return NextResponse.json(

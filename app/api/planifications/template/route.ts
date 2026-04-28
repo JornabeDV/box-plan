@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
             notes: 'Movilidad articular y activación muscular',
             timerMode: '',
             timerConfig: null,
-            exercises: ['500m rowing ligero', '10 shoulder dislocates', '15 air squats'],
+            items: ['500m rowing ligero', '10 shoulder dislocates', '15 air squats'],
             subBlocks: []
           },
           {
@@ -55,10 +55,10 @@ export async function GET(request: NextRequest) {
             notes: 'Enfocarse en la profundidad del squat',
             timerMode: 'emom',
             timerConfig: { totalRounds: '10' },
-            exercises: [],
+            items: [],
             subBlocks: [
-              { subtitle: 'Back Squat', exercises: ['Back squat 5x5 @ 80% RM'], timerMode: '', timerConfig: null },
-              { subtitle: 'Accesorio', exercises: ['RDL 3x8 @ 60kg', 'Plank 3x45 seg'], timerMode: '', timerConfig: null }
+              { subtitle: 'Back Squat', items: ['Back squat 5x5 @ 80% RM'], timerMode: '', timerConfig: null },
+              { subtitle: 'Accesorio', items: ['RDL 3x8 @ 60kg', 'Plank 3x45 seg'], timerMode: '', timerConfig: null }
             ]
           }
         ],
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
             notes: 'Preparar hombros y cadera',
             timerMode: '',
             timerConfig: null,
-            exercises: ['400m run suave', '10 push-ups', '10 good mornings con PVC'],
+            items: ['400m run suave', '10 push-ups', '10 good mornings con PVC'],
             subBlocks: []
           },
           {
@@ -82,9 +82,9 @@ export async function GET(request: NextRequest) {
             notes: 'Progresiones según nivel',
             timerMode: '',
             timerConfig: null,
-            exercises: ['Pull-ups 4x6-8 (o band assisted)', 'Dips 3x8-10 (o bench dips)'],
+            items: ['Pull-ups 4x6-8 (o band assisted)', 'Dips 3x8-10 (o bench dips)'],
             subBlocks: [
-              { subtitle: 'Core', exercises: ['Hollow hold 3x30 seg', 'Arch hold 3x30 seg'], timerMode: 'tabata', timerConfig: { workTime: '20', restTime: '10', totalRounds: '8' } }
+              { subtitle: 'Core', items: ['Hollow hold 3x30 seg', 'Arch hold 3x30 seg'], timerMode: 'tabata', timerConfig: { workTime: '20', restTime: '10', totalRounds: '8' } }
             ]
           }
         ],
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
             notes: 'Activar el sistema cardiovascular',
             timerMode: '',
             timerConfig: null,
-            exercises: ['600m bike erg', '10 scap pull-ups', '10 cossack squats por lado'],
+            items: ['600m bike erg', '10 scap pull-ups', '10 cossack squats por lado'],
             subBlocks: []
           },
           {
@@ -108,9 +108,9 @@ export async function GET(request: NextRequest) {
             notes: 'Máxima explosividad en cada repetición',
             timerMode: '',
             timerConfig: null,
-            exercises: ['Power clean 5x2 @ 70% RM', 'Box jump 4x5 (24/20 pulgadas)'],
+            items: ['Power clean 5x2 @ 70% RM', 'Box jump 4x5 (24/20 pulgadas)'],
             subBlocks: [
-              { subtitle: 'Olympic', exercises: ['Hang snatch 4x2 @ 60% RM'], timerMode: '', timerConfig: null }
+              { subtitle: 'Olympic', items: ['Hang snatch 4x2 @ 60% RM'], timerMode: '', timerConfig: null }
             ]
           }
         ],
@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
             notes: 'Movilidad de tobillos y caderas',
             timerMode: '',
             timerConfig: null,
-            exercises: ['5 min saltar la soga', '10 pasos lunges con rotación', '10 inchworms'],
+            items: ['5 min saltar la soga', '10 pasos lunges con rotación', '10 inchworms'],
             subBlocks: []
           },
           {
@@ -134,9 +134,9 @@ export async function GET(request: NextRequest) {
             notes: 'Mantener un ritmo sostenible',
             timerMode: 'fortime',
             timerConfig: null,
-            exercises: ['21-15-9: thrusters (43/30kg) + pull-ups', 'Time cap: 12 minutos'],
+            items: ['21-15-9: thrusters (43/30kg) + pull-ups', 'Time cap: 12 minutos'],
             subBlocks: [
-              { subtitle: 'Cooldown', exercises: ['5 min caminata', 'Foam rolling 5 min'], timerMode: '', timerConfig: null }
+              { subtitle: 'Cooldown', items: ['5 min caminata', 'Foam rolling 5 min'], timerMode: '', timerConfig: null }
             ]
           }
         ],
@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
             notes: 'Activación glútea y core',
             timerMode: '',
             timerConfig: null,
-            exercises: ['300m run', '10 banded side steps por lado', '10 bird dogs por lado'],
+            items: ['300m run', '10 banded side steps por lado', '10 bird dogs por lado'],
             subBlocks: []
           },
           {
@@ -160,9 +160,9 @@ export async function GET(request: NextRequest) {
             notes: 'Trabajo unilateral y estabilidad',
             timerMode: 'amrap',
             timerConfig: { amrapTime: '15', totalRounds: '1' },
-            exercises: ['Bulgarian split squat 3x8 por pierna', 'Single-arm DB press 3x10 por brazo'],
+            items: ['Bulgarian split squat 3x8 por pierna', 'Single-arm DB press 3x10 por brazo'],
             subBlocks: [
-              { subtitle: 'Core & Stability', exercises: ['Pallof press 3x12 por lado', 'Dead bug 3x8 por lado'], timerMode: '', timerConfig: null }
+              { subtitle: 'Core & Stability', items: ['Pallof press 3x12 por lado', 'Dead bug 3x8 por lado'], timerMode: '', timerConfig: null }
             ]
           }
         ],
@@ -176,8 +176,8 @@ export async function GET(request: NextRequest) {
     for (const day of dayExamples) {
       for (const block of day.blocks) {
         // Filas de ejercicios del bloque principal
-        if (block.exercises.length > 0) {
-          for (let i = 0; i < block.exercises.length; i++) {
+        if (block.items.length > 0) {
+          for (let i = 0; i < block.items.length; i++) {
             rows.push({
               'Fecha': day.date,
               'Disciplina': 'CrossFit',
@@ -187,7 +187,7 @@ export async function GET(request: NextRequest) {
               'Bloque': block.title,
               'Orden Bloque': block.order,
               'Sub-bloque': '',
-              'Ejercicio': block.exercises[i],
+              'Ejercicio': block.items[i],
               'Notas Bloque': i === 0 ? block.notes : '',
               'Notas General': i === 0 ? day.generalNotes : '',
               'Timer Modo': i === 0 ? (block as any).timerMode || '' : '',
@@ -206,7 +206,7 @@ export async function GET(request: NextRequest) {
 
         // Filas de sub-bloques
         for (const subBlock of block.subBlocks) {
-          for (let i = 0; i < subBlock.exercises.length; i++) {
+          for (let i = 0; i < subBlock.items.length; i++) {
             rows.push({
               'Fecha': day.date,
               'Disciplina': 'CrossFit',
@@ -216,7 +216,7 @@ export async function GET(request: NextRequest) {
               'Bloque': block.title,
               'Orden Bloque': block.order,
               'Sub-bloque': subBlock.subtitle,
-              'Ejercicio': subBlock.exercises[i],
+              'Ejercicio': subBlock.items[i],
               'Notas Bloque': i === 0 ? block.notes : '',
               'Notas General': i === 0 ? day.generalNotes : '',
               'Timer Modo': i === 0 ? (block as any).timerMode || '' : '',
@@ -234,7 +234,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Si el bloque no tiene ejercicios ni sub-bloques, agregar una fila vacía para preservar estructura
-        if (block.exercises.length === 0 && block.subBlocks.length === 0) {
+        if (block.items.length === 0 && block.subBlocks.length === 0) {
           rows.push({
             'Fecha': day.date,
             'Disciplina': 'CrossFit',

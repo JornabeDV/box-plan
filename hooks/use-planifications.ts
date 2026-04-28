@@ -2,6 +2,41 @@
 
 import { useState, useEffect } from 'react'
 
+export interface ExerciseRef {
+  id: string
+  name: string
+  category?: string | null
+  video_url?: string | null
+  image_url?: string | null
+}
+
+export interface PlanificationItem {
+  id: string
+  description: string
+  order: number
+  exercise?: ExerciseRef | null
+}
+
+export interface SubBlock {
+  id: string
+  subtitle: string
+  order: number
+  items: PlanificationItem[]
+  timer_mode?: string | null
+  timer_config?: any
+}
+
+export interface Block {
+  id: string
+  title: string
+  order: number
+  notes?: string
+  items: PlanificationItem[]
+  subBlocks?: SubBlock[]
+  timer_mode?: string | null
+  timer_config?: any
+}
+
 export interface Planification {
   id: string
   coach_id: string
@@ -9,18 +44,11 @@ export interface Planification {
   discipline_level_id: string
   date: string
   estimated_duration?: number
-  blocks: Array<{
-    id: string
-    title: string
-    items: string[]
-    order: number
-    notes?: string
-  }>
+  blocks: Block[]
   notes?: string
   is_active: boolean
   created_at: string
   updated_at: string
-  // Campos de personalización
   is_personalized: boolean
   target_user_id: string | null
   target_user?: {
@@ -28,7 +56,6 @@ export interface Planification {
     name: string
     email: string
   } | null
-  // Relaciones
   discipline?: {
     id: string
     name: string
@@ -47,7 +74,6 @@ export function usePlanifications(coachId?: string) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Cargar planificaciones desde la base de datos
   const loadPlanifications = async () => {
     if (!coachId) {
       setLoading(false)
@@ -74,12 +100,10 @@ export function usePlanifications(coachId?: string) {
     }
   }
 
-  // Crear nueva planificación
   const createPlanification = async (planificationData: Omit<Planification, 'id' | 'created_at' | 'updated_at' | 'discipline' | 'discipline_level'>) => {
     try {
       setError(null)
 
-      // Validar que los datos requeridos estén presentes
       if (!planificationData.coach_id) {
         const errorMessage = 'ID de coach requerido'
         setError(errorMessage)
@@ -118,7 +142,6 @@ export function usePlanifications(coachId?: string) {
 
       const data = await response.json()
       
-      // Obtener con relaciones
       const withRelations = {
         ...data,
         discipline: data.discipline,
@@ -134,19 +157,16 @@ export function usePlanifications(coachId?: string) {
     }
   }
 
-  // Actualizar planificación
   const updatePlanification = async (id: string, updates: Partial<Planification>) => {
     try {
       setError(null)
 
-      // Validar que el ID existe
       if (!id) {
         const errorMessage = 'ID de planificación requerido'
         setError(errorMessage)
         return { error: errorMessage }
       }
 
-      // Validar que los datos requeridos estén presentes si se están actualizando
       if (updates.discipline_id && !updates.discipline_level_id) {
         const errorMessage = 'Debe seleccionar un nivel de disciplina'
         setError(errorMessage)
@@ -181,7 +201,6 @@ export function usePlanifications(coachId?: string) {
     }
   }
 
-  // Eliminar planificación
   const deletePlanification = async (id: string) => {
     try {
       setError(null)
@@ -205,7 +224,6 @@ export function usePlanifications(coachId?: string) {
     }
   }
 
-  // Buscar planificaciones
   const searchPlanifications = async (query: string) => {
     if (!coachId) return
 
@@ -213,7 +231,6 @@ export function usePlanifications(coachId?: string) {
       setLoading(true)
       setError(null)
 
-      // Obtener todas las planificaciones y filtrar por notas
       const response = await fetch(`/api/planifications?coachId=${coachId}`)
       
       if (!response.ok) {
@@ -222,7 +239,6 @@ export function usePlanifications(coachId?: string) {
 
       const data = await response.json()
       
-      // Filtrar en el cliente por notas
       const filtered = data.filter((p: Planification) => 
         p.notes?.toLowerCase().includes(query.toLowerCase())
       )
@@ -235,12 +251,6 @@ export function usePlanifications(coachId?: string) {
       setLoading(false)
     }
   }
-
-  // No cargar automáticamente - solo cuando se llama explícitamente loadPlanifications
-  // Esto permite usar el hook solo para operaciones CRUD sin cargar datos iniciales
-  // useEffect(() => {
-  //   loadPlanifications()
-  // }, [coachId])
 
   return {
     planifications,

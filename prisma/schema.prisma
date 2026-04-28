@@ -121,33 +121,33 @@ model AdminUserAssignment {
 }
 
 model Discipline {
-  id             Int               @id @default(autoincrement())
-  name           String            @db.VarChar(255)
-  description    String?
-  color          String            @default("#3B82F6") @db.VarChar(7)
-  coachId        Int               @map("coach_id")
-  orderIndex     Int               @default(0) @map("order_index")
-  isActive       Boolean           @default(true) @map("is_active")
-  createdAt      DateTime          @default(now()) @map("created_at")
-  updatedAt      DateTime          @default(now()) @updatedAt @map("updated_at")
-  levels         DisciplineLevel[]
-  planifications Planification[]
+  id              Int               @id @default(autoincrement())
+  name            String            @db.VarChar(255)
+  description     String?
+  color           String            @default("#3B82F6") @db.VarChar(7)
+  coachId         Int               @map("coach_id")
+  orderIndex      Int               @default(0) @map("order_index")
+  isActive        Boolean           @default(true) @map("is_active")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @default(now()) @updatedAt @map("updated_at")
+  levels          DisciplineLevel[]
+  planifications  Planification[]
   userDisciplines UserDiscipline[]
 
   @@map("disciplines")
 }
 
 model DisciplineLevel {
-  id             Int              @id @default(autoincrement())
-  disciplineId   Int              @map("discipline_id")
-  name           String           @db.VarChar(255)
-  description    String?
-  orderIndex     Int              @default(0) @map("order_index")
-  isActive       Boolean          @default(true) @map("is_active")
-  createdAt      DateTime         @default(now()) @map("created_at")
-  updatedAt      DateTime         @default(now()) @updatedAt @map("updated_at")
-  discipline     Discipline       @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
-  planifications Planification[]
+  id              Int              @id @default(autoincrement())
+  disciplineId    Int              @map("discipline_id")
+  name            String           @db.VarChar(255)
+  description     String?
+  orderIndex      Int              @default(0) @map("order_index")
+  isActive        Boolean          @default(true) @map("is_active")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @default(now()) @updatedAt @map("updated_at")
+  discipline      Discipline       @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  planifications  Planification[]
   userDisciplines UserDiscipline[]
 
   @@map("discipline_levels")
@@ -233,7 +233,6 @@ model Planification {
   date              DateTime @db.Date
   title             String?  @db.VarChar(255)
   description       String?
-  exercises         Json?
   notes             String?
   isCompleted       Boolean  @default(false) @map("is_completed")
   createdAt         DateTime @default(now()) @map("created_at")
@@ -246,10 +245,87 @@ model Planification {
   coach           CoachProfile     @relation(fields: [coachId], references: [id])
   targetUser      User?            @relation("PersonalizedPlanifications", fields: [targetUserId], references: [id])
 
+  blocks       PlanificationBlock[]
   workouts     Workout[]
   userProgress UserProgress[]
 
   @@map("planifications")
+}
+
+model Exercise {
+  id          Int      @id @default(autoincrement())
+  coachId     Int      @map("coach_id")
+  name        String   @db.VarChar(255)
+  category    String?  @db.VarChar(100)
+  description String?  @db.Text
+  videoUrl    String?  @map("video_url") @db.VarChar(500)
+  imageUrl    String?  @map("image_url") @db.VarChar(500)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  coach CoachProfile        @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  items PlanificationItem[]
+
+  @@index([coachId])
+  @@index([coachId, name])
+  @@map("exercises")
+}
+
+model PlanificationBlock {
+  id              Int      @id @default(autoincrement())
+  planificationId Int      @map("planification_id")
+  title           String   @db.VarChar(255)
+  order           Int      @default(0)
+  notes           String?  @db.Text
+  timerMode       String?  @map("timer_mode") @db.VarChar(20)
+  timerConfig     Json?    @map("timer_config")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+
+  planification Planification           @relation(fields: [planificationId], references: [id], onDelete: Cascade)
+  items         PlanificationItem[]
+  subBlocks     PlanificationSubBlock[]
+
+  @@index([planificationId])
+  @@map("planification_blocks")
+}
+
+model PlanificationSubBlock {
+  id          Int      @id @default(autoincrement())
+  blockId     Int      @map("block_id")
+  subtitle    String   @db.VarChar(255)
+  order       Int      @default(0)
+  timerMode   String?  @map("timer_mode") @db.VarChar(20)
+  timerConfig Json?    @map("timer_config")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  block PlanificationBlock  @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  items PlanificationItem[]
+
+  @@index([blockId])
+  @@map("planification_sub_blocks")
+}
+
+model PlanificationItem {
+  id          Int      @id @default(autoincrement())
+  blockId     Int?     @map("block_id")
+  subBlockId  Int?     @map("sub_block_id")
+  exerciseId  Int?     @map("exercise_id")
+  description String   @db.VarChar(500)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  block    PlanificationBlock?    @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  subBlock PlanificationSubBlock? @relation(fields: [subBlockId], references: [id], onDelete: Cascade)
+  exercise Exercise?              @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
+
+  @@index([blockId])
+  @@index([subBlockId])
+  @@index([exerciseId])
+  @@map("planification_items")
 }
 
 model Workout {
@@ -342,6 +418,7 @@ model CoachProfile {
   subscriptionPlans      SubscriptionPlan[]
   planifications         Planification[]
   motivationalQuotes     CoachMotivationalQuote[]
+  exercises              Exercise[]
 
   @@map("coach_profiles")
 }

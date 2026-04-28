@@ -55,7 +55,7 @@ export interface DashboardPlanifications {
 	date: string | Date
 	title: string | null
 	description: string | null
-	exercises: any
+	blocks: any[]
 	notes: string | null
 	isCompleted: boolean
 	createdAt: Date
@@ -104,24 +104,49 @@ export async function loadDashboardDisciplines(coachId: number): Promise<Dashboa
 /**
  * Carga planificaciones con sus relaciones
  */
+function transformItem(item: any) {
+	return {
+		id: String(item.id),
+		description: item.description,
+		order: item.order,
+		exercise: item.exercise ? {
+			id: String(item.exercise.id),
+			name: item.exercise.name,
+			category: item.exercise.category,
+			video_url: item.exercise.videoUrl,
+			image_url: item.exercise.imageUrl,
+		} : null,
+	}
+}
+
+function transformSubBlock(subBlock: any) {
+	return {
+		id: String(subBlock.id),
+		subtitle: subBlock.subtitle,
+		order: subBlock.order,
+		timer_mode: subBlock.timerMode || null,
+		timer_config: subBlock.timerConfig || undefined,
+		items: subBlock.items?.map(transformItem) || [],
+	}
+}
+
+function transformBlock(block: any) {
+	return {
+		id: String(block.id),
+		title: block.title,
+		order: block.order,
+		notes: block.notes || undefined,
+		timer_mode: block.timerMode || null,
+		timer_config: block.timerConfig || undefined,
+		items: block.items?.map(transformItem) || [],
+		subBlocks: block.subBlocks?.map(transformSubBlock) || [],
+	}
+}
+
 export async function loadDashboardPlanifications(coachId: number): Promise<DashboardPlanifications[]> {
 	const planifications = await prisma.planification.findMany({
 		where: { coachId },
-		select: {
-			id: true,
-			disciplineId: true,
-			disciplineLevelId: true,
-			coachId: true,
-			date: true,
-			title: true,
-			description: true,
-			exercises: true,
-			notes: true,
-			isCompleted: true,
-			isPersonalized: true,
-			targetUserId: true,
-			createdAt: true,
-			updatedAt: true,
+		include: {
 			discipline: {
 				select: {
 					id: true,
@@ -142,21 +167,34 @@ export async function loadDashboardPlanifications(coachId: number): Promise<Dash
 					name: true,
 					email: true
 				}
-			}
+			},
+			blocks: {
+				orderBy: { order: 'asc' },
+				include: {
+					items: {
+						orderBy: { order: 'asc' },
+						include: { exercise: true },
+					},
+					subBlocks: {
+						orderBy: { order: 'asc' },
+						include: {
+							items: {
+								orderBy: { order: 'asc' },
+								include: { exercise: true },
+							},
+						},
+					},
+				},
+			},
 		},
 		orderBy: { date: 'asc' }
 	})
 
 	return planifications.map(p => {
-		// Transformar exercises (JSON) a blocks para el frontend
-		const exercisesData = (p as any).exercises
-		const blocksData = exercisesData ? (Array.isArray(exercisesData) ? exercisesData : []) : []
-		
 		return {
 			...p,
 			date: p.date instanceof Date ? p.date.toISOString().split('T')[0] : p.date,
-			blocks: blocksData, // Agregar blocks para compatibilidad con el frontend
-			exercises: exercisesData, // Mantener exercises también
+			blocks: p.blocks?.map(transformBlock) || [],
 			is_personalized: p.isPersonalized || false,
 			target_user_id: p.targetUserId ? String(p.targetUserId) : null,
 			target_user: p.targetUser ? {

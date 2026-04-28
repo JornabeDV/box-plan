@@ -388,7 +388,7 @@ export function PlanificationDayModal({
                                 {block.items && block.items.length > 0 && (
                                   <ul className="space-y-1 ml-6 mb-3">
                                     {block.items.map(
-                                      (item: string, itemIndex: number) => (
+                                      (item: any, itemIndex: number) => (
                                         <li
                                           key={itemIndex}
                                           className="text-sm text-muted-foreground flex items-start gap-2"
@@ -396,7 +396,7 @@ export function PlanificationDayModal({
                                           <span className="text-primary">
                                             •
                                           </span>
-                                          <span>{item}</span>
+                                          <span>{typeof item === 'string' ? item : item.description}</span>
                                         </li>
                                       ),
                                     )}
@@ -411,10 +411,10 @@ export function PlanificationDayModal({
                                         </p>
                                         {subBlock.items && subBlock.items.length > 0 && (
                                           <ul className="space-y-1 ml-3">
-                                            {subBlock.items.map((item: string, i: number) => (
+                                            {subBlock.items.map((item: any, i: number) => (
                                               <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
                                                 <span className="text-primary">•</span>
-                                                <span>{item}</span>
+                                                <span>{typeof item === 'string' ? item : item.description}</span>
                                               </li>
                                             ))}
                                           </ul>
