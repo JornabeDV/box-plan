@@ -526,14 +526,27 @@ export function PlanificationBlocks({
             {block.items && block.items.length > 0 && (
               <ul className="space-y-3 mb-4">
                 {block.items.map((item, itemIndex) => (
-                  <li key={itemIndex} className="flex items-start gap-3">
+                  <li key={itemIndex} className="flex items-center gap-3">
                     <CheckCircle
                       className="w-5 h-5 mt-0.5 flex-shrink-0"
                       style={{
                         color: disciplineColor || "hsl(var(--primary))",
                       }}
                     />
-                    <span className="text-sm text-foreground">{item}</span>
+                    <div className="flex items-center justify-between w-full">
+                      <span className="text-sm text-foreground">{typeof item === 'string' ? item : item.description}</span>
+                      {typeof item !== 'string' && item.exercise?.video_url && (
+                        <a
+                          href={item.exercise.video_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                        >
+                          <Play className="w-3 h-3" />
+                          Ver cómo se hace
+                        </a>
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -572,7 +585,20 @@ export function PlanificationBlocks({
                                 color: disciplineColor || "hsl(var(--primary))",
                               }}
                             />
-                            <span className="text-sm text-foreground">{item}</span>
+                            <div className="flex-1">
+                              <span className="text-sm text-foreground">{typeof item === 'string' ? item : item.description}</span>
+                              {typeof item !== 'string' && item.exercise?.video_url && (
+                                <a
+                                  href={item.exercise.video_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 ml-2 text-xs text-primary hover:underline"
+                                >
+                                  <Play className="w-3 h-3" />
+                                  Ver cómo se hace
+                                </a>
+                              )}
+                            </div>
                           </li>
                         ))}
                       </ul>

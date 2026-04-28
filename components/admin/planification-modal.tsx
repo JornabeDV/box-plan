@@ -34,6 +34,7 @@ import {
   ChevronDown,
   ChevronRight,
   GripVertical,
+  Play,
 } from "lucide-react";
 import { DndContext, closestCenter, type DragEndEvent } from "@dnd-kit/core";
 import {
@@ -45,10 +46,17 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useDisciplines } from "@/hooks/use-disciplines";
 
+interface ItemData {
+  id: string;
+  description: string;
+  exerciseId?: number | null;
+  exerciseName?: string;
+}
+
 interface SubBlock {
   id: string;
   subtitle: string;
-  items: string[];
+  items: ItemData[];
   timer_mode?: 'normal' | 'tabata' | 'fortime' | 'amrap' | 'emom' | 'otm' | null;
   timer_config?: {
     workTime?: string;
@@ -61,7 +69,7 @@ interface SubBlock {
 interface Block {
   id: string;
   title: string;
-  items: string[];
+  items: ItemData[];
   order: number;
   notes?: string;
   timer_mode?: 'normal' | 'tabata' | 'fortime' | 'amrap' | 'emom' | 'otm' | null;
@@ -200,6 +208,14 @@ export function PlanificationModal({
   } | null>(null);
   const [editingItemValue, setEditingItemValue] = useState("");
 
+  const [exercises, setExercises] = useState<any[]>([]);
+  const [exerciseSearch, setExerciseSearch] = useState("");
+  const [activeExerciseSelector, setActiveExerciseSelector] = useState<{
+    blockId: string;
+    itemIndex: number;
+    subBlockId?: string;
+  } | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -246,7 +262,34 @@ export function PlanificationModal({
         });
         const blocksToSet =
           planification.blocks || planificationAny.exercises || [];
-        setBlocks(Array.isArray(blocksToSet) ? blocksToSet : []);
+        
+        // Normalizar items del backend al formato interno
+        function normalizeItemFromBackend(item: any): ItemData {
+          if (typeof item === 'string') {
+            return { id: Date.now().toString() + Math.random(), description: item };
+          }
+          return {
+            id: item.id || Date.now().toString() + Math.random(),
+            description: item.description || item.text || '',
+            exerciseId: item.exerciseId || (item.exercise ? parseInt(item.exercise.id) : null),
+            exerciseName: item.exerciseName || (item.exercise ? item.exercise.name : undefined),
+          };
+        }
+        
+        function normalizeBlockFromBackend(block: any): Block {
+          return {
+            ...block,
+            id: block.id || Date.now().toString() + Math.random(),
+            items: (block.items || []).map(normalizeItemFromBackend),
+            subBlocks: (block.subBlocks || []).map((sub: any) => ({
+              ...sub,
+              id: sub.id || Date.now().toString() + Math.random(),
+              items: (sub.items || []).map(normalizeItemFromBackend),
+            })),
+          };
+        }
+        
+        setBlocks(Array.isArray(blocksToSet) ? blocksToSet.map(normalizeBlockFromBackend) : []);
         setIsPersonalized(planification.is_personalized || false);
         setSelectedStudent(planification.target_user_id || "");
 
@@ -422,13 +465,14 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
   // ── Items directos del bloque ─────────────────────────────────────────────
 
   const addItemToBlock = (blockId: string) => {
-    const item = blockItemInputs[blockId]?.trim();
-    if (item) {
+    const itemText = blockItemInputs[blockId]?.trim();
+    if (itemText) {
       if (editingItem) cancelEditingItem();
+      const newItem: ItemData = { id: Date.now().toString(), description: itemText };
       setBlocks((prev) =>
         prev.map((block) =>
           block.id === blockId
-            ? { ...block, items: [...block.items, item] }
+            ? { ...block, items: [...block.items, newItem] }
             : block,
         ),
       );
@@ -519,9 +563,10 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
 
   const addItemToSubBlock = (blockId: string, subBlockId: string) => {
     const key = `${blockId}::${subBlockId}`;
-    const item = subBlockItemInputs[key]?.trim();
-    if (!item) return;
+    const itemText = subBlockItemInputs[key]?.trim();
+    if (!itemText) return;
     if (editingItem) cancelEditingItem();
+    const newItem: ItemData = { id: Date.now().toString(), description: itemText };
     setBlocks((prev) =>
       prev.map((block) =>
         block.id === blockId
@@ -529,7 +574,7 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
               ...block,
               subBlocks: (block.subBlocks || []).map((sb) =>
                 sb.id === subBlockId
-                  ? { ...sb, items: [...sb.items, item] }
+                  ? { ...sb, items: [...sb.items, newItem] }
                   : sb,
               ),
             }
@@ -577,12 +622,12 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
       const subBlock = block.subBlocks?.find((sb) => sb.id === subBlockId);
       if (subBlock && subBlock.items[itemIndex] !== undefined) {
         setEditingItem({ blockId, subBlockId, itemIndex });
-        setEditingItemValue(subBlock.items[itemIndex]);
+        setEditingItemValue(subBlock.items[itemIndex].description);
       }
     } else {
       if (block.items[itemIndex]) {
         setEditingItem({ blockId, itemIndex });
-        setEditingItemValue(block.items[itemIndex]);
+        setEditingItemValue(block.items[itemIndex].description);
       }
     }
   };
@@ -602,7 +647,7 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                         ...sb,
                         items: sb.items.map((item, index) =>
                           index === editingItem.itemIndex
-                            ? editingItemValue.trim()
+                            ? { ...item, description: editingItemValue.trim() }
                             : item,
                         ),
                       }
@@ -620,7 +665,7 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                 ...block,
                 items: block.items.map((item, index) =>
                   index === editingItem.itemIndex
-                    ? editingItemValue.trim()
+                    ? { ...item, description: editingItemValue.trim() }
                     : item,
                 ),
               }
@@ -635,6 +680,95 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
   const cancelEditingItem = () => {
     setEditingItem(null);
     setEditingItemValue("");
+  };
+
+  // ── Ejercicios ────────────────────────────────────────────────────────────
+
+  const loadExercises = async () => {
+    if (!coachId) return;
+    try {
+      const res = await fetch(`/api/exercises?search=${encodeURIComponent(exerciseSearch)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setExercises(data);
+      }
+    } catch (err) {
+      console.error('Error loading exercises:', err);
+    }
+  };
+
+  const assignExerciseToItem = (
+    blockId: string,
+    itemIndex: number,
+    exercise: any,
+    subBlockId?: string
+  ) => {
+    setBlocks((prev) =>
+      prev.map((block) => {
+        if (block.id !== blockId) return block;
+        if (subBlockId) {
+          return {
+            ...block,
+            subBlocks: block.subBlocks?.map((sb) => {
+              if (sb.id !== subBlockId) return sb;
+              return {
+                ...sb,
+                items: sb.items.map((item, idx) =>
+                  idx === itemIndex
+                    ? { ...item, exerciseId: parseInt(exercise.id), exerciseName: exercise.name }
+                    : item
+                ),
+              };
+            }),
+          };
+        }
+        return {
+          ...block,
+          items: block.items.map((item, idx) =>
+            idx === itemIndex
+              ? { ...item, exerciseId: parseInt(exercise.id), exerciseName: exercise.name }
+              : item
+          ),
+        };
+      })
+    );
+    setActiveExerciseSelector(null);
+  };
+
+  const removeExerciseFromItem = (
+    blockId: string,
+    itemIndex: number,
+    subBlockId?: string
+  ) => {
+    setBlocks((prev) =>
+      prev.map((block) => {
+        if (block.id !== blockId) return block;
+        if (subBlockId) {
+          return {
+            ...block,
+            subBlocks: block.subBlocks?.map((sb) => {
+              if (sb.id !== subBlockId) return sb;
+              return {
+                ...sb,
+                items: sb.items.map((item, idx) =>
+                  idx === itemIndex
+                    ? { ...item, exerciseId: null, exerciseName: undefined }
+                    : item
+                ),
+              };
+            }),
+          };
+        }
+        return {
+          ...block,
+          items: block.items.map((item, idx) =>
+            idx === itemIndex
+              ? { ...item, exerciseId: null, exerciseName: undefined }
+              : item
+          ),
+        };
+      })
+    );
   };
 
   // ── Submit ────────────────────────────────────────────────────────────────
@@ -1170,7 +1304,7 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                   return (
                                     <div
                                       key={itemIndex}
-                                      className="flex items-center gap-2"
+                                      className="flex items-center gap-2 relative"
                                     >
                                       <span className="text-muted-foreground">
                                         -
@@ -1218,18 +1352,48 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                         </>
                                       ) : (
                                         <>
-                                          <span
-                                            className="text-sm flex-1 cursor-pointer hover:bg-muted/50 rounded px-2 py-1 -mx-2 -my-1"
+                                          <div className="flex-1">
+                                            <span
+                                              className="text-sm cursor-pointer hover:bg-muted/50 rounded px-2 py-1 -mx-2 -my-1 inline-block"
+                                              onClick={() =>
+                                                startEditingItem(
+                                                  block.id,
+                                                  itemIndex,
+                                                )
+                                              }
+                                              title="Haz clic para editar"
+                                            >
+                                              {item.description}
+                                            </span>
+                                            {item.exerciseName && (
+                                              <span className="inline-flex items-center gap-1 ml-2 text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">
+                                                <Play className="w-3 h-3" />
+                                                {item.exerciseName}
+                                                <button
+                                                  type="button"
+                                                  onClick={() => removeExerciseFromItem(block.id, itemIndex)}
+                                                  className="hover:text-blue-900 ml-1"
+                                                >
+                                                  <X className="w-3 h-3" />
+                                                </button>
+                                              </span>
+                                            )}
+                                          </div>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
                                             onClick={() =>
-                                              startEditingItem(
-                                                block.id,
+                                              setActiveExerciseSelector({
+                                                blockId: block.id,
                                                 itemIndex,
-                                              )
+                                              })
                                             }
-                                            title="Haz clic para editar"
+                                            className="text-muted-foreground hover:text-foreground h-6 w-6 p-0"
+                                            title="Asignar ejercicio"
                                           >
-                                            {item}
-                                          </span>
+                                            <Plus className="w-3 h-3" />
+                                          </Button>
                                           <Button
                                             type="button"
                                             variant="ghost"
@@ -1258,6 +1422,51 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                           >
                                             <X className="w-3 h-3" />
                                           </Button>
+
+                                          {/* Selector de ejercicio */}
+                                          {activeExerciseSelector?.blockId === block.id &&
+                                            activeExerciseSelector?.itemIndex === itemIndex &&
+                                            !activeExerciseSelector?.subBlockId && (
+                                            <div className="absolute right-0 top-8 z-20 bg-card border rounded-md shadow-lg p-2 w-64">
+                                              <div className="flex items-center gap-2 mb-2">
+                                                <Input
+                                                  className="h-7 text-xs"
+                                                  placeholder="Buscar ejercicio..."
+                                                  value={exerciseSearch}
+                                                  onChange={(e) => {
+                                                    setExerciseSearch(e.target.value);
+                                                    loadExercises();
+                                                  }}
+                                                  autoFocus
+                                                />
+                                                <Button
+                                                  type="button"
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  onClick={() => setActiveExerciseSelector(null)}
+                                                  className="h-6 w-6 p-0"
+                                                >
+                                                  <X className="w-3 h-3" />
+                                                </Button>
+                                              </div>
+                                              <div className="max-h-40 overflow-y-auto space-y-1">
+                                                {exercises.length === 0 && (
+                                                  <p className="text-xs text-muted-foreground px-2">No hay ejercicios</p>
+                                                )}
+                                                {exercises.map((ex) => (
+                                                  <button
+                                                    key={ex.id}
+                                                    type="button"
+                                                    onClick={() => assignExerciseToItem(block.id, itemIndex, ex)}
+                                                    className="w-full text-left text-xs px-2 py-1.5 hover:bg-muted rounded flex items-center gap-2"
+                                                  >
+                                                    <span className="flex-1 truncate">{ex.name}</span>
+                                                    {ex.video_url && <Play className="w-3 h-3 text-blue-500" />}
+                                                  </button>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
                                         </>
                                       )}
                                     </div>
@@ -1499,7 +1708,7 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                                 return (
                                                   <div
                                                     key={itemIndex}
-                                                    className="flex items-center gap-2"
+                                                    className="flex items-center gap-2 relative"
                                                   >
                                                     <span className="text-muted-foreground text-xs">
                                                       -
@@ -1559,18 +1768,49 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                                       </>
                                                     ) : (
                                                       <>
-                                                        <span
-                                                          className="text-sm flex-1 cursor-pointer hover:bg-muted/50 rounded px-2 py-0.5 -mx-2"
+                                                        <div className="flex-1">
+                                                          <span
+                                                            className="text-sm cursor-pointer hover:bg-muted/50 rounded px-2 py-0.5 -mx-2 inline-block"
+                                                            onClick={() =>
+                                                              startEditingItem(
+                                                                block.id,
+                                                                itemIndex,
+                                                                subBlock.id,
+                                                              )
+                                                            }
+                                                          >
+                                                            {item.description}
+                                                          </span>
+                                                          {item.exerciseName && (
+                                                            <span className="inline-flex items-center gap-1 ml-2 text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">
+                                                              <Play className="w-3 h-3" />
+                                                              {item.exerciseName}
+                                                              <button
+                                                                type="button"
+                                                                onClick={() => removeExerciseFromItem(block.id, itemIndex, subBlock.id)}
+                                                                className="hover:text-blue-900 ml-1"
+                                                              >
+                                                                <X className="w-3 h-3" />
+                                                              </button>
+                                                            </span>
+                                                          )}
+                                                        </div>
+                                                        <Button
+                                                          type="button"
+                                                          variant="ghost"
+                                                          size="sm"
                                                           onClick={() =>
-                                                            startEditingItem(
-                                                              block.id,
+                                                            setActiveExerciseSelector({
+                                                              blockId: block.id,
                                                               itemIndex,
-                                                              subBlock.id,
-                                                            )
+                                                              subBlockId: subBlock.id,
+                                                            })
                                                           }
+                                                          className="text-muted-foreground hover:text-foreground h-6 w-6 p-0"
+                                                          title="Asignar ejercicio"
                                                         >
-                                                          {item}
-                                                        </span>
+                                                          <Plus className="w-3 h-3" />
+                                                        </Button>
                                                         <Button
                                                           type="button"
                                                           variant="ghost"
@@ -1601,6 +1841,51 @@ const updateBlockTimer = (blockId: string, timerMode: 'normal' | 'tabata' | 'for
                                                         >
                                                           <X className="w-3 h-3" />
                                                         </Button>
+
+                                                        {/* Selector de ejercicio para sub-bloque */}
+                                                        {activeExerciseSelector?.blockId === block.id &&
+                                                          activeExerciseSelector?.itemIndex === itemIndex &&
+                                                          activeExerciseSelector?.subBlockId === subBlock.id && (
+                                                          <div className="absolute right-0 top-8 z-20 bg-card border rounded-md shadow-lg p-2 w-64">
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                              <Input
+                                                                className="h-7 text-xs"
+                                                                placeholder="Buscar ejercicio..."
+                                                                value={exerciseSearch}
+                                                                onChange={(e) => {
+                                                                  setExerciseSearch(e.target.value);
+                                                                  loadExercises();
+                                                                }}
+                                                                autoFocus
+                                                              />
+                                                              <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => setActiveExerciseSelector(null)}
+                                                                className="h-6 w-6 p-0"
+                                                              >
+                                                                <X className="w-3 h-3" />
+                                                              </Button>
+                                                            </div>
+                                                            <div className="max-h-40 overflow-y-auto space-y-1">
+                                                              {exercises.length === 0 && (
+                                                                <p className="text-xs text-muted-foreground px-2">No hay ejercicios</p>
+                                                              )}
+                                                              {exercises.map((ex) => (
+                                                                <button
+                                                                  key={ex.id}
+                                                                  type="button"
+                                                                  onClick={() => assignExerciseToItem(block.id, itemIndex, ex, subBlock.id)}
+                                                                  className="w-full text-left text-xs px-2 py-1.5 hover:bg-muted rounded flex items-center gap-2"
+                                                                >
+                                                                  <span className="flex-1 truncate">{ex.name}</span>
+                                                                  {ex.video_url && <Play className="w-3 h-3 text-blue-500" />}
+                                                                </button>
+                                                              ))}
+                                                            </div>
+                                                          </div>
+                                                        )}
                                                       </>
                                                     )}
                                                   </div>

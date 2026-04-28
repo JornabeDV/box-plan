@@ -20,6 +20,7 @@ import {
   Target,
   DollarSign,
   Package,
+  Dumbbell,
 } from "lucide-react";
 import { AdminStats } from "@/components/admin/admin-stats";
 import { UsersList } from "@/components/admin/users-list";
@@ -28,6 +29,7 @@ import { DisciplinesList } from "@/components/admin/disciplines-list";
 import { PlanificationModal } from "@/components/admin/planification-modal";
 import { PlanificationCalendar } from "@/components/admin/planification-calendar";
 import { PlanificationDayModal } from "@/components/admin/planification-day-modal";
+import { ExercisesManager } from "@/components/admin/exercises-manager";
 import { ReplicatePlanificationModal } from "@/components/admin/replicate-planification-modal";
 import { BulkImportModal } from "@/components/admin/bulk-import-modal";
 import { StudentPlansManager } from "@/components/coach/student-plans-manager";
@@ -134,6 +136,7 @@ export default function AdminDashboardPage() {
           "planning",
           "users",
           "plans",
+          "exercises",
           "my-plan",
         ].includes(tabParam)
       ) {
@@ -680,6 +683,16 @@ export default function AdminDashboardPage() {
               </div>
             </TabsTrigger>
             <TabsTrigger
+              value="exercises"
+              className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-primary/50 bg-transparent text-primary font-semibold hover:shadow-[0_4px_15px_rgba(230, 255, 43,0.2)] transition-all duration-300 data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-[0_4px_15px_rgba(230, 255, 43,0.3)]"
+            >
+              <div className="flex flex-col items-center gap-1">
+                <Dumbbell className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Ejercicios</span>
+                <span className="sm:hidden text-xs">Ejercicios</span>
+              </div>
+            </TabsTrigger>
+            <TabsTrigger
               value="my-plan"
               className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-primary/50 bg-transparent text-primary font-semibold hover:shadow-[0_4px_15px_rgba(230, 255, 43,0.2)] transition-all duration-300 data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-[0_4px_15px_rgba(230, 255, 43,0.3)]"
             >
@@ -777,6 +790,11 @@ export default function AdminDashboardPage() {
             {/* Conexión con MercadoPago */}
             <StudentPlansManager onPlansChanged={refreshDashboard} />
             <MercadoPagoConnect coachId={coachProfile?.id} />
+          </TabsContent>
+
+          {/* Ejercicios Tab */}
+          <TabsContent value="exercises" className="space-y-6">
+            <ExercisesManager coachId={profileId} />
           </TabsContent>
 
           {/* Mi Cuenta Tab */}

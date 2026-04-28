@@ -3,24 +3,135 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeUserId, isCoach } from '@/lib/auth-helpers'
 import { normalizeDateForArgentina } from '@/lib/utils'
-import { 
-	getCoachPlanificationWeeks, 
-	canCoachLoadMonthlyPlanifications,
-	canCoachLoadUnlimitedPlanifications,
-	canCoachCreatePersonalizedPlanifications
+import {
+  getCoachPlanificationWeeks,
+  canCoachLoadMonthlyPlanifications,
+  canCoachLoadUnlimitedPlanifications,
+  canCoachCreatePersonalizedPlanifications,
 } from '@/lib/coach-plan-features'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-// GET /api/planifications?date=YYYY-MM-DD
-// GET /api/planifications?coachId=123 (para coaches)
-// Obtiene la planificación de una fecha específica (o hoy si no se proporciona) del coach del estudiante según sus preferencias (discipline y level)
-// O si se proporciona coachId, obtiene todas las planificaciones del coach
+// ============================================================
+// Helpers de transformación
+// ============================================================
+
+function transformItem(item: any) {
+  return {
+    id: String(item.id),
+    description: item.description,
+    order: item.order,
+    exercise: item.exercise
+      ? {
+          id: String(item.exercise.id),
+          name: item.exercise.name,
+          category: item.exercise.category,
+          video_url: item.exercise.videoUrl,
+          image_url: item.exercise.imageUrl,
+        }
+      : null,
+  }
+}
+
+function transformSubBlock(subBlock: any) {
+  return {
+    id: String(subBlock.id),
+    subtitle: subBlock.subtitle,
+    order: subBlock.order,
+    timer_mode: subBlock.timerMode || null,
+    timer_config: subBlock.timerConfig || undefined,
+    items: subBlock.items?.map(transformItem) || [],
+  }
+}
+
+function transformBlock(block: any) {
+  return {
+    id: String(block.id),
+    title: block.title,
+    order: block.order,
+    notes: block.notes || undefined,
+    timer_mode: block.timerMode || null,
+    timer_config: block.timerConfig || undefined,
+    items: block.items?.map(transformItem) || [],
+    subBlocks: block.subBlocks?.map(transformSubBlock) || [],
+  }
+}
+
+function transformPlanificationResponse(p: any) {
+  const dateObj = p.date instanceof Date ? p.date : new Date(p.date)
+  const year = dateObj.getFullYear()
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+  const day = String(dateObj.getDate()).padStart(2, '0')
+  const normalizedDate = `${year}-${month}-${day}`
+
+  return {
+    id: String(p.id),
+    coach_id: String(p.coachId),
+    discipline_id: p.disciplineId ? String(p.disciplineId) : null,
+    discipline_level_id: p.disciplineLevelId
+      ? String(p.disciplineLevelId)
+      : null,
+    date: normalizedDate,
+    title: p.title,
+    description: p.description,
+    blocks: p.blocks?.map(transformBlock) || [],
+    notes: p.notes,
+    is_active: !p.isCompleted,
+    is_completed: p.isCompleted,
+    is_personalized: p.isPersonalized || false,
+    target_user_id: p.targetUserId ? String(p.targetUserId) : null,
+    target_user: p.targetUser
+      ? {
+          id: String(p.targetUser.id),
+          name: p.targetUser.name,
+          email: p.targetUser.email,
+        }
+      : null,
+    created_at: p.createdAt.toISOString(),
+    updated_at: p.updatedAt.toISOString(),
+    discipline: p.discipline
+      ? {
+          id: String(p.discipline.id),
+          name: p.discipline.name,
+          color: p.discipline.color,
+        }
+      : null,
+    discipline_level: p.disciplineLevel
+      ? {
+          id: String(p.disciplineLevel.id),
+          name: p.disciplineLevel.name,
+          description: p.disciplineLevel.description,
+        }
+      : null,
+  }
+}
+
+function normalizeItem(item: any): {
+  description: string
+  exerciseId: number | null
+} {
+  if (typeof item === 'string') {
+    return { description: item, exerciseId: null }
+  }
+  return {
+    description: item.description || item.text || '',
+    exerciseId: item.exerciseId
+      ? typeof item.exerciseId === 'string'
+        ? parseInt(item.exerciseId, 10)
+        : item.exerciseId
+      : null,
+  }
+}
+
+// ============================================================
+// GET
+// ============================================================
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth()
-    
+
     const userId = normalizeUserId(session?.user?.id)
     if (!userId) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
@@ -31,7 +142,6 @@ export async function GET(request: NextRequest) {
 
     // Si se proporciona coachId, es una petición del admin dashboard (coach)
     if (coachIdParam) {
-      // Verificar que el usuario es coach
       const authCheck = await isCoach(userId)
       if (!authCheck.isAuthorized || !authCheck.profile) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
@@ -42,149 +152,79 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
       }
 
-      // Obtener todas las planificaciones del coach
       const planifications = await prisma.planification.findMany({
-        where: {
-          coachId: coachId
-        },
+        where: { coachId },
         include: {
-          discipline: {
-            select: {
-              id: true,
-              name: true,
-              color: true
-            }
-          },
+          discipline: { select: { id: true, name: true, color: true } },
           disciplineLevel: {
-            select: {
-              id: true,
-              name: true,
-              description: true
-            }
+            select: { id: true, name: true, description: true },
           },
-          targetUser: {
-            select: {
-              id: true,
-              name: true,
-              email: true
-            }
-          }
+          targetUser: { select: { id: true, name: true, email: true } },
+          blocks: {
+            orderBy: { order: 'asc' },
+            include: {
+              items: {
+                orderBy: { order: 'asc' },
+                include: { exercise: true },
+              },
+              subBlocks: {
+                orderBy: { order: 'asc' },
+                include: {
+                  items: {
+                    orderBy: { order: 'asc' },
+                    include: { exercise: true },
+                  },
+                },
+              },
+            },
+          },
         },
-        orderBy: {
-          date: 'desc'
-        }
+        orderBy: { date: 'desc' },
       })
 
-      // Transformar para respuesta
-      const transformed = planifications.map(p => {
-        const exercisesData = (p as any).exercises
-        const blocksData = exercisesData ? (Array.isArray(exercisesData) ? exercisesData : []) : []
-
-        // Normalizar fecha usando métodos locales para evitar problemas de zona horaria
-        const dateObj = p.date instanceof Date ? p.date : new Date(p.date)
-        const year = dateObj.getFullYear()
-        const month = String(dateObj.getMonth() + 1).padStart(2, '0')
-        const day = String(dateObj.getDate()).padStart(2, '0')
-        const normalizedDate = `${year}-${month}-${day}`
-
-        return {
-          id: String(p.id),
-          coach_id: String(p.coachId),
-          discipline_id: p.disciplineId ? String(p.disciplineId) : null,
-          discipline_level_id: p.disciplineLevelId ? String(p.disciplineLevelId) : null,
-          date: normalizedDate,
-          title: p.title,
-          description: p.description,
-          blocks: blocksData,
-          exercises: exercisesData,
-          notes: p.notes,
-          is_active: !p.isCompleted,
-          is_completed: p.isCompleted,
-          is_personalized: p.isPersonalized || false,
-          target_user_id: p.targetUserId ? String(p.targetUserId) : null,
-          target_user: p.targetUser ? {
-            id: String(p.targetUser.id),
-            name: p.targetUser.name,
-            email: p.targetUser.email
-          } : null,
-          created_at: p.createdAt.toISOString(),
-          updated_at: p.updatedAt.toISOString(),
-          discipline: p.discipline ? {
-            id: String(p.discipline.id),
-            name: p.discipline.name,
-            color: p.discipline.color
-          } : null,
-          discipline_level: p.disciplineLevel ? {
-            id: String(p.disciplineLevel.id),
-            name: p.disciplineLevel.name,
-            description: p.disciplineLevel.description
-          } : null
-        }
-      })
-
+      const transformed = planifications.map(transformPlanificationResponse)
       return NextResponse.json(transformed)
     }
 
     // Caso original: estudiante obteniendo planificación de su coach
-    // Obtener el coach del estudiante
     const relationship = await prisma.coachStudentRelationship.findFirst({
-      where: {
-        studentId: userId,
-        status: 'active'
-      },
-      include: {
-        coach: {
-          select: {
-            id: true
-          }
-        }
-      }
+      where: { studentId: userId, status: 'active' },
+      include: { coach: { select: { id: true } } },
     })
 
     if (!relationship) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         data: null,
-        message: 'El usuario no está asociado a ningún coach activo'
+        message: 'El usuario no está asociado a ningún coach activo',
       })
     }
 
     const coachId = relationship.coach.id
 
-    // Obtener TODAS las disciplinas asignadas al usuario
     const userDisciplines = await prisma.userDiscipline.findMany({
       where: { userId },
       include: {
-        discipline: {
-          select: {
-            id: true,
-            name: true,
-            color: true
-          }
-        },
-        level: {
-          select: {
-            id: true,
-            name: true
-          }
-        }
-      }
+        discipline: { select: { id: true, name: true, color: true } },
+        level: { select: { id: true, name: true } },
+      },
     })
 
-    // Fallback a preferencias antiguas si no hay disciplinas asignadas
-    const preference = userDisciplines.length === 0
-      ? await prisma.userPreference.findUnique({
-          where: { userId },
-          select: {
-            preferredDisciplineId: true,
-            preferredLevelId: true
-          }
-        })
-      : null
+    const preference =
+      userDisciplines.length === 0
+        ? await prisma.userPreference.findUnique({
+            where: { userId },
+            select: {
+              preferredDisciplineId: true,
+              preferredLevelId: true,
+            },
+          })
+        : null
 
-    // Preparar lista de combinaciones disciplina/nivel a buscar
-    let disciplineLevelCombinations: { disciplineId: number; levelId: number | null }[] = []
+    let disciplineLevelCombinations: {
+      disciplineId: number
+      levelId: number | null
+    }[] = []
 
-    // Obtener nivel del query param (para cuando el usuario cambia el filtro)
     const levelIdParam = searchParams.get('levelId')
     const disciplineIdParam = searchParams.get('disciplineId')
     let selectedLevelId: number | null = null
@@ -192,234 +232,179 @@ export async function GET(request: NextRequest) {
 
     if (levelIdParam) {
       selectedLevelId = parseInt(levelIdParam, 10)
-      if (isNaN(selectedLevelId)) {
-        selectedLevelId = null
-      }
+      if (isNaN(selectedLevelId)) selectedLevelId = null
     }
 
     if (disciplineIdParam) {
       selectedDisciplineId = parseInt(disciplineIdParam, 10)
-      if (isNaN(selectedDisciplineId)) {
-        selectedDisciplineId = null
-      }
+      if (isNaN(selectedDisciplineId)) selectedDisciplineId = null
     }
 
     if (selectedDisciplineId) {
-      // Si se especificó una disciplina en particular, buscar esa
-      const userDiscipline = userDisciplines.find(ud => ud.disciplineId === selectedDisciplineId)
-      disciplineLevelCombinations = [{
-        disciplineId: selectedDisciplineId,
-        levelId: selectedLevelId ?? userDiscipline?.levelId ?? null
-      }]
+      const userDiscipline = userDisciplines.find(
+        (ud) => ud.disciplineId === selectedDisciplineId
+      )
+      disciplineLevelCombinations = [
+        {
+          disciplineId: selectedDisciplineId,
+          levelId: selectedLevelId ?? userDiscipline?.levelId ?? null,
+        },
+      ]
     } else if (userDisciplines.length > 0) {
-      // Buscar en todas las disciplinas del usuario
-      disciplineLevelCombinations = userDisciplines.map(ud => ({
+      disciplineLevelCombinations = userDisciplines.map((ud) => ({
         disciplineId: ud.disciplineId,
-        levelId: ud.levelId
+        levelId: ud.levelId,
       }))
     } else if (preference?.preferredDisciplineId) {
-      // Fallback a preferencias antiguas
-      disciplineLevelCombinations = [{
-        disciplineId: preference.preferredDisciplineId,
-        levelId: selectedLevelId ?? preference.preferredLevelId ?? null
-      }]
+      disciplineLevelCombinations = [
+        {
+          disciplineId: preference.preferredDisciplineId,
+          levelId:
+            selectedLevelId ?? preference.preferredLevelId ?? null,
+        },
+      ]
     }
 
-    // Si no hay disciplinas configuradas, no podemos mostrar planificaciones
     if (disciplineLevelCombinations.length === 0) {
       return NextResponse.json({
         data: null,
         needsPreference: true,
-        message: 'El usuario no tiene disciplinas asignadas'
+        message: 'El usuario no tiene disciplinas asignadas',
       })
     }
 
-    // Filtrar combinaciones que no tengan nivel asignado
     const validCombinations = disciplineLevelCombinations.filter(
-      c => c.levelId !== null
+      (c) => c.levelId !== null
     )
 
-    // Si no hay nivel seleccionado para ninguna disciplina, indicar que se necesita seleccionar
     if (validCombinations.length === 0) {
       return NextResponse.json({
         data: null,
         needsLevel: true,
         disciplineId: disciplineLevelCombinations[0]?.disciplineId,
-        message: 'El usuario necesita tener niveles asignados a sus disciplinas para ver las planificaciones'
+        message:
+          'El usuario necesita tener niveles asignados a sus disciplinas para ver las planificaciones',
       })
     }
 
-    // Obtener la fecha del query param o usar hoy
     const dateParam = searchParams.get('date')
-    
     let dateStr: string
     if (dateParam) {
-      // Validar formato YYYY-MM-DD
       const dateRegex = /^\d{4}-\d{2}-\d{2}$/
       if (dateRegex.test(dateParam)) {
         dateStr = dateParam
       } else {
-        // Si el formato no es válido, usar hoy
         const today = new Date()
-        const year = today.getFullYear()
-        const month = String(today.getMonth() + 1).padStart(2, '0')
-        const day = String(today.getDate()).padStart(2, '0')
-        dateStr = `${year}-${month}-${day}`
+        dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
       }
     } else {
-      // Usar hoy - formatear manualmente para evitar problemas de timezone
       const today = new Date()
-      const year = today.getFullYear()
-      const month = String(today.getMonth() + 1).padStart(2, '0')
-      const day = String(today.getDate()).padStart(2, '0')
-      dateStr = `${year}-${month}-${day}`
+      dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
     }
-    
-    // Buscar planificaciones activas para la fecha especificada
-    // Usar la misma normalización que al guardar para evitar problemas de zona horaria
+
     const normalizedDate = normalizeDateForArgentina(dateStr)
-    
-    // Crear rango para buscar: desde el inicio del día hasta el inicio del día siguiente
-    const startOfDay = normalizedDate
-    // Calcular el inicio del día siguiente en UTC (sumar 1 día y mantener el mismo offset de 3 horas)
     const [year, month, day] = dateStr.split('-').map(Number)
-    const nextDayStr = new Date(year, month - 1, day + 1).toISOString().split('T')[0]
+    const nextDayStr = new Date(year, month - 1, day + 1)
+      .toISOString()
+      .split('T')[0]
     const endOfDay = normalizeDateForArgentina(nextDayStr)
+
     const personalizedPlanification = await prisma.planification.findFirst({
       where: {
-        coachId: coachId,
+        coachId,
         targetUserId: userId,
         isPersonalized: true,
-        date: {
-          gte: startOfDay,
-          lt: endOfDay
-        }
+        date: { gte: normalizedDate, lt: endOfDay },
       },
-      select: {
-        id: true,
-        disciplineId: true,
-        disciplineLevelId: true,
-        coachId: true,
-        date: true,
-        title: true,
-        description: true,
-        exercises: true,
-        notes: true,
-        isCompleted: true,
-        isPersonalized: true,
-        targetUserId: true,
-        createdAt: true,
-        updatedAt: true,
-        discipline: {
-          select: {
-            id: true,
-            name: true,
-            color: true
-          }
-        },
+      include: {
+        discipline: { select: { id: true, name: true, color: true } },
         disciplineLevel: {
-          select: {
-            id: true,
-            name: true,
-            description: true
-          }
+          select: { id: true, name: true, description: true },
         },
-        targetUser: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        }
+        targetUser: { select: { id: true, name: true, email: true } },
+        blocks: {
+          orderBy: { order: 'asc' },
+          include: {
+            items: {
+              orderBy: { order: 'asc' },
+              include: { exercise: true },
+            },
+            subBlocks: {
+              orderBy: { order: 'asc' },
+              include: {
+                items: {
+                  orderBy: { order: 'asc' },
+                  include: { exercise: true },
+                },
+              },
+            },
+          },
+        },
       },
-      orderBy: { date: 'asc' }
+      orderBy: { date: 'asc' },
     })
-    
-    // Si hay personalizada, verificar que el estudiante tenga la feature activa
+
     let planification = null
-    
+
     if (personalizedPlanification) {
-      // Verificar que el estudiante tenga personalizedWorkouts activo
       const studentSubscription = await prisma.subscription.findFirst({
-        where: {
-          userId: userId,
-          status: 'active'
-        },
-        include: {
-          plan: {
-            select: {
-              features: true
-            }
-          }
-        }
+        where: { userId, status: 'active' },
+        include: { plan: { select: { features: true } } },
       })
-      
-      // Parsear features si viene como string
+
       let studentFeatures: { personalizedWorkouts?: boolean } | null = null
       const rawFeatures = studentSubscription?.plan?.features
-      
       if (typeof rawFeatures === 'string') {
         try {
           studentFeatures = JSON.parse(rawFeatures)
         } catch (e) {
-          console.error('[DEBUG Planifications] Error parsing features:', e)
+          console.error('Error parsing features:', e)
         }
       } else if (rawFeatures && typeof rawFeatures === 'object') {
         studentFeatures = rawFeatures as { personalizedWorkouts?: boolean }
       }
-      
+
       if (studentFeatures?.personalizedWorkouts === true) {
         planification = personalizedPlanification
       }
     }
 
-    // PASO 2: Si no hay personalizada (o no tiene feature activa), buscar planificaciones GENERALES
-    // Buscar planificaciones para CUALQUIERA de las disciplinas/niveles del usuario
     if (!planification) {
       planification = await prisma.planification.findFirst({
         where: {
-          coachId: coachId,
-          isPersonalized: false, // Explícitamente buscar NO personalizadas
-          date: {
-            gte: startOfDay,
-            lt: endOfDay
-          },
-          OR: validCombinations.map(combo => ({
+          coachId,
+          isPersonalized: false,
+          date: { gte: normalizedDate, lt: endOfDay },
+          OR: validCombinations.map((combo) => ({
             disciplineId: combo.disciplineId,
-            disciplineLevelId: combo.levelId
-          }))
+            disciplineLevelId: combo.levelId,
+          })),
         },
-        select: {
-          id: true,
-          disciplineId: true,
-          disciplineLevelId: true,
-          coachId: true,
-          date: true,
-          title: true,
-          description: true,
-          exercises: true,
-          notes: true,
-          isCompleted: true,
-          isPersonalized: true,
-          targetUserId: true,
-          createdAt: true,
-          updatedAt: true,
-          discipline: {
-            select: {
-              id: true,
-              name: true,
-              color: true
-            }
-          },
+        include: {
+          discipline: { select: { id: true, name: true, color: true } },
           disciplineLevel: {
-            select: {
-              id: true,
-              name: true,
-              description: true
-            }
-          }
+            select: { id: true, name: true, description: true },
+          },
+          blocks: {
+            orderBy: { order: 'asc' },
+            include: {
+              items: {
+                orderBy: { order: 'asc' },
+                include: { exercise: true },
+              },
+              subBlocks: {
+                orderBy: { order: 'asc' },
+                include: {
+                  items: {
+                    orderBy: { order: 'asc' },
+                    include: { exercise: true },
+                  },
+                },
+              },
+            },
+          },
         },
-        orderBy: { date: 'asc' }
+        orderBy: { date: 'asc' },
       })
     }
 
@@ -427,39 +412,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         data: null,
         disciplineId: validCombinations[0]?.disciplineId ?? null,
-        message: `No hay planificación para ${dateParam ? 'esa fecha' : 'hoy'} con tus disciplinas y niveles`
+        message: `No hay planificación para ${dateParam ? 'esa fecha' : 'hoy'} con tus disciplinas y niveles`,
       })
     }
 
-    // Transformar para respuesta
-    // Convertir "exercises" (JSON) a "blocks" para el frontend
-    const exercisesData = (planification as any).exercises
-    const blocksData = exercisesData ? (Array.isArray(exercisesData) ? exercisesData : []) : []
-
-    const transformed = {
-      ...planification,
-      blocks: blocksData, // Agregar blocks para compatibilidad con el frontend
-      exercises: exercisesData, // Mantener exercises también
-      is_personalized: planification.isPersonalized || false,
-      target_user_id: planification.targetUserId ? String(planification.targetUserId) : null,
-      target_user: (planification as any).targetUser ? {
-        id: String((planification as any).targetUser.id),
-        name: (planification as any).targetUser.name,
-        email: (planification as any).targetUser.email
-      } : null,
-      discipline: planification.discipline ? {
-        id: planification.discipline.id,
-        name: planification.discipline.name,
-        color: planification.discipline.color
-      } : null,
-      discipline_level: planification.disciplineLevel ? {
-        id: planification.disciplineLevel.id,
-        name: planification.disciplineLevel.name,
-        description: planification.disciplineLevel.description
-      } : null
-    }
-
-    return NextResponse.json({ data: transformed })
+    return NextResponse.json({
+      data: transformPlanificationResponse(planification),
+    })
   } catch (error) {
     console.error('Error fetching planification:', error)
     return NextResponse.json(
@@ -469,31 +428,33 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/planifications
-// Crea una nueva planificación (solo para coaches)
+// ============================================================
+// POST
+// ============================================================
+
 export async function POST(request: NextRequest) {
   try {
     const session = await auth()
-    
+
     const userId = normalizeUserId(session?.user?.id)
     if (!userId) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    // Verificar que el usuario es coach
     const authCheck = await isCoach(userId)
     if (!authCheck.isAuthorized || !authCheck.profile) {
-      return NextResponse.json({ error: 'No autorizado. Solo coaches pueden crear planificaciones.' }, { status: 403 })
+      return NextResponse.json(
+        { error: 'No autorizado. Solo coaches pueden crear planificaciones.' },
+        { status: 403 }
+      )
     }
 
     const coachId = authCheck.profile.id
     const body = await request.json()
 
-    // Nuevos campos para planificaciones personalizadas
     const isPersonalized = body.is_personalized || false
     const targetUserId = body.target_user_id || null
 
-    // Validación para planificaciones personalizadas
     if (isPersonalized && !targetUserId) {
       return NextResponse.json(
         { error: 'target_user_id es requerido para planificaciones personalizadas' },
@@ -501,10 +462,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Si es personalizada, validar que el usuario sea estudiante del coach
     if (isPersonalized && targetUserId) {
-      const targetUserIdNum = typeof targetUserId === 'string' ? parseInt(targetUserId, 10) : targetUserId
-      
+      const targetUserIdNum =
+        typeof targetUserId === 'string'
+          ? parseInt(targetUserId, 10)
+          : targetUserId
+
       if (isNaN(targetUserIdNum)) {
         return NextResponse.json(
           { error: 'target_user_id inválido' },
@@ -514,10 +477,10 @@ export async function POST(request: NextRequest) {
 
       const relationship = await prisma.coachStudentRelationship.findFirst({
         where: {
-          coachId: coachId,
+          coachId,
           studentId: targetUserIdNum,
-          status: 'active'
-        }
+          status: 'active',
+        },
       })
 
       if (!relationship) {
@@ -527,7 +490,6 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      // Validar que el coach tenga el feature de planificaciones personalizadas
       const canCreatePersonalized = await canCoachCreatePersonalizedPlanifications(coachId)
       if (!canCreatePersonalized) {
         return NextResponse.json(
@@ -536,22 +498,14 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      // Validar que el estudiante tenga la feature personalizedWorkouts en su plan
       const studentSubscription = await prisma.subscription.findFirst({
-        where: {
-          userId: targetUserIdNum,
-          status: 'active'
-        },
-        include: {
-          plan: {
-            select: {
-              features: true
-            }
-          }
-        }
+        where: { userId: targetUserIdNum, status: 'active' },
+        include: { plan: { select: { features: true } } },
       })
 
-      const studentFeatures = studentSubscription?.plan?.features as { personalizedWorkouts?: boolean } | null
+      const studentFeatures = studentSubscription?.plan?.features as
+        | { personalizedWorkouts?: boolean }
+        | null
 
       if (!studentFeatures?.personalizedWorkouts) {
         return NextResponse.json(
@@ -560,17 +514,19 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      // Validar que no exista ya una planificación personalizada para ese usuario en esa fecha
-      const dateStr = typeof body.date === 'string' ? body.date : body.date.toISOString().split('T')[0]
-      const normalizedDate = normalizeDateForArgentina(dateStr)
-      
+      const dateStr =
+        typeof body.date === 'string'
+          ? body.date
+          : body.date.toISOString().split('T')[0]
+      const normalizedDateCheck = normalizeDateForArgentina(dateStr)
+
       const existingPersonalized = await prisma.planification.findFirst({
         where: {
-          coachId: coachId,
+          coachId,
           targetUserId: targetUserIdNum,
           isPersonalized: true,
-          date: normalizedDate
-        }
+          date: normalizedDateCheck,
+        },
       })
 
       if (existingPersonalized) {
@@ -581,8 +537,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Validar campos requeridos
-    // Para personalizadas, disciplina y nivel son opcionales
     if (!isPersonalized) {
       if (!body.discipline_id) {
         return NextResponse.json(
@@ -590,7 +544,6 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         )
       }
-
       if (!body.discipline_level_id) {
         return NextResponse.json(
           { error: 'ID de nivel de disciplina requerido' },
@@ -606,9 +559,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Preparar datos para crear
-    const disciplineIdNum = body.discipline_id ? (typeof body.discipline_id === 'string' ? parseInt(body.discipline_id, 10) : body.discipline_id) : null
-    const disciplineLevelIdNum = body.discipline_level_id ? (typeof body.discipline_level_id === 'string' ? parseInt(body.discipline_level_id, 10) : body.discipline_level_id) : null
+    const disciplineIdNum = body.discipline_id
+      ? typeof body.discipline_id === 'string'
+        ? parseInt(body.discipline_id, 10)
+        : body.discipline_id
+      : null
+    const disciplineLevelIdNum = body.discipline_level_id
+      ? typeof body.discipline_level_id === 'string'
+        ? parseInt(body.discipline_level_id, 10)
+        : body.discipline_level_id
+      : null
 
     if (disciplineIdNum && isNaN(disciplineIdNum)) {
       return NextResponse.json(
@@ -624,8 +584,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Normalizar la fecha
-    const dateStr = typeof body.date === 'string' ? body.date : body.date.toISOString().split('T')[0]
+    const dateStr =
+      typeof body.date === 'string'
+        ? body.date
+        : body.date.toISOString().split('T')[0]
     const normalizedDate = normalizeDateForArgentina(dateStr)
 
     // Validar límite de días hacia adelante según el plan del coach
@@ -634,21 +596,14 @@ export async function POST(request: NextRequest) {
       const canLoadMonthly = await canCoachLoadMonthlyPlanifications(coachId)
       const canLoadUnlimited = await canCoachLoadUnlimitedPlanifications(coachId)
 
-      // Parsear la fecha de la planificación
       const [year, month, day] = dateStr.split('-').map(Number)
       const planificationDate = new Date(year, month - 1, day)
-      
-      // Obtener fecha de hoy (sin hora, solo fecha)
       const today = new Date()
       const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-      
-      // Calcular diferencia en días
       const diffTime = planificationDate.getTime() - todayDate.getTime()
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
-      // Validar según el tipo de plan
       if (canLoadUnlimited) {
-        // Plan ELITE: sin límite, pero no puede crear en el pasado
         if (diffDays < 0) {
           return NextResponse.json(
             { error: 'No puedes crear planificaciones en el pasado' },
@@ -656,22 +611,19 @@ export async function POST(request: NextRequest) {
           )
         }
       } else if (canLoadMonthly) {
-        // Plan POWER: puede cargar hasta 1 mes adelante
-        const maxDays = 30
         if (diffDays < 0) {
           return NextResponse.json(
             { error: 'No puedes crear planificaciones en el pasado' },
             { status: 403 }
           )
         }
-        if (diffDays > maxDays) {
+        if (diffDays > 30) {
           return NextResponse.json(
-            { error: `Tu plan solo permite cargar planificaciones hasta ${maxDays} días adelante` },
+            { error: 'Tu plan solo permite cargar planificaciones hasta 30 días adelante' },
             { status: 403 }
           )
         }
       } else if (planificationWeeks > 0) {
-        // Plan START: solo puede cargar hasta X semanas adelante
         const maxDays = planificationWeeks * 7
         if (diffDays < 0) {
           return NextResponse.json(
@@ -686,7 +638,6 @@ export async function POST(request: NextRequest) {
           )
         }
       } else {
-        // Sin plan o plan sin límite de semanas: solo puede cargar para hoy
         if (diffDays !== 0) {
           return NextResponse.json(
             { error: 'Tu plan solo permite cargar planificaciones para el día actual' },
@@ -695,107 +646,133 @@ export async function POST(request: NextRequest) {
         }
       }
     } catch (planError) {
-      // Si hay error al obtener el plan, loguear pero continuar con la creación
-      // (para no bloquear si hay un problema temporal con el sistema de planes)
       console.error('Error al validar límite de planificación:', planError)
     }
 
-    // Los bloques se envían como "blocks" pero se guardan en "exercises" (campo JSON)
-    const exercisesData = body.blocks || body.exercises || null
+    const targetUserIdNum = targetUserId
+      ? typeof targetUserId === 'string'
+        ? parseInt(targetUserId, 10)
+        : targetUserId
+      : null
 
-    // Crear la planificación
-    const targetUserIdNum = targetUserId ? (typeof targetUserId === 'string' ? parseInt(targetUserId, 10) : targetUserId) : null
-    
-    const created = await prisma.planification.create({
-      data: {
-        coachId: coachId,
-        disciplineId: disciplineIdNum,
-        disciplineLevelId: disciplineLevelIdNum,
-        date: normalizedDate,
-        title: body.title || null,
-        description: body.description || null,
-        exercises: exercisesData ? JSON.parse(JSON.stringify(exercisesData)) : null,
-        notes: body.notes || null,
-        isCompleted: body.is_completed || false,
-        isPersonalized: isPersonalized,
-        targetUserId: targetUserIdNum
-      },
-      include: {
-        discipline: {
-          select: {
-            id: true,
-            name: true,
-            color: true
-          }
+    const blocksData = body.blocks || body.exercises || []
+
+    // Crear planificación y bloques en transacción
+    const createdPlanification = await prisma.$transaction(async (tx) => {
+      const planification = await tx.planification.create({
+        data: {
+          coachId,
+          disciplineId: disciplineIdNum,
+          disciplineLevelId: disciplineLevelIdNum,
+          date: normalizedDate,
+          title: body.title || null,
+          description: body.description || null,
+          notes: body.notes || null,
+          isCompleted: body.is_completed || false,
+          isPersonalized: isPersonalized,
+          targetUserId: targetUserIdNum,
         },
-        disciplineLevel: {
-          select: {
-            id: true,
-            name: true,
-            description: true
-          }
+        include: {
+          discipline: { select: { id: true, name: true, color: true } },
+          disciplineLevel: {
+            select: { id: true, name: true, description: true },
+          },
+          targetUser: { select: { id: true, name: true, email: true } },
         },
-        targetUser: {
-          select: {
-            id: true,
-            name: true,
-            email: true
+      })
+
+      for (const block of blocksData) {
+        const createdBlock = await tx.planificationBlock.create({
+          data: {
+            planificationId: planification.id,
+            title: block.title || '',
+            order: block.order ?? 0,
+            notes: block.notes || null,
+            timerMode: block.timer_mode || null,
+            timerConfig: block.timer_config || null,
+          },
+        })
+
+        const items = block.items || []
+        for (let i = 0; i < items.length; i++) {
+          const normalized = normalizeItem(items[i])
+          await tx.planificationItem.create({
+            data: {
+              blockId: createdBlock.id,
+              description: normalized.description,
+              exerciseId: normalized.exerciseId,
+              order: i,
+            },
+          })
+        }
+
+        const subBlocks = block.subBlocks || []
+        for (const subBlock of subBlocks) {
+          const createdSubBlock = await tx.planificationSubBlock.create({
+            data: {
+              blockId: createdBlock.id,
+              subtitle: subBlock.subtitle || '',
+              order: subBlock.order ?? 0,
+              timerMode: subBlock.timer_mode || null,
+              timerConfig: subBlock.timer_config || null,
+            },
+          })
+
+          const subItems = subBlock.items || []
+          for (let i = 0; i < subItems.length; i++) {
+            const normalized = normalizeItem(subItems[i])
+            await tx.planificationItem.create({
+              data: {
+                subBlockId: createdSubBlock.id,
+                description: normalized.description,
+                exerciseId: normalized.exerciseId,
+                order: i,
+              },
+            })
           }
         }
       }
+
+      return planification
     })
 
-    // Transformar para respuesta
-    // Convertir "exercises" (JSON) a "blocks" para el frontend
-    const exercisesDataResponse = (created as any).exercises
-    const blocksData = exercisesDataResponse ? (Array.isArray(exercisesDataResponse) ? exercisesDataResponse : []) : []
+    // Recuperar la planificación completa con relaciones para la respuesta
+    const fullPlanification = await prisma.planification.findUnique({
+      where: { id: createdPlanification.id },
+      include: {
+        discipline: { select: { id: true, name: true, color: true } },
+        disciplineLevel: {
+          select: { id: true, name: true, description: true },
+        },
+        targetUser: { select: { id: true, name: true, email: true } },
+        blocks: {
+          orderBy: { order: 'asc' },
+          include: {
+            items: {
+              orderBy: { order: 'asc' },
+              include: { exercise: true },
+            },
+            subBlocks: {
+              orderBy: { order: 'asc' },
+              include: {
+                items: {
+                  orderBy: { order: 'asc' },
+                  include: { exercise: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
 
-    // Normalizar fecha usando métodos locales para evitar problemas de zona horaria
-    const dateObj = created.date instanceof Date ? created.date : new Date(created.date)
-    const responseYear = dateObj.getFullYear()
-    const responseMonth = String(dateObj.getMonth() + 1).padStart(2, '0')
-    const responseDay = String(dateObj.getDate()).padStart(2, '0')
-    const normalizedDateString = `${responseYear}-${responseMonth}-${responseDay}`
-
-    const transformed = {
-      id: String(created.id),
-      coach_id: String(created.coachId),
-      discipline_id: created.disciplineId ? String(created.disciplineId) : null,
-      discipline_level_id: created.disciplineLevelId ? String(created.disciplineLevelId) : null,
-      date: normalizedDateString,
-      title: created.title,
-      description: created.description,
-      blocks: blocksData,
-      exercises: exercisesDataResponse,
-      notes: created.notes,
-      is_active: !created.isCompleted,
-      is_completed: created.isCompleted,
-      is_personalized: created.isPersonalized || false,
-      target_user_id: created.targetUserId ? String(created.targetUserId) : null,
-      target_user: created.targetUser ? {
-        id: String(created.targetUser.id),
-        name: created.targetUser.name,
-        email: created.targetUser.email
-      } : null,
-      created_at: created.createdAt.toISOString(),
-      updated_at: created.updatedAt.toISOString(),
-      discipline: created.discipline ? {
-        id: String(created.discipline.id),
-        name: created.discipline.name,
-        color: created.discipline.color
-      } : null,
-      discipline_level: created.disciplineLevel ? {
-        id: String(created.disciplineLevel.id),
-        name: created.disciplineLevel.name,
-        description: created.disciplineLevel.description
-      } : null
-    }
-
-    return NextResponse.json(transformed, { status: 201 })
+    return NextResponse.json(
+      transformPlanificationResponse(fullPlanification),
+      { status: 201 }
+    )
   } catch (error: any) {
     console.error('Error creating planification:', error)
-    
-    // Manejar errores específicos de Prisma
+
     if (error.code === 'P2003') {
       return NextResponse.json(
         { error: 'Disciplina o nivel no encontrado' },
