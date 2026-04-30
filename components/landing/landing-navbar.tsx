@@ -7,10 +7,10 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
-  { label: "Features", href: "/#features" },
-  { label: "Pricing", href: "/pricing" },
-  { label: "Community", href: "/#testimonials" },
-  { label: "Workouts", href: "/#how-it-works" },
+  { label: "Funcionalidades", href: "/#features" },
+  { label: "Precios", href: "/pricing" },
+  { label: "Comunidad", href: "/#testimonials" },
+  { label: "Cómo funciona", href: "/#how-it-works" },
 ];
 
 export function LandingNavbar() {
@@ -57,7 +57,7 @@ export function LandingNavbar() {
                 window.location.href = "/login";
               }}
             >
-              Login
+              Iniciar sesión
             </Button>
             <Button
               size="sm"
@@ -66,7 +66,7 @@ export function LandingNavbar() {
                 window.location.href = "/pricing";
               }}
             >
-              Get Started
+              Comenzar
             </Button>
           </div>
 
@@ -74,7 +74,7 @@ export function LandingNavbar() {
           <button
             className="md:hidden p-2 text-muted-foreground hover:text-foreground relative w-9 h-9 flex items-center justify-center"
             onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Toggle menu"
+            aria-label="Alternar menú"
           >
             <Menu
               className={cn(
@@ -125,7 +125,7 @@ export function LandingNavbar() {
                   window.location.href = "/login";
                 }}
               >
-                Login
+                Iniciar sesión
               </Button>
               <Button
                 className="w-full bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-semibold tracking-wide"
@@ -134,7 +134,7 @@ export function LandingNavbar() {
                   window.location.href = "/pricing";
                 }}
               >
-                Get Started
+                Comenzar
               </Button>
             </div>
           </div>
