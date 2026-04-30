@@ -631,7 +631,7 @@ export default function AdminDashboardPage() {
           onValueChange={handleTabChange}
           className="space-y-6"
         >
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 gap-2 h-auto">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-7 gap-2 h-auto">
             <TabsTrigger
               value="overview"
               className="cursor-pointer text-xs sm:text-sm px-2 py-2 h-auto whitespace-nowrap relative overflow-hidden group border-2 border-primary/50 bg-transparent text-primary font-semibold hover:shadow-[0_4px_15px_rgba(230, 255, 43,0.2)] transition-all duration-300 data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-[0_4px_15px_rgba(230, 255, 43,0.3)]"

@@ -1416,7 +1416,7 @@ export function PlanificationModal({
                                   return (
                                     <div
                                       key={itemIndex}
-                                      className="flex items-start gap-2 relative flex sm:flex-nowrap"
+                                      className="items-start gap-2 relative flex sm:flex-nowrap"
                                     >
                                       {isEditing ? (
                                         <>
@@ -1461,14 +1461,14 @@ export function PlanificationModal({
                                         </>
                                       ) : (
                                         <>
-                                          <div className="flex-col items-center gap-2">
+                                          <div className="flex max-md:flex-col items-center gap-2">
                                             <div className="flex items-center gap-2">
                                               <div className="flex min-w-0 justify-between items-center w-full">
                                                 <span className="text-muted-foreground mr-2">
                                                   -
                                                 </span>
                                                 <span
-                                                  className="text-sm cursor-pointer hover:bg-muted/50 rounded px-2 py-1 -mx-2 -my-1 inline-block flex truncate max-w-[120px]"
+                                                  className="text-sm cursor-pointer hover:bg-muted/50 rounded px-2 py-1 -mx-2 -my-1 inline-block flex truncate max-md:max-w-[120px]"
                                                   onClick={() =>
                                                     startEditingItem(
                                                       block.id,
