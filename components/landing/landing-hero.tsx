@@ -13,6 +13,9 @@ import Image from "next/image";
 
 const carouselSlides = [
   { src: "/banner_mobile_1.png", alt: "Box Plan - Vista mobile" },
+  { src: "/banner_mobile_2.png", alt: "Box Plan - Vista mobile" },
+  { src: "/banner_mobile_3.png", alt: "Box Plan - Vista mobile" },
+  { src: "/banner_mobile_4.png", alt: "Box Plan - Vista mobile" },
 ];
 
 export function LandingHero() {
@@ -175,10 +178,8 @@ export function LandingHero() {
                 </CarouselItem>
               ))}
             </CarouselContent>
-            <div className="flex items-center justify-center gap-2">
-              <CarouselPrevious className="static translate-y-0" />
-              <CarouselNext className="static translate-y-0" />
-            </div>
+            <CarouselPrevious className="left-2 top-1/2 -translate-y-1/2 h-11 w-11 rounded-full bg-background/40 backdrop-blur-md border-border/50 text-foreground hover:bg-background/60 z-10 shadow-sm" />
+            <CarouselNext className="right-2 top-1/2 -translate-y-1/2 h-11 w-11 rounded-full bg-background/40 backdrop-blur-md border-border/50 text-foreground hover:bg-background/60 z-10 shadow-sm" />
           </Carousel>
         </div>
       </div>

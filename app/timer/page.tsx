@@ -208,7 +208,7 @@ export default function TimerPage() {
                   Herramienta
                 </p>
                 <h1 className="text-3xl md:text-4xl font-bold italic text-primary">
-                  Timer CrossFit
+                  Timer
                 </h1>
               </div>
             </div>
@@ -430,7 +430,7 @@ export default function TimerPage() {
                   Herramienta
                 </p>
                 <h1 className="text-3xl md:text-4xl font-bold italic text-primary">
-                  Timer CrossFit
+                  Timer
                 </h1>
               </div>
             </div>

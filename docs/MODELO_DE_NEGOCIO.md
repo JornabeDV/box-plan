@@ -150,7 +150,7 @@ El modelo de negocio se basa en:
 - Progreso histórico
 
 ### 3. **Herramientas de Apoyo**
-- **Timer CrossFit**: Múltiples modos (Tabata, For Time, AMRAP, EMOM, OTM)
+- **Timer**: Múltiples modos (Tabata, For Time, AMRAP, EMOM, OTM)
 - **Calculadora 1RM**: Fórmula Brzycki
 - **Planificación de entrenamientos** (Pro/Elite)
 
