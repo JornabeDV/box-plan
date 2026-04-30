@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Search, Pencil, Trash2, Play, Dumbbell } from "lucide-react";
 import { useCoachExercises } from "@/hooks/use-coach-exercises";
 import { useToast } from "@/hooks/use-toast";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 interface ExercisesManagerProps {
   coachId?: string | null;
@@ -34,6 +35,9 @@ export function ExercisesManager({ coachId }: ExercisesManagerProps) {
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingExercise, setEditingExercise] = useState<any>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [exerciseToDelete, setExerciseToDelete] = useState<any>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -109,13 +113,16 @@ export function ExercisesManager({ coachId }: ExercisesManagerProps) {
     }
   };
 
-  const handleDelete = async (exercise: any) => {
-    const confirmed = window.confirm(
-      `¿Eliminar el ejercicio "${exercise.name}"?`
-    );
-    if (!confirmed) return;
+  const handleDelete = (exercise: any) => {
+    setExerciseToDelete(exercise);
+    setShowDeleteDialog(true);
+  };
 
-    const result = await deleteExercise(exercise.id);
+  const handleConfirmDelete = async () => {
+    if (!exerciseToDelete) return;
+    setDeleting(true);
+    const result = await deleteExercise(exerciseToDelete.id);
+    setDeleting(false);
     if (result.error) {
       toast({
         title: "Error",
@@ -124,6 +131,8 @@ export function ExercisesManager({ coachId }: ExercisesManagerProps) {
       });
     } else {
       toast({ title: "Ejercicio eliminado" });
+      setShowDeleteDialog(false);
+      setExerciseToDelete(null);
     }
   };
 
@@ -162,12 +171,9 @@ export function ExercisesManager({ coachId }: ExercisesManagerProps) {
       {!loading && exercises.length === 0 && (
         <div className="text-center py-12 border-2 border-dashed rounded-lg">
           <Dumbbell className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium mb-1">
-            No hay ejercicios aún
-          </h3>
+          <h3 className="text-lg font-medium mb-1">No hay ejercicios aún</h3>
           <p className="text-muted-foreground text-sm mb-4">
-            Creá tu primer ejercicio con video para usar en las
-            planificaciones.
+            Creá tu primer ejercicio con video para usar en las planificaciones.
           </p>
           <Button onClick={() => handleOpenModal()}>
             <Plus className="w-4 h-4 mr-2" />
@@ -179,7 +185,7 @@ export function ExercisesManager({ coachId }: ExercisesManagerProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {exercises.map((exercise) => (
           <Card key={exercise.id} className="overflow-hidden">
-            <CardContent className="p-4">
+            <CardContent>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold truncate">{exercise.name}</h3>
@@ -189,30 +195,33 @@ export function ExercisesManager({ coachId }: ExercisesManagerProps) {
                     </span>
                   )}
                 </div>
-                <div className="flex gap-1 flex-shrink-0">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   {exercise.video_url && (
-                    <a
-                      href={exercise.video_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center h-8 w-8 rounded-md text-blue-600 hover:bg-blue-50"
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      asChild
                       title="Ver video"
                     >
-                      <Play className="w-4 h-4" />
-                    </a>
+                      <a
+                        href={exercise.video_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Play className="w-4 h-4" />
+                      </a>
+                    </Button>
                   )}
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
-                    className="h-8 w-8 p-0"
                     onClick={() => handleOpenModal(exercise)}
                   >
                     <Pencil className="w-4 h-4" />
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
-                    className="h-8 w-8 p-0 text-destructive"
                     onClick={() => handleDelete(exercise)}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -301,10 +310,11 @@ export function ExercisesManager({ coachId }: ExercisesManagerProps) {
               />
             </div>
 
-            <div className="flex justify-end gap-2">
+            <div className="max-md:flex-col md:flex justify-end gap-2">
               <Button
                 type="button"
                 variant="outline"
+                className="w-full md:w-auto mb-2 md:mb-0"
                 onClick={() => {
                   setModalOpen(false);
                   resetForm();
@@ -312,13 +322,30 @@ export function ExercisesManager({ coachId }: ExercisesManagerProps) {
               >
                 Cancelar
               </Button>
-              <Button type="submit">
+              <Button type="submit" className="w-full md:w-auto">
                 {editingExercise ? "Guardar Cambios" : "Crear Ejercicio"}
               </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Diálogo de confirmación para eliminar */}
+      <ConfirmationDialog
+        open={showDeleteDialog}
+        onOpenChange={(open) => {
+          if (!deleting) {
+            setShowDeleteDialog(open);
+          }
+        }}
+        onConfirm={handleConfirmDelete}
+        title="Eliminar Ejercicio"
+        description={`¿Estás seguro de que quieres eliminar el ejercicio "${exerciseToDelete?.name}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="destructive"
+        loading={deleting}
+      />
     </div>
   );
 }
