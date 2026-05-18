@@ -4,8 +4,11 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Mail, CheckCircle, ArrowLeft, Loader2 } from 'lucide-react'
-import { useAuth } from '@/hooks/use-auth'
+import { Mail, ArrowLeft, Loader2, MessageCircle } from 'lucide-react'
+
+// NOTE: Flujo de recuperación por email desactivado provisionalmente.
+// Los endpoints (forgot-password, reset-password, validate-reset-token)
+// y el hook useAuth->resetPassword quedan intactos para reactivar en el futuro.
 
 interface ForgotPasswordFormProps {
   onBack: () => void
@@ -15,8 +18,6 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
-  const [emailSent, setEmailSent] = useState(false)
-  const { resetPassword } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,27 +36,35 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
     setMessage(null)
 
     try {
-      const { error } = await resetPassword(email)
+      const response = await fetch('/api/auth/forgot-password-whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      })
 
-      if (error) {
-        let errorMessage = error.message
-
-        if (error.message.includes('Invalid email')) {
-          errorMessage = 'Email no válido'
-        } else if (error.message.includes('User not found')) {
-          errorMessage = 'No existe una cuenta con este email'
-        } else if (error.message.includes('Too many requests')) {
-          errorMessage = 'Demasiados intentos. Intenta más tarde'
-        }
-
-        setMessage({ type: 'error', text: errorMessage })
-      } else {
-        setEmailSent(true)
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
         setMessage({
-          type: 'success',
-          text: 'Te hemos enviado un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada.',
+          type: 'error',
+          text: data.error || 'No se encontró información. Verificá tu email o contactá a tu coach directamente.'
         })
+        return
       }
+
+      const { coachPhone, studentName, coachName } = await response.json()
+
+      if (!coachPhone) {
+        setMessage({
+          type: 'error',
+          text: 'No se encontró información. Verificá tu email o contactá a tu coach directamente.'
+        })
+        return
+      }
+
+      const text = `Hola ${coachName}, soy ${studentName}. Olvidé mi contraseña de BoxPlan, ¿me la podés resetear?`
+      const waUrl = `https://wa.me/${coachPhone}?text=${encodeURIComponent(text)}`
+
+      window.location.href = waUrl
     } catch (err) {
       setMessage({
         type: 'error',
@@ -64,78 +73,6 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
     } finally {
       setLoading(false)
     }
-  }
-
-  const handleResendEmail = async () => {
-    setLoading(true)
-    setMessage(null)
-
-    try {
-      const { error } = await resetPassword(email)
-
-      if (error) {
-        setMessage({ type: 'error', text: 'Error al reenviar el email' })
-      } else {
-        setMessage({
-          type: 'success',
-          text: 'Email reenviado correctamente',
-        })
-      }
-    } catch (err) {
-      setMessage({ type: 'error', text: 'Error al reenviar el email' })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (emailSent) {
-    return (
-      <div className="w-full space-y-6">
-        <div className="text-center space-y-2">
-          <div className="mx-auto w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
-            <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
-          </div>
-          <h3 className="text-xl font-bold">¡Email enviado!</h3>
-          <p className="text-sm text-muted-foreground">
-            Te hemos enviado un enlace para restablecer tu contraseña
-          </p>
-        </div>
-
-        <div className="text-center text-sm text-muted-foreground space-y-1">
-          <p>Revisa tu bandeja de entrada y sigue las instrucciones del email.</p>
-          <p>Si no ves el email, revisa tu carpeta de spam.</p>
-        </div>
-
-        {message && (
-          <Alert className={message.type === 'error' ? 'border-red-200 bg-red-50 dark:border-red-900/30 dark:bg-red-900/10' : 'border-green-200 bg-green-50 dark:border-green-900/30 dark:bg-green-900/10'}>
-            <AlertDescription className={message.type === 'error' ? 'text-red-800 dark:text-red-300' : 'text-green-800 dark:text-green-300'}>
-              {message.text}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <div className="space-y-3">
-          <Button
-            onClick={handleResendEmail}
-            disabled={loading}
-            variant="outline"
-            className="w-full"
-          >
-            <Mail className="w-4 h-4 mr-2" />
-            {loading ? 'Reenviando...' : 'Reenviar email'}
-          </Button>
-
-          <Button
-            onClick={onBack}
-            variant="ghost"
-            className="w-full"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Volver al login
-          </Button>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -160,6 +97,10 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
           </div>
         </div>
 
+        <div className="text-sm text-muted-foreground space-y-1">
+          <p>Ingresá tu email y te conectaremos con tu coach por WhatsApp para que te resetee la contraseña.</p>
+        </div>
+
         {message && (
           <Alert className={message.type === 'error' ? 'border-red-200 bg-red-50 dark:border-red-900/30 dark:bg-red-900/10' : 'border-green-200 bg-green-50 dark:border-green-900/30 dark:bg-green-900/10'}>
             <AlertDescription className={message.type === 'error' ? 'text-red-800 dark:text-red-300' : 'text-green-800 dark:text-green-300'}>
@@ -175,7 +116,8 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
           disabled={loading}
         >
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Enviar enlace de recuperación
+          {!loading && <MessageCircle className="mr-2 h-4 w-4" />}
+          Contactar a mi coach
         </Button>
       </form>
 
@@ -183,8 +125,9 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
         <button
           type="button"
           onClick={onBack}
-          className="text-sm font-semibold text-primary hover:text-primary-dim transition-colors"
+          className="text-sm font-semibold text-primary hover:text-primary-dim transition-colors inline-flex items-center"
         >
+          <ArrowLeft className="w-4 h-4 mr-1" />
           Volver al login
         </button>
       </div>

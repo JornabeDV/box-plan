@@ -207,7 +207,7 @@ export function useProfile() {
   }
 
   // Actualizar perfil
-  const updateProfile = async (updates: Partial<Profile>) => {
+  const updateProfile = async (updates: Partial<Profile> & { current_password?: string; new_password?: string }) => {
     try {
       const userId = session?.user?.id
       if (!userId) throw new Error('Usuario no autenticado')

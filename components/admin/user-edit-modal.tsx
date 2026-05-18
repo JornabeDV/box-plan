@@ -179,7 +179,7 @@ export function UserEditModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg">
+      <DialogContent className="w-full max-w-full sm:max-w-md h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Editar Usuario
@@ -261,7 +261,7 @@ export function UserEditModal({
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute -right-4 sm:right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     tabIndex={-1}
                   >
                     {showPassword ? (
@@ -289,7 +289,7 @@ export function UserEditModal({
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute -right-4 sm:right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     tabIndex={-1}
                   >
                     {showConfirmPassword ? (
