@@ -35,6 +35,8 @@ import {
   Weight,
   Zap,
   ChevronRight,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -46,7 +48,7 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const { disciplines: userDisciplines, loading: userDisciplinesLoading } =
     useUserDisciplines();
-  const { stats } = useProgressStats(user?.id);
+  const { stats } = useProgressStats(user?.id ? String(user.id) : undefined);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -54,6 +56,14 @@ export default function ProfilePage() {
     avatar_url: profile?.avatar_url || "",
     phone: profile?.phone || "",
   });
+  const [passwordData, setPasswordData] = useState({
+    current_password: "",
+    new_password: "",
+    confirm_password: "",
+  });
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -71,17 +81,61 @@ export default function ProfilePage() {
       avatar_url: profile?.avatar_url || "",
       phone: profile?.phone || "",
     });
+    setPasswordData({
+      current_password: "",
+      new_password: "",
+      confirm_password: "",
+    });
     setIsEditModalOpen(true);
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const result = await updateProfile({
+      const updates: any = {
         full_name: formData.full_name || null,
         avatar_url: formData.avatar_url || null,
         phone: formData.phone || null,
-      });
+      };
+
+      const isChangingPassword =
+        passwordData.current_password ||
+        passwordData.new_password ||
+        passwordData.confirm_password;
+
+      if (isChangingPassword) {
+        if (!passwordData.current_password || !passwordData.new_password || !passwordData.confirm_password) {
+          toast({
+            title: "Error de validación",
+            description: "Completá todos los campos de contraseña",
+            variant: "destructive",
+          });
+          setIsSaving(false);
+          return;
+        }
+        if (passwordData.new_password !== passwordData.confirm_password) {
+          toast({
+            title: "Error de validación",
+            description: "Las contraseñas nuevas no coinciden",
+            variant: "destructive",
+          });
+          setIsSaving(false);
+          return;
+        }
+        if (passwordData.new_password.length < 6) {
+          toast({
+            title: "Error de validación",
+            description: "La nueva contraseña debe tener al menos 6 caracteres",
+            variant: "destructive",
+          });
+          setIsSaving(false);
+          return;
+        }
+        updates.current_password = passwordData.current_password;
+        updates.new_password = passwordData.new_password;
+      }
+
+      const result = await updateProfile(updates);
 
       if (result.error) {
         toast({
@@ -93,6 +147,11 @@ export default function ProfilePage() {
         toast({
           title: "Perfil actualizado",
           description: "Tu información se ha actualizado exitosamente",
+        });
+        setPasswordData({
+          current_password: "",
+          new_password: "",
+          confirm_password: "",
         });
         setIsEditModalOpen(false);
       }
@@ -161,9 +220,9 @@ export default function ProfilePage() {
             <Button
               variant="ghost"
               onClick={handleEdit}
-              className="w-full h-auto justify-start gap-4 rounded-2xl bg-surface-container px-4 hover:bg-surface-container-high py-0"
+              className="w-full h-auto justify-start gap-4 bg-surface-container px-4 hover:bg-surface-container-high py-0"
             >
-              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 bg-primary flex items-center justify-center shrink-0">
                 <User className="w-5 h-5 text-primary-foreground" />
               </div>
               <div className="flex-1 text-left">
@@ -264,7 +323,7 @@ export default function ProfilePage() {
 
       {/* Modal de Edición */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="w-full max-w-full sm:max-w-md h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg">
           <DialogHeader>
             <DialogTitle>Editar Perfil</DialogTitle>
             <DialogDescription>
@@ -309,6 +368,91 @@ export default function ProfilePage() {
                   setFormData({ ...formData, phone: e.target.value })
                 }
               />
+            </div>
+
+            <div className="border-t pt-4 space-y-2">
+              <h4 className="text-sm font-medium">Cambiar contraseña</h4>
+              <div className="grid gap-2">
+                <Label htmlFor="current_password">Contraseña actual</Label>
+                <div className="relative">
+                  <Input
+                    id="current_password"
+                    type={showCurrentPassword ? "text" : "password"}
+                    placeholder="Contraseña actual"
+                    className="pr-12"
+                    value={passwordData.current_password}
+                    onChange={(e) =>
+                      setPasswordData({ ...passwordData, current_password: e.target.value })
+                    }
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="absolute -right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    tabIndex={-1}
+                  >
+                    {showCurrentPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="new_password">Nueva contraseña</Label>
+                <div className="relative">
+                  <Input
+                    id="new_password"
+                    type={showNewPassword ? "text" : "password"}
+                    placeholder="Nueva contraseña (mínimo 6 caracteres)"
+                    className="pr-12"
+                    value={passwordData.new_password}
+                    onChange={(e) =>
+                      setPasswordData({ ...passwordData, new_password: e.target.value })
+                    }
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute -right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    tabIndex={-1}
+                  >
+                    {showNewPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="confirm_password">Confirmar nueva contraseña</Label>
+                <div className="relative">
+                  <Input
+                    id="confirm_password"
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Repetí la nueva contraseña"
+                    className="pr-12"
+                    value={passwordData.confirm_password}
+                    onChange={(e) =>
+                      setPasswordData({ ...passwordData, confirm_password: e.target.value })
+                    }
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute -right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    tabIndex={-1}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
           <DialogFooter>

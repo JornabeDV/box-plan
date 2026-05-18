@@ -123,7 +123,7 @@ export function StudentDisciplinesManager({ studentId, studentName, coachId }: S
             {disciplinesToAdd.length > 0 && (
               <div className="pt-3 border-t space-y-2">
                 <p className="text-xs font-medium text-muted-foreground">Agregar disciplina</p>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Select
                     value={selectedDisciplineId}
                     onValueChange={(value) => {

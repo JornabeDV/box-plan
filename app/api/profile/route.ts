@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeUserId } from '@/lib/auth-helpers'
+import bcrypt from 'bcryptjs'
 
 export async function GET(request: NextRequest) {
   try {
@@ -61,13 +62,42 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { full_name, avatar_url, phone } = body
+    const { full_name, avatar_url, phone, current_password, new_password } = body
 
     // Preparar datos de actualización
     const updateData: any = {}
     if (full_name !== undefined) updateData.name = full_name
     if (avatar_url !== undefined) updateData.image = avatar_url
     if (phone !== undefined) updateData.phone = phone
+
+    // Si viene cambio de contraseña, validar y hashear
+    if (current_password !== undefined || new_password !== undefined) {
+      if (!current_password || !new_password) {
+        return NextResponse.json({ error: 'Debes ingresar la contraseña actual y la nueva' }, { status: 400 })
+      }
+
+      const trimmedNew = new_password.trim()
+      if (trimmedNew.length < 6) {
+        return NextResponse.json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' }, { status: 400 })
+      }
+
+      // Obtener contraseña actual hasheada
+      const userWithPassword = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { password: true }
+      })
+
+      if (!userWithPassword) {
+        return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
+      }
+
+      const valid = await bcrypt.compare(current_password, userWithPassword.password)
+      if (!valid) {
+        return NextResponse.json({ error: 'Contraseña actual incorrecta' }, { status: 400 })
+      }
+
+      updateData.password = await bcrypt.hash(trimmedNew, 10)
+    }
     
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'No hay campos para actualizar' }, { status: 400 })
