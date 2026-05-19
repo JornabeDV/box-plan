@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useTodayPlanification } from "@/hooks/use-today-planification";
-import { Flame, Timer, Dumbbell, ArrowRight } from "lucide-react";
+import { Flame, Timer, Dumbbell, ArrowRight, Zap, Settings } from "lucide-react";
 
 function IntensityBars({ level = 3 }: { level?: number }) {
   return (
@@ -24,7 +24,11 @@ function IntensityBars({ level = 3 }: { level?: number }) {
 
 export function KineticWorkoutCard() {
   const router = useRouter();
-  const { planification, loading } = useTodayPlanification();
+  const { planifications, loading } = useTodayPlanification();
+
+  const primary = planifications?.primary;
+  const others = planifications?.others || [];
+  const hasAnyPlan = !!primary || others.length > 0;
 
   if (loading) {
     return (
@@ -38,7 +42,7 @@ export function KineticWorkoutCard() {
     );
   }
 
-  if (!planification) {
+  if (!hasAnyPlan) {
     return (
       <Card>
         <CardContent className="space-y-2">
@@ -52,9 +56,9 @@ export function KineticWorkoutCard() {
     );
   }
 
-  const firstBlock = planification.blocks?.[0];
-  const blockCount = planification.blocks?.length || 0;
-  const duration = planification.estimatedDuration;
+  const firstBlock = primary?.blocks?.[0];
+  const blockCount = primary?.blocks?.length || 0;
+  const duration = primary?.estimatedDuration;
 
   const handleStart = () => {
     const today = new Date();
@@ -62,6 +66,14 @@ export function KineticWorkoutCard() {
     const month = String(today.getMonth() + 1).padStart(2, "0");
     const day = String(today.getDate()).padStart(2, "0");
     router.push(`/planification?date=${year}-${month}-${day}`);
+  };
+
+  const handleOtherClick = (disciplineId: number) => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    router.push(`/planification?date=${year}-${month}-${day}&disciplineId=${disciplineId}`);
   };
 
   return (
@@ -72,26 +84,37 @@ export function KineticWorkoutCard() {
           <span className="italic">Planificación</span>{" "}
           <span className="text-primary italic">de hoy</span>
         </h2>
-        <Badge>Active</Badge>
+        <button
+          onClick={() => router.push("/profile")}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-primary transition-colors"
+        >
+          <Settings className="w-3.5 h-3.5" />
+          <span className="max-sm:hidden">Cambiar disciplina principal</span>
+        </button>
       </div>
 
       {/* Main Card */}
       <Card>
         <CardContent className="space-y-5">
-          {/* Title + Duration */}
+          {/* Title + Discipline/Level */}
           <div className="flex items-start justify-between gap-4">
-            <div>
+            <div className="min-w-0">
               <span className="label-md text-muted-foreground block mb-1">
-                Entrenamiento Principal
+                {others.length > 0 ? "Entrenamiento Principal" : "Entrenamiento de hoy"}
               </span>
               <h3 className="text-lg font-bold text-primary uppercase tracking-wide">
-                {planification.discipline?.name || "Entrenamiento"}
-                {planification.disciplineLevel?.name && (
+                {primary?.discipline?.name || "Entrenamiento"}
+                {primary?.disciplineLevel?.name && (
                   <span className="block text-foreground mt-0.5">
-                    {planification.disciplineLevel.name}
+                    {primary.disciplineLevel.name}
                   </span>
                 )}
               </h3>
+              {primary?.title && (
+                <p className="body-sm text-foreground mt-1 truncate">
+                  {primary.title}
+                </p>
+              )}
             </div>
             {duration && (
               <div className="text-right shrink-0">
@@ -137,6 +160,28 @@ export function KineticWorkoutCard() {
           </Button>
         </CardContent>
       </Card>
+
+      {/* Others */}
+      {others.length > 0 && (
+        <div className="space-y-2">
+          <p className="label-md text-muted-foreground">También tenés hoy:</p>
+          <div className="flex flex-wrap gap-2">
+            {others.map((plan) => (
+              <button
+                key={plan.id}
+                onClick={() => handleOtherClick(plan.disciplineId || 0)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container-high hover:bg-surface-container-highest transition-colors text-sm font-medium text-foreground border border-border"
+              >
+                <Zap className="w-3.5 h-3.5 text-primary" />
+                <span>{plan.discipline?.name || "Entrenamiento"}</span>
+                {plan.disciplineLevel?.name && (
+                  <span className="text-muted-foreground">— {plan.disciplineLevel.name}</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

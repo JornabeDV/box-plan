@@ -10,6 +10,7 @@ interface UseTimerProps {
 	restTime: string
 	totalRounds: string
 	amrapTime: string
+	forTimeCap?: string
 }
 
 // SONIDO TIPO CAMPANA DE GIMNASIO (estándar CrossFit)
@@ -89,6 +90,7 @@ export function useTimer({
 	restTime,
 	totalRounds,
 	amrapTime,
+	forTimeCap,
 }: UseTimerProps) {
 	const [time, setTime] = useState(0)
 	const [isRunning, setIsRunning] = useState(false)
@@ -252,6 +254,15 @@ export function useTimer({
 
 					const newTime = prevTime + 1
 
+					// Lógica FOR TIME: detener si se alcanza el time cap
+					if (mode === 'fortime') {
+						const forTimeCapNum = parseInt(forTimeCap || '0') || 0
+						if (forTimeCapNum > 0 && newTime >= forTimeCapNum * 60) {
+							setIsRunning(false)
+							return forTimeCapNum * 60
+						}
+					}
+
 					if (mode === 'tabata') {
 						const workTimeNum = parseInt(workTime) || 20
 						const restTimeNum = parseInt(restTime) || 10
@@ -327,7 +338,7 @@ export function useTimer({
 				clearInterval(intervalRef.current)
 			}
 		}
-	}, [isRunning, isPaused, mode, workTime, restTime, totalRounds, isWorkPhase, countdown, currentRound, amrapTime])
+	}, [isRunning, isPaused, mode, workTime, restTime, totalRounds, isWorkPhase, countdown, currentRound, amrapTime, forTimeCap])
 
 	const formatTime = (seconds: number) => {
 		const hours = Math.floor(seconds / 3600)

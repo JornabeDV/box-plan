@@ -11,12 +11,14 @@ interface TimerConfigProps {
   restTime: string;
   totalRounds: string;
   amrapTime: string;
+  forTimeCap: string;
   isRunning: boolean;
   isPaused: boolean;
   onWorkTimeChange: (value: string) => void;
   onRestTimeChange: (value: string) => void;
   onTotalRoundsChange: (value: string) => void;
   onAmrapTimeChange: (value: string) => void;
+  onForTimeCapChange: (value: string) => void;
 }
 
 export function TimerConfig({
@@ -25,12 +27,14 @@ export function TimerConfig({
   restTime,
   totalRounds,
   amrapTime,
+  forTimeCap,
   isRunning,
   isPaused,
   onWorkTimeChange,
   onRestTimeChange,
   onTotalRoundsChange,
   onAmrapTimeChange,
+  onForTimeCapChange,
 }: TimerConfigProps) {
   if (mode === "tabata") {
     return (
@@ -212,6 +216,43 @@ export function TimerConfig({
               placeholder="10"
               disabled={isRunning || isPaused}
             />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (mode === "fortime") {
+    return (
+      <Card className="max-w-md mx-auto">
+        <CardHeader>
+          <CardTitle>Configuración FOR TIME</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="forTimeCap">Time Cap (minutos)</Label>
+            <Input
+              id="forTimeCap"
+              type="number"
+              value={forTimeCap}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (
+                  value === "" ||
+                  (value.length <= 3 && parseInt(value) <= 999)
+                ) {
+                  onForTimeCapChange(value);
+                }
+              }}
+              min="1"
+              max="999"
+              placeholder="Sin límite"
+              disabled={isRunning || isPaused}
+            />
+            <p className="text-sm text-muted-foreground">
+              Tiempo límite para completar el entrenamiento. Déjalo vacío para
+              cronómetro sin límite.
+            </p>
           </div>
         </CardContent>
       </Card>

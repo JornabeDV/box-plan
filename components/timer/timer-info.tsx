@@ -32,6 +32,8 @@ export function TimerInfo({ mode }: TimerInfoProps) {
           <>
             <p>• Completa el entrenamiento en el menor tiempo</p>
             <p>• Cronómetro cuenta hacia arriba</p>
+            <p>• Opcional: configura un Time Cap (tiempo límite)</p>
+            <p>• Si alcanzas el Time Cap, el cronómetro se detiene automáticamente</p>
             <p>• Registra tu mejor tiempo</p>
           </>
         );

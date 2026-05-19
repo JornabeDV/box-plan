@@ -32,6 +32,7 @@ export default function TimerPage() {
   const [restTime, setRestTime] = useState("10");
   const [totalRounds, setTotalRounds] = useState("8");
   const [amrapTime, setAmrapTime] = useState("10");
+  const [forTimeCap, setForTimeCap] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const timerContainerRef = useRef<HTMLDivElement>(null);
 
@@ -64,6 +65,7 @@ export default function TimerPage() {
     restTime,
     totalRounds,
     amrapTime,
+    forTimeCap,
   });
 
   const handleModeChange = (newMode: TimerMode) => {
@@ -76,6 +78,12 @@ export default function TimerPage() {
       setRestTime("60"); // 60 segundos de descanso entre rondas (solo si > 1 ronda)
       setTotalRounds("1"); // 1 ronda por defecto (clásico)
       setAmrapTime("10"); // 10 minutos clásico
+      setForTimeCap("");
+    } else if (newMode === 'fortime') {
+      setForTimeCap("");
+      setWorkTime("20");
+      setRestTime("10");
+      setTotalRounds("8");
     } else if (newMode === 'tabata') {
       setWorkTime("20");
       setRestTime("10");
@@ -92,6 +100,7 @@ export default function TimerPage() {
       setWorkTime("20");
       setRestTime("10");
       setTotalRounds("8");
+      setForTimeCap("");
     }
   };
 
@@ -342,6 +351,13 @@ export default function TimerPage() {
               de {amrapTime} minutos
             </div>
           )}
+
+          {/* Time Cap para FOR TIME */}
+          {mode === "fortime" && forTimeCap && parseInt(forTimeCap) > 0 && (
+            <div className="text-lg md:text-2xl text-white/60 mb-4">
+              Time Cap: {forTimeCap} min
+            </div>
+          )}
         </div>
 
         {/* Controles abajo */}
@@ -444,12 +460,14 @@ export default function TimerPage() {
             restTime={restTime}
             totalRounds={totalRounds}
             amrapTime={amrapTime}
+            forTimeCap={forTimeCap}
             isRunning={isRunning}
             isPaused={isPaused}
             onWorkTimeChange={setWorkTime}
             onRestTimeChange={setRestTime}
             onTotalRoundsChange={setTotalRounds}
             onAmrapTimeChange={setAmrapTime}
+            onForTimeCapChange={setForTimeCap}
           />
 
           <TimerDisplay
@@ -463,6 +481,7 @@ export default function TimerPage() {
             isPaused={isPaused}
             countdown={countdown}
             emomTotalTime={getEmomTotalTime()}
+            forTimeCap={forTimeCap}
             soundEnabled={soundEnabled}
             onStart={() => {
               handleStart();
