@@ -45,6 +45,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useDisciplines } from "@/hooks/use-disciplines";
+import { useToast } from "@/hooks/use-toast";
 
 interface ItemData {
   id: string;
@@ -178,6 +179,7 @@ export function PlanificationModal({
   onSubmit,
   onImport,
 }: PlanificationModalProps) {
+  const { toast } = useToast();
   const {
     disciplines,
     disciplineLevels,
@@ -929,6 +931,12 @@ export function PlanificationModal({
       } else {
         setLoading(false);
         onOpenChange(false);
+        toast({
+          title: planification ? "Planificación actualizada" : "Planificación creada",
+          description: planification
+            ? "Los cambios se han guardado exitosamente."
+            : "La planificación se ha creado exitosamente.",
+        });
       }
     } catch (err) {
       console.error("Error en handleSubmit:", err);
