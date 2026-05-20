@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SubscriptionGate } from "@/components/subscription/subscription-gate";
+import { useUserDisciplines } from "@/hooks/use-user-disciplines";
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -55,6 +56,8 @@ export function PlanificationContent() {
     availableDisciplineOptions,
   } = usePlanificationData({ userId: user?.id });
 
+  const { disciplines: userDisciplines } = useUserDisciplines();
+
   const showLevelModal = needsLevel;
   const { handleSaveWodScore, handleSaveStrengthScore } =
     usePlanificationScores({
@@ -75,22 +78,11 @@ export function PlanificationContent() {
     if (!user?.id || newLevelId === selectedLevelId) return;
 
     try {
-      const response = await fetch(`/api/user-preferences/${user.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          preferred_discipline_id: disciplineId,
-          preferred_level_id: newLevelId,
-        }),
-      });
-
-      if (!response.ok) throw new Error("Error al actualizar preferencia");
-
       await setSelectedLevelId(newLevelId);
 
       toast({
-        title: "Nivel actualizado",
-        description: "Tu preferencia ha sido actualizada",
+        title: "Nivel cambiado",
+        description: "Mostrando planificación del nivel seleccionado",
       });
     } catch (error) {
       console.error("Error updating level:", error);
@@ -116,49 +108,7 @@ export function PlanificationContent() {
         levels={levels}
         selectedLevelId={selectedLevelId}
         onLevelChange={handleLevelChange}
-        disciplineName={disciplineName}
         isPersonalized={planification?.is_personalized}
-        selectedDisciplineId={disciplineId}
-        availableDisciplineOptions={availableDisciplineOptions}
-        onDisciplineChange={async (newDisciplineId) => {
-          if (!user?.id || newDisciplineId === disciplineId) return;
-
-          try {
-            const response = await fetch(`/api/user-preferences/${user.id}`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                preferred_discipline_id: newDisciplineId,
-                preferred_level_id: null,
-              }),
-            });
-
-            if (!response.ok)
-              throw new Error("Error al actualizar preferencia");
-
-            const params = new URLSearchParams(searchParams.toString());
-            if (newDisciplineId) {
-              params.set("disciplineId", newDisciplineId.toString());
-            } else {
-              params.delete("disciplineId");
-            }
-            router.replace(`/planification?${params.toString()}`, {
-              scroll: false,
-            });
-
-            toast({
-              title: "Disciplina actualizada",
-              description: "Tu preferencia ha sido actualizada",
-            });
-          } catch (error) {
-            console.error("Error updating discipline:", error);
-            toast({
-              title: "Error",
-              description: "No se pudo actualizar la disciplina",
-              variant: "destructive",
-            });
-          }
-        }}
       />
 
       {planification && (
@@ -239,32 +189,50 @@ export function PlanificationContent() {
           disciplineId={disciplineId || 0}
           disciplineName={disciplineName}
           onClose={() => {}}
-          onLevelSelected={(levelId) => {
-            if (user?.id) {
-              fetch(`/api/user-preferences/${user.id}`, {
+          onLevelSelected={async (levelId) => {
+            if (!user?.id || !disciplineId) return;
+
+            const userDiscipline = userDisciplines.find(
+              (d) => d.disciplineId === disciplineId
+            );
+
+            try {
+              // Actualizar nivel en UserDiscipline
+              if (userDiscipline) {
+                const res = await fetch(
+                  `/api/user-disciplines/${userDiscipline.id}`,
+                  {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ levelId }),
+                  }
+                );
+                if (!res.ok) throw new Error("Error al actualizar disciplina");
+              }
+
+              // Sincronizar preferencia principal
+              await fetch(`/api/user-preferences/${user.id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   preferred_discipline_id: disciplineId,
                   preferred_level_id: levelId,
                 }),
-              })
-                .then(() => {
-                  setNeedsLevel(false);
-                  setSelectedLevelId(levelId);
-                  toast({
-                    title: "Nivel guardado",
-                    description: "Tu preferencia ha sido actualizada",
-                  });
-                })
-                .catch((err) => {
-                  console.error("Error:", err);
-                  toast({
-                    title: "Error",
-                    description: "No se pudo guardar la preferencia",
-                    variant: "destructive",
-                  });
-                });
+              });
+
+              setNeedsLevel(false);
+              setSelectedLevelId(levelId);
+              toast({
+                title: "Nivel guardado",
+                description: "Tu nivel ha sido actualizado",
+              });
+            } catch (err) {
+              console.error("Error:", err);
+              toast({
+                title: "Error",
+                description: "No se pudo guardar el nivel",
+                variant: "destructive",
+              });
             }
           }}
         />

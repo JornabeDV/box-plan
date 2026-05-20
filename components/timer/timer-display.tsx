@@ -29,6 +29,7 @@ interface TimerDisplayProps {
   isPaused: boolean;
   countdown?: number | null;
   emomTotalTime?: string;
+  forTimeCap?: string;
   soundEnabled?: boolean;
   onStart: () => void;
   onPause: () => void;
@@ -66,6 +67,7 @@ export function TimerDisplay({
   isPaused,
   countdown,
   emomTotalTime,
+  forTimeCap,
   soundEnabled = true,
   onStart,
   onPause,
@@ -180,6 +182,16 @@ export function TimerDisplay({
             Tiempo total:{" "}
             <span className="font-mono font-bold text-foreground text-2xl">
               {emomTotalTime}
+            </span>
+          </div>
+        )}
+
+        {/* Time Cap para FOR TIME */}
+        {mode === "fortime" && forTimeCap && parseInt(forTimeCap) > 0 && !isCountdownActive && (
+          <div className="text-lg text-muted-foreground">
+            Time Cap:{" "}
+            <span className="font-mono font-bold text-foreground text-2xl">
+              {forTimeCap} min
             </span>
           </div>
         )}

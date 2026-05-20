@@ -26,7 +26,7 @@ export async function PUT(
 		}
 
 		const body = await request.json()
-		const { levelId } = body
+		const { levelId, preferredLevelId } = body
 
 		// Verificar que la relación existe y pertenece al usuario
 		const existingRelation = await prisma.userDiscipline.findFirst({
@@ -46,42 +46,45 @@ export async function PUT(
 			)
 		}
 
-		// Validar el nuevo nivel si se proporciona
-		let levelIdNum: number | null = null
-		if (levelId !== undefined) {
-			if (levelId === null) {
-				levelIdNum = null
-			} else {
-				levelIdNum = parseInt(String(levelId), 10)
-				if (isNaN(levelIdNum)) {
-					return NextResponse.json(
-						{ error: 'levelId debe ser un número válido' },
-						{ status: 400 }
-					)
-				}
-
-				// Verificar que el nivel pertenece a la disciplina
-				const level = await prisma.disciplineLevel.findFirst({
-					where: {
-						id: levelIdNum,
-						disciplineId: existingRelation.disciplineId
-					}
-				})
-
-				if (!level) {
-					return NextResponse.json(
-						{ error: 'Nivel no encontrado o no pertenece a la disciplina' },
-						{ status: 400 }
-					)
-				}
+		// Helper para validar nivel
+		const validateLevel = async (value: unknown): Promise<number | null | undefined> => {
+			if (value === undefined) return undefined
+			if (value === null) return null
+			const num = parseInt(String(value), 10)
+			if (isNaN(num)) {
+				throw new Error('levelId debe ser un número válido')
 			}
+			const level = await prisma.disciplineLevel.findFirst({
+				where: {
+					id: num,
+					disciplineId: existingRelation.disciplineId
+				}
+			})
+			if (!level) {
+				throw new Error('Nivel no encontrado o no pertenece a la disciplina')
+			}
+			return num
+		}
+
+		let levelIdNum: number | null | undefined = undefined
+		let preferredLevelIdNum: number | null | undefined = undefined
+
+		try {
+			levelIdNum = await validateLevel(levelId)
+			preferredLevelIdNum = await validateLevel(preferredLevelId)
+		} catch (err: any) {
+			return NextResponse.json(
+				{ error: err.message },
+				{ status: 400 }
+			)
 		}
 
 		// Actualizar
 		const updated = await prisma.userDiscipline.update({
 			where: { id: userDisciplineId },
 			data: {
-				levelId: levelIdNum ?? undefined
+				levelId: levelIdNum,
+				preferredLevelId: preferredLevelIdNum ?? levelIdNum
 			},
 			include: {
 				discipline: {
@@ -92,6 +95,12 @@ export async function PUT(
 					}
 				},
 				level: {
+					select: {
+						id: true,
+						name: true
+					}
+				},
+				preferredLevel: {
 					select: {
 						id: true,
 						name: true

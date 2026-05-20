@@ -38,32 +38,33 @@ interface Planification {
  */
 export function StatsCards() {
   const router = useRouter()
-  const { planification, loading, error } = useTodayPlanification()
+  const { planifications, loading, error } = useTodayPlanification()
+  const primary = planifications?.primary
   
   // Adaptar la estructura de datos si es necesario
-  const adaptedPlanification = planification ? {
-    id: planification.id,
-    discipline_id: String(planification.disciplineId),
-    discipline_level_id: String(planification.disciplineLevelId),
-    date: planification.date,
-    estimated_duration: planification.estimatedDuration,
-    blocks: planification.blocks?.map((block, index) => ({
+  const adaptedPlanification = primary ? {
+    id: primary.id,
+    discipline_id: String(primary.disciplineId),
+    discipline_level_id: String(primary.disciplineLevelId),
+    date: primary.date,
+    estimated_duration: primary.estimatedDuration,
+    blocks: primary.blocks?.map((block, index) => ({
       id: block.id,
       title: block.name,
       items: block.description ? [block.description] : [],
       order: index
     })) || [],
-    notes: planification.description,
-    discipline: planification.discipline ? {
-      id: planification.discipline.id,
-      name: planification.discipline.name,
-      color: planification.discipline.color,
+    notes: primary.description,
+    discipline: primary.discipline ? {
+      id: primary.discipline.id,
+      name: primary.discipline.name,
+      color: primary.discipline.color,
       icon: ''
     } : undefined,
-    discipline_level: planification.disciplineLevel ? {
-      id: planification.disciplineLevel.id,
-      name: planification.disciplineLevel.name,
-      description: planification.disciplineLevel.description
+    discipline_level: primary.discipline_level ? {
+      id: primary.discipline_level.id,
+      name: primary.discipline_level.name,
+      description: primary.discipline_level.description
     } : undefined
   } : null
 

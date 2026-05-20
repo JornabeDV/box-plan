@@ -6,24 +6,37 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
+import { useMonthPlanifications } from "@/hooks/use-month-planifications";
+
+interface DisciplineInfo {
+  id: number;
+  name: string;
+  color: string;
+}
+
+interface FullCalendarProps {
+  discipline?: DisciplineInfo | null;
+}
 
 /**
  * Componente FullCalendar - Calendario mensual completo
  * Permite navegar entre meses y hacer click en días para ver entrenamientos
  */
-export function FullCalendar() {
+export function FullCalendar({ discipline }: FullCalendarProps) {
   const { user } = useAuth();
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [datesWithPlanification, setDatesWithPlanification] = useState<
-    number[]
-  >([]);
-  const [loading, setLoading] = useState(false);
   const [todayHasWorkout, setTodayHasWorkout] = useState(false);
 
   const today = new Date();
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
+
+  const { datesWithPlanification, loading } = useMonthPlanifications(
+    year,
+    month + 1,
+    discipline?.id ?? null
+  );
 
   // Obtener el primer día del mes y cuántos días tiene
   const firstDay = new Date(year, month, 1);
@@ -79,11 +92,14 @@ export function FullCalendar() {
     const day = String(today.getDate()).padStart(2, "0");
     const dateString = `${year}-${month}-${day}`;
 
-    // Redirigir a la planilla de hoy
-    router.push(`/planification?date=${dateString}`);
+    // Redirigir a la planilla de hoy de la disciplina seleccionada
+    const url = discipline
+      ? `/planification?date=${dateString}&disciplineId=${discipline.id}`
+      : `/planification?date=${dateString}`;
+    router.push(url);
   };
 
-  // Verificar si hoy tiene planificación (independientemente del mes mostrado)
+  // Verificar si hoy tiene planificación (respetando el filtro de disciplina)
   useEffect(() => {
     const checkTodayWorkout = async () => {
       if (!user?.id) {
@@ -94,8 +110,16 @@ export function FullCalendar() {
       try {
         const todayYear = today.getFullYear();
         const todayMonth = today.getMonth() + 1;
+        const params = new URLSearchParams({
+          year: todayYear.toString(),
+          month: todayMonth.toString(),
+        });
+        if (discipline?.id != null) {
+          params.append("disciplineId", discipline.id.toString());
+        }
+
         const response = await fetch(
-          `/api/planifications/month?year=${todayYear}&month=${todayMonth}`
+          `/api/planifications/month?${params.toString()}`
         );
 
         if (!response.ok) {
@@ -117,44 +141,7 @@ export function FullCalendar() {
     };
 
     checkTodayWorkout();
-  }, [user?.id]);
-
-  // Cargar planificaciones del mes
-  useEffect(() => {
-    const fetchMonthPlanifications = async () => {
-      if (!user?.id) {
-        setDatesWithPlanification([]);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const response = await fetch(
-          `/api/planifications/month?year=${year}&month=${month + 1}`
-        );
-
-        if (!response.ok) {
-          console.error("Error fetching month planifications");
-          return;
-        }
-
-        const data = await response.json();
-
-        if (data.data && Array.isArray(data.data)) {
-          setDatesWithPlanification(data.data);
-        } else {
-          setDatesWithPlanification([]);
-        }
-      } catch (err) {
-        console.error("Error fetching month planifications:", err);
-        setDatesWithPlanification([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMonthPlanifications();
-  }, [user?.id, year, month]);
+  }, [user?.id, discipline?.id]);
 
   // Verificar si un día tiene planificación
   const hasWorkout = (day: number) => {
@@ -182,7 +169,11 @@ export function FullCalendar() {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, "0");
     const d = String(date.getDate()).padStart(2, "0");
-    router.push(`/planification?date=${y}-${m}-${d}`);
+    const dateString = `${y}-${m}-${d}`;
+    const url = discipline
+      ? `/planification?date=${dateString}&disciplineId=${discipline.id}`
+      : `/planification?date=${dateString}`;
+    router.push(url);
   };
 
   // Generar array de días del mes
@@ -280,12 +271,22 @@ export function FullCalendar() {
                       isCurrentDay
                         ? "bg-primary text-primary-foreground shadow-accent animate-pulse-glow"
                         : hasWorkoutValue
-                        ? "bg-primary/15 text-primary hover:bg-primary/25 hover:scale-105 border-2 border-primary/40"
+                        ? discipline
+                          ? "hover:scale-105 border-2 text-foreground"
+                          : "bg-primary/15 text-primary hover:bg-primary/25 hover:scale-105 border-2 border-primary/40"
                         : "bg-background border border-muted-foreground/20 text-muted-foreground"
                     }
                     ${isClickable ? "cursor-pointer" : "cursor-default"}
                     ${isPast ? "opacity-50" : ""}
                   `}
+                  style={
+                    !isCurrentDay && hasWorkoutValue && discipline
+                      ? {
+                          borderColor: discipline.color,
+                          backgroundColor: discipline.color + "18",
+                        }
+                      : undefined
+                  }
                   onClick={isClickable ? () => handleDayClick(day) : undefined}
                 >
                   <span className="text-sm">{day}</span>
@@ -302,9 +303,19 @@ export function FullCalendar() {
             <span className="text-xs text-muted-foreground">Hoy</span>
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
-            <div className="w-3 h-3 bg-primary/15 border-2 border-primary/40 rounded-full"></div>
+            <div
+              className="w-3 h-3 rounded-full border-2"
+              style={
+                discipline
+                  ? {
+                      backgroundColor: discipline.color + "18",
+                      borderColor: discipline.color,
+                    }
+                  : { backgroundColor: "hsl(var(--primary) / 0.15)", borderColor: "hsl(var(--primary) / 0.4)" }
+              }
+            ></div>
             <span className="text-xs text-muted-foreground">
-              Días de entrenamiento
+              {discipline ? `Días de ${discipline.name}` : "Días de entrenamiento"}
             </span>
           </div>
           <div className="flex items-center gap-1 sm:gap-2">

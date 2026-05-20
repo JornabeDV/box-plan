@@ -8,6 +8,7 @@ export interface UserDiscipline {
 	userId: number
 	disciplineId: number
 	levelId: number | null
+	preferredLevelId: number | null
 	createdAt: string
 	updatedAt: string
 	discipline?: {
@@ -17,6 +18,11 @@ export interface UserDiscipline {
 		description?: string
 	}
 	level?: {
+		id: number
+		name: string
+		description?: string | null
+	}
+	preferredLevel?: {
 		id: number
 		name: string
 		description?: string | null
@@ -37,14 +43,16 @@ export function useUserDisciplines() {
 		error: null
 	})
 
-	const fetchDisciplines = useCallback(async () => {
+	const fetchDisciplines = useCallback(async (opts?: { silent?: boolean }) => {
 		if (!session?.user?.id) {
 			setState(prev => ({ ...prev, loading: false, disciplines: [] }))
 			return
 		}
 
 		try {
-			setState(prev => ({ ...prev, loading: true, error: null }))
+			if (!opts?.silent) {
+				setState(prev => ({ ...prev, loading: true, error: null }))
+			}
 
 			const timestamp = Date.now()
 			const response = await fetch(`/api/user-disciplines?_t=${timestamp}`, {
@@ -62,11 +70,13 @@ export function useUserDisciplines() {
 			setState(prev => ({ ...prev, loading: false, disciplines: data }))
 		} catch (error) {
 			console.error('Error fetching user disciplines:', error)
-			setState(prev => ({
-				...prev,
-				loading: false,
-				error: error instanceof Error ? error.message : 'Error al cargar disciplinas'
-			}))
+			if (!opts?.silent) {
+				setState(prev => ({
+					...prev,
+					loading: false,
+					error: error instanceof Error ? error.message : 'Error al cargar disciplinas'
+				}))
+			}
 		}
 	}, [session?.user?.id])
 
@@ -173,6 +183,38 @@ export function useUserDisciplines() {
 		return discipline?.levelId ?? null
 	}, [state.disciplines])
 
+	const getDisciplinePreferredLevel = useCallback((disciplineId: number) => {
+		const discipline = state.disciplines.find(d => d.disciplineId === disciplineId)
+		return discipline?.preferredLevelId ?? null
+	}, [state.disciplines])
+
+	const updatePreferredLevel = async (userDisciplineId: number, preferredLevelId: number | null) => {
+		if (!session?.user?.id) {
+			return { error: 'Usuario no autenticado' }
+		}
+
+		try {
+			const response = await fetch(`/api/user-disciplines/${userDisciplineId}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ preferredLevelId })
+			})
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}))
+				return { error: errorData.error || 'Error al actualizar nivel favorito' }
+			}
+
+			const data = await response.json()
+			return { data, error: null }
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : 'Error al actualizar nivel favorito'
+			return { error: errorMessage }
+		}
+	}
+
 	useEffect(() => {
 		if (sessionStatus === 'loading') {
 			return
@@ -189,9 +231,11 @@ export function useUserDisciplines() {
 		...state,
 		addDiscipline,
 		updateDisciplineLevel,
+		updatePreferredLevel,
 		removeDiscipline,
 		refetch: fetchDisciplines,
 		hasDiscipline,
-		getDisciplineLevel
+		getDisciplineLevel,
+		getDisciplinePreferredLevel
 	}
 }

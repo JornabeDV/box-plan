@@ -31,6 +31,13 @@ export async function GET(request: NextRequest) {
 						name: true,
 						description: true
 					}
+				},
+				preferredLevel: {
+					select: {
+						id: true,
+						name: true,
+						description: true
+					}
 				}
 			},
 			orderBy: {
@@ -119,7 +126,8 @@ export async function POST(request: NextRequest) {
 			data: {
 				userId: userId!,
 				disciplineId: disciplineIdNum,
-				levelId: levelIdNum ?? undefined
+				levelId: levelIdNum ?? undefined,
+				preferredLevelId: levelIdNum ?? undefined
 			},
 			include: {
 				discipline: {

@@ -147,8 +147,9 @@ model DisciplineLevel {
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @default(now()) @updatedAt @map("updated_at")
   discipline      Discipline       @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
-  planifications  Planification[]
-  userDisciplines UserDiscipline[]
+  planifications           Planification[]
+  assignedUserDisciplines  UserDiscipline[] @relation("AssignedLevel")
+  preferredUserDisciplines UserDiscipline[] @relation("PreferredLevel")
 
   @@map("discipline_levels")
 }
@@ -211,15 +212,17 @@ model UserPreference {
 }
 
 model UserDiscipline {
-  id           Int              @id @default(autoincrement())
-  userId       Int              @map("user_id")
-  disciplineId Int              @map("discipline_id")
-  levelId      Int?             @map("level_id")
-  createdAt    DateTime         @default(now()) @map("created_at")
-  updatedAt    DateTime         @default(now()) @updatedAt @map("updated_at")
-  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  discipline   Discipline       @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
-  level        DisciplineLevel? @relation(fields: [levelId], references: [id])
+  id               Int              @id @default(autoincrement())
+  userId           Int              @map("user_id")
+  disciplineId     Int              @map("discipline_id")
+  levelId          Int?             @map("level_id")
+  preferredLevelId Int?             @map("preferred_level_id")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @default(now()) @updatedAt @map("updated_at")
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  discipline       Discipline       @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  level            DisciplineLevel? @relation("AssignedLevel", fields: [levelId], references: [id])
+  preferredLevel   DisciplineLevel? @relation("PreferredLevel", fields: [preferredLevelId], references: [id])
 
   @@unique([userId, disciplineId])
   @@map("user_disciplines")

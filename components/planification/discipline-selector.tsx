@@ -25,7 +25,7 @@ export function DisciplineSelector({
   availableDisciplineOptions
 }: DisciplineSelectorProps) {
   const handleDisciplineChange = (value: string) => {
-    const disciplineId = value === 'all' ? null : parseInt(value, 10)
+    const disciplineId = parseInt(value, 10)
     onDisciplineChange(disciplineId)
   }
 
@@ -42,7 +42,7 @@ export function DisciplineSelector({
       </div>
 
       <Select
-        value={selectedDisciplineId?.toString() || 'all'}
+        value={selectedDisciplineId?.toString() || ''}
         onValueChange={handleDisciplineChange}
         disabled={disabled}
       >
@@ -50,7 +50,6 @@ export function DisciplineSelector({
           <SelectValue placeholder="Seleccionar disciplina" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Todas las disciplinas</SelectItem>
           {availableDisciplineOptions.map((option) => (
             <SelectItem
               key={option.id}
