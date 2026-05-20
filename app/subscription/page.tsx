@@ -152,7 +152,7 @@ export default function SubscriptionPage() {
             .filter(key => key.startsWith('student_subscription_'))
             .forEach(key => localStorage.removeItem(key));
         }
-        router.push('/?activated=true');
+        router.push('/plan-activated');
         return;
       }
     }
@@ -188,7 +188,7 @@ export default function SubscriptionPage() {
               .forEach(key => localStorage.removeItem(key));
           }
           // Redirigir a home (navegación cliente, sin reload completo)
-          router.push('/?activated=true');
+          router.push('/plan-activated');
         } else {
           console.error("Error confirmando pago:", data.error);
           setVerifyError(data.error || "No se pudo activar la suscripción");
