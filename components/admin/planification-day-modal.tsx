@@ -384,6 +384,11 @@ export function PlanificationDayModal({
                                 <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
                                   <CheckCircle className="w-4 h-4 text-primary" />
                                   {block.title || `Bloque ${blockIndex + 1}`}
+                                  {block.rounds && block.rounds > 1 && (
+                                    <span className="text-[10px] font-bold tracking-wide uppercase text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded">
+                                      {block.rounds} rondas
+                                    </span>
+                                  )}
                                 </h5>
                                 {block.items && block.items.length > 0 && (
                                   <ul className="space-y-1 ml-6 mb-3">
@@ -406,8 +411,13 @@ export function PlanificationDayModal({
                                   <div className="space-y-2 ml-6 mb-3">
                                     {block.subBlocks.map((subBlock: any) => (
                                       <div key={subBlock.id}>
-                                        <p className="text-xs font-semibold text-muted-foreground mb-1">
+                                        <p className="text-xs font-semibold text-muted-foreground mb-1 flex items-center gap-1.5">
                                           {subBlock.subtitle}
+                                          {subBlock.rounds && subBlock.rounds > 1 && (
+                                            <span className="text-[9px] font-bold tracking-wide uppercase text-primary bg-primary/10 border border-primary/20 px-1 py-0.5 rounded">
+                                              {subBlock.rounds} rondas
+                                            </span>
+                                          )}
                                         </p>
                                         {subBlock.items && subBlock.items.length > 0 && (
                                           <ul className="space-y-1 ml-3">

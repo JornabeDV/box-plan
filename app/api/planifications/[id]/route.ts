@@ -43,6 +43,7 @@ function transformSubBlock(subBlock: any) {
     id: String(subBlock.id),
     subtitle: subBlock.subtitle,
     order: subBlock.order,
+    rounds: subBlock.rounds || undefined,
     timer_mode: subBlock.timerMode || null,
     timer_config: subBlock.timerConfig || undefined,
     items: subBlock.items?.map(transformItem) || [],
@@ -55,6 +56,7 @@ function transformBlock(block: any) {
     title: block.title,
     order: block.order,
     notes: block.notes || undefined,
+    rounds: block.rounds || undefined,
     timer_mode: block.timerMode || null,
     timer_config: block.timerConfig || undefined,
     items: block.items?.map(transformItem) || [],
@@ -207,6 +209,7 @@ export async function PATCH(
               title: block.title || '',
               order: block.order ?? 0,
               notes: block.notes || null,
+              rounds: block.rounds ? parseInt(block.rounds, 10) : null,
               timerMode: block.timer_mode || null,
               timerConfig: block.timer_config || null,
             },
@@ -232,6 +235,7 @@ export async function PATCH(
                 blockId: createdBlock.id,
                 subtitle: subBlock.subtitle || '',
                 order: subBlock.order ?? 0,
+                rounds: subBlock.rounds ? parseInt(subBlock.rounds, 10) : null,
                 timerMode: subBlock.timer_mode || null,
                 timerConfig: subBlock.timer_config || null,
               },
@@ -285,10 +289,12 @@ export async function PATCH(
     })
 
     return NextResponse.json(transformPlanificationResponse(updated))
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating planification:', error)
+    const message = error?.message || 'Error desconocido'
+    const code = error?.code || 'UNKNOWN'
     return NextResponse.json(
-      { error: 'Error al actualizar planificación' },
+      { error: 'Error al actualizar planificación', details: message, code },
       { status: 500 }
     )
   }

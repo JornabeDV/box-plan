@@ -571,9 +571,16 @@ export function PlanificationBlocks({
                   {index + 1}
                 </span>
                 <div>
-                  <span className="inline-block text-[10px] font-bold tracking-[0.2em] uppercase text-primary bg-primary/10 px-2 py-0.5 rounded mb-1">
-                    Bloque
-                  </span>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="inline-block text-[10px] font-bold tracking-[0.2em] uppercase text-primary bg-primary/10 px-2 py-0.5 rounded">
+                      Bloque
+                    </span>
+                    {block.rounds && block.rounds > 1 && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold tracking-[0.15em] uppercase text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                        {block.rounds} rondas
+                      </span>
+                    )}
+                  </div>
                   <CardTitle className="text-xl md:text-2xl uppercase italic text-foreground leading-tight">
                     {block.title}
                   </CardTitle>
@@ -610,7 +617,9 @@ export function PlanificationBlocks({
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-full hover:bg-primary/20 transition-colors flex-shrink-0 min-h-5"
                         >
-                          <span className="hidden sm:inline">Ver cómo se hace</span>
+                          <span className="hidden sm:inline">
+                            Ver cómo se hace
+                          </span>
                           <span className="sm:hidden">Video</span>
                           <Play className="w-3 h-3" />
                         </a>
@@ -630,9 +639,16 @@ export function PlanificationBlocks({
                   >
                     {subBlock.subtitle && (
                       <div className="mb-2">
-                        <span className="inline-block text-[10px] font-bold tracking-[0.2em] uppercase text-primary bg-primary/10 px-2 py-0.5 rounded mb-1">
-                          Sub-bloque
-                        </span>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="inline-block text-[10px] font-bold tracking-[0.2em] uppercase text-primary bg-primary/10 px-2 py-0.5 rounded">
+                            Sub-bloque
+                          </span>
+                          {subBlock.rounds && subBlock.rounds > 1 && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold tracking-[0.15em] uppercase text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                              {subBlock.rounds} rondas
+                            </span>
+                          )}
+                        </div>
                         <h4 className="text-base font-bold uppercase tracking-wide text-foreground">
                           {subBlock.subtitle}
                         </h4>

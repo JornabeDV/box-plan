@@ -58,6 +58,7 @@ interface SubBlock {
   id: string;
   subtitle: string;
   items: ItemData[];
+  rounds?: string;
   timer_mode?:
     | "normal"
     | "tabata"
@@ -80,6 +81,7 @@ interface Block {
   items: ItemData[];
   order: number;
   notes?: string;
+  rounds?: string;
   timer_mode?:
     | "normal"
     | "tabata"
@@ -303,10 +305,12 @@ export function PlanificationModal({
           return {
             ...block,
             id: block.id || Date.now().toString() + Math.random(),
+            rounds: block.rounds ? String(block.rounds) : undefined,
             items: (block.items || []).map(normalizeItemFromBackend),
             subBlocks: (block.subBlocks || []).map((sub: any) => ({
               ...sub,
               id: sub.id || Date.now().toString() + Math.random(),
+              rounds: sub.rounds ? String(sub.rounds) : undefined,
               items: (sub.items || []).map(normalizeItemFromBackend),
             })),
           };
@@ -436,6 +440,33 @@ export function PlanificationModal({
   const updateBlockNotes = (blockId: string, notes: string) => {
     setBlocks((prev) =>
       prev.map((block) => (block.id === blockId ? { ...block, notes } : block)),
+    );
+  };
+
+  const updateBlockRounds = (blockId: string, rounds: string) => {
+    setBlocks((prev) =>
+      prev.map((block) =>
+        block.id === blockId ? { ...block, rounds } : block,
+      ),
+    );
+  };
+
+  const updateSubBlockRounds = (
+    blockId: string,
+    subBlockId: string,
+    rounds: string,
+  ) => {
+    setBlocks((prev) =>
+      prev.map((block) =>
+        block.id === blockId
+          ? {
+              ...block,
+              subBlocks: (block.subBlocks || []).map((sb) =>
+                sb.id === subBlockId ? { ...sb, rounds } : sb,
+              ),
+            }
+          : block,
+      ),
     );
   };
 
@@ -1207,7 +1238,7 @@ export function PlanificationModal({
                                   type="button"
                                   {...listeners}
                                   {...attributes}
-                                  className="cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground flex-shrink-0 p-0.5"
+                                  className="cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground flex-shrink-0 p-0.5 max-sm:hidden"
                                   tabIndex={-1}
                                 >
                                   <GripVertical className="w-4 h-4" />
@@ -1234,39 +1265,57 @@ export function PlanificationModal({
                                 </Button>
                               </div>
 
-                              {/* Timer selector para el bloque */}
-                              <div className="ml-6 sm:ml-9 flex items-center gap-2">
-                                <Clock className="w-4 h-4 text-muted-foreground" />
-                                <Select
-                                  value={block.timer_mode || "none"}
-                                  onValueChange={(value) =>
-                                    updateBlockTimer(
-                                      block.id,
-                                      value === "none" ? null : (value as any),
-                                    )
-                                  }
-                                >
-                                  <SelectTrigger className="w-32 h-8 text-xs">
-                                    <SelectValue placeholder="Sin timer" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="none">
-                                      Sin timer
-                                    </SelectItem>
-                                    <SelectItem value="normal">
-                                      Cronómetro
-                                    </SelectItem>
-                                    <SelectItem value="fortime">
-                                      FOR TIME
-                                    </SelectItem>
-                                    <SelectItem value="amrap">AMRAP</SelectItem>
-                                    <SelectItem value="emom">EMOM</SelectItem>
-                                    <SelectItem value="otm">OTM</SelectItem>
-                                    <SelectItem value="tabata">
-                                      TABATA
-                                    </SelectItem>
-                                  </SelectContent>
-                                </Select>
+                              {/* Timer selector y rondas para el bloque */}
+                              <div className="flex items-center gap-3 flex-wrap sm:ml-9">
+                                <div className="flex items-center gap-2">
+                                  <Clock className="w-4 h-4 text-muted-foreground" />
+                                  <Select
+                                    value={block.timer_mode || "none"}
+                                    onValueChange={(value) =>
+                                      updateBlockTimer(
+                                        block.id,
+                                        value === "none" ? null : (value as any),
+                                      )
+                                    }
+                                  >
+                                    <SelectTrigger className="w-32 h-8 text-xs">
+                                      <SelectValue placeholder="Sin timer" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">
+                                        Sin timer
+                                      </SelectItem>
+                                      <SelectItem value="normal">
+                                        Cronómetro
+                                      </SelectItem>
+                                      <SelectItem value="fortime">
+                                        FOR TIME
+                                      </SelectItem>
+                                      <SelectItem value="amrap">AMRAP</SelectItem>
+                                      <SelectItem value="emom">EMOM</SelectItem>
+                                      <SelectItem value="otm">OTM</SelectItem>
+                                      <SelectItem value="tabata">
+                                        TABATA
+                                      </SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs text-muted-foreground">
+                                    Rondas
+                                  </span>
+                                  <Input
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={block.rounds || ""}
+                                    onChange={(e) => {
+                                      const val = e.target.value.replace(/\D/g, "").slice(0, 2)
+                                      updateBlockRounds(block.id, val)
+                                    }}
+                                    className="w-12 px-0 py-0 h-11 text-xs text-center"
+                                    placeholder="1"
+                                  />
+                                </div>
                               </div>
 
                               {/* Timer config para el bloque */}
@@ -1704,50 +1753,72 @@ export function PlanificationModal({
                                             </Button>
                                           </div>
 
-                                          {/* Timer selector para el sub-bloque */}
-                                          <div className="flex items-center gap-2 pl-6">
-                                            <Clock className="w-3 h-3 text-muted-foreground" />
-                                            <Select
-                                              value={
-                                                subBlock.timer_mode || "none"
-                                              }
-                                              onValueChange={(value) =>
-                                                updateSubBlockTimer(
-                                                  block.id,
-                                                  subBlock.id,
-                                                  value === "none"
-                                                    ? null
-                                                    : (value as any),
-                                                )
-                                              }
-                                            >
-                                              <SelectTrigger className="w-28 h-7 text-xs">
-                                                <SelectValue placeholder="Sin timer" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="none">
-                                                  Sin timer
-                                                </SelectItem>
-                                                <SelectItem value="normal">
-                                                  Cronómetro
-                                                </SelectItem>
-                                                <SelectItem value="fortime">
-                                                  FOR TIME
-                                                </SelectItem>
-                                                <SelectItem value="amrap">
-                                                  AMRAP
-                                                </SelectItem>
-                                                <SelectItem value="emom">
-                                                  EMOM
-                                                </SelectItem>
-                                                <SelectItem value="otm">
-                                                  OTM
-                                                </SelectItem>
-                                                <SelectItem value="tabata">
-                                                  TABATA
-                                                </SelectItem>
-                                              </SelectContent>
-                                            </Select>
+                                          {/* Timer selector y rondas para el sub-bloque */}
+                                          <div className="flex max-sm:justify-between items-center gap-3 sm:pl-4 flex-wrap">
+                                            <div className="flex items-center gap-2">
+                                              <Clock className="w-3 h-3 text-muted-foreground" />
+                                              <Select
+                                                value={
+                                                  subBlock.timer_mode || "none"
+                                                }
+                                                onValueChange={(value) =>
+                                                  updateSubBlockTimer(
+                                                    block.id,
+                                                    subBlock.id,
+                                                    value === "none"
+                                                      ? null
+                                                      : (value as any),
+                                                  )
+                                                }
+                                              >
+                                                <SelectTrigger className="w-28 h-7 text-xs">
+                                                  <SelectValue placeholder="Sin timer" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  <SelectItem value="none">
+                                                    Sin timer
+                                                  </SelectItem>
+                                                  <SelectItem value="normal">
+                                                    Cronómetro
+                                                  </SelectItem>
+                                                  <SelectItem value="fortime">
+                                                    FOR TIME
+                                                  </SelectItem>
+                                                  <SelectItem value="amrap">
+                                                    AMRAP
+                                                  </SelectItem>
+                                                  <SelectItem value="emom">
+                                                    EMOM
+                                                  </SelectItem>
+                                                  <SelectItem value="otm">
+                                                    OTM
+                                                  </SelectItem>
+                                                  <SelectItem value="tabata">
+                                                    TABATA
+                                                  </SelectItem>
+                                                </SelectContent>
+                                              </Select>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                              <span className="text-xs text-muted-foreground">
+                                                Rondas
+                                              </span>
+                                              <Input
+                                                type="text"
+                                                inputMode="numeric"
+                                                value={subBlock.rounds || ""}
+                                                onChange={(e) => {
+                                                  const val = e.target.value.replace(/\D/g, "").slice(0, 2)
+                                                  updateSubBlockRounds(
+                                                    block.id,
+                                                    subBlock.id,
+                                                    val,
+                                                  )
+                                                }}
+                                                className="w-12 px-0 py-0 h-11 text-xs text-center"
+                                                placeholder="1"
+                                              />
+                                            </div>
                                           </div>
 
                                           {/* Timer config para el sub-bloque */}
