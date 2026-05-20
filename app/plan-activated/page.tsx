@@ -69,13 +69,14 @@ export default function PlanActivatedPage() {
 
   const { isPreview, hasDisciplines: previewHasDisciplines } = getPreviewState();
 
-  // Si no está autenticado o no tiene suscripción, redirigir (salvo en preview de desarrollo)
+  // Limpiar cache de suscripción para forzar datos frescos en la próxima carga
   useEffect(() => {
-    if (isPreview) return;
-    if (!subscriptionLoading && !isSubscribed) {
-      router.replace("/choose-plan");
+    if (typeof window !== "undefined") {
+      Object.keys(localStorage)
+        .filter((key) => key.startsWith("student_subscription_"))
+        .forEach((key) => localStorage.removeItem(key));
     }
-  }, [subscriptionLoading, isSubscribed, router, isPreview]);
+  }, []);
 
   // Animación escalonada de los elementos
   useEffect(() => {
