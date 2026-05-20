@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isCoach, normalizeUserId } from '@/lib/auth-helpers'
+import { sendPushToUsers } from '@/lib/push-notifications'
 
 // GET /api/coach/user-disciplines/[studentId] - Obtener disciplinas de un estudiante
 export async function GET(
@@ -155,6 +156,11 @@ export async function POST(
 			}
 		}
 
+		// Verificar si es la primera disciplina del estudiante (para notificar)
+		const previousDisciplineCount = await prisma.userDiscipline.count({
+			where: { userId: studentId }
+		})
+
 		// Verificar que la disciplina pertenece al coach
 		const discipline = await prisma.discipline.findFirst({
 			where: {
@@ -225,6 +231,20 @@ export async function POST(
 					preferredLevelId: levelIdNum ?? null
 				}
 			})
+		}
+
+		// Notificar al estudiante si es la primera disciplina asignada
+		if (previousDisciplineCount === 0) {
+			try {
+				await sendPushToUsers([studentId], {
+					title: '🎯 ¡Tus disciplinas están listas!',
+					body: `Tu coach te asignó ${discipline.name}. Ya podés empezar a entrenar.`,
+					icon: '/icon-192.png',
+					url: '/'
+				})
+			} catch (pushError) {
+				console.error('[Push Notification] Error enviando notificación de disciplinas:', pushError)
+			}
 		}
 
 		return NextResponse.json(userDiscipline)
