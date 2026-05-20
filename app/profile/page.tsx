@@ -24,6 +24,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useUserDisciplines } from "@/hooks/use-user-disciplines";
 import { useProgressStats } from "@/hooks/use-progress-stats";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   User,
   Loader2,
   Dumbbell,
@@ -37,6 +44,7 @@ import {
   ChevronRight,
   Eye,
   EyeOff,
+  Target,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -46,9 +54,101 @@ export default function ProfilePage() {
   const { user, loading: authLoading, signOut } = useAuth();
   const { profile, updateProfile, loading: profileLoading } = useProfile();
   const { toast } = useToast();
-  const { disciplines: userDisciplines, loading: userDisciplinesLoading } =
+  const { disciplines: userDisciplines, loading: userDisciplinesLoading, updatePreferredLevel, refetch } =
     useUserDisciplines();
   const { stats } = useProgressStats(user?.id ? String(user.id) : undefined);
+
+  // Niveles por disciplina para "Mis Niveles"
+  const [levelsByDiscipline, setLevelsByDiscipline] = useState<
+    Record<number, Array<{ id: number; name: string }>>
+  >({});
+  // Estado local para niveles pendientes de guardar (sin auto-guardar)
+  const [pendingLevels, setPendingLevels] = useState<Record<number, number>>({});
+  const [isSavingAll, setIsSavingAll] = useState(false);
+
+  useEffect(() => {
+    if (userDisciplines.length === 0) return;
+
+    const loadLevels = async () => {
+      const map: Record<number, Array<{ id: number; name: string }>> = {};
+      for (const ud of userDisciplines) {
+        try {
+          const res = await fetch(`/api/disciplines/${ud.disciplineId}`);
+          const data = await res.json();
+          if (data.levels && Array.isArray(data.levels)) {
+            map[ud.disciplineId] = data.levels.sort(
+              (a: any, b: any) => (a.order_index || 0) - (b.order_index || 0)
+            );
+          }
+        } catch (e) {
+          console.error("Error loading levels for discipline", ud.disciplineId);
+        }
+      }
+      setLevelsByDiscipline(map);
+    };
+
+    loadLevels();
+  }, [userDisciplines]);
+
+  // Inicializar pendingLevels cuando cargan las disciplinas
+  useEffect(() => {
+    const map: Record<number, number> = {};
+    userDisciplines.forEach((ud) => {
+      const levelId = ud.preferredLevelId ?? ud.levelId;
+      if (levelId) {
+        map[ud.disciplineId] = levelId;
+      }
+    });
+    setPendingLevels(map);
+  }, [userDisciplines]);
+
+  const handleSaveAll = async () => {
+    setIsSavingAll(true);
+    try {
+      const changes = userDisciplines.filter((ud) => {
+        const currentLevelId = ud.preferredLevelId ?? ud.levelId;
+        return pendingLevels[ud.disciplineId] !== currentLevelId;
+      });
+
+      if (changes.length === 0) {
+        toast({ title: "Sin cambios", description: "No hay niveles modificados." });
+        setIsSavingAll(false);
+        return;
+      }
+
+      const results = await Promise.all(
+        changes.map((ud) =>
+          updatePreferredLevel(ud.id, pendingLevels[ud.disciplineId])
+        )
+      );
+
+      const hasError = results.some((r) => r.error);
+      if (hasError) {
+        toast({
+          title: "Error",
+          description: "No se pudieron guardar todos los cambios.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Cambios guardados",
+          description: "Tus niveles se actualizaron correctamente.",
+        });
+      }
+
+      // Refrescar silenciosamente para sincronizar el estado
+      await refetch({ silent: true });
+    } catch {
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al guardar.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingAll(false);
+    }
+  };
+
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -303,6 +403,101 @@ export default function ProfilePage() {
                 <p className="text-sm mt-1">
                   Tu coach te asignará las disciplinas correspondientes
                 </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Mis Niveles */}
+        <Card>
+          <CardContent className="pt-5 space-y-4">
+            <div className="flex items-center gap-2">
+              <Target className="w-4 h-4 text-primary" />
+              <h3 className="font-semibold text-foreground">Mis Niveles</h3>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Elegí el nivel en el que querés entrenar para cada disciplina. Si
+              no hay planificación para ese nivel, se mostrará la disponible.
+            </p>
+
+            {userDisciplinesLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <span className="ml-2 text-muted-foreground">
+                  Cargando disciplinas...
+                </span>
+              </div>
+            ) : userDisciplines.length === 0 ? (
+              <div className="text-center py-6 text-muted-foreground">
+                <p className="text-sm">
+                  No tenés disciplinas asignadas todavía.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {userDisciplines.map((ud) => {
+                  const levels = levelsByDiscipline[ud.disciplineId] || [];
+                  const selectValue = pendingLevels[ud.disciplineId]?.toString() || "";
+                  return (
+                    <div
+                      key={ud.id}
+                      className="p-3 rounded-xl bg-surface-container-high border border-outline/10 space-y-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{
+                            backgroundColor:
+                              ud.discipline?.color || "#3B82F6",
+                          }}
+                        />
+                        <span className="text-sm font-medium text-foreground">
+                          {ud.discipline?.name || "Disciplina"}
+                        </span>
+                      </div>
+
+                      <Select
+                        value={selectValue}
+                        onValueChange={(value) =>
+                          setPendingLevels((prev) => ({
+                            ...prev,
+                            [ud.disciplineId]: parseInt(value, 10),
+                          }))
+                        }
+                        disabled={isSavingAll || levels.length === 0}
+                      >
+                        <SelectTrigger className="w-full bg-surface-container border-outline/20 text-primary font-semibold uppercase text-xs tracking-wider h-10">
+                          <SelectValue placeholder="Seleccionar nivel" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {levels.map((level) => (
+                            <SelectItem
+                              key={level.id}
+                              value={level.id.toString()}
+                            >
+                              {level.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                })}
+
+                <Button
+                  onClick={handleSaveAll}
+                  disabled={isSavingAll}
+                  className="w-full"
+                >
+                  {isSavingAll ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Guardando...
+                    </>
+                  ) : (
+                    "Guardar cambios"
+                  )}
+                </Button>
               </div>
             )}
           </CardContent>

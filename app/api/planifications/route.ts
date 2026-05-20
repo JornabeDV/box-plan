@@ -206,6 +206,7 @@ export async function GET(request: NextRequest) {
       include: {
         discipline: { select: { id: true, name: true, color: true } },
         level: { select: { id: true, name: true } },
+        preferredLevel: { select: { id: true, name: true } },
       },
     })
 
@@ -229,10 +230,15 @@ export async function GET(request: NextRequest) {
     const disciplineIdParam = searchParams.get('disciplineId')
     let selectedLevelId: number | null = null
     let selectedDisciplineId: number | null = null
+    let hasExplicitLevel = false
 
-    if (levelIdParam) {
+    if (levelIdParam !== null && levelIdParam !== '') {
       selectedLevelId = parseInt(levelIdParam, 10)
-      if (isNaN(selectedLevelId)) selectedLevelId = null
+      if (!isNaN(selectedLevelId)) {
+        hasExplicitLevel = true
+      } else {
+        selectedLevelId = null
+      }
     }
 
     if (disciplineIdParam) {
@@ -247,13 +253,13 @@ export async function GET(request: NextRequest) {
       disciplineLevelCombinations = [
         {
           disciplineId: selectedDisciplineId,
-          levelId: selectedLevelId ?? userDiscipline?.levelId ?? null,
+          levelId: selectedLevelId ?? userDiscipline?.preferredLevelId ?? userDiscipline?.levelId ?? null,
         },
       ]
     } else if (userDisciplines.length > 0) {
       disciplineLevelCombinations = userDisciplines.map((ud) => ({
         disciplineId: ud.disciplineId,
-        levelId: ud.levelId,
+        levelId: ud.preferredLevelId ?? ud.levelId,
       }))
     } else if (preference?.preferredDisciplineId) {
       disciplineLevelCombinations = [
@@ -309,6 +315,31 @@ export async function GET(request: NextRequest) {
       .split('T')[0]
     const endOfDay = normalizeDateForArgentina(nextDayStr)
 
+    const planificationInclude = {
+      discipline: { select: { id: true, name: true, color: true } },
+      disciplineLevel: {
+        select: { id: true, name: true, description: true },
+      },
+      blocks: {
+        orderBy: { order: 'asc' },
+        include: {
+          items: {
+            orderBy: { order: 'asc' },
+            include: { exercise: true },
+          },
+          subBlocks: {
+            orderBy: { order: 'asc' },
+            include: {
+              items: {
+                orderBy: { order: 'asc' },
+                include: { exercise: true },
+              },
+            },
+          },
+        },
+      },
+    } as const
+
     const personalizedPlanification = await prisma.planification.findFirst({
       where: {
         coachId,
@@ -317,34 +348,14 @@ export async function GET(request: NextRequest) {
         date: { gte: normalizedDate, lt: endOfDay },
       },
       include: {
-        discipline: { select: { id: true, name: true, color: true } },
-        disciplineLevel: {
-          select: { id: true, name: true, description: true },
-        },
+        ...planificationInclude,
         targetUser: { select: { id: true, name: true, email: true } },
-        blocks: {
-          orderBy: { order: 'asc' },
-          include: {
-            items: {
-              orderBy: { order: 'asc' },
-              include: { exercise: true },
-            },
-            subBlocks: {
-              orderBy: { order: 'asc' },
-              include: {
-                items: {
-                  orderBy: { order: 'asc' },
-                  include: { exercise: true },
-                },
-              },
-            },
-          },
-        },
       },
       orderBy: { date: 'asc' },
     })
 
-    let planification = null
+    let primary: any = null
+    let others: any[] = []
 
     if (personalizedPlanification) {
       const studentSubscription = await prisma.subscription.findFirst({
@@ -365,59 +376,124 @@ export async function GET(request: NextRequest) {
       }
 
       if (studentFeatures?.personalizedWorkouts === true) {
-        planification = personalizedPlanification
+        primary = personalizedPlanification
       }
     }
 
-    if (!planification) {
-      planification = await prisma.planification.findFirst({
-        where: {
-          coachId,
-          isPersonalized: false,
-          date: { gte: normalizedDate, lt: endOfDay },
-          OR: validCombinations.map((combo) => ({
-            disciplineId: combo.disciplineId,
-            disciplineLevelId: combo.levelId,
-          })),
-        },
-        include: {
-          discipline: { select: { id: true, name: true, color: true } },
-          disciplineLevel: {
-            select: { id: true, name: true, description: true },
+    if (!primary) {
+      if (!disciplineIdParam) {
+        // Modo dashboard: buscar primary (preferida) y others
+        let userPreference = await prisma.userPreference.findUnique({
+          where: { userId },
+          select: { preferredDisciplineId: true, preferredLevelId: true },
+        })
+
+        // Si no hay preferencia explícita, usar la primera UserDiscipline como default
+        if (!userPreference?.preferredDisciplineId && userDisciplines.length > 0) {
+          userPreference = {
+            preferredDisciplineId: userDisciplines[0].disciplineId,
+            preferredLevelId: userDisciplines[0].levelId,
+          }
+        }
+
+        // 1. Buscar con coincidencia exacta de disciplina + nivel
+        let allPlanifications = await prisma.planification.findMany({
+          where: {
+            coachId,
+            isPersonalized: false,
+            date: { gte: normalizedDate, lt: endOfDay },
+            OR: validCombinations.map((combo) => ({
+              disciplineId: combo.disciplineId,
+              disciplineLevelId: combo.levelId,
+            })),
           },
-          blocks: {
-            orderBy: { order: 'asc' },
-            include: {
-              items: {
-                orderBy: { order: 'asc' },
-                include: { exercise: true },
-              },
-              subBlocks: {
-                orderBy: { order: 'asc' },
-                include: {
-                  items: {
-                    orderBy: { order: 'asc' },
-                    include: { exercise: true },
-                  },
-                },
-              },
+          include: planificationInclude,
+          orderBy: { date: 'asc' },
+        })
+
+        // 2. Fallback: si no hay coincidencia exacta, buscar solo por disciplina
+        if (allPlanifications.length === 0) {
+          const disciplineIds = [
+            ...new Set(validCombinations.map((c) => c.disciplineId)),
+          ]
+          allPlanifications = await prisma.planification.findMany({
+            where: {
+              coachId,
+              isPersonalized: false,
+              date: { gte: normalizedDate, lt: endOfDay },
+              disciplineId: { in: disciplineIds },
             },
+            include: planificationInclude,
+            orderBy: { date: 'asc' },
+          })
+        }
+
+        const preferredIndex = allPlanifications.findIndex(
+          (p) =>
+            p.disciplineId === userPreference?.preferredDisciplineId &&
+            p.disciplineLevelId === userPreference?.preferredLevelId
+        )
+
+        if (preferredIndex >= 0) {
+          primary = allPlanifications[preferredIndex]
+          others = allPlanifications.filter((_, i) => i !== preferredIndex)
+        } else if (!userPreference?.preferredDisciplineId && allPlanifications.length > 0) {
+          // Sin preferencia configurada: fallback a la primera planificación
+          primary = allPlanifications[0]
+          others = allPlanifications.slice(1)
+        } else {
+          // Hay preferencia configurada pero no hay planificación para ella hoy
+          others = allPlanifications
+        }
+      } else {
+        // Modo planificación con disciplineId específico
+        primary = await prisma.planification.findFirst({
+          where: {
+            coachId,
+            isPersonalized: false,
+            date: { gte: normalizedDate, lt: endOfDay },
+            OR: validCombinations.map((combo) => ({
+              disciplineId: combo.disciplineId,
+              disciplineLevelId: combo.levelId,
+            })),
           },
-        },
-        orderBy: { date: 'asc' },
-      })
+          include: planificationInclude,
+          orderBy: { date: 'asc' },
+        })
+
+        // Fallback: solo si NO se especificó levelId explícitamente
+        if (!primary && !hasExplicitLevel) {
+          const disciplineIds = [
+            ...new Set(validCombinations.map((c) => c.disciplineId)),
+          ]
+          primary = await prisma.planification.findFirst({
+            where: {
+              coachId,
+              isPersonalized: false,
+              date: { gte: normalizedDate, lt: endOfDay },
+              disciplineId: { in: disciplineIds },
+            },
+            include: planificationInclude,
+            orderBy: { date: 'asc' },
+          })
+        }
+      }
     }
 
-    if (!planification) {
+    if (!primary) {
       return NextResponse.json({
         data: null,
+        others: [],
         disciplineId: validCombinations[0]?.disciplineId ?? null,
-        message: `No hay planificación para ${dateParam ? 'esa fecha' : 'hoy'} con tus disciplinas y niveles`,
+        message: hasExplicitLevel
+          ? `No hay planificación para ${dateParam ? 'esa fecha' : 'hoy'} con el nivel seleccionado`
+          : `No hay planificación para ${dateParam ? 'esa fecha' : 'hoy'} con tus disciplinas y niveles`,
       })
     }
 
     return NextResponse.json({
-      data: transformPlanificationResponse(planification),
+      data: transformPlanificationResponse(primary),
+      others: others.map(transformPlanificationResponse),
     })
   } catch (error) {
     console.error('Error fetching planification:', error)

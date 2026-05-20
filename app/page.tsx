@@ -8,9 +8,8 @@ import { useProfile } from "@/hooks/use-profile";
 import { useUserCoach } from "@/hooks/use-user-coach";
 import { useStudentSubscription } from "@/hooks/use-student-subscription";
 import { useStudentCoach } from "@/hooks/use-student-coach";
-import { TodaySection } from "@/components/dashboard/today-section";
-import { KineticWorkoutCard } from "@/components/dashboard/kinetic-workout-card";
 import { WeeklyPerformance } from "@/components/dashboard/weekly-performance";
+import { TodayPlanificationCards } from "@/components/dashboard/today-planification-cards";
 import { ReviewsSection } from "@/components/home/reviews-section";
 import { CoachInfoCard } from "@/components/dashboard/coach-info-card";
 import { CoachSelector } from "@/components/auth/coach-selector";
@@ -22,7 +21,6 @@ import {
   Loader2,
   Target,
   Calendar,
-  Star,
   TrendingUp,
   Timer,
   Users,
@@ -50,7 +48,6 @@ import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { MOTIVATIONAL_QUOTES } from "@/lib/constants";
 import { useCoachMotivationalQuotes } from "@/hooks/use-coach-motivational-quotes";
-import { useTodayPlanification } from "@/hooks/use-today-planification";
 import { useLoadingTimeout } from "@/hooks/use-loading-timeout";
 import { LandingPage } from "@/components/landing/landing-page";
 
@@ -85,7 +82,7 @@ export default function BoxPlanApp() {
 
   // Verificar si hay al menos un acceso rápido disponible
   const hasAnyQuickAccess = hasProgressAccess || hasRankingAccess;
-  const { loading: preferencesLoading } = useCurrentUserPreferences();
+  const { preferences, loading: preferencesLoading } = useCurrentUserPreferences();
   const { disciplines: userDisciplines, loading: disciplinesLoading } =
     useUserDisciplines();
 
@@ -108,13 +105,6 @@ export default function BoxPlanApp() {
     user?.id &&
     hasActiveSubscription &&
     hasPreferences;
-  const {
-    planification: todayPlanification,
-    loading: todayPlanificationLoading,
-  } = useTodayPlanification({
-    enabled: shouldLoadTodayPlanification,
-  });
-
   // Obtener una frase motivacional basada en el día del año para que cambie diariamente
   const getDailyMotivationalQuote = () => {
     // Priorizar frases del coach si existen
@@ -246,7 +236,7 @@ export default function BoxPlanApp() {
       profileLoading ||
       subscriptionLoading ||
       disciplinesLoading ||
-      (shouldLoadTodayPlanification && todayPlanificationLoading)
+      false
     : authLoading;
 
   // Determinar si vamos a redirigir (para mostrar un único loading unificado)
@@ -328,10 +318,8 @@ export default function BoxPlanApp() {
       { name: "Perfil", loading: profileLoading },
       { name: "Suscripción", loading: subscriptionLoading },
       { name: "Disciplinas", loading: disciplinesLoading },
-      {
-        name: "Planificación hoy",
-        loading: shouldLoadTodayPlanification && todayPlanificationLoading,
-      },
+      // Planificación carga en su componente
+      // { name: "Planificación hoy", loading: false },
     ];
 
     return (
@@ -599,17 +587,24 @@ export default function BoxPlanApp() {
           </section>
         )}
 
-        {/* Planificación de hoy */}
-        {user?.id && hasActiveSubscription && (
+        {/* Planificación de hoy: una card por disciplina */}
+        {user?.id && hasActiveSubscription && userDisciplines.length > 0 && (
           <section>
-            <KineticWorkoutCard />
+            <TodayPlanificationCards userDisciplines={userDisciplines} />
           </section>
         )}
 
-        {/* Calendario mensual */}
+        {/* Botón calendario completo */}
         {user?.id && hasActiveSubscription && hasPreferences && (
           <section>
-            <TodaySection />
+            <Button
+              variant="outline"
+              className="w-full h-auto py-3"
+              onClick={() => router.push("/calendar")}
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              Ver calendario completo
+            </Button>
           </section>
         )}
 

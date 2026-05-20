@@ -62,7 +62,7 @@ export const BottomNavigation = memo(function BottomNavigation() {
         <NavItem
           href="/"
           icon={HomeIcon}
-          label="Home"
+          label="Inicio"
           isActive={pathname === "/"}
         />
         <NavItem

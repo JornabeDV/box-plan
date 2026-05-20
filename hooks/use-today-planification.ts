@@ -18,12 +18,13 @@ interface Planification {
 	}>
 	estimatedDuration?: number
 	isCompleted: boolean
+	is_personalized?: boolean
 	discipline?: {
 		id: string
 		name: string
 		color?: string
 	}
-	disciplineLevel?: {
+	discipline_level?: {
 		id: string
 		name: string
 		description?: string
@@ -31,7 +32,10 @@ interface Planification {
 }
 
 interface UseTodayPlanificationReturn {
-	planification: Planification | null
+	planifications: {
+		primary: Planification | null
+		others: Planification[]
+	}
 	loading: boolean
 	error: string | null
 	refetch: () => Promise<void>
@@ -46,8 +50,11 @@ interface UseTodayPlanificationOptions {
  */
 export function useTodayPlanification(options?: UseTodayPlanificationOptions): UseTodayPlanificationReturn {
 	const { data: session, status: sessionStatus } = useSession()
-	const [planification, setPlanification] = useState<Planification | null>(null)
-	const [loading, setLoading] = useState(false) // Cambiar a false para evitar flash
+	const [planifications, setPlanifications] = useState<{ primary: Planification | null; others: Planification[] }>({
+		primary: null,
+		others: []
+	})
+	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const fetchingRef = useRef(false)
 	const enabled = options?.enabled !== false
@@ -59,7 +66,7 @@ export function useTodayPlanification(options?: UseTodayPlanificationOptions): U
 
 		const userId = session?.user?.id
 		if (!userId) {
-			setPlanification(null)
+			setPlanifications({ primary: null, others: [] })
 			setLoading(false)
 			return
 		}
@@ -92,15 +99,18 @@ export function useTodayPlanification(options?: UseTodayPlanificationOptions): U
 
 			const data = await response.json()
 			
-			if (data.data) {
-				setPlanification(data.data)
+			if (data.data || (data.others && data.others.length > 0)) {
+				setPlanifications({
+					primary: data.data || null,
+					others: data.others || []
+				})
 			} else {
-				setPlanification(null)
+				setPlanifications({ primary: null, others: [] })
 			}
 		} catch (err) {
 			console.error('Error fetching today planification:', err)
 			setError(err instanceof Error ? err.message : 'Error al cargar la planificación')
-			setPlanification(null)
+			setPlanifications({ primary: null, others: [] })
 		} finally {
 			setLoading(false)
 			fetchingRef.current = false
@@ -114,7 +124,7 @@ export function useTodayPlanification(options?: UseTodayPlanificationOptions): U
 		}
 		
 		if (!enabled) {
-			setPlanification(null)
+			setPlanifications({ primary: null, others: [] })
 			setLoading(false)
 			return
 		}
@@ -122,13 +132,13 @@ export function useTodayPlanification(options?: UseTodayPlanificationOptions): U
 		if (session?.user?.id) {
 			fetchTodayPlanification()
 		} else {
-			setPlanification(null)
+			setPlanifications({ primary: null, others: [] })
 			setLoading(false)
 		}
 	}, [session?.user?.id, sessionStatus, fetchTodayPlanification, enabled])
 
 	return {
-		planification,
+		planifications,
 		loading,
 		error,
 		refetch: fetchTodayPlanification

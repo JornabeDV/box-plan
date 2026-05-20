@@ -13,14 +13,6 @@ import { Button } from "../ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-interface DisciplineOption {
-  id: number;
-  name: string;
-  color: string;
-  levelId: number | null;
-  levelName: string | null;
-}
-
 interface PlanificationHeaderProps {
   selectedDate: Date;
   isToday: boolean;
@@ -28,11 +20,7 @@ interface PlanificationHeaderProps {
   levels?: DisciplineLevel[];
   selectedLevelId?: number | null;
   onLevelChange?: (levelId: number) => void;
-  disciplineName?: string;
   isPersonalized?: boolean;
-  selectedDisciplineId?: number | null;
-  onDisciplineChange?: (disciplineId: number | null) => void;
-  availableDisciplineOptions?: DisciplineOption[];
 }
 
 export function PlanificationHeader({
@@ -42,14 +30,8 @@ export function PlanificationHeader({
   selectedLevelId,
   onLevelChange,
   isPersonalized = false,
-  selectedDisciplineId,
-  onDisciplineChange,
-  availableDisciplineOptions,
 }: PlanificationHeaderProps) {
   const router = useRouter();
-
-  const hasMultipleDisciplines =
-    availableDisciplineOptions && availableDisciplineOptions.length > 1;
 
   return (
     <div className="space-y-6">
@@ -79,73 +61,35 @@ export function PlanificationHeader({
         </div>
       </div>
 
-      {/* Selectores */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Selector de nivel */}
-        {!isPersonalized && levels.length > 0 && onLevelChange && (
-          <div className="space-y-2">
-            <Label
-              htmlFor="level-select"
-              className="text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground"
+      {/* Selector de nivel */}
+      {!isPersonalized && levels.length > 0 && onLevelChange && (
+        <div className="space-y-2">
+          <Label
+            htmlFor="level-select"
+            className="text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground"
+          >
+            Nivel
+          </Label>
+          <Select
+            value={selectedLevelId?.toString() || ""}
+            onValueChange={(value) => onLevelChange(parseInt(value))}
+          >
+            <SelectTrigger
+              id="level-select"
+              className="w-full max-w-xs bg-surface-container-high border-outline/20 text-primary font-semibold uppercase text-xs tracking-wider h-12"
             >
-              Nivel
-            </Label>
-            <Select
-              value={selectedLevelId?.toString() || ""}
-              onValueChange={(value) => onLevelChange(parseInt(value))}
-            >
-              <SelectTrigger
-                id="level-select"
-                className="w-full bg-surface-container-high border-outline/20 text-primary font-semibold uppercase text-xs tracking-wider h-12"
-              >
-                <SelectValue placeholder="Seleccionar" />
-              </SelectTrigger>
-              <SelectContent>
-                {levels.map((level) => (
-                  <SelectItem key={level.id} value={level.id.toString()}>
-                    {level.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        {/* Selector de disciplina */}
-        {hasMultipleDisciplines && onDisciplineChange && (
-          <div className="space-y-2">
-            <Label
-              htmlFor="discipline-select"
-              className="text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground"
-            >
-              Disciplina
-            </Label>
-            <Select
-              value={selectedDisciplineId?.toString() || "all"}
-              onValueChange={(value) => {
-                const disciplineId =
-                  value === "all" ? null : parseInt(value, 10);
-                onDisciplineChange(disciplineId);
-              }}
-            >
-              <SelectTrigger
-                id="discipline-select"
-                className="w-full bg-surface-container-high border-outline/20 text-primary font-semibold uppercase text-xs tracking-wider h-12"
-              >
-                <SelectValue placeholder="Seleccionar" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                {availableDisciplineOptions.map((option) => (
-                  <SelectItem key={option.id} value={option.id.toString()}>
-                    {option.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-      </div>
+              <SelectValue placeholder="Seleccionar" />
+            </SelectTrigger>
+            <SelectContent>
+              {levels.map((level) => (
+                <SelectItem key={level.id} value={level.id.toString()}>
+                  {level.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
     </div>
   );
 }
