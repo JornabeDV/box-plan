@@ -281,6 +281,7 @@ model PlanificationBlock {
   title           String   @db.VarChar(255)
   order           Int      @default(0)
   notes           String?  @db.Text
+  rounds          Int?     @map("rounds")
   timerMode       String?  @map("timer_mode") @db.VarChar(20)
   timerConfig     Json?    @map("timer_config")
   createdAt       DateTime @default(now()) @map("created_at")
@@ -299,6 +300,7 @@ model PlanificationSubBlock {
   blockId     Int      @map("block_id")
   subtitle    String   @db.VarChar(255)
   order       Int      @default(0)
+  rounds      Int?     @map("rounds")
   timerMode   String?  @map("timer_mode") @db.VarChar(20)
   timerConfig Json?    @map("timer_config")
   createdAt   DateTime @default(now()) @map("created_at")
