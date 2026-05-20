@@ -27,7 +27,7 @@ export function useDashboardData(coachId: string | null) {
 	const lastCoachIdRef = useRef<string | null>(null)
 	const hasDataRef = useRef(false)
 
-	const loadDashboardData = async (forceRefresh = false) => {
+	const loadDashboardData = async (forceRefresh = false, silent = false) => {
 		if (!coachId) {
 			setLoading(false)
 			return
@@ -39,7 +39,7 @@ export function useDashboardData(coachId: string | null) {
 
 		loadingRef.current = true
 		lastCoachIdRef.current = coachId
-		setLoading(true)
+		if (!silent) setLoading(true)
 		setError(null)
 
 		try {
@@ -61,7 +61,7 @@ export function useDashboardData(coachId: string | null) {
 			lastCoachIdRef.current = null
 			hasDataRef.current = false
 		} finally {
-			setLoading(false)
+			if (!silent) setLoading(false)
 			loadingRef.current = false
 		}
 	}
@@ -77,7 +77,7 @@ export function useDashboardData(coachId: string | null) {
 
 	const refresh = () => {
 		hasDataRef.current = false
-		loadDashboardData(true)
+		loadDashboardData(true, true)
 	}
 
 	return {

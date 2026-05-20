@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, Plus, Trash2, Dumbbell } from 'lucide-react'
 import { useCoachUserDisciplines } from '@/hooks/use-coach-user-disciplines'
 import { useDisciplines } from '@/hooks/use-disciplines'
+import { useToast } from '@/hooks/use-toast'
 
 interface StudentDisciplinesManagerProps {
   studentId: string | null
@@ -16,6 +17,7 @@ interface StudentDisciplinesManagerProps {
 }
 
 export function StudentDisciplinesManager({ studentId, studentName, coachId }: StudentDisciplinesManagerProps) {
+  const { toast } = useToast()
   const { disciplines: userDisciplines, loading, addDiscipline, removeDiscipline, hasDiscipline } = useCoachUserDisciplines(studentId)
   const { disciplines: availableDisciplines, disciplineLevels } = useDisciplines(coachId)
   
@@ -45,13 +47,35 @@ export function StudentDisciplinesManager({ studentId, studentName, coachId }: S
     if (!result.error) {
       setSelectedDisciplineId('')
       setSelectedLevelId('')
+      toast({
+        title: 'Disciplina agregada',
+        description: 'La disciplina se ha asignado correctamente.',
+      })
+    } else {
+      toast({
+        title: 'Error',
+        description: result.error || 'No se pudo agregar la disciplina.',
+        variant: 'destructive',
+      })
     }
 
     setAdding(false)
   }
 
   const handleRemoveDiscipline = async (userDisciplineId: number) => {
-    await removeDiscipline(userDisciplineId)
+    const result = await removeDiscipline(userDisciplineId)
+    if (!result.error) {
+      toast({
+        title: 'Disciplina eliminada',
+        description: 'La disciplina se ha quitado correctamente.',
+      })
+    } else {
+      toast({
+        title: 'Error',
+        description: result.error || 'No se pudo eliminar la disciplina.',
+        variant: 'destructive',
+      })
+    }
   }
 
   if (!studentId) {

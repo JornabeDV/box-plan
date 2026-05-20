@@ -119,6 +119,11 @@ export function UserEditModal({
       // Si no hay cambios en el perfil, solo cerrar
       if (Object.keys(updateBody).length === 0) {
         onOpenChange(false);
+        toast({
+          title: "Usuario actualizado",
+          description: "Los datos del usuario se han actualizado exitosamente.",
+          variant: "default",
+        });
         return;
       }
 
