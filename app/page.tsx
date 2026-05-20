@@ -56,6 +56,7 @@ export default function BoxPlanApp() {
   const [paymentStatusHandled, setPaymentStatusHandled] = useState(false);
   const [isRedirectingCoach, setIsRedirectingCoach] = useState(false);
   const [isRedirectingStudent, setIsRedirectingStudent] = useState(false);
+  const [isRedirectingToPlanActivated, setIsRedirectingToPlanActivated] = useState(false);
   const [showLandingOnce, setShowLandingOnce] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -146,6 +147,24 @@ export default function BoxPlanApp() {
       router.replace("/choose-plan");
     }
   }, [authLoading, subscriptionLoading, user, isCoach, isSubscribed, isExpired, router, isRedirectingStudent]);
+
+  // Para alumnos con suscripción activa pero sin disciplinas asignadas, redirigir a plan-activated
+  useEffect(() => {
+    if (
+      !authLoading &&
+      !subscriptionLoading &&
+      !disciplinesLoading &&
+      user &&
+      !isCoach &&
+      isSubscribed &&
+      !isExpired &&
+      userDisciplines.length === 0 &&
+      !isRedirectingToPlanActivated
+    ) {
+      setIsRedirectingToPlanActivated(true);
+      router.replace("/plan-activated");
+    }
+  }, [authLoading, subscriptionLoading, disciplinesLoading, user, isCoach, isSubscribed, isExpired, userDisciplines.length, router, isRedirectingToPlanActivated]);
 
   // Mostrar toast cuando se activa una suscripción desde /subscription
   useEffect(() => {
@@ -260,13 +279,25 @@ export default function BoxPlanApp() {
     !isSubscribed &&
     !isExpired;
 
+  const willRedirectToPlanActivated =
+    !authLoading &&
+    !subscriptionLoading &&
+    !disciplinesLoading &&
+    !!user &&
+    !isCoach &&
+    isSubscribed &&
+    !isExpired &&
+    userDisciplines.length === 0;
+
   const isRedirecting =
     willRedirectCoach ||
     willRedirectLogin ||
     willRedirectStudent ||
+    willRedirectToPlanActivated ||
     shouldRedirect ||
     isRedirectingCoach ||
-    isRedirectingStudent;
+    isRedirectingStudent ||
+    isRedirectingToPlanActivated;
 
   // Limpiar el flag de sessionStorage después de que la landing se haya mostrado
   useEffect(() => {
