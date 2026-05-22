@@ -15,6 +15,7 @@ import { RankingEmptyState } from "@/components/ranking/ranking-empty-state";
 import { RankingLoadingScreen } from "@/components/ranking/ranking-loading-screen";
 import { RankingUnauthorized } from "@/components/ranking/ranking-unauthorized";
 import { Lock } from "lucide-react";
+import { RequireActiveSubscription } from "@/components/auth/require-active-subscription";
 
 const getInitialDate = (): Date => {
   const yesterday = new Date();
@@ -74,6 +75,7 @@ export default function RankingPage() {
   }
 
   return (
+    <RequireActiveSubscription>
     <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground">
       <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
 
@@ -101,5 +103,6 @@ export default function RankingPage() {
 
       <BottomNavigation />
     </div>
+    </RequireActiveSubscription>
   );
 }

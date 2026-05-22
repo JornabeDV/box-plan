@@ -48,6 +48,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { RequireActiveSubscription } from "@/components/auth/require-active-subscription";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -298,6 +299,7 @@ export default function ProfilePage() {
   }
 
   return (
+    <RequireActiveSubscription>
     <div className="min-h-screen relative overflow-hidden bg-background text-foreground">
       <div
         className="absolute inset-0 kinetic-grid-bg pointer-events-none"
@@ -672,5 +674,6 @@ export default function ProfilePage() {
         </DialogContent>
       </Dialog>
     </div>
+    </RequireActiveSubscription>
   );
 }

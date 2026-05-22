@@ -8,6 +8,7 @@ import { useUserDisciplines } from "@/hooks/use-user-disciplines";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { RequireActiveSubscription } from "@/components/auth/require-active-subscription";
 
 export default function CalendarPage() {
   const router = useRouter();
@@ -34,6 +35,7 @@ export default function CalendarPage() {
   );
 
   return (
+    <RequireActiveSubscription>
     <div className="min-h-screen pb-24">
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* Header */}
@@ -72,5 +74,6 @@ export default function CalendarPage() {
 
       <BottomNavigation />
     </div>
+    </RequireActiveSubscription>
   );
 }

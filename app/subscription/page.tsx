@@ -116,6 +116,21 @@ export default function SubscriptionPage() {
     }
   }, [loading, currentSubscription]);
 
+  // Detectar modo expirado (renovación restrictiva)
+  const [isExpiredMode, setIsExpiredMode] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const expiredParam = params.get("expired") === "1";
+      const subscriptionExpired = Boolean(
+        currentSubscription?.status === "expired" ||
+        currentSubscription?.is_expired
+      );
+      setIsExpiredMode(expiredParam || subscriptionExpired);
+    }
+  }, [currentSubscription]);
+
   // Verificar pago exitoso al volver de MercadoPago (solución optimista)
   const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [paymentVerified, setPaymentVerified] = useState(false);
@@ -244,92 +259,171 @@ export default function SubscriptionPage() {
     <div className="min-h-[100dvh] relative overflow-hidden bg-gradient-to-br from-background via-background to-card text-foreground">
       <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
 
-      <main className="container mx-auto px-6 py-8 pb-32">
+      <main className={`container mx-auto px-6 py-8 ${isExpiredMode ? "pb-8" : "pb-32"}`}>
         {/* Título */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4 md:justify-between mb-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push("/profile")}
-              className="flex items-center gap-2 md:order-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Volver</span>
-            </Button>
-            <div className="md:order-1">
+        <div className="mb-4">
+          {isExpiredMode ? (
+            <div>
               <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground mb-1">
-                Miembro
+                Renovación
               </p>
               <h1 className="text-3xl md:text-4xl font-bold italic text-primary">
-                Suscripción
+                Renovar suscripción
               </h1>
-            </div>
-          </div>
-          <p className="text-muted-foreground">
-            Administra tu suscripción y plan de entrenamiento
-          </p>
-        </div>
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="space-y-6"
-        >
-          <TabsList className="grid w-full grid-cols-3 h-auto p-1 border border-input">
-            <TabsTrigger
-              value="overview"
-              className="flex items-center justify-center gap-1 sm:gap-2 h-9 text-xs sm:text-sm px-1 sm:px-2"
-            >
-              <CreditCard className="w-3 h-3 sm:w-4 sm:h-4 hidden sm:block" />
-              Resumen
-            </TabsTrigger>
-            <TabsTrigger
-              value="plans"
-              className="flex items-center justify-center gap-1 sm:gap-2 h-9 text-xs sm:text-sm px-1 sm:px-2"
-            >
-              <Settings className="w-3 h-3 sm:w-4 sm:h-4 hidden sm:block" />
-              <span className="hidden sm:inline">Cambiar Plan</span>
-              <span className="sm:hidden">Plan</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="history"
-              className="flex items-center justify-center gap-1 sm:gap-2 h-9 text-xs sm:text-sm px-1 sm:px-2"
-            >
-              <History className="w-3 h-3 sm:w-4 sm:h-4 hidden sm:block" />
-              Historial
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Error de activación de pago */}
-          {verifyError && (
-            <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3 flex items-center gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
-              <div className="text-sm">
-                <p className="font-medium">No se pudo activar la suscripción automáticamente</p>
-                <p className="text-muted-foreground">{verifyError}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Banner de suscripción vencida */}
-          {currentSubscription && (currentSubscription.status === "expired" || currentSubscription.is_expired) && (
-            <div className="rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 flex items-center gap-3">
-              <XCircle className="w-5 h-5 text-destructive shrink-0" />
-              <p className="text-sm">
-                Tu plan <strong>{currentSubscription.subscription_plans?.name}</strong> venció el{" "}
-                <strong>
-                  {new Date(currentSubscription.current_period_end).toLocaleDateString("es-AR", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </strong>. Elegí un plan para renovar.
+              <p className="text-muted-foreground mt-2">
+                Elegí un plan para seguir entrenando sin interrupciones
               </p>
             </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-4 md:justify-between mb-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push("/profile")}
+                  className="flex items-center gap-2 md:order-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  <span className="hidden sm:inline">Volver</span>
+                </Button>
+                <div className="md:order-1">
+                  <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground mb-1">
+                    Miembro
+                  </p>
+                  <h1 className="text-3xl md:text-4xl font-bold italic text-primary">
+                    Suscripción
+                  </h1>
+                </div>
+              </div>
+              <p className="text-muted-foreground">
+                Administra tu suscripción y plan de entrenamiento
+              </p>
+            </>
           )}
+        </div>
+        {/* Error de activación de pago */}
+        {verifyError && (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3 flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+            <div className="text-sm">
+              <p className="font-medium">No se pudo activar la suscripción automáticamente</p>
+              <p className="text-muted-foreground">{verifyError}</p>
+            </div>
+          </div>
+        )}
 
-          {/* Resumen de Suscripción */}
-          <TabsContent value="overview" className="space-y-6">
+        {/* Banner de suscripción vencida */}
+        {currentSubscription && (currentSubscription.status === "expired" || currentSubscription.is_expired) && (
+          <div className="rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 flex items-center gap-3 mb-4">
+            <XCircle className="w-5 h-5 text-destructive shrink-0" />
+            <p className="text-sm">
+              Tu plan <strong>{currentSubscription.subscription_plans?.name}</strong> venció el{" "}
+              <strong>
+                {new Date(currentSubscription.current_period_end).toLocaleDateString("es-AR", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </strong>. Elegí un plan para renovar.
+            </p>
+          </div>
+        )}
+
+        {isExpiredMode ? (
+            /* Modo expirado: solo PlanSwitcher directo, sin tabs ni historial */
+            <div className="space-y-6">
+              {loading ? (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center space-y-4">
+                      <Loader2 className="w-8 h-8 animate-spin mx-auto text-muted-foreground" />
+                      <p className="text-muted-foreground">
+                        Cargando planes disponibles...
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : error ? (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center space-y-4">
+                      <p className="text-destructive font-medium">{error}</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          await Promise.all([
+                            loadPlans(),
+                            loadCurrentSubscription(),
+                          ]);
+                        }}
+                      >
+                        Reintentar
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : plans.length > 0 ? (
+                <PlanSwitcher
+                  currentPlanId=""
+                  plans={plans}
+                  onPlanSelect={changePlan}
+                  loading={actionLoading}
+                  showTitle={true}
+                  title="Renovar suscripción"
+                  description="Elegí el plan con el que querés continuar"
+                  confirmLabel="Ir a pagar"
+                />
+              ) : (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center space-y-4">
+                      <p className="text-muted-foreground">
+                        No hay planes disponibles en este momento.
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Por favor, contacta al administrador o intenta más tarde.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          ) : (
+            <>
+            {/* Tabs completos (modo normal) */}
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="space-y-6"
+            >
+              <TabsList className="grid w-full grid-cols-3 h-auto p-1 border border-input">
+                <TabsTrigger
+                  value="overview"
+                  className="flex items-center justify-center gap-1 sm:gap-2 h-9 text-xs sm:text-sm px-1 sm:px-2"
+                >
+                  <CreditCard className="w-3 h-3 sm:w-4 sm:h-4 hidden sm:block" />
+                  Resumen
+                </TabsTrigger>
+                <TabsTrigger
+                  value="plans"
+                  className="flex items-center justify-center gap-1 sm:gap-2 h-9 text-xs sm:text-sm px-1 sm:px-2"
+                >
+                  <Settings className="w-3 h-3 sm:w-4 sm:h-4 hidden sm:block" />
+                  <span className="hidden sm:inline">Cambiar Plan</span>
+                  <span className="sm:hidden">Plan</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="history"
+                  className="flex items-center justify-center gap-1 sm:gap-2 h-9 text-xs sm:text-sm px-1 sm:px-2"
+                >
+                  <History className="w-3 h-3 sm:w-4 sm:h-4 hidden sm:block" />
+                  Historial
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Resumen de Suscripción */}
+              <TabsContent value="overview" className="space-y-6">
             {currentSubscription ? (
               <>
                 <SubscriptionManagement
@@ -660,9 +754,11 @@ export default function SubscriptionPage() {
             })()}
           </TabsContent>
         </Tabs>
+        </>
+      )}
       </main>
 
-      <BottomNavigation />
+      {!isExpiredMode && <BottomNavigation />}
     </div>
   );
 }
