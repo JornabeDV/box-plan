@@ -14,6 +14,7 @@ import { ProgressStatsCards } from "@/components/progress/progress-stats-cards";
 import { RecentScores } from "@/components/progress/recent-scores";
 import { RMList } from "@/components/progress/rm-list";
 import { Loader2, Lock } from "lucide-react";
+import { RequireActiveSubscription } from "@/components/auth/require-active-subscription";
 
 export default function ProgresoPage() {
   const router = useRouter();
@@ -88,6 +89,7 @@ export default function ProgresoPage() {
   }
 
   return (
+    <RequireActiveSubscription>
     <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground">
       <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
 
@@ -107,5 +109,6 @@ export default function ProgresoPage() {
 
       <BottomNavigation />
     </div>
+    </RequireActiveSubscription>
   );
 }

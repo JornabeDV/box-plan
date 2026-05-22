@@ -304,7 +304,7 @@ export default function PlanActivatedPage() {
                       <p className="font-semibold text-sm text-foreground">
                         Notificaciones activas
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground mt-2">
                         Te avisaremos en cuanto tu coach termine de configurar tus disciplinas.
                       </p>
                     </div>

@@ -9,11 +9,10 @@ import { useExercises } from "@/hooks/use-exercises";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { RequireActiveSubscription } from "@/components/auth/require-active-subscription";
 import { RMHeader } from "@/components/rm/rm-header";
 import { RMList } from "@/components/rm/rm-list";
 import { RMModal } from "@/components/rm/rm-modal";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 
 export default function CargaRMPage() {
   const router = useRouter();
@@ -230,6 +229,7 @@ export default function CargaRMPage() {
   // }
 
   return (
+    <RequireActiveSubscription>
     <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground">
       <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
 
@@ -273,5 +273,6 @@ export default function CargaRMPage() {
 
       <BottomNavigation />
     </div>
+    </RequireActiveSubscription>
   );
 }

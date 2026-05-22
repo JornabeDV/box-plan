@@ -21,11 +21,12 @@ import { TimerConfig } from "@/components/timer/timer-config";
 import { TimerDisplay } from "@/components/timer/timer-display";
 import { TimerInfo } from "@/components/timer/timer-info";
 import { useTimer, TimerMode } from "@/hooks/use-timer";
+import { RequireActiveSubscription } from "@/components/auth/require-active-subscription";
 import { useStudentSubscription } from "@/hooks/use-student-subscription";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
-export default function TimerPage() {
+function TimerPageContent() {
   const router = useRouter();
   const [mode, setMode] = useState<TimerMode>("normal");
   const [workTime, setWorkTime] = useState("20");
@@ -502,5 +503,13 @@ export default function TimerPage() {
         <BottomNavigation />
       </div>
     </>
+  );
+}
+
+export default function TimerPage() {
+  return (
+    <RequireActiveSubscription>
+      <TimerPageContent />
+    </RequireActiveSubscription>
   );
 }

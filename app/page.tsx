@@ -50,6 +50,7 @@ import { MOTIVATIONAL_QUOTES } from "@/lib/constants";
 import { useCoachMotivationalQuotes } from "@/hooks/use-coach-motivational-quotes";
 import { useLoadingTimeout } from "@/hooks/use-loading-timeout";
 import { LandingPage } from "@/components/landing/landing-page";
+import { RequireActiveSubscription } from "@/components/auth/require-active-subscription";
 
 export default function BoxPlanApp() {
   const [shouldRedirect, setShouldRedirect] = useState(false);
@@ -69,7 +70,6 @@ export default function BoxPlanApp() {
     canUseWhatsAppSupport,
     isSubscribed,
     isExpired,
-    subscription: studentSubscription,
     loading: subscriptionLoading,
   } = useStudentSubscription();
   const { coach: studentCoach, loading: studentCoachLoading } =
@@ -425,89 +425,6 @@ export default function BoxPlanApp() {
     return <LandingPage />;
   }
 
-  // Para usuarios logueados, verificar si tiene suscripción activa
-  // Si no tiene suscripción, mostrar pantalla de acceso restringido (Beta)
-  if (!subscriptionLoading && !isSubscribed) {
-    // Alumno nuevo sin plan: redirigir a elegir plan (el useEffect arriba lo maneja,
-    // el loading unificado ya se muestra gracias a willRedirectStudent)
-    if (!isExpired) {
-      return null;
-    }
-
-    return (
-      <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground">
-        <div
-          className="absolute inset-0 kinetic-grid-bg pointer-events-none"
-          aria-hidden="true"
-        />
-        <main
-          className={`p-6 space-y-6 max-w-4xl mx-auto ${
-            isSubscribed ? "pb-32" : ""
-          }`}
-        >
-          <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-8">
-            {isExpired && studentSubscription ? (
-              <Card className="border-destructive/30 w-full max-w-md">
-                <CardContent className="pt-8 pb-8 flex flex-col items-center gap-6 text-center">
-                  <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
-                    <AlertTriangle className="w-8 h-8 text-destructive" />
-                  </div>
-                  <div className="space-y-1">
-                    <h2 className="text-xl font-bold">Tu suscripción venció</h2>
-                    <p className="text-muted-foreground text-sm">
-                      Tu plan <strong>{studentSubscription.planName}</strong>{" "}
-                      venció el{" "}
-                      <strong>
-                        {new Date(
-                          studentSubscription.currentPeriodEnd,
-                        ).toLocaleDateString("es-AR", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        })}
-                      </strong>
-                      . Renovalo para seguir entrenando.
-                    </p>
-                  </div>
-                  <Button
-                    size="lg"
-                    className="w-full"
-                    onClick={() => router.push("/subscription")}
-                  >
-                    Renovar suscripción
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="border-amber-500/30 bg-amber-500/5 w-full max-w-md">
-                <CardContent className="pt-8 pb-8 flex flex-col items-center gap-6 text-center">
-                  <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center">
-                    <AlertTriangle className="w-8 h-8 text-amber-500" />
-                  </div>
-                  <div className="space-y-1">
-                    <h2 className="text-xl font-bold">Sin plan activo</h2>
-                    <p className="text-muted-foreground text-sm">
-                      Necesitás un plan para acceder a tus planificaciones y
-                      funcionalidades de entrenamiento.
-                    </p>
-                  </div>
-                  <Button
-                    size="lg"
-                    className="w-full"
-                    onClick={() => router.push("/choose-plan")}
-                  >
-                    Ver planes disponibles
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </main>
-        {/* No mostrar BottomNavigation si no tiene suscripción - evita navegación */}
-      </div>
-    );
-  }
-
   // Para usuarios logueados con suscripción activa, mostrar dashboard personalizado
 
   // Calcular si la suscripción está por vencer (≤7 días, urgente si ≤1 día)
@@ -526,6 +443,7 @@ export default function BoxPlanApp() {
   })();
 
   return (
+    <RequireActiveSubscription>
     <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground">
       <div
         className="absolute inset-0 kinetic-grid-bg pointer-events-none"
@@ -753,5 +671,6 @@ export default function BoxPlanApp() {
           />
         )}
     </div>
+    </RequireActiveSubscription>
   );
 }
