@@ -13,7 +13,6 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { StudentDisciplinesManager } from "./student-disciplines-manager";
 
 interface UserEditModalProps {
   open: boolean;
@@ -187,7 +186,7 @@ export function UserEditModal({
       <DialogContent className="w-full max-w-full sm:max-w-md h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            Editar Usuario
+            Configuración
           </DialogTitle>
         </DialogHeader>
 
@@ -325,22 +324,6 @@ export function UserEditModal({
               </>
             )}
           </div>
-          {/* Nota: La gestión de disciplinas ahora se realiza mediante el componente StudentDisciplinesManager arriba */}
-          <div className="text-sm text-muted-foreground">
-            <p>
-              Usa el panel de &quot;Disciplinas&quot; arriba para asignar múltiples disciplinas al estudiante.
-            </p>
-          </div>
-
-          {/* Gestión de Disciplinas del Estudiante */}
-          <div className="pt-2">
-            <StudentDisciplinesManager
-              studentId={user?.id || null}
-              studentName={user?.full_name || user?.email || 'Estudiante'}
-              coachId={coachId}
-            />
-          </div>
-
           {/* Botones de acción */}
           <div className="flex justify-end gap-2 pt-4 w-full max-sm:flex-col">
             <Button

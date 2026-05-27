@@ -5,6 +5,7 @@ import { User } from 'lucide-react'
 import { UserCard } from './user-card'
 import { UserFilters } from './user-filters'
 import { UserEditModal } from './user-edit-modal'
+import { UserDisciplinesModal } from './user-disciplines-modal'
 import { useUsersManagement } from '@/hooks/use-users-management'
 
 interface UsersListProps {
@@ -29,6 +30,8 @@ export function UsersList({ coachId, initialUsers, initialPlans, onRefresh, onIm
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState<any>(null)
+  const [showDisciplinesModal, setShowDisciplinesModal] = useState(false)
+  const [selectedDisciplinesUser, setSelectedDisciplinesUser] = useState<any>(null)
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -52,6 +55,16 @@ export function UsersList({ coachId, initialUsers, initialPlans, onRefresh, onIm
   const handleCloseEditModal = () => {
     setShowEditModal(false)
     setSelectedUser(null)
+  }
+
+  const handleManageDisciplines = (user: any) => {
+    setSelectedDisciplinesUser(user)
+    setShowDisciplinesModal(true)
+  }
+
+  const handleCloseDisciplinesModal = () => {
+    setShowDisciplinesModal(false)
+    setSelectedDisciplinesUser(null)
   }
 
   const handleUserUpdated = async () => {
@@ -113,6 +126,7 @@ export function UsersList({ coachId, initialUsers, initialPlans, onRefresh, onIm
               onChangePlan={changePlan}
               onReactivateSubscription={reactivateSubscription}
               onEditUser={handleEditUser}
+              onManageDisciplines={handleManageDisciplines}
               onDeleteUser={deleteUser}
               onAssignmentComplete={handleUserUpdated}
               onImportPlanification={onImportPlanification}
@@ -128,6 +142,14 @@ export function UsersList({ coachId, initialUsers, initialPlans, onRefresh, onIm
         user={selectedUser}
         coachId={coachId}
         onUserUpdated={handleUserUpdated}
+      />
+
+      {/* Modal de disciplinas del usuario */}
+      <UserDisciplinesModal
+        open={showDisciplinesModal}
+        onOpenChange={handleCloseDisciplinesModal}
+        user={selectedDisciplinesUser}
+        coachId={coachId}
       />
     </div>
   )

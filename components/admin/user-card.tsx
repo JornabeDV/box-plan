@@ -16,7 +16,9 @@ import {
   Calendar,
   ArrowRightLeft,
   RefreshCw,
-  Upload
+  Upload,
+  Settings,
+  Dumbbell
 } from 'lucide-react'
 
 interface UserWithSubscription {
@@ -83,6 +85,7 @@ interface UserCardProps {
   onChangePlan?: (userId: string, newPlanId: string) => Promise<void>
   onReactivateSubscription?: (subscriptionId: string) => Promise<void>
   onEditUser: (user: UserWithSubscription) => void
+  onManageDisciplines: (user: UserWithSubscription) => void
   onDeleteUser: (userId: string) => Promise<{ error: string | null }>
   onAssignmentComplete?: () => void
   onImportPlanification?: (user: UserWithSubscription) => void
@@ -97,6 +100,7 @@ export function UserCard({
   onChangePlan,
   onReactivateSubscription,
   onEditUser,
+  onManageDisciplines,
   onDeleteUser,
   onAssignmentComplete,
   onImportPlanification
@@ -140,7 +144,7 @@ export function UserCard({
             </div>
           </div>
           <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-            <Badge variant={user.has_subscription ? 'default' : 'outline'} className="text-xs sm:text-base px-2 sm:px-4 py-1 sm:py-1.5 whitespace-nowrap">
+            <Badge variant={user.has_subscription ? 'default' : 'outline'} className="text-xs px-2 py-0.5 whitespace-nowrap">
               {user.has_subscription 
                 ? user.subscription?.plan?.name || 'Plan sin nombre'
                 : user.subscription_status === 'canceled' 
@@ -150,7 +154,7 @@ export function UserCard({
             {isPendingCancellation ? (
               <Badge 
                 variant="outline" 
-                className="text-xs sm:text-base px-2 sm:px-4 py-1 sm:py-1.5 whitespace-nowrap bg-yellow-50 text-yellow-700 border-yellow-400"
+                className="text-xs px-2 py-0.5 whitespace-nowrap bg-yellow-50 text-yellow-700 border-yellow-400"
               >
                 Activo · Cancela {format(new Date(user.subscription!.current_period_end), 'dd/MM', { locale: es })}
               </Badge>
@@ -160,7 +164,7 @@ export function UserCard({
                 user.subscription_status === 'canceled' ? 'destructive' :
                 user.subscription_status === 'past_due' ? 'destructive' :
                 'secondary'
-              } className="text-xs sm:text-base px-2 sm:px-4 py-1 sm:py-1.5 whitespace-nowrap">
+              } className="text-xs px-2 py-0.5 whitespace-nowrap">
                 {user.subscription_status === 'active' ? 'Activo' :
                  user.subscription_status === 'canceled' ? 'Cancelado' :
                  user.subscription_status === 'past_due' ? 'Vencido' :
@@ -169,16 +173,16 @@ export function UserCard({
               </Badge>
             )}
             {user.preferences?.discipline && (
-              <Badge variant="outline" className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-base px-2 sm:px-4 py-1 sm:py-1.5 whitespace-nowrap">
+              <Badge variant="outline" className="flex items-center gap-1 text-xs px-2 py-0.5 whitespace-nowrap">
                 <div 
-                  className="w-2 sm:w-3 h-2 sm:h-3 rounded-full shrink-0" 
+                  className="w-2 h-2 rounded-full shrink-0" 
                   style={{ backgroundColor: user.preferences.discipline.color }}
                 />
                 <span className="truncate">{user.preferences.discipline.name}</span>
               </Badge>
             )}
             {user.preferences?.level && (
-              <Badge variant="secondary" className="text-xs sm:text-base px-2 sm:px-4 py-1 sm:py-1.5 whitespace-nowrap">
+              <Badge variant="secondary" className="text-xs px-2 py-0.5 whitespace-nowrap">
                 {user.preferences.level.name}
               </Badge>
             )}
@@ -239,7 +243,7 @@ export function UserCard({
           )}
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-4 pt-4 border-t">
-          <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-between">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto">
             {!user.has_subscription ? (
               plans.length > 0 ? (
                 <Button
@@ -248,7 +252,8 @@ export function UserCard({
                   onClick={() => setShowAssignPlanModal(true)}
                   className="hover:scale-100 active:scale-100"
                 >
-                  Asignar Plan
+                  <span className="sm:hidden">Asignar Plan</span>
+                  <span className="hidden sm:inline">Asignar Plan</span>
                 </Button>
               ) : (
                 <Button
@@ -257,7 +262,8 @@ export function UserCard({
                   disabled
                   title="No hay planes disponibles. Crea planes en la base de datos."
                 >
-                  Sin planes disponibles
+                  <span className="sm:hidden">Sin planes</span>
+                  <span className="hidden sm:inline">Sin planes disponibles</span>
                 </Button>
               )
             ) : (
@@ -270,7 +276,8 @@ export function UserCard({
                     onClick={() => user.subscription && setShowCancelSubscriptionDialog(true)}
                     className="hover:scale-100 active:scale-100"
                   >
-                    Cancelar Suscripción
+                    <span className="sm:hidden">Cancelar</span>
+                    <span className="hidden sm:inline">Cancelar Suscripción</span>
                   </Button>
                 )}
                 {/* Mostrar Cambiar Plan si hay suscripción activa */}
@@ -282,7 +289,8 @@ export function UserCard({
                     className="hover:scale-100 active:scale-100"
                   >
                     <ArrowRightLeft className="h-3.5 w-3.5 mr-1.5" />
-                    Cambiar Plan
+                    <span className="sm:hidden">Cambiar</span>
+                    <span className="hidden sm:inline">Cambiar Plan</span>
                   </Button>
                 )}
                 {/* Mostrar Reactivar si está pendiente de cancelación, cancelada o vencida */}
@@ -307,7 +315,8 @@ export function UserCard({
                 className="hover:scale-100 active:scale-100 border-dashed border-2"
               >
                 <Upload className="h-3.5 w-3.5 mr-1.5" />
-                Importar planificación
+                <span className="sm:hidden">Importar</span>
+                <span className="hidden sm:inline">Importar planificación</span>
               </Button>
             )}
             <Button 
@@ -315,14 +324,26 @@ export function UserCard({
               variant="outline"
               onClick={() => onEditUser(user)}
               className="hover:scale-100 active:scale-100"
+              title="Configuración"
             >
-              Preferencias
+              <Settings className="h-3.5 w-3.5 mr-1.5" />
+              <span className="sm:hidden">Ajustes</span>
+              <span className="hidden sm:inline">Configuración</span>
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => onManageDisciplines(user)}
+              className="hover:scale-100 active:scale-100"
+            >
+              <Dumbbell className="h-3.5 w-3.5 mr-1.5" />
+              Disciplinas
             </Button>
             <Button 
               size="sm" 
               variant="destructive"
               onClick={() => setShowDeleteDialog(true)}
-              className="hover:scale-100 active:scale-100"
+              className="hover:scale-100 active:scale-100 col-span-2 sm:col-auto"
             >
               Eliminar
             </Button>
