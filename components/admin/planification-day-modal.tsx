@@ -34,6 +34,7 @@ import {
   Upload,
 } from "lucide-react";
 import { Planification } from "@/hooks/use-planifications";
+import { PlanificationAthleteNotes } from "./planification-athlete-notes";
 
 interface PlanificationDayModalProps {
   open: boolean;
@@ -458,6 +459,9 @@ export function PlanificationDayModal({
                         </p>
                       </div>
                     )}
+
+                    {/* Notas de atletas */}
+                    <PlanificationAthleteNotes planificationId={planification.id} />
                   </CardContent>
                 </Card>
               ))}
