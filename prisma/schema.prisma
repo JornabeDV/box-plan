@@ -33,6 +33,7 @@ model User {
   studentRelationships       CoachStudentRelationship[] @relation("StudentRelationships")
   adminAssignments           AdminUserAssignment[]
   personalizedPlanifications Planification[]            @relation("PersonalizedPlanifications")
+  athleteNotes               PlanificationAthleteNote[]
   pushSubscriptions          PushSubscription[]
 
   @@map("users")
@@ -251,8 +252,25 @@ model Planification {
   blocks       PlanificationBlock[]
   workouts     Workout[]
   userProgress UserProgress[]
+  athleteNotes PlanificationAthleteNote[]
 
   @@map("planifications")
+}
+
+model PlanificationAthleteNote {
+  id              Int            @id @default(autoincrement())
+  planificationId Int            @map("planification_id")
+  userId          Int            @map("user_id")
+  note            String         @db.Text
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @default(now()) @updatedAt @map("updated_at")
+
+  planification   Planification  @relation(fields: [planificationId], references: [id], onDelete: Cascade)
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([planificationId])
+  @@index([userId])
+  @@map("planification_athlete_notes")
 }
 
 model Exercise {

@@ -7,6 +7,7 @@ import { usePlanificationScores } from "@/hooks/use-planification-scores";
 import { PlanificationHeader } from "@/components/planification/planification-header";
 import { PlanificationBlocks } from "@/components/planification/planification-blocks";
 import { PlanificationNotes } from "@/components/planification/planification-notes";
+import { AthleteNotesSection } from "@/components/planification/athlete-notes-section";
 import { LevelPreferenceModal } from "@/components/planification/level-preference-modal";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
@@ -137,6 +138,11 @@ export function PlanificationContent() {
 
           {planification.notes && (
             <PlanificationNotes notes={planification.notes} />
+          )}
+
+          {/* Notas de la comunidad */}
+          {planification && (
+            <AthleteNotesSection planificationId={planification.id} />
           )}
 
           {!hasBlocks && !hasNotes && (

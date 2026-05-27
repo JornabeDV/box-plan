@@ -119,8 +119,8 @@ export default function SubscriptionExpiredPage() {
             </h1>
             <p className="text-muted-foreground mt-2 max-w-xs mx-auto">
               {subscription?.planName
-                ? `Tu plan ${subscription.planName} venció${expiredDate ? ` el ${expiredDate}` : ""}.`
-                : "Tu plan de entrenamiento venció."}
+                ? `Tu plan ${subscription.planName} venció${expiredDate ? ` el ${expiredDate}` : ""}. `
+                : "Tu plan de entrenamiento venció. "}
               Renovalo para seguir entrenando sin interrupciones.
             </p>
           </div>
