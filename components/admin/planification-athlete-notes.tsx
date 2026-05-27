@@ -43,7 +43,7 @@ export function PlanificationAthleteNotes({
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
-    if (!planificationId || !expanded) return;
+    if (!planificationId) return;
 
     const fetchNotes = async () => {
       setLoading(true);
@@ -62,16 +62,29 @@ export function PlanificationAthleteNotes({
     };
 
     fetchNotes();
-  }, [planificationId, expanded]);
+  }, [planificationId]);
 
   if (!expanded) {
+    if (loading) return null;
+
+    if (notes.length === 0) {
+      return (
+        <div className="w-full mt-3 pt-3 border-t border-border/50 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <MessageSquare className="w-4 h-4 opacity-50" />
+          <span>No hay notas de atletas para esta planificación</span>
+        </div>
+      );
+    }
+
     return (
       <button
         onClick={() => setExpanded(true)}
-        className="w-full mt-3 pt-3 border-t border-border/50 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+        className="w-full mt-3 pt-3 border-t border-border/50 flex items-center justify-center"
       >
-        <MessageSquare className="w-4 h-4" />
-        <span>Ver notas de atletas</span>
+        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 hover:border-primary/40 transition-colors">
+          <MessageSquare className="w-4 h-4" />
+          Ver {notes.length} nota{notes.length !== 1 ? 's' : ''} de atletas
+        </span>
       </button>
     );
   }

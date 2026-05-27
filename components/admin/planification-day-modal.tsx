@@ -117,8 +117,8 @@ export function PlanificationDayModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl h-screen sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg m-0 sm:m-4 p-4 sm:p-6 w-full">
-        <DialogHeader className="">
+      <DialogContent className="max-w-full sm:max-w-5xl h-screen sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg m-0 sm:m-4 p-4 sm:p-6 w-full">
+        <DialogHeader>
           <DialogTitle className="flex flex-col gap-1 sm:gap-2">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
