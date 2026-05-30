@@ -182,7 +182,7 @@ export function PlanificationDayModal({
                       className="flex items-center justify-center gap-2 whitespace-nowrap"
                     >
                       <Copy className="w-4 h-4" />
-                      <span>Replicar</span>
+                      <span>Replicar Día</span>
                     </Button>
                   )}
 
@@ -255,18 +255,19 @@ export function PlanificationDayModal({
                             </Badge>
                           )}
                         </div>
-                        
+
                         {/* Info adicional */}
                         <div className="flex flex-wrap items-center gap-2">
-                          {planification.is_personalized && planification.target_user && (
-                            <Badge
-                              variant="outline"
-                              className="text-xs bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30"
-                            >
-                              <Users className="w-3 h-3 mr-1" />
-                              Para: {planification.target_user.name}
-                            </Badge>
-                          )}
+                          {planification.is_personalized &&
+                            planification.target_user && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30"
+                              >
+                                <Users className="w-3 h-3 mr-1" />
+                                Para: {planification.target_user.name}
+                              </Badge>
+                            )}
                           {planification.discipline && (
                             <Badge
                               style={{
@@ -309,7 +310,7 @@ export function PlanificationDayModal({
                               variant="outline"
                               onClick={() => onExport(planification)}
                               disabled={exportingId === planification.id}
-                              className="flex items-center gap-1 whitespace-nowrap"
+                              className="flex items-center gap-2 whitespace-nowrap"
                             >
                               <Download className="w-4 h-4" />
                               <span>Exportar</span>
@@ -324,6 +325,7 @@ export function PlanificationDayModal({
                                   onClick={() => onDuplicate(planification)}
                                 >
                                   <Copy className="w-4 h-4" />
+                                  <span className="max-md:hidden">Duplicar planificación</span>
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent side="top" className="z-[100]">
@@ -340,6 +342,7 @@ export function PlanificationDayModal({
                                   onClick={() => onEdit(planification)}
                                 >
                                   <Edit className="w-4 h-4" />
+                                  <span className="max-md:hidden">Editar</span>
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent side="top" className="z-[100]">
@@ -356,6 +359,7 @@ export function PlanificationDayModal({
                                 disabled={deletingId === planification.id}
                               >
                                 <Trash2 className="w-4 h-4" />
+                                <span className="max-md:hidden">Eliminar</span>
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent side="top" className="z-[100]">
@@ -402,38 +406,57 @@ export function PlanificationDayModal({
                                           <span className="text-primary">
                                             •
                                           </span>
-                                          <span>{typeof item === 'string' ? item : item.description}</span>
+                                          <span>
+                                            {typeof item === "string"
+                                              ? item
+                                              : item.description}
+                                          </span>
                                         </li>
                                       ),
                                     )}
                                   </ul>
                                 )}
-                                {block.subBlocks && block.subBlocks.length > 0 && (
-                                  <div className="space-y-2 ml-6 mb-3">
-                                    {block.subBlocks.map((subBlock: any) => (
-                                      <div key={subBlock.id}>
-                                        <p className="text-xs font-semibold text-muted-foreground mb-1 flex items-center gap-1.5">
-                                          {subBlock.subtitle}
-                                          {subBlock.rounds && subBlock.rounds > 1 && (
-                                            <span className="text-[9px] font-bold tracking-wide uppercase text-primary bg-primary/10 border border-primary/20 px-1 py-0.5 rounded">
-                                              {subBlock.rounds} rondas
-                                            </span>
-                                          )}
-                                        </p>
-                                        {subBlock.items && subBlock.items.length > 0 && (
-                                          <ul className="space-y-1 ml-3">
-                                            {subBlock.items.map((item: any, i: number) => (
-                                              <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                                                <span className="text-primary">•</span>
-                                                <span>{typeof item === 'string' ? item : item.description}</span>
-                                              </li>
-                                            ))}
-                                          </ul>
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
+                                {block.subBlocks &&
+                                  block.subBlocks.length > 0 && (
+                                    <div className="space-y-2 ml-6 mb-3">
+                                      {block.subBlocks.map((subBlock: any) => (
+                                        <div key={subBlock.id}>
+                                          <p className="text-xs font-semibold text-muted-foreground mb-1 flex items-center gap-1.5">
+                                            {subBlock.subtitle}
+                                            {subBlock.rounds &&
+                                              subBlock.rounds > 1 && (
+                                                <span className="text-[9px] font-bold tracking-wide uppercase text-primary bg-primary/10 border border-primary/20 px-1 py-0.5 rounded">
+                                                  {subBlock.rounds} rondas
+                                                </span>
+                                              )}
+                                          </p>
+                                          {subBlock.items &&
+                                            subBlock.items.length > 0 && (
+                                              <ul className="space-y-1 ml-3">
+                                                {subBlock.items.map(
+                                                  (item: any, i: number) => (
+                                                    <li
+                                                      key={i}
+                                                      className="text-sm text-muted-foreground flex items-start gap-2"
+                                                    >
+                                                      <span className="text-primary">
+                                                        •
+                                                      </span>
+                                                      <span>
+                                                        {typeof item ===
+                                                        "string"
+                                                          ? item
+                                                          : item.description}
+                                                      </span>
+                                                    </li>
+                                                  ),
+                                                )}
+                                              </ul>
+                                            )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
                                 {block.notes && (
                                   <div className="mt-3 pt-3 border-t border-border/50">
                                     <p className="text-xs font-medium text-muted-foreground mb-1">
@@ -461,7 +484,9 @@ export function PlanificationDayModal({
                     )}
 
                     {/* Notas de atletas */}
-                    <PlanificationAthleteNotes planificationId={planification.id} />
+                    <PlanificationAthleteNotes
+                      planificationId={planification.id}
+                    />
                   </CardContent>
                 </Card>
               ))}

@@ -106,6 +106,7 @@ export default function AdminDashboardPage() {
   const replicateModal = useModalState<{
     planifications: any[];
     sourceDate: Date | null;
+    mode: "duplicate" | "replicate-day";
   }>();
   const bulkImportModal = useModalState<{
     id: string;
@@ -298,6 +299,7 @@ export default function AdminDashboardPage() {
     replicateModal.open({
       planifications: [planification],
       sourceDate: selectedDate,
+      mode: "duplicate",
     });
   };
 
@@ -305,6 +307,7 @@ export default function AdminDashboardPage() {
     replicateModal.open({
       planifications: dayPlanifications,
       sourceDate: selectedDate,
+      mode: "replicate-day",
     });
   };
 
@@ -887,6 +890,7 @@ export default function AdminDashboardPage() {
           onConfirm={handleReplicateConfirm}
           sourceDate={replicateModal.selectedItem.sourceDate}
           planificationCount={replicateModal.selectedItem.planifications.length}
+          mode={replicateModal.selectedItem.mode}
         />
       )}
 

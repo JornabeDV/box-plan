@@ -410,7 +410,7 @@ export function PlanificationCalendar({
                 {/* Badge: Planificaciones personalizadas */}
                 {hasPersonalized && (
                   <span
-                    className={`absolute -top-1 -right-1 sm:top-1 sm:right-1 bg-secondary text-secondary-foreground text-[9px] sm:text-xs font-bold w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center ${
+                    className={`absolute -top-1 -right-1 sm:top-1 sm:right-1 bg-purple-700 text-purple-300 text-[9px] sm:text-xs font-bold w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center ${
                       isPast ? "opacity-70" : ""
                     }`}
                     title={`${personalizedCount} planificación${personalizedCount > 1 ? 'es' : ''} personalizada${personalizedCount > 1 ? 's' : ''}`}
