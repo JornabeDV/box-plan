@@ -23,6 +23,7 @@ interface ReplicatePlanificationModalProps {
   sourceDate: Date | null;
   planificationCount: number;
   loading?: boolean;
+  mode?: "duplicate" | "replicate-day";
 }
 
 export function ReplicatePlanificationModal({
@@ -32,6 +33,7 @@ export function ReplicatePlanificationModal({
   sourceDate,
   planificationCount,
   loading = false,
+  mode = "replicate-day",
 }: ReplicatePlanificationModalProps) {
   const [targetDate, setTargetDate] = useState<Date | undefined>(undefined);
   const [replaceExisting, setReplaceExisting] = useState<"add" | "replace">(
@@ -124,12 +126,14 @@ export function ReplicatePlanificationModal({
         <DialogHeader className="pr-0 h-auto">
           <DialogTitle className="flex items-center gap-2">
             <Copy className="w-5 h-5" />
-            Replicar Planificaciones
+            {mode === "duplicate"
+              ? "Duplicar Planificación"
+              : "Replicar Día"}
           </DialogTitle>
           <DialogDescription className="text-left">
-            {planificationCount === 1
+            {mode === "duplicate"
               ? "Duplicar esta planificación a otro día"
-              : `Replicar ${planificationCount} planificaciones a otro día`}
+              : "Duplicar todas las planificaciones de este día a otro día"}
             {sourceDate && (
               <span className="block mt-1 text-xs">
                 Desde:{" "}
@@ -376,7 +380,7 @@ export function ReplicatePlanificationModal({
             ) : (
               <>
                 <Copy className="w-4 h-4 mr-2" />
-                Replicar
+                {mode === "duplicate" ? "Duplicar" : "Replicar"}
               </>
             )}
           </Button>
