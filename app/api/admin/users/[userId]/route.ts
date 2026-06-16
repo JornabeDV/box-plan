@@ -150,30 +150,74 @@ export async function DELETE(
 
 		const userId = parseInt(params.userId)
 
-		// Verificar que el usuario existe
-		const userExists = await prisma.user.findUnique({
+		if (isNaN(userId)) {
+			return NextResponse.json({ error: 'ID de usuario inválido' }, { status: 400 })
+		}
+
+		const coachProfileId = authCheck.profile!.id
+
+		// Verificar que el usuario existe y que es un estudiante asignado a este coach.
+		// No permitimos eliminar coaches desde este endpoint.
+		const userToDelete = await prisma.user.findUnique({
 			where: { id: userId },
-			select: { id: true }
+			select: {
+				id: true,
+				coachProfile: { select: { id: true } },
+				studentRelationships: {
+					where: { coachId: coachProfileId },
+					select: { id: true }
+				}
+			}
 		})
 
-		if (!userExists) {
+		if (!userToDelete) {
 			return NextResponse.json({ error: 'User not found' }, { status: 404 })
 		}
 
-		// Eliminar datos relacionados en cascada usando transacción
+		if (userToDelete.coachProfile) {
+			return NextResponse.json(
+				{ error: 'No se puede eliminar un usuario con perfil de coach desde esta acción' },
+				{ status: 400 }
+			)
+		}
+
+		if (userToDelete.studentRelationships.length === 0) {
+			return NextResponse.json(
+				{ error: 'No tienes permiso para eliminar este usuario' },
+				{ status: 403 }
+			)
+		}
+
+		// Eliminar datos relacionados en cascada usando transacción.
+		// Se hace explícito porque la BD usa relationMode="prisma" y algunas
+		// tablas (p. ej. password_reset_tokens) no tienen relación declarada.
 		await prisma.$transaction(async (tx) => {
-			// Eliminar en orden de dependencias
+			// Tablas directamente relacionadas con User (sin dependencias previas)
+			await tx.passwordResetToken.deleteMany({ where: { userId } })
+			await tx.account.deleteMany({ where: { userId } })
+			await tx.session.deleteMany({ where: { userId } })
+			await tx.userDiscipline.deleteMany({ where: { userId } })
+			await tx.rMRecord.deleteMany({ where: { userId } })
+			await tx.pushSubscription.deleteMany({ where: { userId } })
+			await tx.planificationAthleteNote.deleteMany({ where: { userId } })
+			await tx.adminUserAssignment.deleteMany({ where: { userId } })
+			await tx.coachStudentRelationship.deleteMany({ where: { studentId: userId } })
 			await tx.userPreference.deleteMany({ where: { userId } })
+
+			// Suscripciones y pagos
 			await tx.paymentHistory.deleteMany({ where: { userId } })
 			await tx.subscription.deleteMany({ where: { userId } })
+
+			// Progreso y workouts
 			await tx.userProgress.deleteMany({ where: { userId } })
-			await tx.adminUserAssignment.deleteMany({ where: { userId } })
-			await tx.userRole.deleteMany({ where: { userId } })
 			await tx.workout.deleteMany({ where: { userId } })
-			// Nota: Las planificaciones no tienen userId, solo coachId, por lo que no se eliminan aquí
-			// Si el usuario es coach, las planificaciones se eliminarán cuando se elimine el coachProfile
-			
-			// Finalmente, eliminar el usuario
+
+			// Planificaciones personalizadas asignadas al estudiante.
+			// Esto borra en cascada bloques, sub-bloques, items y notas de atleta.
+			await tx.planification.deleteMany({ where: { targetUserId: userId } })
+
+			// Roles y usuario
+			await tx.userRole.deleteMany({ where: { userId } })
 			await tx.user.delete({ where: { id: userId } })
 		})
 
@@ -189,6 +233,13 @@ export async function DELETE(
 			)
 		}
 
-		return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+		const errorMessage = error?.message || 'Error desconocido'
+		const errorCode = error?.code || 'UNKNOWN'
+
+		return NextResponse.json({ 
+			error: 'Internal server error',
+			details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+			code: process.env.NODE_ENV === 'development' ? errorCode : undefined
+		}, { status: 500 })
 	}
 }

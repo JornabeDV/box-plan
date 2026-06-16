@@ -269,7 +269,7 @@ export default function ProfilePage() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen relative overflow-hidden bg-background text-foreground flex items-center justify-center">
+      <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground flex items-center justify-center">
         <div
           className="absolute inset-0 kinetic-grid-bg pointer-events-none"
           aria-hidden="true"
@@ -284,7 +284,7 @@ export default function ProfilePage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen relative overflow-hidden bg-background text-foreground flex items-center justify-center">
+      <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-xl font-bold text-foreground mb-4">
             No autorizado
@@ -300,13 +300,13 @@ export default function ProfilePage() {
 
   return (
     <RequireActiveSubscription>
-    <div className="min-h-screen relative overflow-hidden bg-background text-foreground">
+    <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground">
       <div
         className="absolute inset-0 kinetic-grid-bg pointer-events-none"
         aria-hidden="true"
       />
 
-      <main className="px-5 py-6 space-y-8 pb-24 max-w-md mx-auto md:max-w-2xl">
+      <main className="px-5 py-6 space-y-8 pb-[calc(5rem+env(safe-area-inset-bottom))] max-w-md mx-auto md:max-w-2xl">
         {/* Header info */}
         <div className="space-y-2">
           <span className="label-md text-primary tracking-[0.2em]">Atleta</span>
