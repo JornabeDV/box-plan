@@ -57,8 +57,8 @@ export const BottomNavigation = memo(function BottomNavigation() {
   const showAdminDashboard = useMemo(() => isAdmin && !isCoach, [isAdmin, isCoach]);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-2xl border-t border-primary/10">
-      <div className="flex items-center justify-around py-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] max-w-md mx-auto">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-2xl border-t border-primary/10 pb-[env(safe-area-inset-bottom)]">
+      <div className="flex items-center justify-around py-2 max-w-md mx-auto">
         <NavItem
           href="/"
           icon={HomeIcon}
