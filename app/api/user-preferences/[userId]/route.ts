@@ -37,6 +37,42 @@ export async function GET(request: NextRequest, { params }: { params: { userId: 
         })
       : null
 
+    // Obtener suscripción activa para calcular lock status
+    const activeSubscription = await prisma.subscription.findFirst({
+      where: {
+        userId: parseInt(params.userId),
+        status: 'active'
+      },
+      orderBy: {
+        currentPeriodStart: 'desc'
+      }
+    })
+
+    // Calcular lock status
+    let lockStatus: {
+      isLocked: boolean
+      nextChangeDate: string | null
+      message: string | null
+    } = {
+      isLocked: false,
+      nextChangeDate: null,
+      message: null
+    }
+
+    if (activeSubscription && preference?.lastPreferenceChangeDate) {
+      const lastChangeDate = new Date(preference.lastPreferenceChangeDate)
+      const periodStart = new Date(activeSubscription.currentPeriodStart)
+      const periodEnd = new Date(activeSubscription.currentPeriodEnd)
+
+      if (lastChangeDate >= periodStart) {
+        lockStatus = {
+          isLocked: true,
+          nextChangeDate: periodEnd.toISOString(),
+          message: 'Ya has cambiado tus preferencias este mes. Solo puedes cambiar tu disciplina una vez por período de suscripción. Podrás cambiarlas nuevamente después de tu próximo pago.'
+        }
+      }
+    }
+
     // Transformar para respuesta
     const result = {
       ...preference,
@@ -45,10 +81,13 @@ export async function GET(request: NextRequest, { params }: { params: { userId: 
       discipline_color: discipline?.color || null,
       level_id: level?.id || null,
       level_name: level?.name || null,
-      level_description: level?.description || null
+      level_description: level?.description || null,
+      lock_status: lockStatus
     }
 
-    return NextResponse.json(result)
+    const response = NextResponse.json(result)
+    response.headers.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=300')
+    return response
   } catch (error) {
     console.error('Error fetching user preferences:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

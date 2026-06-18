@@ -43,7 +43,7 @@ export function useUserDisciplines() {
 		error: null
 	})
 
-	const fetchDisciplines = useCallback(async (opts?: { silent?: boolean }) => {
+	const fetchDisciplines = useCallback(async (opts?: { silent?: boolean; forceRefresh?: boolean }) => {
 		if (!session?.user?.id) {
 			setState(prev => ({ ...prev, loading: false, disciplines: [] }))
 			return
@@ -54,12 +54,8 @@ export function useUserDisciplines() {
 				setState(prev => ({ ...prev, loading: true, error: null }))
 			}
 
-			const timestamp = Date.now()
-			const response = await fetch(`/api/user-disciplines?_t=${timestamp}`, {
-				headers: {
-					'Cache-Control': 'no-cache, no-store, must-revalidate',
-					'Pragma': 'no-cache',
-				}
+			const response = await fetch('/api/user-disciplines', {
+				cache: opts?.forceRefresh ? 'no-store' : 'default'
 			})
 
 			if (!response.ok) {
@@ -108,7 +104,7 @@ export function useUserDisciplines() {
 			}
 
 			const data = await response.json()
-			await fetchDisciplines()
+			await fetchDisciplines({ forceRefresh: true })
 			return { data, error: null }
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : 'Error al agregar disciplina'
@@ -139,7 +135,7 @@ export function useUserDisciplines() {
 			}
 
 			const data = await response.json()
-			await fetchDisciplines()
+			await fetchDisciplines({ forceRefresh: true })
 			return { data, error: null }
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : 'Error al actualizar nivel'
@@ -165,7 +161,7 @@ export function useUserDisciplines() {
 				return { error: errorData.error || 'Error al eliminar disciplina' }
 			}
 
-			await fetchDisciplines()
+			await fetchDisciplines({ forceRefresh: true })
 			return { success: true, error: null }
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : 'Error al eliminar disciplina'

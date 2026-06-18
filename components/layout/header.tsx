@@ -1,20 +1,13 @@
 "use client";
 
-import { LogOut } from "lucide-react";
-import { useAuthWithRoles } from "@/hooks/use-auth-with-roles";
-import { useUserCoach } from "@/hooks/use-user-coach";
-import { useStudentSubscription } from "@/hooks/use-student-subscription";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
 
-interface HeaderProps {}
+export function Header() {
+  const { data: session, status } = useSession();
 
-export function Header({}: HeaderProps) {
-  const { user, isAdmin, isCoach } = useAuthWithRoles();
-  const { loading: subscriptionLoading } = useStudentSubscription();
-  useUserCoach();
-
-  if (!user) return null;
+  if (status === "loading" || !session?.user) return null;
 
   return (
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl pt-[env(safe-area-inset-top)]">

@@ -55,9 +55,11 @@ export async function GET(request: NextRequest) {
 			}
 		})
 
-		return NextResponse.json({
+		const response = NextResponse.json({
 			quotes: quotes.map(q => q.quote)
 		})
+		response.headers.set('Cache-Control', 'private, max-age=300, stale-while-revalidate=600')
+		return response
 
 	} catch (error) {
 		console.error('Error obteniendo frases del coach:', error)
