@@ -1,3 +1,4 @@
+import { revalidateTag } from 'next/cache'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -845,6 +846,8 @@ export async function POST(request: NextRequest) {
         },
       },
     })
+
+    revalidateTag('today-all-planifications')
 
     return NextResponse.json(
       transformPlanificationResponse(fullPlanification),

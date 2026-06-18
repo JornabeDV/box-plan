@@ -254,6 +254,7 @@ model Planification {
   userProgress UserProgress[]
   athleteNotes PlanificationAthleteNote[]
 
+  @@index([coachId, date, isPersonalized, disciplineId])
   @@map("planifications")
 }
 

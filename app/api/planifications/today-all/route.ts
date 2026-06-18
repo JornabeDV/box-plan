@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { unstable_cache } from 'next/cache'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeUserId } from '@/lib/auth-helpers'
@@ -101,6 +102,50 @@ function transformPlanificationResponse(p: any) {
   }
 }
 
+const planificationInclude = {
+  discipline: { select: { id: true, name: true, color: true } },
+  disciplineLevel: {
+    select: { id: true, name: true, description: true },
+  },
+  blocks: {
+    orderBy: { order: 'asc' },
+    include: {
+      items: {
+        orderBy: { order: 'asc' },
+        include: { exercise: true },
+      },
+      subBlocks: {
+        orderBy: { order: 'asc' },
+        include: {
+          items: {
+            orderBy: { order: 'asc' },
+            include: { exercise: true },
+          },
+        },
+      },
+    },
+  },
+} as const
+
+const getCachedTodayAllPlanifications = unstable_cache(
+  async (coachId: number, normalizedDate: Date, endOfDay: Date, disciplineIds: number[]) => {
+    const allPlanifications = await prisma.planification.findMany({
+      where: {
+        coachId,
+        isPersonalized: false,
+        date: { gte: normalizedDate, lt: endOfDay },
+        disciplineId: { in: disciplineIds },
+      },
+      include: planificationInclude,
+      orderBy: { date: 'asc' },
+    })
+
+    return allPlanifications
+  },
+  ['today-all-planifications'],
+  { revalidate: 60, tags: ['today-all-planifications'] }
+)
+
 // ============================================================
 // GET
 // ============================================================
@@ -160,44 +205,15 @@ export async function GET(request: NextRequest) {
       .split('T')[0]
     const endOfDay = normalizeDateForArgentina(nextDayStr)
 
-    const planificationInclude = {
-      discipline: { select: { id: true, name: true, color: true } },
-      disciplineLevel: {
-        select: { id: true, name: true, description: true },
-      },
-      blocks: {
-        orderBy: { order: 'asc' },
-        include: {
-          items: {
-            orderBy: { order: 'asc' },
-            include: { exercise: true },
-          },
-          subBlocks: {
-            orderBy: { order: 'asc' },
-            include: {
-              items: {
-                orderBy: { order: 'asc' },
-                include: { exercise: true },
-              },
-            },
-          },
-        },
-      },
-    } as const
-
     const disciplineIds = userDisciplines.map((ud) => ud.disciplineId)
 
-    // 1. Buscar todas las planificaciones del día para las disciplinas del usuario
-    const allPlanifications = await prisma.planification.findMany({
-      where: {
-        coachId,
-        isPersonalized: false,
-        date: { gte: normalizedDate, lt: endOfDay },
-        disciplineId: { in: disciplineIds },
-      },
-      include: planificationInclude,
-      orderBy: { date: 'asc' },
-    })
+    // 1. Buscar todas las planificaciones del día para las disciplinas del usuario (cacheado)
+    const allPlanifications = await getCachedTodayAllPlanifications(
+      coachId,
+      normalizedDate,
+      endOfDay,
+      disciplineIds
+    )
 
     // 2. Para cada disciplina, verificar si hay planificación (cualquier nivel)
     const result: any[] = []
@@ -214,7 +230,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ data: result })
+    const response = NextResponse.json({ data: result })
+    response.headers.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=120')
+    return response
   } catch (error) {
     console.error('Error fetching today-all planifications:', error)
     return NextResponse.json(
