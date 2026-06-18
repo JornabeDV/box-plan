@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getCachedUserPreferences } from '@/lib/cache'
 
 // GET /api/user-preferences/[userId]
 export async function GET(request: NextRequest, { params }: { params: { userId: string } }) {
@@ -11,82 +13,11 @@ export async function GET(request: NextRequest, { params }: { params: { userId: 
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const preference = await prisma.userPreference.findUnique({
-      where: { userId: parseInt(params.userId) },
-      include: {
-        // Nota: Como no hay foreign keys, necesitamos cargar manualmente
-      }
-    })
-
-    if (!preference) {
-      return NextResponse.json(null)
-    }
-
-    // Cargar disciplina y nivel si existen
-    const discipline = preference.preferredDisciplineId 
-      ? await prisma.discipline.findUnique({
-          where: { id: preference.preferredDisciplineId },
-          select: { id: true, name: true, color: true }
-        })
-      : null
-
-    const level = preference.preferredLevelId
-      ? await prisma.disciplineLevel.findUnique({
-          where: { id: preference.preferredLevelId },
-          select: { id: true, name: true, description: true }
-        })
-      : null
-
-    // Obtener suscripción activa para calcular lock status
-    const activeSubscription = await prisma.subscription.findFirst({
-      where: {
-        userId: parseInt(params.userId),
-        status: 'active'
-      },
-      orderBy: {
-        currentPeriodStart: 'desc'
-      }
-    })
-
-    // Calcular lock status
-    let lockStatus: {
-      isLocked: boolean
-      nextChangeDate: string | null
-      message: string | null
-    } = {
-      isLocked: false,
-      nextChangeDate: null,
-      message: null
-    }
-
-    if (activeSubscription && preference?.lastPreferenceChangeDate) {
-      const lastChangeDate = new Date(preference.lastPreferenceChangeDate)
-      const periodStart = new Date(activeSubscription.currentPeriodStart)
-      const periodEnd = new Date(activeSubscription.currentPeriodEnd)
-
-      if (lastChangeDate >= periodStart) {
-        lockStatus = {
-          isLocked: true,
-          nextChangeDate: periodEnd.toISOString(),
-          message: 'Ya has cambiado tus preferencias este mes. Solo puedes cambiar tu disciplina una vez por período de suscripción. Podrás cambiarlas nuevamente después de tu próximo pago.'
-        }
-      }
-    }
-
-    // Transformar para respuesta
-    const result = {
-      ...preference,
-      discipline_id: discipline?.id || null,
-      discipline_name: discipline?.name || null,
-      discipline_color: discipline?.color || null,
-      level_id: level?.id || null,
-      level_name: level?.name || null,
-      level_description: level?.description || null,
-      lock_status: lockStatus
-    }
+    const userId = parseInt(params.userId)
+    const result = await getCachedUserPreferences(userId)
 
     const response = NextResponse.json(result)
-    response.headers.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=300')
+    response.headers.set('Cache-Control', 'private, max-age=300, stale-while-revalidate=600')
     return response
   } catch (error) {
     console.error('Error fetching user preferences:', error)
@@ -172,6 +103,8 @@ export async function PUT(request: NextRequest, { params }: { params: { userId: 
       }
     })
 
+    revalidateTag('user-preferences')
+
     return NextResponse.json(result)
   } catch (error) {
     console.error('Error updating user preferences:', error)
@@ -193,6 +126,8 @@ export async function DELETE(request: NextRequest, { params }: { params: { userI
     }).catch(() => {
       // Si no existe, no es un error
     })
+
+    revalidateTag('user-preferences')
 
     return NextResponse.json({ success: true })
   } catch (error) {

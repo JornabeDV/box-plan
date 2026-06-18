@@ -2,28 +2,14 @@
 
 ## Objetivo
 
-Reducir la cantidad de requests HTTP que se disparan al cargar la Home de un estudiante, mejorando el tiempo de carga percibido sin pagar servicios adicionales.
-
-## Estado inicial
-
-La Home montaba ~15-20 requests con muchos duplicados y cache-busting agresivo (`?_t=...`).
+Reducir la cantidad de requests HTTP y mejorar los tiempos de carga de la Home de estudiante sin pagar servicios adicionales.
 
 ## Cambios implementados
 
-### 1. Quick wins iniciales
+### 1. Migración a React Query
 
-- `Header` simplificado para no fetchear.
-- Lock status movido al backend (`/api/user-preferences/[userId]`).
-- Eliminado cache-busting en hooks estables.
-- Agregados headers `Cache-Control` en endpoints estables.
+Todos los hooks principales de la Home fueron migrados a `@tanstack/react-query`:
 
-### 2. Migración a React Query
-
-Se instaló `@tanstack/react-query` y `@tanstack/react-query-devtools`.
-
-Se creó `components/providers/query-provider.tsx` y se envolvió la app en `app/layout.tsx`.
-
-Hooks migrados:
 - `useUserDisciplines`
 - `useStudentSubscription`
 - `useAuthWithRoles`
@@ -35,31 +21,52 @@ Hooks migrados:
 - `useAllTodayPlanifications`
 - `useTodayPlanification`
 
-### 3. Cacheo en servidor con `unstable_cache`
+Esto eliminó los timestamps anti-cache y redujo los requests duplicados.
 
-Endpoints cacheados:
-- `/api/user-coach` → 5 minutos
-- `/api/student/coach` → 5 minutos
-- `/api/coaches/profile` → 5 minutos (con invalidación en PATCH)
+### 2. Cacheo en servidor con `unstable_cache`
+
+Se creó `lib/cache/index.ts` con funciones cacheadas reutilizables.
+
+Endpoints que ahora usan cacheo en servidor:
+- `/api/user-role`
+- `/api/profile`
+- `/api/subscription`
+- `/api/subscriptions/current`
+- `/api/user-coach`
+- `/api/student/coach`
+- `/api/user-disciplines`
+- `/api/user-preferences/[userId]`
+- `/api/payment-history`
+- `/api/coaches/profile`
+
+Cada endpoint devuelve además headers `Cache-Control` adecuados para el navegador.
+
+### 3. Endpoint consolidado `/api/home` (Opción 2)
+
+Se creó `/api/home/route.ts` que devuelve en una sola llamada:
+- rol y perfiles
+- perfil del usuario
+- suscripción actual
+- coach asignado
+- disciplinas
+- preferencias
+
+También se creó el hook `useHomeData` para consumir este endpoint.
 
 ## Resultado esperado
 
-- Casi todos los requests de la Home sin timestamp.
-- Menos requests duplicados gracias a la caché compartida de React Query.
-- Menos consultas a Neon gracias a `unstable_cache` en catálogos estables.
-- Mejor experiencia de carga para estudiantes.
+- Menos requests duplicados gracias a React Query.
+- Respuestas cacheadas en Vercel para reducir consultas a Neon.
+- Respuestas cacheadas en navegador para navegación entre pantallas.
+- Endpoint opcional `/api/home` para futura consolidación de la carga inicial.
 
-## Limitación conocida
+## Nota sobre `/api/home`
 
-Neon en plan gratuito tiene cold starts. La optimización reduce drásticamente el impacto, pero no elimina completamente la lentitud si la base de datos está dormida.
+El endpoint y el hook están creados pero no integrados en `app/page.tsx` todavía. `page.tsx` tiene ~676 líneas y mucha lógica acoplada a los hooks individuales. Integrar `/api/home` requiere una refactorización más profunda que se recomienda hacer en un paso separado, probando bien cada parte.
 
 ## Próximos pasos
 
-1. Probar en producción y medir requests/tiempos.
-2. Agregar `unstable_cache` en más catálogos estables si es necesario:
-   - `/api/disciplines`
-   - `/api/exercises`
-   - `/api/students/coach-motivational-quotes` (ya tiene Cache-Control, se puede reforzar)
-   - `/api/subscription-plans`
-3. Unificar `/api/user-coach` y `/api/student/coach` si aún coexisten.
-4. Optimizar queries de Prisma en endpoints que siguen lentos.
+1. Probar en producción los cambios de cacheo en endpoints individuales.
+2. Evaluar si es necesario integrar `/api/home` en `page.tsx` o si el cacheo actual es suficiente.
+3. Agregar `unstable_cache` en catálogos del coach si siguen siendo lentos.
+4. Optimizar queries de Prisma en endpoints que aún tarden mucho.

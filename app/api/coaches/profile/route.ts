@@ -1,49 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { unstable_cache, revalidateTag } from 'next/cache'
+import { revalidateTag } from 'next/cache'
 import { auth } from '@/lib/auth'
-import { normalizeUserId, isCoach } from '@/lib/auth-helpers'
 import { prisma } from '@/lib/prisma'
-
-const getCachedCoachProfile = unstable_cache(
-	async (profileId: number) => {
-		const coachProfile = await prisma.coachProfile.findUnique({
-			where: { id: profileId },
-			include: {
-				user: {
-					select: {
-						email: true,
-						name: true
-					}
-				}
-			}
-		})
-
-		if (!coachProfile) {
-			return null
-		}
-
-		return {
-			profile: {
-				id: coachProfile.id,
-				businessName: coachProfile.businessName,
-				phone: coachProfile.phone,
-				address: coachProfile.address,
-				logoUrl: coachProfile.logoUrl,
-				maxStudents: coachProfile.maxStudents,
-				currentStudentCount: coachProfile.currentStudentCount,
-				commissionRate: Number(coachProfile.commissionRate),
-				platformCommissionRate: Number(coachProfile.platformCommissionRate),
-				mercadopagoAccountId: coachProfile.mercadopagoAccountId,
-				email: coachProfile.user.email,
-				name: coachProfile.user.name,
-				createdAt: coachProfile.createdAt.toISOString(),
-				updatedAt: coachProfile.updatedAt.toISOString()
-			}
-		}
-	},
-	['coach-profile'],
-	{ revalidate: 300, tags: ['coach-profile'] }
-)
+import { normalizeUserId, isCoach } from '@/lib/auth-helpers'
+import { getCachedCoachProfile } from '@/lib/cache'
 
 /**
  * GET /api/coaches/profile

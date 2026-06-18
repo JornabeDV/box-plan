@@ -1,51 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { unstable_cache } from 'next/cache'
 import { auth } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
 import { normalizeUserId } from '@/lib/auth-helpers'
+import { getCachedStudentCoach } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
-
-const getCachedStudentCoach = unstable_cache(
-	async (userId: number) => {
-		const relationship = await prisma.coachStudentRelationship.findFirst({
-			where: {
-				studentId: userId,
-				status: 'active'
-			},
-			include: {
-				coach: {
-					include: {
-						user: {
-							select: {
-								email: true
-							}
-						}
-					}
-				}
-			}
-		})
-
-		if (!relationship) {
-			return {
-				data: null,
-				message: 'El usuario no está asociado a ningún coach activo'
-			}
-		}
-
-		return {
-			data: {
-				id: relationship.coach.id,
-				businessName: relationship.coach.businessName,
-				phone: relationship.coach.phone,
-				email: relationship.coach.user.email
-			}
-		}
-	},
-	['student-coach'],
-	{ revalidate: 300, tags: ['student-coach'] }
-)
 
 // GET /api/student/coach
 // Obtiene la información del coach asignado al estudiante

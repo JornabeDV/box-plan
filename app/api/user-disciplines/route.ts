@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeUserId } from '@/lib/auth-helpers'
+import { getCachedUserDisciplines } from '@/lib/cache'
 
 // GET /api/user-disciplines - Obtener disciplinas del usuario actual
 export async function GET(request: NextRequest) {
@@ -13,40 +15,10 @@ export async function GET(request: NextRequest) {
 		}
 
 		const userId = normalizeUserId(session.user.id)
-
-		const userDisciplines = await prisma.userDiscipline.findMany({
-			where: { userId: userId! },
-			include: {
-				discipline: {
-					select: {
-						id: true,
-						name: true,
-						color: true,
-						description: true
-					}
-				},
-				level: {
-					select: {
-						id: true,
-						name: true,
-						description: true
-					}
-				},
-				preferredLevel: {
-					select: {
-						id: true,
-						name: true,
-						description: true
-					}
-				}
-			},
-			orderBy: {
-				createdAt: 'desc'
-			}
-		})
+		const userDisciplines = await getCachedUserDisciplines(userId!)
 
 		const response = NextResponse.json(userDisciplines)
-		response.headers.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=300')
+		response.headers.set('Cache-Control', 'private, max-age=300, stale-while-revalidate=600')
 		return response
 	} catch (error) {
 		console.error('Error fetching user disciplines:', error)
@@ -147,6 +119,8 @@ export async function POST(request: NextRequest) {
 				}
 			}
 		})
+
+		revalidateTag('user-disciplines')
 
 		return NextResponse.json(userDiscipline)
 	} catch (error: any) {
