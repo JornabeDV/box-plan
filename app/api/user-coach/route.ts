@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { unstable_cache } from 'next/cache'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeUserId } from '@/lib/auth-helpers'
@@ -6,23 +7,8 @@ import { normalizeUserId } from '@/lib/auth-helpers'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-/**
- * GET /api/user-coach
- * Obtiene el coach asignado al usuario autenticado
- */
-export async function GET(request: NextRequest) {
-	try {
-		const session = await auth()
-		const userId = normalizeUserId(session?.user?.id)
-
-		if (!userId) {
-			return NextResponse.json(
-				{ error: 'No autenticado' },
-				{ status: 401 }
-			)
-		}
-
-		// Obtener la relación activa con el coach
+const getCachedUserCoach = unstable_cache(
+	async (userId: number) => {
 		const relationship = await prisma.coachStudentRelationship.findFirst({
 			where: {
 				studentId: userId,
@@ -45,14 +31,14 @@ export async function GET(request: NextRequest) {
 		})
 
 		if (!relationship) {
-			return NextResponse.json({
+			return {
 				success: true,
 				coach: null,
 				message: 'No tienes un coach asignado'
-			})
+			}
 		}
 
-		return NextResponse.json({
+		return {
 			success: true,
 			coach: {
 				id: relationship.coach.id,
@@ -71,7 +57,32 @@ export async function GET(request: NextRequest) {
 				status: relationship.status,
 				joinedAt: relationship.joinedAt
 			}
-		})
+		}
+	},
+	['user-coach'],
+	{ revalidate: 300, tags: ['user-coach'] }
+)
+
+/**
+ * GET /api/user-coach
+ * Obtiene el coach asignado al usuario autenticado
+ */
+export async function GET(request: NextRequest) {
+	try {
+		const session = await auth()
+		const userId = normalizeUserId(session?.user?.id)
+
+		if (!userId) {
+			return NextResponse.json(
+				{ error: 'No autenticado' },
+				{ status: 401 }
+			)
+		}
+
+		const result = await getCachedUserCoach(userId)
+		const response = NextResponse.json(result)
+		response.headers.set('Cache-Control', 'private, max-age=300, stale-while-revalidate=600')
+		return response
 	} catch (error) {
 		console.error('Error fetching user coach:', error)
 		return NextResponse.json(

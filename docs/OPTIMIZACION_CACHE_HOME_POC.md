@@ -2,52 +2,22 @@
 
 ## Objetivo
 
-Reducir la cantidad de requests HTTP que se disparan al cargar la Home de un estudiante, mejorando el tiempo de carga percibido.
+Reducir la cantidad de requests HTTP que se disparan al cargar la Home de un estudiante, mejorando el tiempo de carga percibido sin pagar servicios adicionales.
 
-## Estado actual
+## Estado inicial
 
-La Home (`app/page.tsx`) monta simultáneamente varios hooks que hacen fetch:
-
-| Hook | Endpoint | Observación |
-|------|----------|-------------|
-| `useAuthWithRoles` | `GET /api/user-role` | Usado en Home, Header, BottomNav |
-| `useProfile` | `GET /api/profile`, `/api/subscription`, `/api/payment-history` | 3 requests en paralelo |
-| `useUserCoach` | `GET /api/user-coach` | Coach asignado |
-| `useStudentCoach` | `GET /api/student/coach` | Coach asignado (resumido) |
-| `useStudentSubscription` | `GET /api/subscriptions/current` | Suscripción con features |
-| `useCurrentUserPreferences` | `GET /api/user-preferences/{id}` | Preferencias + lock status |
-| `useUserDisciplines` | `GET /api/user-disciplines` | Disciplinas del alumno |
-| `useCoachMotivationalQuotes` | `GET /api/students/coach-motivational-quotes` | Frases del coach |
-
-**Total estimado en carga inicial: 9-10 requests**, con muchos duplicados entre Header, BottomNavigation y Home.
+La Home montaba ~15-20 requests con muchos duplicados y cache-busting agresivo (`?_t=...`).
 
 ## Cambios implementados
 
-### 1. Simplificar `Header` para que no fetchee
+### 1. Quick wins iniciales
 
-`Header` ahora usa `useSession` de NextAuth en lugar de `useAuthWithRoles`, `useStudentSubscription` y `useUserCoach`.
+- `Header` simplificado para no fetchear.
+- Lock status movido al backend (`/api/user-preferences/[userId]`).
+- Eliminado cache-busting en hooks estables.
+- Agregados headers `Cache-Control` en endpoints estables.
 
-**Archivo:** `components/layout/header.tsx`
-
-### 2. Mover cálculo de `lockStatus` al backend
-
-`GET /api/user-preferences/[userId]` ahora calcula y devuelve `lock_status` directamente, eliminando la llamada interna a `/api/subscription` desde el frontend.
-
-**Archivos:**
-- `app/api/user-preferences/[userId]/route.ts`
-- `hooks/use-current-user-preferences.ts`
-
-### 3. Eliminar cache-busting agresivo en datos estables
-
-Se removieron los timestamps y headers anti-cache en los hooks migrados a React Query.
-
-### 4. Agregar `Cache-Control` en endpoints estables
-
-- `GET /api/user-disciplines` → `private, max-age=60, stale-while-revalidate=300`
-- `GET /api/students/coach-motivational-quotes` → `private, max-age=300, stale-while-revalidate=600`
-- `GET /api/user-preferences/[userId]` → `private, max-age=60, stale-while-revalidate=300`
-
-### 5. Migración completa a React Query
+### 2. Migración a React Query
 
 Se instaló `@tanstack/react-query` y `@tanstack/react-query-devtools`.
 
@@ -62,24 +32,34 @@ Hooks migrados:
 - `useCurrentUserPreferences`
 - `useCoachMotivationalQuotes`
 - `useProfile`
+- `useAllTodayPlanifications`
+- `useTodayPlanification`
 
-Esto permite que múltiples componentes compartan los mismos datos sin repetir requests.
+### 3. Cacheo en servidor con `unstable_cache`
 
-## Métricas de éxito
+Endpoints cacheados:
+- `/api/user-coach` → 5 minutos
+- `/api/student/coach` → 5 minutos
+- `/api/coaches/profile` → 5 minutos (con invalidación en PATCH)
 
-| Métrica | Antes | Objetivo |
-|---------|-------|----------|
-| Requests en carga inicial de Home | ~15-20 | ~6-8 |
-| Requests repetidos por navegación (Header + BottomNav) | ~5-6 | ~0-1 |
-| Datos duplicados (suscripción, coach, rol) | Múltiples llamadas | Una sola llamada compartida |
+## Resultado esperado
 
-## Problema identificado adicional
+- Casi todos los requests de la Home sin timestamp.
+- Menos requests duplicados gracias a la caché compartida de React Query.
+- Menos consultas a Neon gracias a `unstable_cache` en catálogos estables.
+- Mejor experiencia de carga para estudiantes.
 
-Los endpoints en producción tardan entre 500 ms y 2 s, lo que sugiere que la base de datos Neon en plan gratuito sufre de cold starts. La reducción de requests mitiga este problema, pero no lo elimina completamente.
+## Limitación conocida
+
+Neon en plan gratuito tiene cold starts. La optimización reduce drásticamente el impacto, pero no elimina completamente la lentitud si la base de datos está dormida.
 
 ## Próximos pasos
 
-1. Probar todos los cambios de React Query en producción.
-2. Unificar endpoints duplicados (`/api/user-coach` y `/api/student/coach`).
-3. Agregar `unstable_cache` en catálogos estables del coach.
-4. Evaluar optimizaciones de queries de Prisma en endpoints lentos.
+1. Probar en producción y medir requests/tiempos.
+2. Agregar `unstable_cache` en más catálogos estables si es necesario:
+   - `/api/disciplines`
+   - `/api/exercises`
+   - `/api/students/coach-motivational-quotes` (ya tiene Cache-Control, se puede reforzar)
+   - `/api/subscription-plans`
+3. Unificar `/api/user-coach` y `/api/student/coach` si aún coexisten.
+4. Optimizar queries de Prisma en endpoints que siguen lentos.
