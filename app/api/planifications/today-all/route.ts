@@ -128,13 +128,12 @@ const planificationInclude = {
 } as const
 
 const getCachedTodayAllPlanifications = unstable_cache(
-  async (coachId: number, normalizedDate: Date, endOfDay: Date, disciplineIds: number[]) => {
+  async (coachId: number, normalizedDate: Date, endOfDay: Date) => {
     const allPlanifications = await prisma.planification.findMany({
       where: {
         coachId,
         isPersonalized: false,
         date: { gte: normalizedDate, lt: endOfDay },
-        disciplineId: { in: disciplineIds },
       },
       include: planificationInclude,
       orderBy: { date: 'asc' },
@@ -207,20 +206,19 @@ export async function GET(request: NextRequest) {
 
     const disciplineIds = userDisciplines.map((ud) => ud.disciplineId)
 
-    // 1. Buscar todas las planificaciones del día para las disciplinas del usuario (cacheado)
-    const allPlanifications = await getCachedTodayAllPlanifications(
+    // 1. Buscar todas las planificaciones del día del coach (cacheado, compartido entre alumnos)
+    const coachPlanifications = await getCachedTodayAllPlanifications(
       coachId,
       normalizedDate,
-      endOfDay,
-      disciplineIds
+      endOfDay
     )
 
-    // 2. Para cada disciplina, verificar si hay planificación (cualquier nivel)
+    // 2. Filtrar en memoria solo las disciplinas del usuario
     const result: any[] = []
     const seenDisciplineIds = new Set<number>()
 
     for (const ud of userDisciplines) {
-      const plan = allPlanifications.find(
+      const plan = coachPlanifications.find(
         (p) => p.disciplineId === ud.disciplineId
       ) ?? null
 
