@@ -45,7 +45,9 @@ export async function GET(request: NextRequest) {
 			}
 		})
 
-		return NextResponse.json(userDisciplines)
+		const response = NextResponse.json(userDisciplines)
+		response.headers.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=300')
+		return response
 	} catch (error) {
 		console.error('Error fetching user disciplines:', error)
 		return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

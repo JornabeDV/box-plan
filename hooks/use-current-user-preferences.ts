@@ -45,7 +45,7 @@ export function useCurrentUserPreferences() {
 		lockStatus: null
 	})
 
-	const fetchPreferences = async () => {
+	const fetchPreferences = async (opts?: { forceRefresh?: boolean }) => {
 		if (!session?.user?.id) {
 			setState(prev => ({ ...prev, loading: false, preferences: null }))
 			return
@@ -55,12 +55,8 @@ export function useCurrentUserPreferences() {
 			setState(prev => ({ ...prev, loading: true, error: null }))
 
 			// Timestamp para evitar cache en Safari/iOS
-			const timestamp = Date.now();
-			const response = await fetch(`/api/user-preferences/${session.user.id}?_t=${timestamp}`, {
-				headers: {
-					'Cache-Control': 'no-cache, no-store, must-revalidate',
-					'Pragma': 'no-cache',
-				}
+			const response = await fetch(`/api/user-preferences/${session.user.id}`, {
+				cache: opts?.forceRefresh ? 'no-store' : 'default'
 			})
 
 			if (!response.ok) {
@@ -96,8 +92,8 @@ export function useCurrentUserPreferences() {
 					} : undefined
 				}
 
-				// Calcular estado de bloqueo
-				const lockStatus = await calculateLockStatus(preferences, session?.user?.id ? String(session.user.id) : undefined)
+				// El lock status viene calculado desde el backend
+				const lockStatus = data.lock_status || null
 
 				setState(prev => ({ ...prev, loading: false, preferences, lockStatus }))
 			} else {
@@ -144,65 +140,13 @@ export function useCurrentUserPreferences() {
 			const data = await response.json()
 
 			// Recargar preferencias
-			await fetchPreferences()
+			await fetchPreferences({ forceRefresh: true })
 
 			return { data, error: null }
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : 'Error al actualizar preferencias'
 			setState(prev => ({ ...prev, loading: false, error: errorMessage }))
 			return { error: errorMessage }
-		}
-	}
-
-	// Función auxiliar para calcular el estado de bloqueo
-	const calculateLockStatus = async (
-		preferences: CurrentUserPreference | null,
-		userId: string | undefined
-	): Promise<PreferenceLockStatus | null> => {
-		if (!preferences || !userId) {
-			return null
-		}
-
-		try {
-			// Obtener suscripción activa
-			const subscriptionResponse = await fetch('/api/subscription')
-			if (!subscriptionResponse.ok) {
-				return null
-			}
-
-			const subscription = await subscriptionResponse.json()
-			if (!subscription || subscription.status !== 'active') {
-				// Sin suscripción activa, no hay bloqueo
-				return {
-					isLocked: false,
-					nextChangeDate: null,
-					message: null
-				}
-			}
-
-			const lastChangeDate = preferences.lastPreferenceChangeDate
-				? new Date(preferences.lastPreferenceChangeDate)
-				: null
-			const periodStart = new Date(subscription.current_period_start)
-			const periodEnd = new Date(subscription.current_period_end)
-
-			// Si ya cambió las preferencias en el período actual, está bloqueado
-			if (lastChangeDate && lastChangeDate >= periodStart) {
-				return {
-					isLocked: true,
-					nextChangeDate: periodEnd.toISOString(),
-					message: 'Ya has cambiado tus preferencias este mes.Solo puedes cambiar tu disciplina una vez por período de suscripción  Podrás cambiarlas nuevamente después de tu próximo pago.'
-				}
-			}
-
-			return {
-				isLocked: false,
-				nextChangeDate: null,
-				message: null
-			}
-		} catch (error) {
-			console.error('Error calculating lock status:', error)
-			return null
 		}
 	}
 

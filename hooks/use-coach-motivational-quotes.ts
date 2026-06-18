@@ -32,14 +32,7 @@ export function useCoachMotivationalQuotes(): UseCoachMotivationalQuotesReturn {
 			setLoading(true)
 			setError(null)
 
-			// Timestamp para evitar cache en Safari/iOS
-			const timestamp = Date.now()
-			const response = await fetch(`/api/students/coach-motivational-quotes?_t=${timestamp}`, {
-				headers: {
-					'Cache-Control': 'no-cache, no-store, must-revalidate',
-					'Pragma': 'no-cache',
-				}
-			})
+			const response = await fetch('/api/students/coach-motivational-quotes')
 			
 			// Si es 401, no es un error real - simplemente no hay sesión
 			if (response.status === 401) {

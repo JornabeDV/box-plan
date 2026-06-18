@@ -310,11 +310,11 @@ export default function ProfilePage() {
         {/* Header info */}
         <div className="space-y-2">
           <span className="label-md text-primary tracking-[0.2em]">Atleta</span>
-          <h2 className="display-lg text-foreground uppercase">
-            <span className="italic">
+          <h3 className="text-foreground uppercase">
+            <span className="italic text-3xl sm:text-5xl">
               {profile?.full_name || user?.name || "Atleta"}
             </span>
-          </h2>
+          </h3>
         </div>
 
         <Card>
