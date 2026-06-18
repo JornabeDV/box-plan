@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import { Oswald, Inter, Bebas_Neue, Space_Grotesk } from "next/font/google"
 import { SessionProvider } from "next-auth/react"
+import { QueryProvider } from "@/components/providers/query-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { ClearCacheScript } from "@/components/clear-cache-script"
 import { Header } from "@/components/layout/header"
@@ -93,12 +94,14 @@ export default function RootLayout({
           <SerwistProvider>
             <PwaAutoUpdate />
             <SessionProvider>
-              <div className="min-h-[100dvh] bg-background text-foreground relative overflow-hidden">
+              <QueryProvider>
+                <div className="min-h-[100dvh] bg-background text-foreground relative overflow-hidden">
                 <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
                 <Header />
                 {children}
               </div>
               <Toaster />
+              </QueryProvider>
             </SessionProvider>
           </SerwistProvider>
       </body>

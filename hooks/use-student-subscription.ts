@@ -1,11 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSession } from 'next-auth/react'
+import { useCallback } from 'react'
 import { normalizeUserId } from '@/lib/auth-helpers'
-
-const CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
-const getCacheKey = (userId: string | number) => `student_subscription_${userId}`
 
 export interface StudentSubscriptionFeatures {
 	// Features que vienen del plan del coach
@@ -49,227 +47,76 @@ interface UseStudentSubscriptionReturn {
 	refetch: () => Promise<void>
 }
 
+const STUDENT_SUBSCRIPTION_KEY = 'student-subscription'
+
+async function fetchStudentSubscription(): Promise<StudentSubscriptionInfo | null> {
+	const response = await fetch('/api/subscriptions/current')
+
+	if (!response.ok) {
+		throw new Error(`Error ${response.status} al obtener suscripción`)
+	}
+
+	const data = await response.json()
+
+	if (!data.data) {
+		return null
+	}
+
+	return {
+		subscriptionId: data.data.id,
+		planId: data.data.plan_id,
+		planName: data.data.subscription_plans?.name || '',
+		planPrice: data.data.subscription_plans?.price || 0,
+		planCurrency: data.data.subscription_plans?.currency || 'ARS',
+		planInterval: data.data.subscription_plans?.interval || 'month',
+		status: data.data.status,
+		isExpired: data.data.is_expired ?? false,
+		features: data.data.subscription_plans?.features || {},
+		planificationAccess: data.data.subscription_plans?.planificationAccess || 'weekly',
+		currentPeriodStart: data.data.current_period_start,
+		currentPeriodEnd: data.data.current_period_end,
+	}
+}
+
 export function useStudentSubscription(): UseStudentSubscriptionReturn {
 	const { data: session, status: sessionStatus } = useSession()
-	const [subscription, setSubscription] = useState<StudentSubscriptionInfo | null>(null)
-	const [loading, setLoading] = useState(false)
-	const [error, setError] = useState<string | null>(null)
+	const queryClient = useQueryClient()
+	const userId = normalizeUserId(session?.user?.id)
 
-	const clearState = useCallback(() => {
-		setSubscription(null)
-		setLoading(false)
-		setError(null)
-	}, [])
+	const { data: subscription, isLoading, error, refetch } = useQuery({
+		queryKey: [STUDENT_SUBSCRIPTION_KEY, userId],
+		queryFn: fetchStudentSubscription,
+		enabled: sessionStatus !== 'loading' && !!userId,
+		// Los datos de suscripción son relativamente estables, 5 minutos de stale time
+		staleTime: 1000 * 60 * 5,
+	})
 
-	// Effect para cargar la suscripción
-	useEffect(() => {
-		const userId = normalizeUserId(session?.user?.id)
-		
-		if (!userId) {
-			clearState()
-			return
-		}
-
-		let cancelled = false
-		const abortController = new AbortController()
-
-		const getCached = (): StudentSubscriptionInfo | null => {
-			if (typeof window === 'undefined') return null
-			
-			try {
-				const cachedData = localStorage.getItem(getCacheKey(userId))
-				if (!cachedData) return null
-				
-				const parsed = JSON.parse(cachedData)
-				const cacheAge = Date.now() - (parsed.timestamp || 0)
-				
-				if (cacheAge < CACHE_DURATION && parsed.subscription) {
-					return parsed.subscription
-				}
-				
-				localStorage.removeItem(getCacheKey(userId))
-			} catch (e) {
-				localStorage.removeItem(getCacheKey(userId))
-			}
-			
-			return null
-		}
-
-		const setCache = (data: StudentSubscriptionInfo) => {
-			if (typeof window === 'undefined') return
-			
-			try {
-				localStorage.setItem(getCacheKey(userId), JSON.stringify({
-					subscription: data,
-					timestamp: Date.now()
-				}))
-			} catch (e) {
-				console.error('Error saving subscription to cache:', e)
-			}
-		}
-
-		async function loadSubscription() {
-			const cached = getCached()
-			if (cached) {
-				if (!cancelled) {
-					setSubscription(cached)
-					setLoading(false)
-				}
-				// No retornar: siempre revalidar con el servidor para evitar datos stale
-			}
-
-			if (!cancelled) setLoading(true)
-			if (!cancelled) setError(null)
-
-			try {
-				// Timestamp para evitar cache en Safari/iOS
-				const timestamp = Date.now();
-				const response = await fetch(`/api/subscriptions/current?_t=${timestamp}`, {
-					signal: abortController.signal,
-					headers: {
-						'Cache-Control': 'no-cache, no-store, must-revalidate',
-						'Pragma': 'no-cache',
-					}
-				})
-
-				if (!response.ok) {
-					throw new Error(`Error ${response.status} al obtener suscripción`)
-				}
-
-				const data = await response.json()
-				
-				if (!cancelled && data.data) {
-					const subscriptionData: StudentSubscriptionInfo = {
-						subscriptionId: data.data.id,
-						planId: data.data.plan_id,
-						planName: data.data.subscription_plans?.name || '',
-						planPrice: data.data.subscription_plans?.price || 0,
-						planCurrency: data.data.subscription_plans?.currency || 'ARS',
-						planInterval: data.data.subscription_plans?.interval || 'month',
-						status: data.data.status,
-						isExpired: data.data.is_expired ?? false,
-						features: data.data.subscription_plans?.features || {},
-						planificationAccess: data.data.subscription_plans?.planificationAccess || 'weekly',
-						currentPeriodStart: data.data.current_period_start,
-						currentPeriodEnd: data.data.current_period_end
-					}
-					setSubscription(subscriptionData)
-					setCache(subscriptionData)
-				}
-			} catch (err: any) {
-				if (err.name === 'AbortError') {
-					console.log('[useStudentSubscription] Request aborted')
-					return
-				}
-				
-				console.error('Error fetching student subscription:', err)
-				if (!cancelled) {
-					setError(err instanceof Error ? err.message : 'Error desconocido')
-				}
-			} finally {
-				if (!cancelled) {
-					setLoading(false)
-				}
-			}
-		}
-
-		loadSubscription()
-
-		return () => {
-			cancelled = true
-			abortController.abort()
-		}
-	}, [session?.user?.id, sessionStatus, clearState])
+	const refetchSubscription = useCallback(async () => {
+		await queryClient.invalidateQueries({ queryKey: [STUDENT_SUBSCRIPTION_KEY, userId] })
+		await refetch()
+	}, [queryClient, userId, refetch])
 
 	const hasFeature = useCallback((feature: keyof StudentSubscriptionFeatures): boolean => {
 		return subscription?.features[feature] === true
 	}, [subscription])
 
-	const refetch = useCallback(async () => {
-		const userId = normalizeUserId(session?.user?.id)
-		if (!userId) return
-
-		setLoading(true)
-		setError(null)
-
-		try {
-			// Timestamp para evitar cache en Safari/iOS
-			const timestamp = Date.now();
-			const response = await fetch(`/api/subscriptions/current?_t=${timestamp}`, {
-				headers: {
-					'Cache-Control': 'no-cache, no-store, must-revalidate',
-					'Pragma': 'no-cache',
-				}
-			})
-
-			if (!response.ok) {
-				throw new Error(`Error ${response.status} al obtener suscripción`)
-			}
-
-			const data = await response.json()
-			
-			if (data.data) {
-				const subscriptionData: StudentSubscriptionInfo = {
-					subscriptionId: data.data.id,
-					planId: data.data.plan_id,
-					planName: data.data.subscription_plans?.name || '',
-					planPrice: data.data.subscription_plans?.price || 0,
-					planCurrency: data.data.subscription_plans?.currency || 'ARS',
-					planInterval: data.data.subscription_plans?.interval || 'month',
-					status: data.data.status,
-					isExpired: data.data.is_expired ?? false,
-					features: data.data.subscription_plans?.features || {},
-					planificationAccess: data.data.subscription_plans?.planificationAccess || 'weekly',
-					currentPeriodStart: data.data.current_period_start,
-					currentPeriodEnd: data.data.current_period_end
-				}
-				setSubscription(subscriptionData)
-				
-				if (typeof window !== 'undefined') {
-					try {
-						localStorage.setItem(getCacheKey(userId), JSON.stringify({
-							subscription: subscriptionData,
-							timestamp: Date.now()
-						}))
-					} catch (e) {
-						console.error('Error saving subscription to cache:', e)
-					}
-				}
-			}
-		} catch (err: any) {
-			console.error('Error refetching student subscription:', err)
-			setError(err instanceof Error ? err.message : 'Error desconocido')
-		} finally {
-			setLoading(false)
-		}
-	}, [session?.user?.id])
-
-	// Computed values
-	const canViewRanking = hasFeature('leaderboardAccess')
-	const canTrackProgress = hasFeature('progressTracking')
-	const canAccessCommunity = hasFeature('communityAccess')
-	const canUseWhatsAppSupport = hasFeature('whatsappSupport')
-
 	const isExpired = subscription?.isExpired ?? false
 	const isSubscribed = subscription?.status === 'active' && !isExpired
-	const canUseTimer = isSubscribed
-	const hasPersonalizedWorkouts = hasFeature('personalizedWorkouts')
-	const planificationAccess = subscription?.planificationAccess || 'weekly'
 
 	return {
-		subscription,
-		loading,
-		error,
+		subscription: subscription ?? null,
+		loading: isLoading,
+		error: error ? (error instanceof Error ? error.message : 'Error desconocido') : null,
 		hasFeature,
-		canViewRanking,
-		canTrackProgress,
-		canAccessCommunity,
-		canUseWhatsAppSupport,
-		canUseTimer,
-		hasPersonalizedWorkouts,
-		planificationAccess,
+		canViewRanking: hasFeature('leaderboardAccess'),
+		canTrackProgress: hasFeature('progressTracking'),
+		canAccessCommunity: hasFeature('communityAccess'),
+		canUseWhatsAppSupport: hasFeature('whatsappSupport'),
+		canUseTimer: isSubscribed,
+		hasPersonalizedWorkouts: hasFeature('personalizedWorkouts'),
+		planificationAccess: subscription?.planificationAccess || 'weekly',
 		isSubscribed,
 		isExpired,
-		refetch
+		refetch: refetchSubscription,
 	}
 }

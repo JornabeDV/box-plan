@@ -57,6 +57,8 @@
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/supabase-js": "^2.57.4",
     "@sveltejs/kit": "latest",
+    "@tanstack/react-query": "^5.101.0",
+    "@tanstack/react-query-devtools": "^5.101.0",
     "@types/web-push": "^3.6.4",
     "@vercel/analytics": "latest",
     "autoprefixer": "^10.4.20",

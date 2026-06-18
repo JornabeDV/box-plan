@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Reducir la cantidad de requests HTTP que se disparan al cargar la Home de un estudiante, mejorando el tiempo de carga percibido sin refactorizar toda la arquitectura.
+Reducir la cantidad de requests HTTP que se disparan al cargar la Home de un estudiante, mejorando el tiempo de carga percibido.
 
 ## Estado actual
 
@@ -10,108 +10,83 @@ La Home (`app/page.tsx`) monta simultáneamente varios hooks que hacen fetch:
 
 | Hook | Endpoint | Observación |
 |------|----------|-------------|
-| `useAuthWithRoles` | `GET /api/user-role?_t={ts}` | Necesario para rol, pero se repite en Header y BottomNav |
-| `useProfile` | `GET /api/profile?_t={ts}` | Perfil + suscripción + historial de pagos |
-| `useUserCoach` | `GET /api/user-coach?_t={ts}` | Coach asignado |
-| `useStudentCoach` | `GET /api/student/coach?_t={ts}` | Coach asignado (resumido) |
-| `useStudentSubscription` | `GET /api/subscriptions/current?_t={ts}` | Suscripción con features |
-| `useCurrentUserPreferences` | `GET /api/user-preferences/{id}?_t={ts}` | Preferencias |
-| `useCurrentUserPreferences` | `GET /api/subscription` | Lock status (llamada interna) |
-| `useUserDisciplines` | `GET /api/user-disciplines?_t={ts}` | Disciplinas del alumno |
-| `useCoachMotivationalQuotes` | `GET /api/students/coach-motivational-quotes?_t={ts}` | Frases del coach |
+| `useAuthWithRoles` | `GET /api/user-role` | Usado en Home, Header, BottomNav |
+| `useProfile` | `GET /api/profile`, `/api/subscription`, `/api/payment-history` | 3 requests en paralelo |
+| `useUserCoach` | `GET /api/user-coach` | Coach asignado |
+| `useStudentCoach` | `GET /api/student/coach` | Coach asignado (resumido) |
+| `useStudentSubscription` | `GET /api/subscriptions/current` | Suscripción con features |
+| `useCurrentUserPreferences` | `GET /api/user-preferences/{id}` | Preferencias + lock status |
+| `useUserDisciplines` | `GET /api/user-disciplines` | Disciplinas del alumno |
+| `useCoachMotivationalQuotes` | `GET /api/students/coach-motivational-quotes` | Frases del coach |
 
-**Total estimado en carga inicial: 9-10 requests**, de los cuales varios son duplicados o innecesarios.
+**Total estimado en carga inicial: 9-10 requests**, con muchos duplicados entre Header, BottomNavigation y Home.
 
-Además, `Header` y `BottomNavigation` repiten `useAuthWithRoles`, `useStudentSubscription` y `useUserCoach` en **cada navegación**.
-
-## Problemas identificados
-
-1. **Header fetchea datos que no usa**: solo necesita saber si hay sesión, pero dispara 3 requests.
-2. **Lock status se calcula en cliente**: `useCurrentUserPreferences` llama a `/api/subscription` después de traer las preferencias.
-3. **Cache-busting agresivo**: casi todos los hooks agregan `?_t={Date.now()}` y headers `Cache-Control: no-store`, anulando cualquier caché útil.
-4. **Coach duplicado**: `useUserCoach` y `useStudentCoach` se usan juntos en Home.
-
-## Cambios propuestos (prueba de concepto)
+## Cambios implementados
 
 ### 1. Simplificar `Header` para que no fetchee
 
-Actualmente `Header` usa:
-- `useAuthWithRoles` solo para `user`.
-- `useStudentSubscription` solo para `loading` (no lo usa en el render).
-- `useUserCoach()` con resultado ignorado.
+`Header` ahora usa `useSession` de NextAuth en lugar de `useAuthWithRoles`, `useStudentSubscription` y `useUserCoach`.
 
-**Cambio**: usar directamente `useSession` de NextAuth.
-
-```tsx
-import { useSession } from 'next-auth/react'
-
-export function Header() {
-  const { data: session } = useSession()
-  if (!session?.user) return null
-  // ... resto del componente
-}
-```
-
-**Impacto**: -3 requests por navegación.
+**Archivo:** `components/layout/header.tsx`
 
 ### 2. Mover cálculo de `lockStatus` al backend
 
-En `GET /api/user-preferences/[userId]` se consulta Prisma por la suscripción activa y se devuelve el lock status junto con las preferencias.
+`GET /api/user-preferences/[userId]` ahora calcula y devuelve `lock_status` directamente, eliminando la llamada interna a `/api/subscription` desde el frontend.
 
-En `useCurrentUserPreferences` se elimina `calculateLockStatus` y la llamada interna a `/api/subscription`.
+**Archivos:**
+- `app/api/user-preferences/[userId]/route.ts`
+- `hooks/use-current-user-preferences.ts`
 
-**Impacto**: -1 request en Home (y en cualquier pantalla que use preferencias).
+### 3. Eliminar cache-busting agresivo en datos estables
 
-### 3. Eliminar cache-busting en datos estables
-
-En los siguientes hooks se remueve `?_t={Date.now()}` y los headers anti-cache:
+Se removieron los timestamps y headers anti-cache en:
 - `useUserDisciplines`
 - `useCoachMotivationalQuotes`
+- `useCurrentUserPreferences`
 
-Se deja que el navegador respete los `Cache-Control` del servidor.
+### 4. Agregar `Cache-Control` en endpoints estables
 
-Para evitar datos stale tras mutaciones, `useUserDisciplines` y `useCurrentUserPreferences` reciben una opción `forceRefresh` que usa `cache: 'no-store'` en los `POST/PUT/DELETE`.
-
-**Impacto**: permite reutilizar respuestas entre navegaciones y reduce carga de servidor.
-
-### 4. Agregar caché en endpoints estables
-
-En endpoints que devuelven datos de baja rotación se agrega `Cache-Control` adecuado:
 - `GET /api/user-disciplines` → `private, max-age=60, stale-while-revalidate=300`
 - `GET /api/students/coach-motivational-quotes` → `private, max-age=300, stale-while-revalidate=600`
 - `GET /api/user-preferences/[userId]` → `private, max-age=60, stale-while-revalidate=300`
 
-### 5. Evaluar unificación de coach en Home (opcional para esta PoC)
+### 5. Migración a React Query (en progreso)
 
-`useUserCoach` trae más datos (nombre, email, logo, etc.) y `useStudentCoach` trae versión resumida. Si la Home solo necesita la info completa, podría dejar de usar `useStudentCoach`. Esto se evalúa durante la implementación sin modificar los hooks subyacentes.
+Se instaló `@tanstack/react-query` y `@tanstack/react-query-devtools`.
+
+Se creó `components/providers/query-provider.tsx` y se envolvió la app en `app/layout.tsx`.
+
+Hooks migrados:
+- `useUserDisciplines`
+- `useStudentSubscription`
+- `useAuthWithRoles`
+
+Esto permite que múltiples componentes compartan los mismos datos sin repetir requests.
+
+## Hooks pendientes de migrar
+
+- `useUserCoach`
+- `useStudentCoach`
+- `useCurrentUserPreferences`
+- `useProfile`
+- `useCoachMotivationalQuotes`
 
 ## Métricas de éxito
 
 | Métrica | Antes | Objetivo |
 |---------|-------|----------|
-| Requests en carga inicial de Home | ~9-10 | ~5-6 |
-| Requests repetidos por navegación (Header + BottomNav) | ~3-4 | ~0-1 |
-| Tiempo hasta pantalla usable | baseline | reducir perceptiblemente |
+| Requests en carga inicial de Home | ~15-20 | ~6-8 |
+| Requests repetidos por navegación (Header + BottomNav) | ~5-6 | ~0-1 |
+| Datos duplicados (suscripción, coach, rol) | Múltiples llamadas | Una sola llamada compartida |
 
-## Alcance limitado (esta PoC)
+## Problema identificado adicional
 
-- No se instala TanStack Query ni SWR.
-- No se refactorizan Server Components.
-- No se toca `useAuthWithRoles` globalmente (solo se saca del Header).
-- No se modifica la planificación de hoy ni workouts (datos que deben seguir frescos).
+Los endpoints en producción tardan entre 500 ms y 1.5 s, lo que sugiere que la base de datos Neon en plan gratuito sufre de cold starts. La reducción de requests mitiga este problema, pero no lo elimina completamente.
 
-## Riesgos y mitigaciones
+## Próximos pasos
 
-| Riesgo | Mitigación |
-|--------|------------|
-| Safari/iOS cachee datos que no debería | Se mantiene `no-store` solo en datos frescos; los estables ahora usan TTL controlado por servidor |
-| Header deje de reaccionar a cambios de rol | El Header no renderiza nada basado en rol; solo necesita sesión |
-| Lock status quede desactualizado | El backend recalcula en cada GET con la suscripción activa actual |
-| BottomNav sigue fetcheando | Se deja para una segunda iteración; esta PoC se enfoca en Home + Header |
-
-## Próximos pasos tras la PoC
-
-1. Medir impacto real en producción o staging.
-2. Replicar el patrón en otras pantallas (Profile, Calendar, Planification).
-3. Evaluar introducción de un contexto global de usuario o TanStack Query si la navegación entre pantallas sigue siendo lenta.
-4. Aplicar `unstable_cache` en catálogos del coach (disciplinas, ejercicios, frases).
+1. Probar los cambios de React Query en producción.
+2. Migrar los hooks restantes a React Query.
+3. Unificar endpoints duplicados (`/api/user-coach` y `/api/student/coach`).
+4. Agregar `unstable_cache` en catálogos estables del coach.
+5. Evaluar optimizaciones de queries de Prisma en endpoints lentos.
