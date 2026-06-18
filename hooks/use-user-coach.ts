@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useSession } from 'next-auth/react'
 
-interface Coach {
+export interface Coach {
 	id: number
 	userId: number
 	name: string
@@ -16,89 +16,51 @@ interface Coach {
 	joinedAt: string | Date
 }
 
-interface UserCoachState {
+interface UserCoachResponse {
+	success: boolean
+	coach: Coach | null
+}
+
+const USER_COACH_KEY = 'user-coach'
+
+async function fetchUserCoach(): Promise<Coach | null> {
+	const response = await fetch('/api/user-coach')
+
+	if (response.status === 401) {
+		return null
+	}
+
+	if (!response.ok) {
+		throw new Error('Error al cargar el coach')
+	}
+
+	const data: UserCoachResponse = await response.json()
+	return data.success ? data.coach : null
+}
+
+interface UseUserCoachReturn {
 	coach: Coach | null
 	loading: boolean
 	error: string | null
+	loadCoach: () => Promise<void>
 }
 
-export function useUserCoach() {
-	const [state, setState] = useState<UserCoachState>({
-		coach: null,
-		loading: true,
-		error: null
-	})
-
+export function useUserCoach(): UseUserCoachReturn {
 	const { data: session, status: sessionStatus } = useSession()
 
-	const loadCoach = async () => {
-		try {
-			setState(prev => ({ ...prev, loading: true, error: null }))
-
-			const userId = session?.user?.id
-			if (!userId) {
-				setState(prev => ({ ...prev, loading: false, coach: null }))
-				return
-			}
-
-			// Timestamp para evitar cache en Safari/iOS
-			const timestamp = Date.now();
-			const response = await fetch(`/api/user-coach?_t=${timestamp}`, {
-				headers: {
-					'Cache-Control': 'no-cache, no-store, must-revalidate',
-					'Pragma': 'no-cache',
-				}
-			})
-			
-			if (!response.ok) {
-				if (response.status === 401) {
-					setState(prev => ({ ...prev, loading: false, coach: null }))
-					return
-				}
-				throw new Error('Error al cargar el coach')
-			}
-
-			const data = await response.json()
-
-			if (data.success) {
-				setState(prev => ({
-					...prev,
-					coach: data.coach,
-					loading: false
-				}))
-			} else {
-				setState(prev => ({
-					...prev,
-					coach: null,
-					loading: false
-				}))
-			}
-		} catch (error) {
-			console.error('Error loading coach:', error)
-			setState(prev => ({
-				...prev,
-				loading: false,
-				error: error instanceof Error ? error.message : 'Error al cargar el coach'
-			}))
-		}
-	}
-
-	useEffect(() => {
-		// Si la sesión aún está cargando, esperar
-		if (sessionStatus === 'loading') {
-			return
-		}
-		
-		if (session?.user?.id) {
-			loadCoach()
-		} else {
-			setState(prev => ({ ...prev, loading: false }))
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [session?.user?.id, sessionStatus])
+	const { data: coach, isLoading, error, refetch } = useQuery({
+		queryKey: [USER_COACH_KEY, session?.user?.id],
+		queryFn: fetchUserCoach,
+		enabled: sessionStatus !== 'loading' && !!session?.user?.id,
+		staleTime: 1000 * 60 * 5,
+	})
 
 	return {
-		...state,
-		loadCoach
+		coach: coach ?? null,
+		loading: isLoading,
+		error: error ? (error instanceof Error ? error.message : 'Error al cargar el coach') : null,
+		loadCoach: async () => {
+			await refetch()
+		},
 	}
 }

@@ -39,10 +39,7 @@ La Home (`app/page.tsx`) monta simultáneamente varios hooks que hacen fetch:
 
 ### 3. Eliminar cache-busting agresivo en datos estables
 
-Se removieron los timestamps y headers anti-cache en:
-- `useUserDisciplines`
-- `useCoachMotivationalQuotes`
-- `useCurrentUserPreferences`
+Se removieron los timestamps y headers anti-cache en los hooks migrados a React Query.
 
 ### 4. Agregar `Cache-Control` en endpoints estables
 
@@ -50,7 +47,7 @@ Se removieron los timestamps y headers anti-cache en:
 - `GET /api/students/coach-motivational-quotes` → `private, max-age=300, stale-while-revalidate=600`
 - `GET /api/user-preferences/[userId]` → `private, max-age=60, stale-while-revalidate=300`
 
-### 5. Migración a React Query (en progreso)
+### 5. Migración completa a React Query
 
 Se instaló `@tanstack/react-query` y `@tanstack/react-query-devtools`.
 
@@ -60,16 +57,13 @@ Hooks migrados:
 - `useUserDisciplines`
 - `useStudentSubscription`
 - `useAuthWithRoles`
-
-Esto permite que múltiples componentes compartan los mismos datos sin repetir requests.
-
-## Hooks pendientes de migrar
-
 - `useUserCoach`
 - `useStudentCoach`
 - `useCurrentUserPreferences`
-- `useProfile`
 - `useCoachMotivationalQuotes`
+- `useProfile`
+
+Esto permite que múltiples componentes compartan los mismos datos sin repetir requests.
 
 ## Métricas de éxito
 
@@ -81,12 +75,11 @@ Esto permite que múltiples componentes compartan los mismos datos sin repetir r
 
 ## Problema identificado adicional
 
-Los endpoints en producción tardan entre 500 ms y 1.5 s, lo que sugiere que la base de datos Neon en plan gratuito sufre de cold starts. La reducción de requests mitiga este problema, pero no lo elimina completamente.
+Los endpoints en producción tardan entre 500 ms y 2 s, lo que sugiere que la base de datos Neon en plan gratuito sufre de cold starts. La reducción de requests mitiga este problema, pero no lo elimina completamente.
 
 ## Próximos pasos
 
-1. Probar los cambios de React Query en producción.
-2. Migrar los hooks restantes a React Query.
-3. Unificar endpoints duplicados (`/api/user-coach` y `/api/student/coach`).
-4. Agregar `unstable_cache` en catálogos estables del coach.
-5. Evaluar optimizaciones de queries de Prisma en endpoints lentos.
+1. Probar todos los cambios de React Query en producción.
+2. Unificar endpoints duplicados (`/api/user-coach` y `/api/student/coach`).
+3. Agregar `unstable_cache` en catálogos estables del coach.
+4. Evaluar optimizaciones de queries de Prisma en endpoints lentos.
