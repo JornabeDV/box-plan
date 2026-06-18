@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSession } from 'next-auth/react'
 
 export interface UserDiscipline {
@@ -29,6 +29,18 @@ export interface UserDiscipline {
 	}
 }
 
+const USER_DISCIPLINES_KEY = 'user-disciplines'
+
+async function fetchUserDisciplines(userId: string | number): Promise<UserDiscipline[]> {
+	const response = await fetch('/api/user-disciplines')
+
+	if (!response.ok) {
+		throw new Error('Error al cargar disciplinas')
+	}
+
+	return response.json()
+}
+
 export interface UserDisciplinesState {
 	disciplines: UserDiscipline[]
 	loading: boolean
@@ -37,201 +49,141 @@ export interface UserDisciplinesState {
 
 export function useUserDisciplines() {
 	const { data: session, status: sessionStatus } = useSession()
-	const [state, setState] = useState<UserDisciplinesState>({
-		disciplines: [],
-		loading: true,
-		error: null
+	const queryClient = useQueryClient()
+	const userId = session?.user?.id
+
+	const { data: disciplines = [], isLoading, error, refetch } = useQuery({
+		queryKey: [USER_DISCIPLINES_KEY, userId],
+		queryFn: () => fetchUserDisciplines(userId!),
+		enabled: sessionStatus !== 'loading' && !!userId,
 	})
 
-	const fetchDisciplines = useCallback(async (opts?: { silent?: boolean; forceRefresh?: boolean }) => {
-		if (!session?.user?.id) {
-			setState(prev => ({ ...prev, loading: false, disciplines: [] }))
-			return
-		}
-
-		try {
-			if (!opts?.silent) {
-				setState(prev => ({ ...prev, loading: true, error: null }))
+	const addDiscipline = useMutation({
+		mutationFn: async ({ disciplineId, levelId }: { disciplineId: number; levelId?: number | null }) => {
+			if (!userId) {
+				throw new Error('Usuario no autenticado')
 			}
-
-			const response = await fetch('/api/user-disciplines', {
-				cache: opts?.forceRefresh ? 'no-store' : 'default'
-			})
-
-			if (!response.ok) {
-				throw new Error('Error al cargar disciplinas')
-			}
-
-			const data = await response.json()
-			setState(prev => ({ ...prev, loading: false, disciplines: data }))
-		} catch (error) {
-			console.error('Error fetching user disciplines:', error)
-			if (!opts?.silent) {
-				setState(prev => ({
-					...prev,
-					loading: false,
-					error: error instanceof Error ? error.message : 'Error al cargar disciplinas'
-				}))
-			}
-		}
-	}, [session?.user?.id])
-
-	const addDiscipline = async (disciplineId: number, levelId?: number | null) => {
-		if (!session?.user?.id) {
-			return { error: 'Usuario no autenticado' }
-		}
-
-		try {
-			setState(prev => ({ ...prev, loading: true, error: null }))
 
 			const response = await fetch('/api/user-disciplines', {
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/json'
+					'Content-Type': 'application/json',
 				},
 				body: JSON.stringify({
 					disciplineId,
-					levelId: levelId ?? null
-				})
+					levelId: levelId ?? null,
+				}),
 			})
 
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => ({}))
-				return { 
-					error: errorData.error || 'Error al agregar disciplina',
-					status: response.status 
-				}
+				throw new Error(errorData.error || 'Error al agregar disciplina')
 			}
 
-			const data = await response.json()
-			await fetchDisciplines({ forceRefresh: true })
-			return { data, error: null }
-		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : 'Error al agregar disciplina'
-			setState(prev => ({ ...prev, loading: false, error: errorMessage }))
-			return { error: errorMessage }
-		}
-	}
+			return response.json()
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: [USER_DISCIPLINES_KEY, userId] })
+		},
+	})
 
-	const updateDisciplineLevel = async (userDisciplineId: number, levelId: number | null) => {
-		if (!session?.user?.id) {
-			return { error: 'Usuario no autenticado' }
-		}
-
-		try {
-			setState(prev => ({ ...prev, loading: true, error: null }))
+	const updateDisciplineLevel = useMutation({
+		mutationFn: async ({ userDisciplineId, levelId }: { userDisciplineId: number; levelId: number | null }) => {
+			if (!userId) {
+				throw new Error('Usuario no autenticado')
+			}
 
 			const response = await fetch(`/api/user-disciplines/${userDisciplineId}`, {
 				method: 'PUT',
 				headers: {
-					'Content-Type': 'application/json'
+					'Content-Type': 'application/json',
 				},
-				body: JSON.stringify({ levelId })
+				body: JSON.stringify({ levelId }),
 			})
 
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => ({}))
-				return { error: errorData.error || 'Error al actualizar nivel' }
+				throw new Error(errorData.error || 'Error al actualizar nivel')
 			}
 
-			const data = await response.json()
-			await fetchDisciplines({ forceRefresh: true })
-			return { data, error: null }
-		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : 'Error al actualizar nivel'
-			setState(prev => ({ ...prev, loading: false, error: errorMessage }))
-			return { error: errorMessage }
-		}
-	}
+			return response.json()
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: [USER_DISCIPLINES_KEY, userId] })
+		},
+	})
 
-	const removeDiscipline = async (userDisciplineId: number) => {
-		if (!session?.user?.id) {
-			return { error: 'Usuario no autenticado' }
-		}
-
-		try {
-			setState(prev => ({ ...prev, loading: true, error: null }))
+	const removeDiscipline = useMutation({
+		mutationFn: async (userDisciplineId: number) => {
+			if (!userId) {
+				throw new Error('Usuario no autenticado')
+			}
 
 			const response = await fetch(`/api/user-disciplines/${userDisciplineId}`, {
-				method: 'DELETE'
+				method: 'DELETE',
 			})
 
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => ({}))
-				return { error: errorData.error || 'Error al eliminar disciplina' }
+				throw new Error(errorData.error || 'Error al eliminar disciplina')
+			}
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: [USER_DISCIPLINES_KEY, userId] })
+		},
+	})
+
+	const updatePreferredLevel = useMutation({
+		mutationFn: async ({ userDisciplineId, preferredLevelId }: { userDisciplineId: number; preferredLevelId: number | null }) => {
+			if (!userId) {
+				throw new Error('Usuario no autenticado')
 			}
 
-			await fetchDisciplines({ forceRefresh: true })
-			return { success: true, error: null }
-		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : 'Error al eliminar disciplina'
-			setState(prev => ({ ...prev, loading: false, error: errorMessage }))
-			return { error: errorMessage }
-		}
+			const response = await fetch(`/api/user-disciplines/${userDisciplineId}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ preferredLevelId }),
+			})
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}))
+				throw new Error(errorData.error || 'Error al actualizar nivel favorito')
+			}
+
+			return response.json()
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: [USER_DISCIPLINES_KEY, userId] })
+		},
+	})
+
+	const hasDiscipline = (disciplineId: number) => {
+		return disciplines.some(d => d.disciplineId === disciplineId)
 	}
 
-	const hasDiscipline = useCallback((disciplineId: number) => {
-		return state.disciplines.some(d => d.disciplineId === disciplineId)
-	}, [state.disciplines])
-
-	const getDisciplineLevel = useCallback((disciplineId: number) => {
-		const discipline = state.disciplines.find(d => d.disciplineId === disciplineId)
+	const getDisciplineLevel = (disciplineId: number) => {
+		const discipline = disciplines.find(d => d.disciplineId === disciplineId)
 		return discipline?.levelId ?? null
-	}, [state.disciplines])
-
-	const getDisciplinePreferredLevel = useCallback((disciplineId: number) => {
-		const discipline = state.disciplines.find(d => d.disciplineId === disciplineId)
-		return discipline?.preferredLevelId ?? null
-	}, [state.disciplines])
-
-	const updatePreferredLevel = async (userDisciplineId: number, preferredLevelId: number | null) => {
-		if (!session?.user?.id) {
-			return { error: 'Usuario no autenticado' }
-		}
-
-		try {
-			const response = await fetch(`/api/user-disciplines/${userDisciplineId}`, {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({ preferredLevelId })
-			})
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}))
-				return { error: errorData.error || 'Error al actualizar nivel favorito' }
-			}
-
-			const data = await response.json()
-			return { data, error: null }
-		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : 'Error al actualizar nivel favorito'
-			return { error: errorMessage }
-		}
 	}
 
-	useEffect(() => {
-		if (sessionStatus === 'loading') {
-			return
-		}
-
-		if (session?.user?.id) {
-			fetchDisciplines()
-		} else {
-			setState(prev => ({ ...prev, loading: false }))
-		}
-	}, [session?.user?.id, sessionStatus, fetchDisciplines])
+	const getDisciplinePreferredLevel = (disciplineId: number) => {
+		const discipline = disciplines.find(d => d.disciplineId === disciplineId)
+		return discipline?.preferredLevelId ?? null
+	}
 
 	return {
-		...state,
-		addDiscipline,
-		updateDisciplineLevel,
-		updatePreferredLevel,
-		removeDiscipline,
-		refetch: fetchDisciplines,
+		disciplines,
+		loading: isLoading,
+		error: error ? (error instanceof Error ? error.message : 'Error al cargar disciplinas') : null,
+		addDiscipline: addDiscipline.mutateAsync,
+		updateDisciplineLevel: updateDisciplineLevel.mutateAsync,
+		updatePreferredLevel: updatePreferredLevel.mutateAsync,
+		removeDiscipline: removeDiscipline.mutateAsync,
+		refetch,
 		hasDiscipline,
 		getDisciplineLevel,
-		getDisciplinePreferredLevel
+		getDisciplinePreferredLevel,
 	}
 }
