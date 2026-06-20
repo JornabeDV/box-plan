@@ -257,7 +257,7 @@ export async function PATCH(
           }
         }
       }
-    })
+    }, { timeout: 30000 })
 
     revalidateTag('today-all-planifications')
 

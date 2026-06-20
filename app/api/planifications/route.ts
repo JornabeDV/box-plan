@@ -815,7 +815,7 @@ export async function POST(request: NextRequest) {
       }
 
       return planification
-    })
+    }, { timeout: 30000 })
 
     // Recuperar la planificación completa con relaciones para la respuesta
     const fullPlanification = await prisma.planification.findUnique({
