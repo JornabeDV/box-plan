@@ -918,10 +918,10 @@ export function PlanificationModal({
     const timeoutId = setTimeout(() => {
       console.warn("Planification submit timeout, resetting loading state");
       setError(
-        "La operación está tardando demasiado. Por favor, inténtalo de nuevo.",
+        "La operación está tardando más de lo esperado. Por favor, esperá unos segundos.",
       );
       setLoading(false);
-    }, 8000);
+    }, 35000);
 
     try {
       const getLocalDateString = (date: Date): string => {
