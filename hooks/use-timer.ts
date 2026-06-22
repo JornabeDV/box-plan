@@ -13,38 +13,65 @@ interface UseTimerProps {
 	forTimeCap?: string
 }
 
+// AudioContext compartido para todo el timer. Se crea una sola vez y se reanuda
+// dentro del flujo de interacción del usuario (click en "Iniciar") para cumplir
+// con las políticas de autoplay de los navegadores.
+let sharedAudioContext: AudioContext | null = null
+
+const getAudioContext = (): AudioContext | null => {
+	if (typeof window === 'undefined') return null
+	if (!sharedAudioContext) {
+		const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+		if (!AudioContextClass) return null
+		sharedAudioContext = new AudioContextClass()
+	}
+	return sharedAudioContext
+}
+
+const ensureAudioContext = async (): Promise<AudioContext | null> => {
+	const ctx = getAudioContext()
+	if (!ctx) return null
+	if (ctx.state === 'suspended') {
+		try {
+			await ctx.resume()
+		} catch (e) {
+			// Si no se puede reanudar, seguimos intentando reproducir de todos modos.
+		}
+	}
+	return ctx
+}
+
 // SONIDO TIPO CAMPANA DE GIMNASIO (estándar CrossFit)
 // Usa múltiples armónicos para simular una campana metálica
 const playBellSound = (isHigh: boolean = false) => {
 	try {
-		const AudioContext = window.AudioContext || (window as any).webkitAudioContext
-		if (!AudioContext) return
+		const ctx = getAudioContext()
+		if (!ctx) return
 
-		const audioContext = new AudioContext()
-		
 		// Frecuencias base: campana grave para conteo, aguda para inicio
 		const baseFreq = isHigh ? 880 : 523 // La5 (agudo) o Do5 (grave)
 		const freqs = [baseFreq, baseFreq * 1.5, baseFreq * 2] // Fundamental + 5ta + octava
 		const duration = isHigh ? 0.6 : 0.15 // Más largo para inicio
-		
+
 		freqs.forEach((freq, i) => {
-			const oscillator = audioContext.createOscillator()
-			const gainNode = audioContext.createGain()
-			
+			const oscillator = ctx.createOscillator()
+			const gainNode = ctx.createGain()
+
 			oscillator.connect(gainNode)
-			gainNode.connect(audioContext.destination)
-			
+			gainNode.connect(ctx.destination)
+
 			oscillator.frequency.value = freq
 			oscillator.type = 'triangle' // Más similar a campana que sine
-			
+
 			// Envolvente tipo campana (attack rápido, decay largo)
-			const volume = isHigh ? 0.2 : 0.15
-			gainNode.gain.setValueAtTime(0, audioContext.currentTime)
-			gainNode.gain.linearRampToValueAtTime(volume / (i + 1), audioContext.currentTime + 0.02)
-			gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration)
-			
-			oscillator.start(audioContext.currentTime)
-			oscillator.stop(audioContext.currentTime + duration)
+			const volume = isHigh ? 0.25 : 0.2
+			const now = ctx.currentTime
+			gainNode.gain.setValueAtTime(0, now)
+			gainNode.gain.linearRampToValueAtTime(volume / (i + 1), now + 0.02)
+			gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration)
+
+			oscillator.start(now)
+			oscillator.stop(now + duration)
 		})
 	} catch (e) {}
 }
@@ -62,25 +89,56 @@ const playStartBeep = () => {
 // Sonido simple tipo "clock beep" para cuenta regresiva larga
 const playSimpleBeep = () => {
 	try {
-		const AudioContext = window.AudioContext || (window as any).webkitAudioContext
-		if (!AudioContext) return
+		const ctx = getAudioContext()
+		if (!ctx) return
 
-		const audioContext = new AudioContext()
-		const oscillator = audioContext.createOscillator()
-		const gainNode = audioContext.createGain()
+		const oscillator = ctx.createOscillator()
+		const gainNode = ctx.createGain()
 
 		oscillator.connect(gainNode)
-		gainNode.connect(audioContext.destination)
+		gainNode.connect(ctx.destination)
 
 		oscillator.frequency.value = 600
 		oscillator.type = 'sine'
 
-		gainNode.gain.setValueAtTime(0, audioContext.currentTime)
-		gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.01)
-		gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.08)
+		const now = ctx.currentTime
+		gainNode.gain.setValueAtTime(0, now)
+		gainNode.gain.linearRampToValueAtTime(0.12, now + 0.01)
+		gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.08)
 
-		oscillator.start(audioContext.currentTime)
-		oscillator.stop(audioContext.currentTime + 0.08)
+		oscillator.start(now)
+		oscillator.stop(now + 0.08)
+	} catch (e) {}
+}
+
+// Sonido de finalización - doble campana aguda
+const playFinishBeep = () => {
+	try {
+		const ctx = getAudioContext()
+		if (!ctx) return
+
+		const freqs = [880, 1175] // La5 + Re6
+		const duration = 0.5
+
+		freqs.forEach((freq, i) => {
+			const oscillator = ctx.createOscillator()
+			const gainNode = ctx.createGain()
+
+			oscillator.connect(gainNode)
+			gainNode.connect(ctx.destination)
+
+			oscillator.frequency.value = freq
+			oscillator.type = 'triangle'
+
+			const now = ctx.currentTime
+			const startOffset = i * 0.12
+			gainNode.gain.setValueAtTime(0, now + startOffset)
+			gainNode.gain.linearRampToValueAtTime(0.25 / (i + 1), now + startOffset + 0.02)
+			gainNode.gain.exponentialRampToValueAtTime(0.001, now + startOffset + duration)
+
+			oscillator.start(now + startOffset)
+			oscillator.stop(now + startOffset + duration)
+		})
 	} catch (e) {}
 }
 
@@ -103,6 +161,9 @@ export function useTimer({
 
 	const intervalRef = useRef<NodeJS.Timeout | null>(null)
 	const lastCountdownRef = useRef<number | null>(null)
+	const prevIsWorkPhaseRef = useRef(isWorkPhase)
+	const prevIsRunningRef = useRef(isRunning)
+	const prevTimeRef = useRef(time)
 
 	// Efecto para reproducir sonidos durante la cuenta regresiva
 	useEffect(() => {
@@ -144,14 +205,28 @@ export function useTimer({
 		}
 	}, [time, mode, isRunning, isPaused, countdown, soundEnabled, workTime])
 
-	// Efecto para sonidos en Tabata (cambio de fase)
+	// Efecto para sonidos en cambios de fase (Tabata y AMRAP multipronda)
 	useEffect(() => {
 		if (!soundEnabled || !isRunning || isPaused || countdown) return
-		if (mode === 'tabata') {
-			// Campana larga para cambios de fase
-			playStartBeep()
+		if (mode === 'tabata' || (mode === 'amrap' && parseInt(totalRounds || '1') > 1)) {
+			// Solo sonar cuando realmente cambia la fase, no en el render inicial
+			if (isWorkPhase !== prevIsWorkPhaseRef.current && prevIsRunningRef.current) {
+				playStartBeep()
+			}
 		}
-	}, [isWorkPhase, mode, isRunning, isPaused, countdown, soundEnabled])
+		prevIsWorkPhaseRef.current = isWorkPhase
+	}, [isWorkPhase, mode, isRunning, isPaused, countdown, soundEnabled, totalRounds])
+
+	// Efecto para sonido de finalización cuando el timer se detiene por tiempo agotado
+	useEffect(() => {
+		if (!soundEnabled) return
+		// Si estaba corriendo y ahora no, y el tiempo llegó a 0 (no fue un reset/pausa manual)
+		if (prevIsRunningRef.current && !isRunning && time === 0) {
+			playFinishBeep()
+		}
+		prevIsRunningRef.current = isRunning
+		prevTimeRef.current = time
+	}, [isRunning, time, soundEnabled])
 
 	// Inicializar tiempo de AMRAP cuando cambia el modo o el tiempo configurado
 	useEffect(() => {
@@ -211,7 +286,7 @@ export function useTimer({
 						const amrapTimeNum = parseInt(amrapTime) || 10
 						const restTimeNum = parseInt(restTime) || 60
 						const totalRoundsNum = parseInt(totalRounds) || 1
-						
+
 						// Si es una sola ronda, comportamiento clásico de AMRAP
 						if (totalRoundsNum <= 1) {
 							const newTime = prevTime - 1
@@ -221,7 +296,7 @@ export function useTimer({
 							}
 							return newTime
 						}
-						
+
 						// Múltiples rondas: alternar entre trabajo y descanso
 						if (isWorkPhase) {
 							// Fase de trabajo (AMRAP)
@@ -297,12 +372,12 @@ export function useTimer({
 					if (mode === 'emom') {
 						const totalRoundsNum = parseInt(totalRounds) || 10
 						const currentEmomRound = Math.floor(newTime / 60) + 1
-						
+
 						if (currentEmomRound > totalRoundsNum) {
 							setIsRunning(false)
 							return prevTime
 						}
-						
+
 						if (currentEmomRound !== currentRound) {
 							setCurrentRound(currentEmomRound)
 						}
@@ -313,12 +388,12 @@ export function useTimer({
 						const totalRoundsNum = parseInt(totalRounds) || 10
 						const otmIntervalNum = (parseInt(workTime || '1') || 1) * 60 // Convertir minutos a segundos
 						const currentOtmRound = Math.floor(newTime / otmIntervalNum) + 1
-						
+
 						if (currentOtmRound > totalRoundsNum) {
 							setIsRunning(false)
 							return prevTime
 						}
-						
+
 						if (currentOtmRound !== currentRound) {
 							setCurrentRound(currentOtmRound)
 						}
@@ -449,18 +524,23 @@ export function useTimer({
 		return 'text-primary'
 	}
 
-	const handleStart = () => {
-		// Iniciar cuenta regresiva de 10 segundos para todos los modos
-		if ((mode === 'normal' || mode === 'tabata' || mode === 'fortime' || mode === 'amrap' || mode === 'emom' || mode === 'otm') && time === 0 && countdown === null) {
-			setCountdown(10)
+	const handleStart = useCallback(async () => {
+		// Asegurar que el AudioContext esté activo dentro del flujo de interacción del usuario
+		if (soundEnabled) {
+			await ensureAudioContext()
 		}
-		// Para AMRAP sin cuenta regresiva (si ya se inició antes y se pausó), restaurar tiempo
-		if (mode === 'amrap' && time === 0 && countdown === null && amrapInitialTime > 0 && amrapInitialTime !== 600) {
-			setTime(amrapInitialTime)
+
+		// Iniciar cuenta regresiva de 10 segundos cuando se larga desde cero
+		if (!isRunning && !isPaused && countdown === null) {
+			// En AMRAP, si terminó previamente, restaurar el tiempo antes de la cuenta regresiva
+			if (mode === 'amrap' && time === 0 && amrapInitialTime > 0 && amrapInitialTime !== 600) {
+				setTime(amrapInitialTime)
+			}
+			setCountdown(10)
 		}
 		setIsRunning(true)
 		setIsPaused(false)
-	}
+	}, [soundEnabled, mode, isRunning, isPaused, time, countdown, amrapInitialTime])
 
 	const handlePause = () => {
 		setIsPaused(!isPaused)
@@ -483,9 +563,14 @@ export function useTimer({
 		lastCountdownRef.current = null
 	}
 
-	const toggleSound = () => {
-		setSoundEnabled(prev => !prev)
-	}
+	const toggleSound = useCallback(async () => {
+		const next = !soundEnabled
+		setSoundEnabled(next)
+		if (next) {
+			// Si se activa el sonido dentro de una interacción, reanudar el contexto
+			await ensureAudioContext()
+		}
+	}, [soundEnabled])
 
 	return {
 		time,

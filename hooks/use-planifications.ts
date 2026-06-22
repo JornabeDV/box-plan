@@ -22,6 +22,7 @@ export interface SubBlock {
   subtitle: string
   order: number
   items: PlanificationItem[]
+  rounds?: string | null
   timer_mode?: string | null
   timer_config?: any
 }
@@ -33,6 +34,7 @@ export interface Block {
   notes?: string
   items: PlanificationItem[]
   subBlocks?: SubBlock[]
+  rounds?: string | null
   timer_mode?: string | null
   timer_config?: any
 }
