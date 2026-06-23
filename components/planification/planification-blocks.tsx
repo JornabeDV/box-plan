@@ -13,7 +13,8 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
-import type { Planification, TimerMode } from "./types";
+import type { Planification, TimerMode, WorkoutBlockResult, ScoreMetric } from "./types";
+import { BlockScoreInput } from "./block-score-input";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,14 @@ import { cn } from "@/lib/utils";
 interface PlanificationBlocksProps {
   blocks: Planification["blocks"];
   disciplineColor?: string;
+  planificationId?: string;
+  results?: Record<string, WorkoutBlockResult>;
+  onSaveResult?: (
+    planificationBlockId: string,
+    metric: ScoreMetric,
+    value: any
+  ) => Promise<WorkoutBlockResult | null>;
+  saving?: Record<string, boolean>;
 }
 
 function BlockTimerDisplay({
@@ -547,6 +556,10 @@ function BlockTimerDisplay({
 export function PlanificationBlocks({
   blocks,
   disciplineColor,
+  planificationId,
+  results = {},
+  onSaveResult,
+  saving = {},
 }: PlanificationBlocksProps) {
   const sortedBlocks = [...blocks].sort((a, b) => a.order - b.order);
 
@@ -724,6 +737,16 @@ export function PlanificationBlocks({
                   {block.notes}
                 </p>
               </div>
+            )}
+
+            {block.score_config && onSaveResult && planificationId && (
+              <BlockScoreInput
+                planificationBlockId={block.id}
+                config={block.score_config}
+                existingResult={results[block.id] || null}
+                onSave={onSaveResult}
+                saving={saving[block.id]}
+              />
             )}
           </CardContent>
         </Card>

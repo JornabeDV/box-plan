@@ -98,7 +98,7 @@ export const RankingDateSelector = ({
       {rankingDate && (
         <div className="flex items-center gap-2 text-muted-foreground">
           <Clock className="w-4 h-4" />
-          <span>Ranking del {formatDate(rankingDate)}</span>
+          <span className="text-sm sm:text-base">Ranking del {formatDate(rankingDate)}</span>
         </div>
       )}
     </div>

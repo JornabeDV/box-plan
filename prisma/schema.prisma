@@ -303,12 +303,14 @@ model PlanificationBlock {
   rounds          Int?     @map("rounds")
   timerMode       String?  @map("timer_mode") @db.VarChar(20)
   timerConfig     Json?    @map("timer_config")
+  scoreConfig     Json?    @map("score_config")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
 
   planification Planification           @relation(fields: [planificationId], references: [id], onDelete: Cascade)
   items         PlanificationItem[]
   subBlocks     PlanificationSubBlock[]
+  results       WorkoutBlockResult[]
 
   @@index([planificationId])
   @@map("planification_blocks")
@@ -353,18 +355,37 @@ model PlanificationItem {
 }
 
 model Workout {
-  id              Int            @id @default(autoincrement())
-  userId          Int            @map("user_id")
-  planificationId Int?           @map("planification_id")
+  id              Int                 @id @default(autoincrement())
+  userId          Int                 @map("user_id")
+  planificationId Int?                @map("planification_id")
   data            Json?
-  completedAt     DateTime?      @map("completed_at")
-  durationSeconds Int?           @map("duration_seconds")
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @default(now()) @updatedAt @map("updated_at")
-  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  planification   Planification? @relation(fields: [planificationId], references: [id])
+  completedAt     DateTime?           @map("completed_at")
+  durationSeconds Int?                @map("duration_seconds")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @default(now()) @updatedAt @map("updated_at")
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planification   Planification?      @relation(fields: [planificationId], references: [id])
+  blockResults    WorkoutBlockResult[]
 
   @@map("workouts")
+}
+
+model WorkoutBlockResult {
+  id                  Int      @id @default(autoincrement())
+  workoutId           Int      @map("workout_id")
+  planificationBlockId Int     @map("planification_block_id")
+  metric              String   @db.VarChar(20)
+  value               Json
+  completedAt         DateTime? @map("completed_at")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at")
+
+  workout           Workout           @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  planificationBlock PlanificationBlock @relation(fields: [planificationBlockId], references: [id], onDelete: Cascade)
+
+  @@index([workoutId])
+  @@index([planificationBlockId])
+  @@map("workout_block_results")
 }
 
 model RMRecord {

@@ -4,6 +4,7 @@ import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { usePlanificationData } from "@/hooks/use-planification-data";
 import { usePlanificationScores } from "@/hooks/use-planification-scores";
+import { useBlockResults } from "@/hooks/use-block-results";
 import { PlanificationHeader } from "@/components/planification/planification-header";
 import { PlanificationBlocks } from "@/components/planification/planification-blocks";
 import { PlanificationNotes } from "@/components/planification/planification-notes";
@@ -70,6 +71,10 @@ export function PlanificationContent() {
       onStrengthWorkoutUpdate: setExistingStrengthWorkout,
     });
 
+  const { results, saving, saveResult } = useBlockResults({
+    planificationId: planification?.id,
+  });
+
   const isToday = isSameDate(selectedDate, new Date());
   const formattedDate = !isToday
     ? formatDate(selectedDate.toISOString().split("T")[0] + "T00:00:00")
@@ -133,6 +138,10 @@ export function PlanificationContent() {
             <PlanificationBlocks
               blocks={sortedBlocks}
               disciplineColor={planification.discipline?.color}
+              planificationId={planification.id}
+              results={results}
+              onSaveResult={saveResult}
+              saving={saving}
             />
           )}
 

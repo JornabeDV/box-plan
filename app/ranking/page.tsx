@@ -18,10 +18,9 @@ import { Lock } from "lucide-react";
 import { RequireActiveSubscription } from "@/components/auth/require-active-subscription";
 
 const getInitialDate = (): Date => {
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  yesterday.setHours(0, 0, 0, 0);
-  return yesterday;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
 };
 
 export default function RankingPage() {

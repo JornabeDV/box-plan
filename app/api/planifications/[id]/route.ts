@@ -60,6 +60,7 @@ function transformBlock(block: any) {
     rounds: block.rounds || undefined,
     timer_mode: block.timerMode || null,
     timer_config: block.timerConfig || undefined,
+    score_config: block.scoreConfig || null,
     items: block.items?.map(transformItem) || [],
     subBlocks: block.subBlocks?.map(transformSubBlock) || [],
   }
@@ -213,6 +214,7 @@ export async function PATCH(
               rounds: block.rounds ? parseInt(block.rounds, 10) : null,
               timerMode: block.timer_mode || null,
               timerConfig: block.timer_config || null,
+              scoreConfig: block.score_config || block.scoreConfig || null,
             },
           })
 

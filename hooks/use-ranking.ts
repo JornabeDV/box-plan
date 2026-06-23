@@ -8,6 +8,7 @@ export interface RankingParticipant {
 	duration_seconds: number | null
 	completed_at: string
 	weight: number | null
+	display_value?: string
 	notes?: string | null
 	rank: number
 }
@@ -15,7 +16,7 @@ export interface RankingParticipant {
 export interface Ranking {
 	date: string
 	wod_name: string
-	type: 'time' | 'strength'
+	type: 'time' | 'strength' | 'weight' | 'reps' | 'rounds_reps'
 	participants: RankingParticipant[]
 	total_participants: number
 }
