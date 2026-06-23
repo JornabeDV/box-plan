@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { unstable_cache } from 'next/cache'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeUserId } from '@/lib/auth-helpers'
@@ -129,24 +128,6 @@ const planificationInclude = {
   },
 } as const
 
-const getCachedTodayAllPlanifications = unstable_cache(
-  async (coachId: number, normalizedDate: Date, endOfDay: Date) => {
-    const allPlanifications = await prisma.planification.findMany({
-      where: {
-        coachId,
-        isPersonalized: false,
-        date: { gte: normalizedDate, lt: endOfDay },
-      },
-      include: planificationInclude,
-      orderBy: { date: 'asc' },
-    })
-
-    return allPlanifications
-  },
-  ['today-all-planifications'],
-  { revalidate: 60, tags: ['today-all-planifications'] }
-)
-
 // ============================================================
 // GET
 // ============================================================
@@ -173,12 +154,41 @@ export async function GET(request: NextRequest) {
 
     const coachId = relationship.coach.id
 
-    const userDisciplines = await prisma.userDiscipline.findMany({
+    let userDisciplines = await prisma.userDiscipline.findMany({
       where: { userId },
       include: {
         discipline: { select: { id: true, name: true, color: true } },
       },
     })
+
+    // Fallback a preferencias si no tiene disciplinas asignadas
+    if (userDisciplines.length === 0) {
+      const preference = await prisma.userPreference.findUnique({
+        where: { userId },
+        select: { preferredDisciplineId: true },
+      })
+
+      if (preference?.preferredDisciplineId) {
+        const discipline = await prisma.discipline.findUnique({
+          where: { id: preference.preferredDisciplineId },
+          select: { id: true, name: true, color: true },
+        })
+
+        if (discipline) {
+          userDisciplines = [
+            {
+              userId,
+              disciplineId: discipline.id,
+              levelId: null,
+              preferredLevelId: null,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              discipline,
+            } as any,
+          ]
+        }
+      }
+    }
 
     if (userDisciplines.length === 0) {
       return NextResponse.json({ data: [] })
@@ -208,12 +218,16 @@ export async function GET(request: NextRequest) {
 
     const disciplineIds = userDisciplines.map((ud) => ud.disciplineId)
 
-    // 1. Buscar todas las planificaciones del día del coach (cacheado, compartido entre alumnos)
-    const coachPlanifications = await getCachedTodayAllPlanifications(
-      coachId,
-      normalizedDate,
-      endOfDay
-    )
+    // 1. Buscar todas las planificaciones del día del coach
+    const coachPlanifications = await prisma.planification.findMany({
+      where: {
+        coachId,
+        isPersonalized: false,
+        date: { gte: normalizedDate, lt: endOfDay },
+      },
+      include: planificationInclude,
+      orderBy: { date: 'asc' },
+    })
 
     // 2. Filtrar en memoria solo las disciplinas del usuario
     const result: any[] = []
