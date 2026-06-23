@@ -568,42 +568,45 @@ export default function BoxPlanApp() {
         {user?.id && hasActiveSubscription && hasAnyQuickAccess && (
           <section className="space-y-3">
             <h2 className="headline-md text-foreground">Accesos Rápidos</h2>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {hasProgressAccess && (
-                <Button
-                  variant="ghost"
+                <Card
+                  className="hidden cursor-pointer transition-colors hover:bg-surface-container-high py-0"
                   onClick={() => router.push("/progress")}
-                  className="h-auto flex-col gap-2 rounded-2xl bg-surface-container p-4 hover:bg-surface-container-high"
                 >
-                  <BarChart3 className="w-5 h-5 text-primary" />
-                  <span className="text-xs font-medium text-foreground">
-                    Progreso
-                  </span>
-                </Button>
+                  <CardContent className="flex flex-col items-center justify-center gap-2 py-5 text-center">
+                    <BarChart3 className="w-6 h-6 text-primary" />
+                    <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground">
+                      Progreso
+                    </span>
+                  </CardContent>
+                </Card>
               )}
               {canTrackProgress && (
-                <Button
-                  variant="ghost"
+                <Card
+                  className="cursor-pointer transition-colors hover:bg-surface-container-high py-0"
                   onClick={() => router.push("/log-rm")}
-                  className="h-auto flex-col gap-2 rounded-2xl bg-surface-container p-4 hover:bg-surface-container-high"
                 >
-                  <Weight className="w-5 h-5 text-primary" />
-                  <span className="text-xs font-medium text-foreground">
-                    Carga RM
-                  </span>
-                </Button>
+                  <CardContent className="flex flex-col items-center justify-center gap-2 py-5 text-center">
+                    <Weight className="w-6 h-6 text-primary" />
+                    <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground">
+                      Carga RM
+                    </span>
+                  </CardContent>
+                </Card>
               )}
               {hasRankingAccess && (
-                <Button
-                  variant="ghost"
+                <Card
+                  className="cursor-pointer transition-colors hover:bg-surface-container-high py-0"
                   onClick={() => router.push("/ranking")}
-                  className="h-auto flex-col gap-2 rounded-2xl bg-surface-container p-4 hover:bg-surface-container-high"
                 >
-                  <Trophy className="w-5 h-5 text-primary" />
-                  <span className="text-xs font-medium text-foreground">
-                    Ranking
-                  </span>
-                </Button>
+                  <CardContent className="flex flex-col items-center justify-center gap-2 py-5 text-center">
+                    <Trophy className="w-6 h-6 text-primary" />
+                    <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground">
+                      Ranking
+                    </span>
+                  </CardContent>
+                </Card>
               )}
             </div>
           </section>
