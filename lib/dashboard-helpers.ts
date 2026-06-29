@@ -140,6 +140,7 @@ function transformBlock(block: any) {
 		rounds: block.rounds || undefined,
 		timer_mode: block.timerMode || null,
 		timer_config: block.timerConfig || undefined,
+		score_config: block.scoreConfig || null,
 		items: block.items?.map(transformItem) || [],
 		subBlocks: block.subBlocks?.map(transformSubBlock) || [],
 	}

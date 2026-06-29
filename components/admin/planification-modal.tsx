@@ -58,6 +58,7 @@ interface ItemData {
 interface SubBlock {
   id: string;
   subtitle: string;
+  order: number;
   items: ItemData[];
   rounds?: string;
   timer_mode?:
@@ -139,6 +140,40 @@ interface PlanificationModalProps {
 }
 
 function SortableBlock({
+  id,
+  children,
+}: {
+  id: string;
+  children: (dragHandleProps: {
+    listeners: ReturnType<typeof useSortable>["listeners"];
+    attributes: ReturnType<typeof useSortable>["attributes"];
+  }) => React.ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    zIndex: isDragging ? 10 : undefined,
+    position: "relative",
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children({ listeners, attributes })}
+    </div>
+  );
+}
+
+function SortableSubBlock({
   id,
   children,
 }: {
@@ -314,6 +349,7 @@ export function PlanificationModal({
             subBlocks: (block.subBlocks || []).map((sub: any) => ({
               ...sub,
               id: sub.id || Date.now().toString() + Math.random(),
+              order: sub.order ?? 0,
               rounds: sub.rounds ? String(sub.rounds) : undefined,
               items: (sub.items || []).map(normalizeItemFromBackend),
             })),
@@ -393,17 +429,63 @@ export function PlanificationModal({
 
   // ── Drag & drop ──────────────────────────────────────────────────────────
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const getSubBlockSortableId = (blockId: string, subBlockId: string) =>
+    `${blockId}::${subBlockId}`;
+
+  const handleBlockDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (over && active.id !== over.id) {
-      setBlocks((prev) => {
-        const oldIndex = prev.findIndex((b) => b.id === active.id);
-        const newIndex = prev.findIndex((b) => b.id === over.id);
-        return arrayMove(prev, oldIndex, newIndex).map((block, i) => ({
+    if (!over || active.id === over.id) return;
+    const overId = String(over.id);
+    if (overId.includes("::")) return; // no dropear bloque sobre sub-bloque
+    setBlocks((prev) => {
+      const oldIndex = prev.findIndex((b) => b.id === active.id);
+      const newIndex = prev.findIndex((b) => b.id === overId);
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      return arrayMove(prev, oldIndex, newIndex).map((block, i) => ({
+        ...block,
+        order: i,
+      }));
+    });
+  };
+
+  const handleSubBlockDragEnd = (blockId: string, event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const activeId = String(active.id);
+    const overId = String(over.id);
+    if (!activeId.includes("::") || !overId.includes("::")) return;
+    const [activeBlockId] = activeId.split("::");
+    const [overBlockId] = overId.split("::");
+    if (activeBlockId !== overBlockId || activeBlockId !== blockId) return;
+    setBlocks((prev) =>
+      prev.map((block) => {
+        if (block.id !== blockId) return block;
+        const subBlocks = block.subBlocks || [];
+        const oldIndex = subBlocks.findIndex(
+          (sb) => getSubBlockSortableId(blockId, sb.id) === activeId,
+        );
+        const newIndex = subBlocks.findIndex(
+          (sb) => getSubBlockSortableId(blockId, sb.id) === overId,
+        );
+        if (oldIndex === -1 || newIndex === -1) return block;
+        return {
           ...block,
-          order: i,
-        }));
-      });
+          subBlocks: arrayMove(subBlocks, oldIndex, newIndex).map((sb, i) => ({
+            ...sb,
+            order: i,
+          })),
+        };
+      }),
+    );
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const activeId = String(event.active.id);
+    if (activeId.includes("::")) {
+      const [blockId] = activeId.split("::");
+      handleSubBlockDragEnd(blockId, event);
+    } else {
+      handleBlockDragEnd(event);
     }
   };
 
@@ -597,17 +679,20 @@ export function PlanificationModal({
   const addSubBlock = (blockId: string) => {
     const title = newSubBlockTitles[blockId]?.trim();
     if (!title) return;
-    const newSubBlock: SubBlock = {
-      id: Date.now().toString(),
-      subtitle: title,
-      items: [],
-    };
     setBlocks((prev) =>
-      prev.map((block) =>
-        block.id === blockId
-          ? { ...block, subBlocks: [...(block.subBlocks || []), newSubBlock] }
-          : block,
-      ),
+      prev.map((block) => {
+        if (block.id !== blockId) return block;
+        const newSubBlock: SubBlock = {
+          id: Date.now().toString(),
+          subtitle: title,
+          order: (block.subBlocks || []).length,
+          items: [],
+        };
+        return {
+          ...block,
+          subBlocks: [...(block.subBlocks || []), newSubBlock],
+        };
+      }),
     );
     setNewSubBlockTitles((prev) => ({ ...prev, [blockId]: "" }));
   };
@@ -1733,13 +1818,35 @@ export function PlanificationModal({
                                         <ChevronRight className="w-3 h-3" />
                                         Sub-bloques
                                       </p>
-                                      {block.subBlocks.map((subBlock) => (
-                                        <div
-                                          key={subBlock.id}
-                                          className="border border-border rounded-md p-3 space-y-2 bg-muted/20"
-                                        >
+                                      <SortableContext
+                                        items={block.subBlocks.map((sb) =>
+                                          getSubBlockSortableId(block.id, sb.id),
+                                        )}
+                                        strategy={verticalListSortingStrategy}
+                                      >
+                                        {block.subBlocks.map((subBlock) => {
+                                          const subBlockSortableId = getSubBlockSortableId(
+                                            block.id,
+                                            subBlock.id,
+                                          );
+                                          return (
+                                            <SortableSubBlock
+                                              key={subBlockSortableId}
+                                              id={subBlockSortableId}
+                                            >
+                                              {({ listeners, attributes }) => (
+                                                <div className="border border-border rounded-md p-3 space-y-2 bg-muted/20">
                                           {/* Título del sub-bloque */}
                                           <div className="flex items-center gap-2">
+                                            <button
+                                              type="button"
+                                              {...listeners}
+                                              {...attributes}
+                                              className="cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground flex-shrink-0 p-0.5 max-sm:hidden"
+                                              tabIndex={-1}
+                                            >
+                                              <GripVertical className="w-3 h-3" />
+                                            </button>
                                             <ChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0" />
                                             <Input
                                               value={subBlock.subtitle}
@@ -2326,8 +2433,12 @@ export function PlanificationModal({
                                               </Button>
                                             </div>
                                           </div>
-                                        </div>
-                                      ))}
+                                                </div>
+                                              )}
+                                            </SortableSubBlock>
+                                          );
+                                        })}
+                                      </SortableContext>
                                     </div>
                                   )}
 

@@ -17,6 +17,13 @@ export interface PlanificationItem {
   exercise?: ExerciseRef | null
 }
 
+export interface ScoreConfig {
+  metric: string
+  includeInRanking?: boolean
+  label?: string
+  unit?: 'kg' | 'lb'
+}
+
 export interface SubBlock {
   id: string
   subtitle: string
@@ -37,6 +44,7 @@ export interface Block {
   rounds?: string | null
   timer_mode?: string | null
   timer_config?: any
+  score_config?: ScoreConfig | null
 }
 
 export interface Planification {

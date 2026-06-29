@@ -645,7 +645,9 @@ export function PlanificationBlocks({
 
             {block.subBlocks && block.subBlocks.length > 0 && (
               <div className="space-y-4">
-                {block.subBlocks.map((subBlock) => (
+                {[...block.subBlocks]
+                  .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+                  .map((subBlock) => (
                   <div
                     key={subBlock.id}
                     className="bg-surface-container border-l-0 border-primary"
