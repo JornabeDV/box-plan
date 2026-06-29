@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { auth } from '@/lib/auth'
-import { normalizeUserId, isCoach } from '@/lib/auth-helpers'
 import { prisma } from '@/lib/prisma'
+import { normalizeUserId, isCoach } from '@/lib/auth-helpers'
+import { getCachedCoachProfile } from '@/lib/cache'
 
 /**
  * GET /api/coaches/profile
@@ -29,43 +31,18 @@ export async function GET(request: NextRequest) {
 			)
 		}
 
-		const coachProfile = await prisma.coachProfile.findUnique({
-			where: { id: authCheck.profile.id },
-			include: {
-				user: {
-					select: {
-						email: true,
-						name: true
-					}
-				}
-			}
-		})
+		const result = await getCachedCoachProfile(authCheck.profile.id)
 
-		if (!coachProfile) {
+		if (!result) {
 			return NextResponse.json(
 				{ error: 'Perfil de coach no encontrado' },
 				{ status: 404 }
 			)
 		}
 
-		return NextResponse.json({
-			profile: {
-				id: coachProfile.id,
-				businessName: coachProfile.businessName,
-				phone: coachProfile.phone,
-				address: coachProfile.address,
-				logoUrl: coachProfile.logoUrl,
-				maxStudents: coachProfile.maxStudents,
-				currentStudentCount: coachProfile.currentStudentCount,
-				commissionRate: Number(coachProfile.commissionRate),
-				platformCommissionRate: Number(coachProfile.platformCommissionRate),
-				mercadopagoAccountId: coachProfile.mercadopagoAccountId,
-				email: coachProfile.user.email,
-				name: coachProfile.user.name,
-				createdAt: coachProfile.createdAt.toISOString(),
-				updatedAt: coachProfile.updatedAt.toISOString()
-			}
-		})
+		const response = NextResponse.json(result)
+		response.headers.set('Cache-Control', 'private, max-age=300, stale-while-revalidate=600')
+		return response
 	} catch (error) {
 		console.error('Error fetching coach profile:', error)
 		return NextResponse.json(
@@ -145,6 +122,9 @@ export async function PATCH(request: NextRequest) {
 				}
 			}
 		})
+
+		// Invalidar caché del perfil
+		revalidateTag('coach-profile')
 
 		return NextResponse.json({
 			success: true,

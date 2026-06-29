@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSession } from 'next-auth/react'
 
-interface Profile {
+export interface Profile {
   id: string
   email: string
   full_name: string | null
@@ -13,7 +13,7 @@ interface Profile {
   updated_at: string
 }
 
-interface Subscription {
+export interface Subscription {
   id: string
   user_id: string
   plan_id: string
@@ -32,7 +32,7 @@ interface Subscription {
   }
 }
 
-interface PaymentHistory {
+export interface PaymentHistory {
   id: string
   user_id: string
   subscription_id: string | null
@@ -46,6 +46,63 @@ interface PaymentHistory {
   updated_at: string
 }
 
+const PROFILE_KEY = 'profile'
+const PROFILE_SUBSCRIPTION_KEY = 'profile-subscription'
+const PAYMENT_HISTORY_KEY = 'payment-history'
+
+function createBasicProfile(session: any): Profile {
+  return {
+    id: String(session?.user?.id || ''),
+    email: session?.user?.email || '',
+    full_name: session?.user?.name || null,
+    avatar_url: session?.user?.image || null,
+    phone: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }
+}
+
+async function fetchProfile(session: any): Promise<Profile> {
+  const response = await fetch('/api/profile')
+
+  if (response.status === 401) {
+    return createBasicProfile(session)
+  }
+
+  if (!response.ok) {
+    return createBasicProfile(session)
+  }
+
+  const data = await response.json()
+
+  if (!data) {
+    return createBasicProfile(session)
+  }
+
+  return data
+}
+
+async function fetchProfileSubscription(): Promise<Subscription | null> {
+  const response = await fetch('/api/subscription')
+
+  if (!response.ok) {
+    return null
+  }
+
+  return response.json()
+}
+
+async function fetchPaymentHistory(): Promise<PaymentHistory[]> {
+  const response = await fetch('/api/payment-history')
+
+  if (!response.ok) {
+    return []
+  }
+
+  const data = await response.json()
+  return data?.paymentHistory || []
+}
+
 interface ProfileState {
   profile: Profile | null
   subscription: Subscription | null
@@ -55,162 +112,36 @@ interface ProfileState {
 }
 
 export function useProfile() {
-  const [state, setState] = useState<ProfileState>({
-    profile: null,
-    subscription: null,
-    paymentHistory: [],
-    loading: true,
-    error: null
+  const { data: session, status: sessionStatus } = useSession()
+  const queryClient = useQueryClient()
+  const userId = session?.user?.id
+
+  const profileQuery = useQuery({
+    queryKey: [PROFILE_KEY, userId],
+    queryFn: () => fetchProfile(session),
+    enabled: sessionStatus !== 'loading' && !!userId,
+    staleTime: 1000 * 60 * 5,
   })
 
-  const { data: session, status: sessionStatus } = useSession()
+  const subscriptionQuery = useQuery({
+    queryKey: [PROFILE_SUBSCRIPTION_KEY, userId],
+    queryFn: fetchProfileSubscription,
+    enabled: sessionStatus !== 'loading' && !!userId,
+    staleTime: 1000 * 60 * 5,
+  })
 
-  // Cargar perfil del usuario
-  const loadProfile = async () => {
-    try {
-      const userId = session?.user?.id
+  const paymentHistoryQuery = useQuery({
+    queryKey: [PAYMENT_HISTORY_KEY, userId],
+    queryFn: fetchPaymentHistory,
+    enabled: sessionStatus !== 'loading' && !!userId,
+    staleTime: 1000 * 60 * 5,
+  })
+
+  const updateProfile = useMutation({
+    mutationFn: async (updates: Partial<Profile> & { current_password?: string; new_password?: string }) => {
       if (!userId) {
-        setState(prev => ({ ...prev, profile: null }))
-        return
+        throw new Error('Usuario no autenticado')
       }
-
-      // Llamar a API route con timestamp para evitar cache en Safari/iOS
-      const timestamp = Date.now();
-      const response = await fetch(`/api/profile?_t=${timestamp}`, {
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-        }
-      })
-      
-      if (!response.ok) {
-        // Si es 401, el usuario no está autenticado, esto es esperado
-        if (response.status === 401) {
-          setState(prev => ({ ...prev, profile: null }))
-          return
-        }
-        // Si hay otro error, crear perfil básico
-        const basicProfile: Profile = {
-          id: String(userId),
-          email: session.user?.email || '',
-          full_name: session.user?.name || null,
-          avatar_url: session.user?.image || null,
-          phone: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-        setState(prev => ({ ...prev, profile: basicProfile }))
-        return
-      }
-
-      const data = await response.json()
-
-       // Si no hay perfil, crear uno básico con la información del usuario
-       if (!data) {
-         const basicProfile: Profile = {
-           id: String(userId),
-           email: session.user?.email || '',
-           full_name: session.user?.name || null,
-           avatar_url: session.user?.image || null,
-           phone: null,
-           created_at: new Date().toISOString(),
-           updated_at: new Date().toISOString()
-         }
-        setState(prev => ({ ...prev, profile: basicProfile }))
-      } else {
-        setState(prev => ({ ...prev, profile: data }))
-      }
-    } catch (error) {
-      console.error('Error loading profile:', error)
-      setState(prev => ({ 
-        ...prev, 
-        error: error instanceof Error ? error.message : 'Error al cargar el perfil' 
-      }))
-    }
-  }
-
-  // Cargar suscripción actual
-  const loadSubscription = async () => {
-    try {
-      const userId = session?.user?.id
-      if (!userId) return
-
-      const timestamp = Date.now();
-      const response = await fetch(`/api/subscription?_t=${timestamp}`, {
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-        }
-      })
-      if (!response.ok) {
-        // Si no hay suscripción, está bien, no es un error
-        if (response.status === 401 || response.status === 404) {
-          return
-        }
-        throw new Error('Error al cargar suscripción')
-      }
-
-      const data = await response.json()
-      
-      // El endpoint devuelve directamente el objeto de suscripción o null
-      if (data) {
-        setState(prev => ({ ...prev, subscription: data }))
-      }
-    } catch (error) {
-      console.error('Error loading subscription:', error)
-      // No actualizar el estado de error para suscripciones, es opcional
-    }
-  }
-
-  // Cargar historial de pagos
-  const loadPaymentHistory = async () => {
-    try {
-      const userId = session?.user?.id
-      if (!userId) return
-
-      const timestamp = Date.now();
-      const response = await fetch(`/api/payment-history?_t=${timestamp}`, {
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-        }
-      })
-      if (!response.ok) return
-
-      const data = await response.json()
-      
-      if (data && data.paymentHistory) {
-        setState(prev => ({ ...prev, paymentHistory: data.paymentHistory }))
-      }
-    } catch (error) {
-      console.error('Error loading payment history:', error)
-      setState(prev => ({ 
-        ...prev, 
-        error: error instanceof Error ? error.message : 'Error al cargar el historial de pagos' 
-      }))
-    }
-  }
-
-  // Cargar todos los datos
-  const loadAllData = async () => {
-    setState(prev => ({ ...prev, loading: true, error: null }))
-    
-    try {
-      await Promise.all([
-        loadProfile(),
-        loadSubscription(),
-        loadPaymentHistory()
-      ])
-    } finally {
-      setState(prev => ({ ...prev, loading: false }))
-    }
-  }
-
-  // Actualizar perfil
-  const updateProfile = async (updates: Partial<Profile> & { current_password?: string; new_password?: string }) => {
-    try {
-      const userId = session?.user?.id
-      if (!userId) throw new Error('Usuario no autenticado')
 
       const response = await fetch('/api/profile', {
         method: 'PATCH',
@@ -222,40 +153,39 @@ export function useProfile() {
         throw new Error('Error al actualizar el perfil')
       }
 
-      const data = await response.json()
+      return response.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [PROFILE_KEY, userId] })
+    },
+  })
 
-      setState(prev => ({ ...prev, profile: data }))
-      return { data, error: null }
-    } catch (error) {
-      console.error('Error updating profile:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Error al actualizar el perfil'
-      setState(prev => ({ ...prev, error: errorMessage }))
-      return { data: null, error: errorMessage }
-    }
-  }
-
-  // Cargar datos iniciales
-  useEffect(() => {
-    // Si la sesión aún está cargando, esperar
-    if (sessionStatus === 'loading') {
-      return
-    }
-    
-    if (session?.user?.id) {
-      loadAllData()
-    } else {
-      // Si la sesión está cargada pero no hay usuario, detener loading
-      setState(prev => ({ ...prev, loading: false }))
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user?.id, sessionStatus])
+  const loading = profileQuery.isLoading || subscriptionQuery.isLoading || paymentHistoryQuery.isLoading
+  const error = profileQuery.error || subscriptionQuery.error || paymentHistoryQuery.error
 
   return {
-    ...state,
-    loadProfile,
-    loadSubscription,
-    loadPaymentHistory,
-    loadAllData,
-    updateProfile
+    profile: profileQuery.data ?? null,
+    subscription: subscriptionQuery.data ?? null,
+    paymentHistory: paymentHistoryQuery.data ?? [],
+    loading,
+    error: error ? (error instanceof Error ? error.message : 'Error al cargar el perfil') : null,
+    loadProfile: async () => { await profileQuery.refetch() },
+    loadSubscription: async () => { await subscriptionQuery.refetch() },
+    loadPaymentHistory: async () => { await paymentHistoryQuery.refetch() },
+    loadAllData: async () => {
+      await Promise.all([
+        profileQuery.refetch(),
+        subscriptionQuery.refetch(),
+        paymentHistoryQuery.refetch(),
+      ])
+    },
+    updateProfile: async (updates: Partial<Profile> & { current_password?: string; new_password?: string }) => {
+      return updateProfile.mutateAsync(updates)
+        .then(data => ({ data, error: null }))
+        .catch(error => {
+          const errorMessage = error instanceof Error ? error.message : 'Error al actualizar el perfil'
+          return { data: null, error: errorMessage }
+        })
+    },
   }
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
 import { normalizeUserId } from '@/lib/auth-helpers'
+import { getCachedStudentCoach } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -17,42 +17,15 @@ export async function GET(request: NextRequest) {
 			return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 		}
 
-		// Obtener el coach del estudiante
-		const relationship = await prisma.coachStudentRelationship.findFirst({
-			where: {
-				studentId: userId,
-				status: 'active'
-			},
-			include: {
-				coach: {
-					include: {
-						user: {
-							select: {
-								email: true
-							}
-						}
-					}
-				}
-			}
-		})
+		const result = await getCachedStudentCoach(userId)
 
-		if (!relationship) {
-			return NextResponse.json({ 
-				data: null,
-				message: 'El usuario no está asociado a ningún coach activo'
-			}, { status: 404 })
+		if (!result.data) {
+			return NextResponse.json(result, { status: 404 })
 		}
 
-		const coachProfile = relationship.coach
-
-		return NextResponse.json({ 
-			data: {
-				id: coachProfile.id,
-				businessName: coachProfile.businessName,
-				phone: coachProfile.phone,
-				email: coachProfile.user.email
-			}
-		})
+		const response = NextResponse.json(result)
+		response.headers.set('Cache-Control', 'private, max-age=300, stale-while-revalidate=600')
+		return response
 	} catch (error) {
 		console.error('Error fetching student coach:', error)
 		return NextResponse.json(

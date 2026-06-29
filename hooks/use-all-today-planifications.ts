@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useSession } from 'next-auth/react'
 
 interface Planification {
@@ -42,77 +42,41 @@ interface UseAllTodayPlanificationsOptions {
 	date?: string
 }
 
+const TODAY_ALL_PLANIFICATIONS_KEY = 'today-all-planifications'
+
+async function fetchTodayAllPlanifications(date?: string): Promise<Planification[]> {
+	const query = date ? `?date=${date}` : ''
+	const response = await fetch(`/api/planifications/today-all${query}`)
+
+	if (!response.ok) {
+		throw new Error('Error al cargar las planificaciones')
+	}
+
+	const data = await response.json()
+	return data.data || []
+}
+
 export function useAllTodayPlanifications(
 	options?: UseAllTodayPlanificationsOptions
 ): UseAllTodayPlanificationsReturn {
 	const { data: session, status: sessionStatus } = useSession()
-	const [planifications, setPlanifications] = useState<Planification[]>([])
-	const [loading, setLoading] = useState(false)
-	const [error, setError] = useState<string | null>(null)
+	const userId = session?.user?.id
 	const enabled = options?.enabled !== false
 
-	const fetchPlanifications = useCallback(async () => {
-		const userId = session?.user?.id
-		if (!userId) {
-			setPlanifications([])
-			setLoading(false)
-			return
-		}
-
-		try {
-			setLoading(true)
-			setError(null)
-
-			const dateParam = options?.date
-			const query = dateParam
-				? `?date=${dateParam}&_t=${Date.now()}`
-				: `?_t=${Date.now()}`
-
-			const response = await fetch(`/api/planifications/today-all${query}`, {
-				headers: {
-					'Cache-Control': 'no-cache, no-store, must-revalidate',
-					'Pragma': 'no-cache',
-				},
-			})
-
-			if (!response.ok) {
-				throw new Error('Error al cargar las planificaciones')
-			}
-
-			const data = await response.json()
-			setPlanifications(data.data || [])
-		} catch (err) {
-			console.error('Error fetching today-all planifications:', err)
-			setError(err instanceof Error ? err.message : 'Error al cargar')
-			setPlanifications([])
-		} finally {
-			setLoading(false)
-		}
-	}, [session?.user?.id, options?.date])
-
-	useEffect(() => {
-		if (sessionStatus === 'loading') {
-			return
-		}
-
-		if (!enabled) {
-			setPlanifications([])
-			setLoading(false)
-			return
-		}
-
-		if (session?.user?.id) {
-			fetchPlanifications()
-		} else {
-			setPlanifications([])
-			setLoading(false)
-		}
-	}, [session?.user?.id, sessionStatus, enabled, fetchPlanifications])
+	const { data: planifications = [], isLoading, error, refetch } = useQuery({
+		queryKey: [TODAY_ALL_PLANIFICATIONS_KEY, userId, options?.date],
+		queryFn: () => fetchTodayAllPlanifications(options?.date),
+		enabled: sessionStatus !== 'loading' && !!userId && enabled,
+		// La planificación de hoy puede cambiar, así que stale time corto
+		staleTime: 1000 * 60,
+	})
 
 	return {
 		planifications,
-		loading,
-		error,
-		refetch: fetchPlanifications,
+		loading: isLoading,
+		error: error ? (error instanceof Error ? error.message : 'Error al cargar') : null,
+		refetch: async () => {
+			await refetch()
+		},
 	}
 }

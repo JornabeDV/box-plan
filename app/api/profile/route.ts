@@ -1,126 +1,97 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeUserId } from '@/lib/auth-helpers'
+import { getCachedProfile } from '@/lib/cache'
 import bcrypt from 'bcryptjs'
 
 export async function GET(request: NextRequest) {
-  try {
-    const session = await auth()
-    
-    const userId = normalizeUserId(session?.user?.id)
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+	try {
+		const session = await auth()
+		const userId = normalizeUserId(session?.user?.id)
 
-    try {
-      // Nota: La tabla profiles no existe en el schema, usar User directamente
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          image: true,
-          phone: true,
-          createdAt: true,
-          updatedAt: true
-        }
-      })
+		if (!userId) {
+			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+		}
 
-      // Transformar a formato de profile
-      const profile = user ? {
-        id: user.id,
-        full_name: user.name || user.email,
-        avatar_url: user.image,
-        phone: user.phone,
-        created_at: user.createdAt,
-        updated_at: user.updatedAt
-      } : null
+		const profile = await getCachedProfile(userId)
 
-      return NextResponse.json(profile)
-    } catch (dbError: any) {
-      // Si hay error de DB, loguear y devolver null
-      console.error('Database error fetching profile:', dbError?.message || dbError)
-      return NextResponse.json(null)
-    }
-  } catch (error: any) {
-    console.error('Error fetching profile:', error?.message || error)
-    // En caso de error desconocido, devolver null en lugar de error 500
-    // para permitir que la app funcione
-    return NextResponse.json(null)
-  }
+		const response = NextResponse.json(profile)
+		response.headers.set('Cache-Control', 'private, max-age=300, stale-while-revalidate=600')
+		return response
+	} catch (error: any) {
+		console.error('Error fetching profile:', error?.message || error)
+		return NextResponse.json(null)
+	}
 }
 
 export async function PATCH(request: NextRequest) {
-  try {
-    const session = await auth()
-    
-    const userId = normalizeUserId(session?.user?.id)
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+	try {
+		const session = await auth()
+		const userId = normalizeUserId(session?.user?.id)
 
-    const body = await request.json()
-    const { full_name, avatar_url, phone, current_password, new_password } = body
+		if (!userId) {
+			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+		}
 
-    // Preparar datos de actualización
-    const updateData: any = {}
-    if (full_name !== undefined) updateData.name = full_name
-    if (avatar_url !== undefined) updateData.image = avatar_url
-    if (phone !== undefined) updateData.phone = phone
+		const body = await request.json()
+		const { full_name, avatar_url, phone, current_password, new_password } = body
 
-    // Si viene cambio de contraseña, validar y hashear
-    if (current_password !== undefined || new_password !== undefined) {
-      if (!current_password || !new_password) {
-        return NextResponse.json({ error: 'Debes ingresar la contraseña actual y la nueva' }, { status: 400 })
-      }
+		const updateData: any = {}
+		if (full_name !== undefined) updateData.name = full_name
+		if (avatar_url !== undefined) updateData.image = avatar_url
+		if (phone !== undefined) updateData.phone = phone
 
-      const trimmedNew = new_password.trim()
-      if (trimmedNew.length < 6) {
-        return NextResponse.json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' }, { status: 400 })
-      }
+		if (current_password !== undefined || new_password !== undefined) {
+			if (!current_password || !new_password) {
+				return NextResponse.json({ error: 'Debes ingresar la contraseña actual y la nueva' }, { status: 400 })
+			}
 
-      // Obtener contraseña actual hasheada
-      const userWithPassword = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { password: true }
-      })
+			const trimmedNew = new_password.trim()
+			if (trimmedNew.length < 6) {
+				return NextResponse.json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' }, { status: 400 })
+			}
 
-      if (!userWithPassword) {
-        return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
-      }
+			const userWithPassword = await prisma.user.findUnique({
+				where: { id: userId },
+				select: { password: true }
+			})
 
-      const valid = await bcrypt.compare(current_password, userWithPassword.password)
-      if (!valid) {
-        return NextResponse.json({ error: 'Contraseña actual incorrecta' }, { status: 400 })
-      }
+			if (!userWithPassword) {
+				return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
+			}
 
-      updateData.password = await bcrypt.hash(trimmedNew, 10)
-    }
-    
-    if (Object.keys(updateData).length === 0) {
-      return NextResponse.json({ error: 'No hay campos para actualizar' }, { status: 400 })
-    }
+			const valid = await bcrypt.compare(current_password, userWithPassword.password)
+			if (!valid) {
+				return NextResponse.json({ error: 'Contraseña actual incorrecta' }, { status: 400 })
+			}
 
-    // Actualizar usuario
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: updateData
-    })
+			updateData.password = await bcrypt.hash(trimmedNew, 10)
+		}
 
-    // Transformar a formato de profile
-    const profile = {
-      id: user.id,
-      full_name: user.name || user.email,
-      avatar_url: user.image,
-      created_at: user.createdAt,
-      updated_at: user.updatedAt
-    }
+		if (Object.keys(updateData).length === 0) {
+			return NextResponse.json({ error: 'No hay campos para actualizar' }, { status: 400 })
+		}
 
-    return NextResponse.json(profile)
-  } catch (error) {
-    console.error('Error updating profile:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
+		const user = await prisma.user.update({
+			where: { id: userId },
+			data: updateData
+		})
+
+		revalidateTag('profile')
+
+		const profile = {
+			id: user.id,
+			full_name: user.name || user.email,
+			avatar_url: user.image,
+			created_at: user.createdAt,
+			updated_at: user.updatedAt
+		}
+
+		return NextResponse.json(profile)
+	} catch (error) {
+		console.error('Error updating profile:', error)
+		return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+	}
 }

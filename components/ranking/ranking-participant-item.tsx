@@ -37,21 +37,21 @@ export const RankingParticipantItem = ({
 
   return (
     <div
-      className={`flex items-center justify-between p-4 rounded-lg border ${getRankStyles(
+      className={`flex items-center justify-between p-3 sm:p-4 rounded-lg border gap-3 ${getRankStyles(
         participant.rank
       )}`}
     >
-      <div className="flex items-center gap-3 flex-1">
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 flex-shrink-0">
           {getRankIcon(participant.rank) || (
             <span className="text-sm font-bold">{participant.rank}</span>
           )}
         </div>
-        <div>
-          <div className="font-semibold">
+        <div className="min-w-0">
+          <div className="font-semibold text-sm sm:text-base truncate">
             {participant.user_name}
             {isCurrentUser && (
-              <Badge variant="outline" className="ml-2 text-xs">
+              <Badge variant="outline" className="ml-2 text-[10px] sm:text-xs">
                 Tú
               </Badge>
             )}
@@ -64,19 +64,42 @@ export const RankingParticipantItem = ({
         </div>
       </div>
       <div className="text-right">
-        {ranking.type === "time" && participant.duration_seconds ? (
+        {participant.display_value ? (
           <>
-            <div className="text-lg font-bold text-primary">
+            <div className={`text-base sm:text-lg font-bold ${
+              ranking.type === "time"
+                ? "text-primary"
+                : ranking.type === "weight"
+                ? "text-blue-400"
+                : ranking.type === "rounds_reps"
+                ? "text-orange-400"
+                : "text-green-400"
+            }`}>
+              {participant.display_value}
+            </div>
+            <div className="text-[10px] sm:text-xs text-muted-foreground">
+              {ranking.type === "time"
+                ? "Tiempo"
+                : ranking.type === "weight"
+                ? "Peso"
+                : ranking.type === "rounds_reps"
+                ? "Rounds + Reps"
+                : "Reps"}
+            </div>
+          </>
+        ) : ranking.type === "time" && participant.duration_seconds ? (
+          <>
+            <div className="text-base sm:text-lg font-bold text-primary">
               {formatDuration(participant.duration_seconds)}
             </div>
-            <div className="text-xs text-muted-foreground">Tiempo</div>
+            <div className="text-[10px] sm:text-xs text-muted-foreground">Tiempo</div>
           </>
         ) : ranking.type === "strength" && participant.weight ? (
           <>
-            <div className="text-lg font-bold text-blue-400">
+            <div className="text-base sm:text-lg font-bold text-blue-400">
               {participant.weight} kg
             </div>
-            <div className="text-xs text-muted-foreground">Peso</div>
+            <div className="text-[10px] sm:text-xs text-muted-foreground">Peso</div>
           </>
         ) : null}
       </div>

@@ -1,3 +1,4 @@
+import { revalidateTag } from 'next/cache'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -59,6 +60,7 @@ function transformBlock(block: any) {
     rounds: block.rounds || undefined,
     timer_mode: block.timerMode || null,
     timer_config: block.timerConfig || undefined,
+    score_config: block.scoreConfig || null,
     items: block.items?.map(transformItem) || [],
     subBlocks: block.subBlocks?.map(transformSubBlock) || [],
   }
@@ -212,6 +214,7 @@ export async function PATCH(
               rounds: block.rounds ? parseInt(block.rounds, 10) : null,
               timerMode: block.timer_mode || null,
               timerConfig: block.timer_config || null,
+              scoreConfig: block.score_config || block.scoreConfig || null,
             },
           })
 
@@ -256,7 +259,9 @@ export async function PATCH(
           }
         }
       }
-    })
+    }, { timeout: 30000 })
+
+    revalidateTag('today-all-planifications')
 
     // Obtener la planificación actualizada con relaciones
     const updated = await prisma.planification.findUnique({
@@ -344,6 +349,8 @@ export async function DELETE(
       await prisma.planification.delete({
         where: { id: planificationId },
       })
+
+      revalidateTag('today-all-planifications')
 
       return NextResponse.json({ success: true })
     } catch (error: any) {

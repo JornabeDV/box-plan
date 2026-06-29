@@ -40,9 +40,8 @@ export function PlanificationsList({
   // Filtrar planificaciones según búsqueda y disciplina
   const filteredPlanifications = planifications.filter(planification => {
     const matchesSearch = searchQuery === '' || 
-      planification.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      planification.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      planification.discipline?.name.toLowerCase().includes(searchQuery.toLowerCase())
+      planification.discipline?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      planification.notes?.toLowerCase().includes(searchQuery.toLowerCase())
     
     const matchesDiscipline = selectedDiscipline === 'all' || planification.discipline_id === selectedDiscipline
     
@@ -115,10 +114,10 @@ export function PlanificationsList({
                   <div className="space-y-1">
                     <CardTitle className="text-lg flex items-center gap-2">
                       <Target className="w-5 h-5 text-primary" />
-                      {planification.title}
+                      {planification.discipline?.name || 'Planificación'}
                     </CardTitle>
-                    {planification.description && (
-                      <p className="text-sm text-muted-foreground">{planification.description}</p>
+                    {planification.notes && (
+                      <p className="text-sm text-muted-foreground">{planification.notes}</p>
                     )}
                   </div>
                   <div className="flex flex-col gap-2">
@@ -166,7 +165,7 @@ export function PlanificationsList({
                       {planification.blocks.slice(0, 2).map((block, index) => (
                         <div key={block.id} className="text-xs text-muted-foreground flex items-center gap-2">
                           <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
-                          <span className="truncate">{block.content}</span>
+                          <span className="truncate">{block.title}</span>
                         </div>
                       ))}
                       {planification.blocks.length > 2 && (

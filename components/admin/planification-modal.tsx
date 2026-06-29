@@ -46,6 +46,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useDisciplines } from "@/hooks/use-disciplines";
 import { useToast } from "@/hooks/use-toast";
+import { BlockScoreConfig, type ScoreConfig } from "./block-score-config";
 
 interface ItemData {
   id: string;
@@ -96,6 +97,7 @@ interface Block {
     totalRounds?: string;
     amrapTime?: string;
   };
+  score_config?: ScoreConfig | null;
   subBlocks?: SubBlock[];
 }
 
@@ -298,6 +300,7 @@ export function PlanificationModal({
             exerciseName:
               item.exerciseName ||
               (item.exercise ? item.exercise.name : undefined),
+
           };
         }
 
@@ -306,6 +309,7 @@ export function PlanificationModal({
             ...block,
             id: block.id || Date.now().toString() + Math.random(),
             rounds: block.rounds ? String(block.rounds) : undefined,
+            score_config: block.score_config || block.scoreConfig || null,
             items: (block.items || []).map(normalizeItemFromBackend),
             subBlocks: (block.subBlocks || []).map((sub: any) => ({
               ...sub,
@@ -780,6 +784,17 @@ export function PlanificationModal({
     setEditingItemValue("");
   };
 
+  const updateBlockScoreConfig = (
+    blockId: string,
+    config: ScoreConfig | null,
+  ) => {
+    setBlocks((prev) =>
+      prev.map((block) =>
+        block.id === blockId ? { ...block, score_config: config } : block,
+      ),
+    );
+  };
+
   // ── Ejercicios ────────────────────────────────────────────────────────────
 
   const loadExercises = async () => {
@@ -918,10 +933,10 @@ export function PlanificationModal({
     const timeoutId = setTimeout(() => {
       console.warn("Planification submit timeout, resetting loading state");
       setError(
-        "La operación está tardando demasiado. Por favor, inténtalo de nuevo.",
+        "La operación está tardando más de lo esperado. Por favor, esperá unos segundos.",
       );
       setLoading(false);
-    }, 8000);
+    }, 35000);
 
     try {
       const getLocalDateString = (date: Date): string => {
@@ -1473,7 +1488,7 @@ export function PlanificationModal({
                                   return (
                                     <div
                                       key={itemIndex}
-                                      className="items-start gap-2 relative flex sm:flex-nowrap"
+                                      className="flex flex-wrap items-start gap-2 relative w-full"
                                     >
                                       {isEditing ? (
                                         <>
@@ -1672,6 +1687,7 @@ export function PlanificationModal({
                                             )}
                                         </>
                                       )}
+
                                     </div>
                                   );
                                 })}
@@ -2023,7 +2039,7 @@ export function PlanificationModal({
                                                 return (
                                                   <div
                                                     key={itemIndex}
-                                                    className="flex items-center gap-2 relative flex sm:flex-nowrap"
+                                                    className="flex flex-wrap items-start gap-2 relative w-full"
                                                   >
                                                     <span className="text-muted-foreground text-xs">
                                                       -
@@ -2254,6 +2270,7 @@ export function PlanificationModal({
                                                           )}
                                                       </>
                                                     )}
+
                                                   </div>
                                                 );
                                               },
@@ -2345,6 +2362,16 @@ export function PlanificationModal({
                                   >
                                     <Plus className="w-3 h-3" />
                                   </Button>
+                                </div>
+
+                                {/* Configuración de medición del bloque */}
+                                <div>
+                                  <BlockScoreConfig
+                                    config={block.score_config}
+                                    onChange={(config) =>
+                                      updateBlockScoreConfig(block.id, config)
+                                    }
+                                  />
                                 </div>
 
                                 {/* Notas del bloque */}

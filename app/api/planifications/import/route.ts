@@ -1,3 +1,4 @@
+import { revalidateTag } from 'next/cache'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -204,6 +205,7 @@ async function processSinglePlanification(
     timerConfig: any
     subBlocksMap: Map<string, {
       subtitle: string
+      order: number
       items: string[]
       timerMode: string | null
       timerConfig: any
@@ -263,6 +265,7 @@ async function processSinglePlanification(
       if (!block.subBlocksMap.has(subBlockTitle)) {
         block.subBlocksMap.set(subBlockTitle, {
           subtitle: subBlockTitle,
+          order: block.subBlocksMap.size,
           items: [],
           timerMode: null,
           timerConfig: null,
@@ -301,6 +304,7 @@ async function processSinglePlanification(
           return {
             id: String(Date.now() + Math.random()),
             subtitle: sub.subtitle,
+            order: sub.order,
             items: sub.items,
             timer_mode: sub.timerMode,
             timer_config: sub.timerConfig,
@@ -616,6 +620,10 @@ export async function POST(request: NextRequest) {
     const failed = results.filter((r) => !r.success)
     const created = successful.filter((r) => r.action === 'created')
     const updated = successful.filter((r) => r.action === 'updated')
+
+    if (created.length > 0 || updated.length > 0) {
+      revalidateTag('today-all-planifications')
+    }
 
     return NextResponse.json({
       results,

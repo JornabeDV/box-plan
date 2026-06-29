@@ -15,6 +15,24 @@ export interface ExerciseRef {
   image_url?: string | null
 }
 
+export type ScoreMetric = 'time' | 'weight' | 'reps' | 'rounds_reps'
+
+export interface ScoreConfig {
+  metric: ScoreMetric
+  includeInRanking?: boolean
+  label?: string
+  unit?: 'kg' | 'lb'
+}
+
+export interface WorkoutBlockResult {
+  id: string
+  workout_id: string
+  planification_block_id: string
+  metric: ScoreMetric
+  value: any
+  completed_at: string | null
+}
+
 export interface PlanificationItem {
   id: string
   description: string
@@ -42,6 +60,8 @@ export interface Block {
   subBlocks?: SubBlock[]
   timer_mode?: TimerMode | null
   timer_config?: TimerConfig
+  score_config?: ScoreConfig | null
+  result?: WorkoutBlockResult | null
 }
 
 export interface Planification {

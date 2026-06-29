@@ -1,3 +1,4 @@
+import { revalidateTag } from 'next/cache'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -55,6 +56,7 @@ function transformBlock(block: any) {
     rounds: block.rounds || undefined,
     timer_mode: block.timerMode || null,
     timer_config: block.timerConfig || undefined,
+    score_config: block.scoreConfig || null,
     items: block.items?.map(transformItem) || [],
     subBlocks: block.subBlocks?.map(transformSubBlock) || [],
   }
@@ -769,6 +771,7 @@ export async function POST(request: NextRequest) {
             rounds: block.rounds ? parseInt(block.rounds, 10) : null,
             timerMode: block.timer_mode || null,
             timerConfig: block.timer_config || null,
+            scoreConfig: block.score_config || block.scoreConfig || null,
           },
         })
 
@@ -814,7 +817,7 @@ export async function POST(request: NextRequest) {
       }
 
       return planification
-    })
+    }, { timeout: 30000 })
 
     // Recuperar la planificación completa con relaciones para la respuesta
     const fullPlanification = await prisma.planification.findUnique({
@@ -845,6 +848,8 @@ export async function POST(request: NextRequest) {
         },
       },
     })
+
+    revalidateTag('today-all-planifications')
 
     return NextResponse.json(
       transformPlanificationResponse(fullPlanification),

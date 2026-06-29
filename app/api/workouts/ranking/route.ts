@@ -8,227 +8,244 @@ import { requireRankingAccess } from '@/lib/api-feature-guards'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-// GET /api/workouts/ranking?days=7
-// Devuelve rankings de los últimos N días (por defecto 7)
+type Metric = 'time' | 'weight' | 'reps' | 'rounds_reps'
+
+function getSortableValue(metric: Metric, value: any): number {
+  if (!value) return 0
+  switch (metric) {
+    case 'time':
+      return typeof value.seconds === 'number' ? value.seconds : 0
+    case 'weight':
+      return typeof value.weight === 'number' ? value.weight : 0
+    case 'reps':
+      return typeof value.reps === 'number' ? value.reps : 0
+    case 'rounds_reps':
+      const rounds = typeof value.rounds === 'number' ? value.rounds : 0
+      const reps = typeof value.reps === 'number' ? value.reps : 0
+      return rounds * 1000 + reps
+    default:
+      return 0
+  }
+}
+
+function formatValue(metric: Metric, value: any): string {
+  if (!value) return '-'
+  switch (metric) {
+    case 'time': {
+      const seconds = value.seconds || 0
+      const mins = Math.floor(seconds / 60)
+      const secs = seconds % 60
+      return `${mins}:${String(secs).padStart(2, '0')}`
+    }
+    case 'weight':
+      return `${value.weight || 0} ${value.unit || 'kg'}`
+    case 'reps':
+      return `${value.reps || 0} reps`
+    case 'rounds_reps':
+      return `${value.rounds || 0} rounds + ${value.reps || 0} reps`
+    default:
+      return '-'
+  }
+}
+
+// GET /api/workouts/ranking?date=YYYY-MM-DD
 export async function GET(request: NextRequest) {
-	try {
-		const session = await auth()
-		const userId = normalizeUserId(session?.user?.id)
-		
-		if (!userId) {
-			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-		}
+  try {
+    const session = await auth()
+    const userId = normalizeUserId(session?.user?.id)
 
-		// Verificar si el usuario tiene acceso al ranking
-		const guard = await requireRankingAccess(userId)
-		if (!guard.allowed && guard.response) {
-			return guard.response
-		}
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-		const { searchParams } = new URL(request.url)
-		const dateParam = searchParams.get('date')
+    const guard = await requireRankingAccess(userId)
+    if (!guard.allowed && guard.response) {
+      return guard.response
+    }
 
-		// Si hay fecha específica, usar esa fecha. Si no, usar el día anterior
-		let targetDate: string
-		if (dateParam) {
-			targetDate = dateParam
-		} else {
-			const yesterday = new Date()
-			yesterday.setDate(yesterday.getDate() - 1)
-			const year = yesterday.getFullYear()
-			const month = String(yesterday.getMonth() + 1).padStart(2, '0')
-			const day = String(yesterday.getDate()).padStart(2, '0')
-			targetDate = `${year}-${month}-${day}`
-		}
+    const { searchParams } = new URL(request.url)
+    const dateParam = searchParams.get('date')
 
-		// Obtener el coach del usuario
-		const relationship = await prisma.coachStudentRelationship.findFirst({
-			where: {
-				studentId: userId,
-				status: 'active'
-			},
-			include: {
-				coach: {
-					select: {
-						id: true
-					}
-				}
-			}
-		})
+    let targetDate: string
+    if (dateParam) {
+      targetDate = dateParam
+    } else {
+      const today = new Date()
+      const year = today.getFullYear()
+      const month = String(today.getMonth() + 1).padStart(2, '0')
+      const day = String(today.getDate()).padStart(2, '0')
+      targetDate = `${year}-${month}-${day}`
+    }
 
-		if (!relationship) {
-			return NextResponse.json({
-				rankings: [],
-				message: 'El usuario no está asociado a ningún coach activo'
-			})
-		}
+    const relationship = await prisma.coachStudentRelationship.findFirst({
+      where: {
+        studentId: userId,
+        status: 'active'
+      },
+      include: {
+        coach: {
+          select: { id: true }
+        }
+      }
+    })
 
-		const coachId = relationship.coach.id
+    if (!relationship) {
+      return NextResponse.json({
+        rankings: [],
+        message: 'El usuario no está asociado a ningún coach activo'
+      })
+    }
 
-		// Obtener la disciplina preferida del usuario
-		const preference = await prisma.userPreference.findUnique({
-			where: { userId },
-			select: {
-				preferredDisciplineId: true
-			}
-		})
+    const coachId = relationship.coach.id
 
-		if (!preference || !preference.preferredDisciplineId) {
-			return NextResponse.json({
-				rankings: [],
-				message: 'El usuario no tiene disciplina preferida configurada'
-			})
-		}
+    const preference = await prisma.userPreference.findUnique({
+      where: { userId },
+      select: { preferredDisciplineId: true }
+    })
 
-		const disciplineId = preference.preferredDisciplineId
+    if (!preference || !preference.preferredDisciplineId) {
+      return NextResponse.json({
+        rankings: [],
+        message: 'El usuario no tiene disciplina preferida configurada'
+      })
+    }
 
-		// Obtener planificaciones del coach y disciplina para la fecha especificada
-		const startOfDay = normalizeDateForArgentina(targetDate)
-		const [year, month, day] = targetDate.split('-').map(Number)
-		const nextDayStr = new Date(year, month - 1, day + 1).toISOString().split('T')[0]
-		const endOfDay = normalizeDateForArgentina(nextDayStr)
+    const disciplineId = preference.preferredDisciplineId
 
-		const planifications = await prisma.planification.findMany({
-			where: {
-				coachId,
-				disciplineId,
-				date: {
-					gte: startOfDay,
-					lt: endOfDay
-				}
-			},
-			select: {
-				id: true
-			}
-		})
+    const startOfDay = normalizeDateForArgentina(targetDate)
+    const [year, month, day] = targetDate.split('-').map(Number)
+    const nextDayStr = new Date(year, month - 1, day + 1).toISOString().split('T')[0]
+    const endOfDay = normalizeDateForArgentina(nextDayStr)
 
-		const planificationIds = planifications.map(p => p.id)
+    const planifications = await prisma.planification.findMany({
+      where: {
+        coachId,
+        disciplineId,
+        date: { gte: startOfDay, lt: endOfDay }
+      },
+      include: {
+        blocks: {
+          include: {
+            items: {
+              include: { exercise: { select: { id: true, name: true } } }
+            },
+            subBlocks: {
+              include: {
+                items: {
+                  include: { exercise: { select: { id: true, name: true } } }
+                }
+              }
+            }
+          }
+        }
+      }
+    })
 
-		if (planificationIds.length === 0) {
-			return NextResponse.json({
-				date: targetDate,
-				rankings: []
-			})
-		}
+    // Recolectar bloques rankeables
+    const rankableBlocks: Array<{
+      id: number
+      title: string
+      metric: Metric
+      label?: string
+      planificationId: number
+    }> = []
 
-		// Obtener todos los workouts del día especificado asociados a las planificaciones
-		const allWorkouts = await prisma.workout.findMany({
-			where: {
-				planificationId: {
-					in: planificationIds
-				},
-				completedAt: {
-					not: null,
-					gte: startOfDay,
-					lt: endOfDay
-				}
-			},
-			include: {
-				user: {
-					select: {
-						name: true,
-						email: true
-					}
-				}
-			}
-		})
+    for (const planification of planifications) {
+      for (const block of planification.blocks) {
+        const config = block.scoreConfig as any
+        if (config?.metric && config?.includeInRanking) {
+          rankableBlocks.push({
+            id: block.id,
+            title: block.title,
+            metric: config.metric as Metric,
+            label: config.label,
+            planificationId: planification.id,
+          })
+        }
+      }
+    }
 
-		// Filtrar y procesar workouts del día
-		const workouts = allWorkouts
+    if (rankableBlocks.length === 0) {
+      return NextResponse.json({
+        date: targetDate,
+        rankings: []
+      })
+    }
 
-		// Filtrar workouts de tiempo (WOD)
-		const wodWorkouts = workouts
-			.filter(workout => {
-				if (!workout.data) return false
-				const data = workout.data as any
-				return data.type === 'wod_score' && workout.durationSeconds && workout.durationSeconds > 0
-			})
-			.sort((a, b) => {
-				// Ordenar por tiempo ascendente (menor tiempo = mejor)
-				if (a.durationSeconds && b.durationSeconds) {
-					if (a.durationSeconds !== b.durationSeconds) {
-						return a.durationSeconds - b.durationSeconds
-					}
-				}
-				// Si hay empate, ordenar por fecha (más temprano = mejor)
-				if (a.completedAt && b.completedAt) {
-					return a.completedAt.getTime() - b.completedAt.getTime()
-				}
-				return 0
-			})
+    const blockIds = rankableBlocks.map(b => b.id)
 
-		// Filtrar workouts de fuerza
-		const strengthWorkouts = workouts
-			.filter(workout => {
-				if (!workout.data) return false
-				const data = workout.data as any
-				return data.type === 'strength_score' && data.weight && data.weight > 0
-			})
-			.sort((a, b) => {
-				// Ordenar por peso descendente (mayor peso = mejor)
-				const aWeight = (a.data as any)?.weight || 0
-				const bWeight = (b.data as any)?.weight || 0
-				if (bWeight !== aWeight) {
-					return bWeight - aWeight
-				}
-				// Si hay empate, ordenar por fecha (más temprano = mejor)
-				if (a.completedAt && b.completedAt) {
-					return a.completedAt.getTime() - b.completedAt.getTime()
-				}
-				return 0
-			})
+    // Obtener todos los resultados de los alumnos del coach para estos bloques
+    const results = await prisma.workoutBlockResult.findMany({
+      where: {
+        planificationBlockId: { in: blockIds },
+        workout: {
+          user: {
+            studentRelationships: {
+              some: {
+                coachId,
+                status: 'active'
+              }
+            }
+          }
+        }
+      },
+      include: {
+        workout: {
+          include: {
+            user: {
+              select: { id: true, name: true, email: true }
+            }
+          }
+        }
+      }
+    })
 
-		// Procesar rankings de tiempo (WOD)
-		const wodRankings = wodWorkouts.map((workout, index) => ({
-			id: String(workout.id),
-			user_id: workout.userId,
-			user_name: workout.user.name || workout.user.email || 'Usuario',
-			duration_seconds: workout.durationSeconds,
-			completed_at: workout.completedAt,
-			weight: null,
-			notes: null,
-			rank: index + 1
-		}))
+    // Agrupar por bloque y ordenar
+    const rankings = []
 
-		// Procesar rankings de fuerza (ordenar por peso descendente)
-		const strengthRankings = strengthWorkouts.map((workout, index) => ({
-			id: String(workout.id),
-			user_id: workout.userId,
-			user_name: workout.user.name || workout.user.email || 'Usuario',
-			duration_seconds: null,
-			completed_at: workout.completedAt,
-			weight: (workout.data as any)?.weight || 0,
-			notes: null,
-			rank: index + 1
-		}))
+    for (const block of rankableBlocks) {
+      const blockResults = results.filter(r => r.planificationBlockId === block.id)
 
-		// Construir respuesta con ambos rankings
-		const rankings: any[] = []
+      if (blockResults.length === 0) continue
 
-		if (wodRankings.length > 0) {
-			rankings.push({
-				wod_name: 'WOD del día',
-				type: 'time',
-				participants: wodRankings,
-				total_participants: wodRankings.length
-			})
-		}
+      const isLowerBetter = block.metric === 'time'
 
-		if (strengthRankings.length > 0) {
-			rankings.push({
-				wod_name: 'Fuerza del día',
-				type: 'strength',
-				participants: strengthRankings,
-				total_participants: strengthRankings.length
-			})
-		}
+      const sorted = blockResults
+        .map(r => ({
+          id: String(r.id),
+          user_id: r.workout.userId,
+          user_name: r.workout.user.name || r.workout.user.email || 'Usuario',
+          metric: block.metric,
+          value: r.value,
+          display_value: formatValue(block.metric, r.value),
+          sort_value: getSortableValue(block.metric, r.value),
+          completed_at: r.completedAt,
+        }))
+        .sort((a, b) => {
+          if (isLowerBetter) {
+            return a.sort_value - b.sort_value
+          }
+          return b.sort_value - a.sort_value
+        })
+        .map((r, index) => ({ ...r, rank: index + 1 }))
 
-		return NextResponse.json({
-			date: targetDate,
-			rankings
-		})
-	} catch (error) {
-		console.error('Error fetching ranking:', error)
-		return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-	}
+      const title = block.label || block.title
+
+      rankings.push({
+        block_id: String(block.id),
+        wod_name: title,
+        type: block.metric,
+        participants: sorted,
+        total_participants: sorted.length
+      })
+    }
+
+    return NextResponse.json({
+      date: targetDate,
+      rankings
+    })
+  } catch (error) {
+    console.error('Error fetching ranking:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }

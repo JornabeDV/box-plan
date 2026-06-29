@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useSession } from 'next-auth/react'
 
 interface Planification {
@@ -45,102 +45,55 @@ interface UseTodayPlanificationOptions {
 	enabled?: boolean
 }
 
+const TODAY_PLANIFICATION_KEY = 'today-planification'
+
+function getTodayString(): string {
+	const today = new Date()
+	today.setHours(0, 0, 0, 0)
+	const year = today.getFullYear()
+	const month = String(today.getMonth() + 1).padStart(2, '0')
+	const day = String(today.getDate()).padStart(2, '0')
+	return `${year}-${month}-${day}`
+}
+
+async function fetchTodayPlanification(): Promise<{ primary: Planification | null; others: Planification[] }> {
+	const dateString = getTodayString()
+	const response = await fetch(`/api/planifications?date=${dateString}`)
+
+	if (!response.ok) {
+		throw new Error('Error al cargar la planificación')
+	}
+
+	const data = await response.json()
+
+	return {
+		primary: data.data || null,
+		others: data.others || [],
+	}
+}
+
 /**
  * Hook para obtener la planificación de hoy
  */
 export function useTodayPlanification(options?: UseTodayPlanificationOptions): UseTodayPlanificationReturn {
 	const { data: session, status: sessionStatus } = useSession()
-	const [planifications, setPlanifications] = useState<{ primary: Planification | null; others: Planification[] }>({
-		primary: null,
-		others: []
-	})
-	const [loading, setLoading] = useState(false)
-	const [error, setError] = useState<string | null>(null)
-	const fetchingRef = useRef(false)
+	const userId = session?.user?.id
 	const enabled = options?.enabled !== false
 
-	const fetchTodayPlanification = useCallback(async () => {
-		if (fetchingRef.current) {
-			return
-		}
-
-		const userId = session?.user?.id
-		if (!userId) {
-			setPlanifications({ primary: null, others: [] })
-			setLoading(false)
-			return
-		}
-
-		try {
-			fetchingRef.current = true
-			setLoading(true)
-			setError(null)
-
-			// Formatear la fecha de hoy como YYYY-MM-DD
-			const today = new Date()
-			today.setHours(0, 0, 0, 0)
-			const year = today.getFullYear()
-			const month = String(today.getMonth() + 1).padStart(2, '0')
-			const day = String(today.getDate()).padStart(2, '0')
-			const dateString = `${year}-${month}-${day}`
-
-			// Timestamp para evitar cache en Safari/iOS
-			const timestamp = Date.now();
-			const response = await fetch(`/api/planifications?date=${dateString}&_t=${timestamp}`, {
-				headers: {
-					'Cache-Control': 'no-cache, no-store, must-revalidate',
-					'Pragma': 'no-cache',
-				}
-			})
-			
-			if (!response.ok) {
-				throw new Error('Error al cargar la planificación')
-			}
-
-			const data = await response.json()
-			
-			if (data.data || (data.others && data.others.length > 0)) {
-				setPlanifications({
-					primary: data.data || null,
-					others: data.others || []
-				})
-			} else {
-				setPlanifications({ primary: null, others: [] })
-			}
-		} catch (err) {
-			console.error('Error fetching today planification:', err)
-			setError(err instanceof Error ? err.message : 'Error al cargar la planificación')
-			setPlanifications({ primary: null, others: [] })
-		} finally {
-			setLoading(false)
-			fetchingRef.current = false
-		}
-	}, [session?.user?.id])
-
-	useEffect(() => {
-		// Si la sesión aún está cargando, esperar
-		if (sessionStatus === 'loading') {
-			return
-		}
-		
-		if (!enabled) {
-			setPlanifications({ primary: null, others: [] })
-			setLoading(false)
-			return
-		}
-		
-		if (session?.user?.id) {
-			fetchTodayPlanification()
-		} else {
-			setPlanifications({ primary: null, others: [] })
-			setLoading(false)
-		}
-	}, [session?.user?.id, sessionStatus, fetchTodayPlanification, enabled])
+	const { data, isLoading, error, refetch } = useQuery({
+		queryKey: [TODAY_PLANIFICATION_KEY, userId],
+		queryFn: fetchTodayPlanification,
+		enabled: sessionStatus !== 'loading' && !!userId && enabled,
+		// La planificación de hoy puede cambiar, así que stale time corto
+		staleTime: 1000 * 60,
+	})
 
 	return {
-		planifications,
-		loading,
-		error,
-		refetch: fetchTodayPlanification
+		planifications: data || { primary: null, others: [] },
+		loading: isLoading,
+		error: error ? (error instanceof Error ? error.message : 'Error al cargar la planificación') : null,
+		refetch: async () => {
+			await refetch()
+		},
 	}
 }

@@ -30,7 +30,7 @@ export const getLast7Days = (): Date[] => {
 	const today = new Date()
 	today.setHours(0, 0, 0, 0)
 
-	for (let i = 1; i <= 7; i++) {
+	for (let i = 0; i < 7; i++) {
 		const date = new Date(today)
 		date.setDate(date.getDate() - i)
 		days.push(date)

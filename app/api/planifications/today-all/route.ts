@@ -33,6 +33,7 @@ function transformSubBlock(subBlock: any) {
     id: String(subBlock.id),
     subtitle: subBlock.subtitle,
     order: subBlock.order,
+    rounds: subBlock.rounds || undefined,
     timer_mode: subBlock.timerMode || null,
     timer_config: subBlock.timerConfig || undefined,
     items: subBlock.items?.map(transformItem) || [],
@@ -45,6 +46,7 @@ function transformBlock(block: any) {
     title: block.title,
     order: block.order,
     notes: block.notes || undefined,
+    rounds: block.rounds || undefined,
     timer_mode: block.timerMode || null,
     timer_config: block.timerConfig || undefined,
     items: block.items?.map(transformItem) || [],
@@ -101,6 +103,31 @@ function transformPlanificationResponse(p: any) {
   }
 }
 
+const planificationInclude = {
+  discipline: { select: { id: true, name: true, color: true } },
+  disciplineLevel: {
+    select: { id: true, name: true, description: true },
+  },
+  blocks: {
+    orderBy: { order: 'asc' },
+    include: {
+      items: {
+        orderBy: { order: 'asc' },
+        include: { exercise: true },
+      },
+      subBlocks: {
+        orderBy: { order: 'asc' },
+        include: {
+          items: {
+            orderBy: { order: 'asc' },
+            include: { exercise: true },
+          },
+        },
+      },
+    },
+  },
+} as const
+
 // ============================================================
 // GET
 // ============================================================
@@ -127,12 +154,41 @@ export async function GET(request: NextRequest) {
 
     const coachId = relationship.coach.id
 
-    const userDisciplines = await prisma.userDiscipline.findMany({
+    let userDisciplines = await prisma.userDiscipline.findMany({
       where: { userId },
       include: {
         discipline: { select: { id: true, name: true, color: true } },
       },
     })
+
+    // Fallback a preferencias si no tiene disciplinas asignadas
+    if (userDisciplines.length === 0) {
+      const preference = await prisma.userPreference.findUnique({
+        where: { userId },
+        select: { preferredDisciplineId: true },
+      })
+
+      if (preference?.preferredDisciplineId) {
+        const discipline = await prisma.discipline.findUnique({
+          where: { id: preference.preferredDisciplineId },
+          select: { id: true, name: true, color: true },
+        })
+
+        if (discipline) {
+          userDisciplines = [
+            {
+              userId,
+              disciplineId: discipline.id,
+              levelId: null,
+              preferredLevelId: null,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              discipline,
+            } as any,
+          ]
+        }
+      }
+    }
 
     if (userDisciplines.length === 0) {
       return NextResponse.json({ data: [] })
@@ -160,51 +216,25 @@ export async function GET(request: NextRequest) {
       .split('T')[0]
     const endOfDay = normalizeDateForArgentina(nextDayStr)
 
-    const planificationInclude = {
-      discipline: { select: { id: true, name: true, color: true } },
-      disciplineLevel: {
-        select: { id: true, name: true, description: true },
-      },
-      blocks: {
-        orderBy: { order: 'asc' },
-        include: {
-          items: {
-            orderBy: { order: 'asc' },
-            include: { exercise: true },
-          },
-          subBlocks: {
-            orderBy: { order: 'asc' },
-            include: {
-              items: {
-                orderBy: { order: 'asc' },
-                include: { exercise: true },
-              },
-            },
-          },
-        },
-      },
-    } as const
-
     const disciplineIds = userDisciplines.map((ud) => ud.disciplineId)
 
-    // 1. Buscar todas las planificaciones del día para las disciplinas del usuario
-    const allPlanifications = await prisma.planification.findMany({
+    // 1. Buscar todas las planificaciones del día del coach
+    const coachPlanifications = await prisma.planification.findMany({
       where: {
         coachId,
         isPersonalized: false,
         date: { gte: normalizedDate, lt: endOfDay },
-        disciplineId: { in: disciplineIds },
       },
       include: planificationInclude,
       orderBy: { date: 'asc' },
     })
 
-    // 2. Para cada disciplina, verificar si hay planificación (cualquier nivel)
+    // 2. Filtrar en memoria solo las disciplinas del usuario
     const result: any[] = []
     const seenDisciplineIds = new Set<number>()
 
     for (const ud of userDisciplines) {
-      const plan = allPlanifications.find(
+      const plan = coachPlanifications.find(
         (p) => p.disciplineId === ud.disciplineId
       ) ?? null
 
@@ -214,7 +244,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ data: result })
+    const response = NextResponse.json({ data: result })
+    response.headers.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=120')
+    return response
   } catch (error) {
     console.error('Error fetching today-all planifications:', error)
     return NextResponse.json(
