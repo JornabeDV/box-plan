@@ -30,7 +30,6 @@ export async function POST(request: NextRequest) {
     })
 
     if (!user) {
-      console.log('[forgot-password] Usuario no encontrado para email:', email)
       // Por seguridad, no revelamos si el email existe o no
       return NextResponse.json({
         success: true,
@@ -38,7 +37,6 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log('[forgot-password] Usuario encontrado:', user.id, user.email)
 
     // Generar token único
     const resetToken = nanoid(32)
@@ -59,7 +57,6 @@ export async function POST(request: NextRequest) {
           }
         })
       ])
-      console.log('[forgot-password] Token creado exitosamente para userId:', user.id)
     } catch (prismaError) {
       console.error('[forgot-password] Error en transacción Prisma:', prismaError)
       return NextResponse.json(
@@ -101,7 +98,6 @@ async function sendResetEmail(email: string, userName: string, resetUrl: string)
 
   if (!resendApiKey) {
     if (process.env.NODE_ENV === 'development') {
-      console.log('⚠️  RESEND_API_KEY no configurada. Reset URL:', resetUrl)
     }
     return
   }
@@ -153,7 +149,6 @@ async function sendResetEmail(email: string, userName: string, resetUrl: string)
       throw error
     }
 
-    console.log('✅ Email de reset enviado a:', email, 'ID:', data?.id)
   } catch (error) {
     console.error('Error en sendResetEmail:', error)
     throw error

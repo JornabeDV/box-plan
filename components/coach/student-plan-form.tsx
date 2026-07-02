@@ -106,7 +106,6 @@ export function StudentPlanForm({
   const maxPlans = coachPlan.maxStudentPlans || 2;
   const maxTier = coachPlan.maxStudentPlanTier || "basic";
   const planificationAccess = coachFeatures.planification_access;
-  console.log(coachFeatures);
   // Verificar si puede crear más planes
   const canCreateMore = currentPlansCount < maxPlans;
 
