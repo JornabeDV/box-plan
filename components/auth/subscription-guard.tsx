@@ -17,7 +17,6 @@ export function SubscriptionGuard({ children }: SubscriptionGuardProps) {
   const { user } = useAuth();
   const { isSubscribed, loading: subscriptionLoading } = useStudentSubscription();
   const { coach, loading: coachLoading } = useStudentCoach();
-  console.log(coach)
   // Mostrar loading mientras se verifica
   if (subscriptionLoading || coachLoading) {
     return (

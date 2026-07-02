@@ -147,7 +147,6 @@ async function handlePayment(paymentId: string) {
     where: { mercadopagoPaymentId: paymentId, status: 'approved' }
   })
   if (alreadyProcessed) {
-    console.log(`Payment ${paymentId} already processed — skipping`)
     return
   }
 

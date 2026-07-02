@@ -12,8 +12,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { preference_id, external_reference, collection_id } = body
 
-    console.log('[confirm-payment] Recibido:', { preference_id, external_reference, collection_id })
-
     let userId: number | null = null
     let planId: number | null = null
     let paymentRecord = null
@@ -22,7 +20,6 @@ export async function POST(request: NextRequest) {
     // Formato: subscription_${user_id}_${plan_id}_${timestamp}
     if (external_reference) {
       const parts = String(external_reference).split('_')
-      console.log('[confirm-payment] Parseando external_reference:', parts)
       if (parts.length >= 3 && parts[0] === 'subscription') {
         userId = parseInt(parts[1], 10)
         planId = parseInt(parts[2], 10)
@@ -35,7 +32,6 @@ export async function POST(request: NextRequest) {
         where: { mercadopagoPreferenceId: String(preference_id) },
         orderBy: { createdAt: 'desc' }
       })
-      console.log('[confirm-payment] PaymentRecord por preference_id:', paymentRecord?.id)
     }
 
     // 3. Si no tenemos userId desde external_reference, usar el del paymentRecord
@@ -56,7 +52,6 @@ export async function POST(request: NextRequest) {
         },
         orderBy: { createdAt: 'desc' }
       })
-      console.log('[confirm-payment] Fallback paymentRecord:', paymentRecord?.id)
     }
 
     if (!userId || isNaN(userId)) {
@@ -143,8 +138,6 @@ export async function POST(request: NextRequest) {
     const periodEnd = new Date()
     periodEnd.setMonth(periodEnd.getMonth() + (plan.interval === 'year' ? 12 : 1))
 
-    console.log('[confirm-payment] Creando/actualizando suscripción:', { userId, planId, coachId, existingId: existingSubscription?.id })
-
     const subscription = await prisma.$transaction(async (tx) => {
       const upsertedSubscription = existingSubscription
         ? await tx.subscription.update({
@@ -206,7 +199,6 @@ export async function POST(request: NextRequest) {
       return upsertedSubscription
     })
 
-    console.log('[confirm-payment] Suscripción creada:', subscription.id)
 
     return NextResponse.json({
       success: true,
