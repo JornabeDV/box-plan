@@ -112,7 +112,7 @@ interface ProfileState {
 }
 
 export function useProfile() {
-  const { data: session, status: sessionStatus } = useSession()
+  const { data: session, status: sessionStatus, update } = useSession()
   const queryClient = useQueryClient()
   const userId = session?.user?.id
 
@@ -155,8 +155,12 @@ export function useProfile() {
 
       return response.json()
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: [PROFILE_KEY, userId] })
+      // Refrescar la sesión de NextAuth para que el nombre actualizado se refleje en toda la app
+      if (variables.full_name !== undefined) {
+        update({ name: variables.full_name })
+      }
     },
   })
 

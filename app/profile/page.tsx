@@ -22,6 +22,7 @@ import { PushNotificationButton } from "@/components/pwa/push-notification-butto
 import { PushNotificationGuide } from "@/components/pwa/push-notification-guide";
 import { useToast } from "@/hooks/use-toast";
 import { useUserDisciplines } from "@/hooks/use-user-disciplines";
+import { useStudentSubscription } from "@/hooks/use-student-subscription";
 import { useProgressStats } from "@/hooks/use-progress-stats";
 import {
   Select,
@@ -57,6 +58,7 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const { disciplines: userDisciplines, loading: userDisciplinesLoading, updatePreferredLevel, refetch } =
     useUserDisciplines();
+  const { hasPersonalizedWorkouts, loading: subscriptionLoading } = useStudentSubscription();
   const { stats } = useProgressStats(user?.id ? String(user.id) : undefined);
 
   // Niveles por disciplina para "Mis Niveles"
@@ -119,7 +121,10 @@ export default function ProfilePage() {
 
       const results = await Promise.all(
         changes.map((ud) =>
-          updatePreferredLevel(ud.id, pendingLevels[ud.disciplineId])
+          updatePreferredLevel({
+            userDisciplineId: ud.id,
+            preferredLevelId: pendingLevels[ud.disciplineId],
+          })
         )
       );
 
@@ -137,8 +142,8 @@ export default function ProfilePage() {
         });
       }
 
-      // Refrescar silenciosamente para sincronizar el estado
-      await refetch({ silent: true });
+      // Refrescar para sincronizar el estado
+      await refetch();
     } catch {
       toast({
         title: "Error",
@@ -355,155 +360,159 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Disciplinas */}
-        <Card>
-          <CardContent className="pt-5 space-y-4">
-            <div className="flex items-center gap-2">
-              <Dumbbell className="w-4 h-4 text-primary" />
-              <h3 className="font-semibold text-foreground">Mis Disciplinas</h3>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Estas son las disciplinas que tu coach te ha asignado.
-            </p>
-
-            {userDisciplinesLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                <span className="ml-2 text-muted-foreground">
-                  Cargando disciplinas...
-                </span>
+        {/* Disciplinas (solo si no es plan personalizado) */}
+        {!hasPersonalizedWorkouts && (
+          <Card>
+            <CardContent className="pt-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <Dumbbell className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold text-foreground">Mis Disciplinas</h3>
               </div>
-            ) : userDisciplines.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {userDisciplines.map((userDiscipline) => (
-                  <div
-                    key={userDiscipline.id}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-surface-container-high border border-outline/10"
-                  >
+              <p className="text-sm text-muted-foreground">
+                Estas son las disciplinas que tu coach te ha asignado.
+              </p>
+
+              {userDisciplinesLoading || subscriptionLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <span className="ml-2 text-muted-foreground">
+                    Cargando disciplinas...
+                  </span>
+                </div>
+              ) : userDisciplines.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {userDisciplines.map((userDiscipline) => (
                     <div
-                      className="w-4 h-4 rounded-full flex-shrink-0"
-                      style={{
-                        backgroundColor:
-                          userDiscipline.discipline?.color || "#3B82F6",
-                      }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground truncate">
-                        {userDiscipline.discipline?.name || "Disciplina"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {userDiscipline.level?.name || "Sin nivel asignado"}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Dumbbell className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>No tienes disciplinas asignadas</p>
-                <p className="text-sm mt-1">
-                  Tu coach te asignará las disciplinas correspondientes
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Mis Niveles */}
-        <Card>
-          <CardContent className="pt-5 space-y-4">
-            <div className="flex items-center gap-2">
-              <Target className="w-4 h-4 text-primary" />
-              <h3 className="font-semibold text-foreground">Mis Niveles</h3>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Elegí el nivel en el que querés entrenar para cada disciplina. Si
-              no hay planificación para ese nivel, se mostrará la disponible.
-            </p>
-
-            {userDisciplinesLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                <span className="ml-2 text-muted-foreground">
-                  Cargando disciplinas...
-                </span>
-              </div>
-            ) : userDisciplines.length === 0 ? (
-              <div className="text-center py-6 text-muted-foreground">
-                <p className="text-sm">
-                  No tenés disciplinas asignadas todavía.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {userDisciplines.map((ud) => {
-                  const levels = levelsByDiscipline[ud.disciplineId] || [];
-                  const selectValue = pendingLevels[ud.disciplineId]?.toString() || "";
-                  return (
-                    <div
-                      key={ud.id}
-                      className="p-3 rounded-xl bg-surface-container-high border border-outline/10 space-y-2"
+                      key={userDiscipline.id}
+                      className="flex items-center gap-3 p-3 rounded-xl bg-surface-container-high border border-outline/10"
                     >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{
-                            backgroundColor:
-                              ud.discipline?.color || "#3B82F6",
-                          }}
-                        />
-                        <span className="text-sm font-medium text-foreground">
-                          {ud.discipline?.name || "Disciplina"}
-                        </span>
+                      <div
+                        className="w-4 h-4 rounded-full flex-shrink-0"
+                        style={{
+                          backgroundColor:
+                            userDiscipline.discipline?.color || "#3B82F6",
+                        }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-foreground truncate">
+                          {userDiscipline.discipline?.name || "Disciplina"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {userDiscipline.level?.name || "Sin nivel asignado"}
+                        </p>
                       </div>
-
-                      <Select
-                        value={selectValue}
-                        onValueChange={(value) =>
-                          setPendingLevels((prev) => ({
-                            ...prev,
-                            [ud.disciplineId]: parseInt(value, 10),
-                          }))
-                        }
-                        disabled={isSavingAll || levels.length === 0}
-                      >
-                        <SelectTrigger className="w-full bg-surface-container border-outline/20 text-primary font-semibold uppercase text-xs tracking-wider h-10">
-                          <SelectValue placeholder="Seleccionar nivel" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {levels.map((level) => (
-                            <SelectItem
-                              key={level.id}
-                              value={level.id.toString()}
-                            >
-                              {level.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Dumbbell className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p>No tienes disciplinas asignadas</p>
+                  <p className="text-sm mt-1">
+                    Tu coach te asignará las disciplinas correspondientes
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-                <Button
-                  onClick={handleSaveAll}
-                  disabled={isSavingAll}
-                  className="w-full"
-                >
-                  {isSavingAll ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Guardando...
-                    </>
-                  ) : (
-                    "Guardar cambios"
-                  )}
-                </Button>
+        {/* Mis Niveles (solo si no es plan personalizado) */}
+        {!hasPersonalizedWorkouts && (
+          <Card>
+            <CardContent className="pt-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold text-foreground">Mis Niveles</h3>
               </div>
-            )}
-          </CardContent>
-        </Card>
+              <p className="text-sm text-muted-foreground">
+                Elegí el nivel en el que querés entrenar para cada disciplina. Si
+                no hay planificación para ese nivel, se mostrará la disponible.
+              </p>
+
+              {userDisciplinesLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <span className="ml-2 text-muted-foreground">
+                    Cargando disciplinas...
+                  </span>
+                </div>
+              ) : userDisciplines.length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground">
+                  <p className="text-sm">
+                    No tenés disciplinas asignadas todavía.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {userDisciplines.map((ud) => {
+                    const levels = levelsByDiscipline[ud.disciplineId] || [];
+                    const selectValue = pendingLevels[ud.disciplineId]?.toString() || "";
+                    return (
+                      <div
+                        key={ud.id}
+                        className="p-3 rounded-xl bg-surface-container-high border border-outline/10 space-y-2"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{
+                              backgroundColor:
+                                ud.discipline?.color || "#3B82F6",
+                            }}
+                          />
+                          <span className="text-sm font-medium text-foreground">
+                            {ud.discipline?.name || "Disciplina"}
+                          </span>
+                        </div>
+
+                        <Select
+                          value={selectValue}
+                          onValueChange={(value) =>
+                            setPendingLevels((prev) => ({
+                              ...prev,
+                              [ud.disciplineId]: parseInt(value, 10),
+                            }))
+                          }
+                          disabled={isSavingAll || levels.length === 0}
+                        >
+                          <SelectTrigger className="w-full bg-surface-container border-outline/20 text-primary font-semibold uppercase text-xs tracking-wider h-10">
+                            <SelectValue placeholder="Seleccionar nivel" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {levels.map((level) => (
+                              <SelectItem
+                                key={level.id}
+                                value={level.id.toString()}
+                              >
+                                {level.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    );
+                  })}
+
+                  <Button
+                    onClick={handleSaveAll}
+                    disabled={isSavingAll}
+                    className="w-full"
+                  >
+                    {isSavingAll ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Guardando...
+                      </>
+                    ) : (
+                      "Guardar cambios"
+                    )}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Sign Out */}
         <Button

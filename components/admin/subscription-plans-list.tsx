@@ -16,7 +16,7 @@ import {
   useSubscriptionPlans,
   SubscriptionPlan as PlanType,
 } from "@/hooks/use-subscription-plans";
-import { Plus, Edit, Trash2, DollarSign, Calendar } from "lucide-react";
+import { Plus, Edit, Trash2, DollarSign, Calendar, Copy, Check, Link as LinkIcon } from "lucide-react";
 
 interface SubscriptionPlansListProps {
   initialPlans?: any[];
@@ -32,6 +32,7 @@ export function SubscriptionPlansList({
     loading,
     deletePlan,
     updateTrigger,
+    loadPlans,
   } = useSubscriptionPlans();
 
   // Usar datos iniciales si están disponibles, sino usar los del hook
@@ -41,6 +42,7 @@ export function SubscriptionPlansList({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [planToDelete, setPlanToDelete] = useState<PlanType | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [copiedPlanId, setCopiedPlanId] = useState<string | null>(null);
 
   // Estado local para forzar re-render cuando cambian los planes
   const [displayPlans, setDisplayPlans] = useState<PlanType[]>([]);
@@ -104,6 +106,36 @@ export function SubscriptionPlansList({
       setShowDeleteDialog(false);
       setPlanToDelete(null);
     }
+  };
+
+  const handleCopyLink = async (plan: PlanType) => {
+    let token = plan.shareToken;
+
+    // Si el plan es personalizado pero no tiene token, intentar regenerarlo
+    if (plan.is_personalized && !token) {
+      try {
+        const response = await fetch(`/api/subscription-plans/${plan.id}/share-token`, {
+          method: 'PATCH',
+        });
+        if (response.ok) {
+          const data = await response.json();
+          token = data.shareToken || data.share_token;
+          // Refrescar la lista para tener el token actualizado
+          loadPlans(false);
+        }
+      } catch (err) {
+        console.error('Error regenerating share token:', err);
+      }
+    }
+
+    // Último fallback al ID (no recomendado para planes personalizados)
+    token = token || String(plan.id);
+
+    const url = `${window.location.origin}/choose-plan?plan=${token}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedPlanId(plan.id);
+      setTimeout(() => setCopiedPlanId(null), 2000);
+    });
   };
 
   const formatPrice = (price: number, currency: string) => {
@@ -172,7 +204,7 @@ export function SubscriptionPlansList({
                         {plan.description || "Sin descripción"}
                       </CardDescription>
                     </div>
-                    <div className="flex-shrink-0">
+                    <div className="flex-shrink-0 flex flex-col sm:flex-row gap-1 sm:gap-2 sm:items-center">
                       {plan.is_active ? (
                         <Badge variant="default" className="sm:ml-2">
                           Activo
@@ -180,6 +212,11 @@ export function SubscriptionPlansList({
                       ) : (
                         <Badge variant="secondary" className="sm:ml-2">
                           Inactivo
+                        </Badge>
+                      )}
+                      {plan.is_personalized && (
+                        <Badge className="bg-primary/10 text-primary border-primary/20 sm:ml-0">
+                          Personalizado
                         </Badge>
                       )}
                     </div>
@@ -236,6 +273,26 @@ export function SubscriptionPlansList({
 
                     {/* Acciones - Siempre al final */}
                     <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t mt-auto">
+                      {plan.is_personalized && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleCopyLink(plan)}
+                          className="flex-1"
+                        >
+                          {copiedPlanId === plan.id ? (
+                            <>
+                              <Check className="h-4 w-4 mr-2" />
+                              Copiado
+                            </>
+                          ) : (
+                            <>
+                              <LinkIcon className="h-4 w-4 mr-2" />
+                              Copiar link
+                            </>
+                          )}
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"

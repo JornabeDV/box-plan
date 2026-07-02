@@ -12,6 +12,14 @@ export interface SubscriptionPlan {
   interval: string
   features: any
   is_active: boolean
+  is_personalized?: boolean
+  shareToken?: string | null
+  coach?: {
+    id: number
+    businessName: string | null
+    phone: string | null
+    user: { name: string | null; email: string }
+  } | null
   created_at?: string
   updated_at?: string
 }
@@ -103,6 +111,53 @@ export function useSubscriptionPlans() {
     }
   }
 
+  // Cargar un plan específico por ID (público, para links compartibles)
+  const loadPlanById = async (planId: string) => {
+    try {
+      const response = await fetch(`/api/subscription-plans/${planId}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error('Error al cargar el plan')
+      }
+
+      const data = await response.json()
+      const normalizedPlan: SubscriptionPlan = {
+        id: String(data.id),
+        name: data.name,
+        description: data.description ?? null,
+        price: Number(data.price),
+        currency: data.currency,
+        interval: data.interval,
+        features: Array.isArray(data.features) 
+          ? data.features 
+          : typeof data.features === 'string' 
+            ? JSON.parse(data.features) 
+            : data.features ?? [],
+        is_active: data.is_active ?? true,
+        is_personalized: data.is_personalized ?? false,
+        shareToken: data.shareToken ?? data.share_token ?? null,
+        coach: data.coach,
+        created_at: data.created_at,
+        updated_at: data.updated_at
+      }
+      return { success: true, plan: normalizedPlan }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al cargar el plan'
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive'
+      })
+      return { success: false, error: errorMessage }
+    }
+  }
+
   // Actualizar plan
   const updatePlan = async (planId: string, planData: Partial<SubscriptionPlan>) => {
     try {
@@ -134,6 +189,8 @@ export function useSubscriptionPlans() {
               ? JSON.parse(updatedPlan.features) 
               : []),
         is_active: updatedPlan.is_active ?? true,
+        is_personalized: updatedPlan.is_personalized ?? false,
+        shareToken: updatedPlan.shareToken ?? updatedPlan.share_token ?? null,
         created_at: updatedPlan.created_at,
         updated_at: updatedPlan.updated_at
       }
@@ -153,10 +210,10 @@ export function useSubscriptionPlans() {
               interval: normalizedPlan.interval,
               features: normalizedPlan.features,
               is_active: normalizedPlan.is_active,
+              shareToken: normalizedPlan.shareToken,
               created_at: normalizedPlan.created_at,
               updated_at: normalizedPlan.updated_at
             }
-            console.log('✅ Hook - Plan actualizado en estado:', updated.name, 'Precio:', updated.price)
             return updated
           }
           // Retornar copia del plan existente
@@ -165,14 +222,12 @@ export function useSubscriptionPlans() {
             features: Array.isArray(plan.features) ? [...plan.features] : plan.features
           }
         })
-        console.log('✅ Hook - Nuevos planes:', newPlans.map(p => `${p.name}: $${p.price}`))
         return newPlans
       })
       
       // Incrementar trigger para forzar re-render en componentes
       setUpdateTrigger(prev => {
         const newTrigger = prev + 1
-        console.log('✅ Hook - UpdateTrigger incrementado a:', newTrigger)
         return newTrigger
       })
       
@@ -238,6 +293,7 @@ export function useSubscriptionPlans() {
     plans,
     loading,
     loadPlans,
+    loadPlanById,
     createPlan,
     updatePlan,
     deletePlan,

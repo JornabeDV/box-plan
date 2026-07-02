@@ -22,6 +22,7 @@ interface StudentPlan {
   planificationAccess: string;
   features: Record<string, any>;
   isActive: boolean;
+  isPersonalized?: boolean;
 }
 
 interface StudentPlanFormProps {
@@ -39,6 +40,7 @@ export interface StudentPlanFormData {
   currency: string;
   interval: string;
   tier: string;
+  is_personalized: boolean;
   features: {
     // Features del plan del coach
     whatsappSupport: boolean;        // coach: whatsapp_integration
@@ -80,6 +82,7 @@ export function StudentPlanForm({
     currency: editingPlan?.currency || "ARS",
     interval: editingPlan?.interval || "month",
     tier: editingPlan?.tier || "basic",
+    is_personalized: editingPlan?.isPersonalized || false,
     features: {
       // Features del plan del coach
       whatsappSupport: editingPlan?.features?.whatsappSupport || false,
@@ -278,6 +281,22 @@ export function StudentPlanForm({
               rows={3}
               className="border border-border bg-input text-sm placeholder:text-sm"
               disabled={!canCreateMore}
+            />
+          </div>
+
+          <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/50">
+            <div>
+              <p className="font-medium">Plan Personalizado</p>
+              <p className="text-xs text-muted-foreground">
+                No se muestra en la lista pública. Se comparte por link directo.
+              </p>
+            </div>
+            <Switch
+              checked={formData.is_personalized}
+              onCheckedChange={(v) =>
+                setFormData({ ...formData, is_personalized: v })
+              }
+              disabled={!isEditing && !canCreateMore}
             />
           </div>
 

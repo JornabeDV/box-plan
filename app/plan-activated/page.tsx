@@ -57,7 +57,7 @@ export default function PlanActivatedPage() {
   const { toast } = useToast();
   const { coach: userCoach, loading: coachLoading } = useUserCoach();
   const { disciplines: userDisciplines, loading: disciplinesLoading } = useUserDisciplines();
-  const { isSubscribed, loading: subscriptionLoading } = useStudentSubscription();
+  const { isSubscribed, loading: subscriptionLoading, hasPersonalizedWorkouts } = useStudentSubscription();
   const {
     permission: pushPermission,
     isSubscribed: isPushSubscribed,
@@ -95,6 +95,7 @@ export default function PlanActivatedPage() {
   }, [coachLoading, disciplinesLoading, subscriptionLoading, isPreview]);
 
   const hasDisciplines = isPreview ? previewHasDisciplines : userDisciplines.length > 0;
+  const isPersonalizedOnly = hasPersonalizedWorkouts && !hasDisciplines;
   const isLoading = isPreview ? false : (coachLoading || disciplinesLoading || subscriptionLoading);
 
   const steps: Step[] = [
@@ -110,22 +111,39 @@ export default function PlanActivatedPage() {
       description: "Tu suscripción está activa y vigente.",
       status: "completed",
     },
-    {
-      id: 3,
-      label: hasDisciplines ? "Disciplinas asignadas" : "Asignación de disciplinas",
-      description: hasDisciplines
-        ? "Tu coach ya te asignó tus disciplinas."
-        : "Tu coach está preparando tus disciplinas y niveles.",
-      status: hasDisciplines ? "completed" : "in-progress",
-    },
-    {
-      id: 4,
-      label: "Primer entrenamiento",
-      description: hasDisciplines
-        ? "¡Estás listo para entrenar!"
-        : "Te avisaremos cuando esté todo listo.",
-      status: hasDisciplines ? "completed" : "pending",
-    },
+    ...(isPersonalizedOnly
+      ? [
+          {
+            id: 3,
+            label: "Plan personalizado",
+            description: "Tu plan no requiere disciplinas asignadas. Tu coach creará tus entrenamientos a medida.",
+            status: "completed" as const,
+          },
+          {
+            id: 4,
+            label: "Primer entrenamiento",
+            description: "Tu coach está preparando tu primera planificación personalizada.",
+            status: "in-progress" as const,
+          },
+        ]
+      : [
+          {
+            id: 3,
+            label: hasDisciplines ? "Disciplinas asignadas" : "Asignación de disciplinas",
+            description: hasDisciplines
+              ? "Tu coach ya te asignó tus disciplinas."
+              : "Tu coach está preparando tus disciplinas y niveles.",
+            status: hasDisciplines ? ("completed" as const) : ("in-progress" as const),
+          },
+          {
+            id: 4,
+            label: "Primer entrenamiento",
+            description: hasDisciplines
+              ? "¡Estás listo para entrenar!"
+              : "Te avisaremos cuando esté todo listo.",
+            status: hasDisciplines ? ("completed" as const) : ("pending" as const),
+          },
+        ]),
   ];
 
   const coachName = isPreview
@@ -172,7 +190,9 @@ export default function PlanActivatedPage() {
             <p className="text-muted-foreground mt-2 max-w-xs mx-auto">
               {hasDisciplines
                 ? "Todo listo. Ya podés empezar a entrenar."
-                : "Tu suscripción está activa. Estamos preparando todo para que empieces a entrenar."}
+                : isPersonalizedOnly
+                  ? "Tu plan personalizado está activo. Tu coach está preparando tu primera planificación."
+                  : "Tu suscripción está activa. Estamos preparando todo para que empieces a entrenar."}
             </p>
           </div>
         </div>
@@ -256,7 +276,9 @@ export default function PlanActivatedPage() {
                       {coachName}
                     </p>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Está configurando tus disciplinas y niveles.
+                      {isPersonalizedOnly
+                        ? "Está preparando tu primera planificación personalizada."
+                        : "Está configurando tus disciplinas y niveles."}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Usualmente esto toma unas pocas horas. Si querés agilizarlo, contactalo directamente.
@@ -334,7 +356,9 @@ export default function PlanActivatedPage() {
                           Activá las notificaciones
                         </p>
                         <p className="text-xs text-muted-foreground mt-2">
-                          Te avisaremos en cuanto tu coach termine de configurar tus disciplinas, así no tenés que estar entrando a la app todo el tiempo.
+                          {isPersonalizedOnly
+                            ? "Te avisaremos en cuanto tu coach cargue tu primera planificación personalizada, así no tenés que estar entrando a la app todo el tiempo."
+                            : "Te avisaremos en cuanto tu coach termine de configurar tus disciplinas, así no tenés que estar entrando a la app todo el tiempo."}
                         </p>
                       </div>
                     </div>
@@ -347,8 +371,9 @@ export default function PlanActivatedPage() {
                         if (ok) {
                           toast({
                             title: "¡Listo!",
-                            description:
-                              "Te avisaremos cuando tus disciplinas estén configuradas.",
+                            description: isPersonalizedOnly
+                              ? "Te avisaremos cuando tu coach cargue tu primera planificación personalizada."
+                              : "Te avisaremos cuando tus disciplinas estén configuradas.",
                           });
                         } else if (Notification.permission === "denied") {
                           toast({

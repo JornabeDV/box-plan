@@ -29,6 +29,7 @@ interface PlanSwitcherProps {
   title?: string
   description?: string
   confirmLabel?: string
+  extraCard?: React.ReactNode
 }
 
 const getColorClasses = (planName: string) => {
@@ -76,7 +77,8 @@ export function PlanSwitcher({
   showTitle = true,
   title = "Cambiar Plan de Suscripción",
   description = "Elige el plan que mejor se adapte a tus necesidades",
-  confirmLabel = "Confirmar"
+  confirmLabel = "Confirmar",
+  extraCard
 }: PlanSwitcherProps) {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
   const [processingPlanId, setProcessingPlanId] = useState<string | null>(null)
@@ -113,7 +115,7 @@ export function PlanSwitcher({
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 p-1 overflow-visible">
         {plans.map((plan) => {
           const isCurrentPlan = plan.id === currentPlanId
           const isSelected = selectedPlan === plan.id
@@ -131,33 +133,27 @@ export function PlanSwitcher({
             <Card 
               key={plan.id}
               onClick={handleCardClick}
-              className={`relative flex flex-col transition-all duration-300 ${
-                isPopular 
-                  ? 'ring-2 ring-purple-500 shadow-lg md:scale-105' 
-                  : 'hover:shadow-lg md:hover:scale-105'
-              } ${isCurrentPlan ? 'ring-2 ring-green-500' : ''} ${
+              className={`relative flex flex-col transition-all duration-300 hover:shadow-lg ${
+                isCurrentPlan ? 'ring-2 ring-green-500' : ''
+              } ${
                 !loading && !isCurrentPlan ? 'cursor-pointer' : 'cursor-default'
               }`}
             >
-              {isPopular && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <Badge className="bg-purple-600 text-white px-4 py-1">
-                    <Star className="w-3 h-3 mr-1" />
-                    Más Popular
-                  </Badge>
-                </div>
-              )}
-
-              {isCurrentPlan && (
-                <div className="absolute -top-3 right-4">
-                  <Badge className="bg-green-600 text-white px-3 py-1">
-                    <Check className="w-3 h-3 mr-1" />
-                    Actual
-                  </Badge>
-                </div>
-              )}
-
               <CardHeader className="text-center pb-3 md:pb-4 px-4 md:px-6 pt-4 md:pt-6">
+                <div className="flex items-center justify-center gap-2 mb-3 min-h-[28px]">
+                  {isPopular && (
+                    <Badge className="bg-purple-600 text-white px-4 py-1">
+                      <Star className="w-3 h-3 mr-1" />
+                      Más Popular
+                    </Badge>
+                  )}
+                  {isCurrentPlan && (
+                    <Badge className="bg-green-600 text-white px-3 py-1">
+                      <Check className="w-3 h-3 mr-1" />
+                      Actual
+                    </Badge>
+                  )}
+                </div>
                 <CardTitle className="text-xl md:text-2xl font-bold">{plan.name}</CardTitle>
                 <CardDescription className="text-sm md:text-base mt-1">{plan.description}</CardDescription>
                 
@@ -179,7 +175,7 @@ export function PlanSwitcher({
                 <div className="mt-3 md:mt-4">
                   <div className="flex items-baseline justify-center">
                     <span className="text-3xl md:text-4xl font-bold">{formatPrice(plan.price, plan.currency)}</span>
-                    <span className="text-gray-500 ml-1 text-sm md:text-base">/{plan.interval}</span>
+                    <span className="text-gray-500 ml-1 text-sm md:text-base">/{plan.interval === 'month' ? 'mes' : plan.interval === 'year' ? 'año' : plan.interval}</span>
                   </div>
                 </div>
               </CardHeader>
@@ -209,7 +205,7 @@ export function PlanSwitcher({
                       ? 'bg-primary hover:bg-primary/90 text-primary-foreground ring-2 ring-primary cursor-pointer'
                       : 'bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer'
                   }`}
-                  size="sm"
+                  size="default"
                 >
                   {isProcessing ? (
                     <>
@@ -240,6 +236,7 @@ export function PlanSwitcher({
             </Card>
           )
         })}
+        {extraCard}
       </div>
 
       <Dialog open={selectedPlan !== null && selectedPlan !== currentPlanId && !processingPlanId} onOpenChange={(open) => {

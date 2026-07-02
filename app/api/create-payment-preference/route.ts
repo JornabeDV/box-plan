@@ -44,11 +44,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Usuario no autorizado' }, { status: 403, headers: corsHeaders })
     }
 
+    // Soportar tanto ID numérico como shareToken (planes personalizados compartidos)
+    let dbPlan = null
     const planIdNum = parseInt(plan_id, 10)
-    const dbPlan = await prisma.subscriptionPlan.findUnique({
-      where: { id: planIdNum },
-      include: { coach: true }
-    })
+
+    if (!isNaN(planIdNum)) {
+      dbPlan = await prisma.subscriptionPlan.findUnique({
+        where: { id: planIdNum },
+        include: { coach: true }
+      })
+    }
+
+    if (!dbPlan && plan_id) {
+      dbPlan = await prisma.subscriptionPlan.findUnique({
+        where: { shareToken: plan_id },
+        include: { coach: true }
+      })
+    }
 
     if (!dbPlan) {
       return NextResponse.json({ error: 'Plan no encontrado' }, { status: 404, headers: corsHeaders })
@@ -72,7 +84,7 @@ export async function POST(request: NextRequest) {
     const preference = await new Preference(client).create({
       body: {
         items: [{
-          id: plan_id,
+          id: String(dbPlan.id),
           title: `Box Plan - ${plan.name}`,
           description: `Suscripción ${plan.interval === 'month' ? 'mensual' : 'anual'} al plan ${plan.name}`,
           quantity: 1,
@@ -90,10 +102,10 @@ export async function POST(request: NextRequest) {
         },
         auto_return: 'approved',
         notification_url: `${baseUrl}/api/webhooks/mercadopago`,
-        external_reference: `subscription_${user_id}_${plan_id}_${Date.now()}`,
+        external_reference: `subscription_${user_id}_${dbPlan.id}_${Date.now()}`,
         metadata: {
           user_id,
-          plan_id,
+          plan_id: String(dbPlan.id),
           plan_name: plan.name,
           interval: plan.interval,
           coach_id: String(dbPlan.coachId)

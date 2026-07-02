@@ -86,7 +86,7 @@ export function KineticWorkoutCard({
                 </span>
               )}
               <h3 className="text-lg font-bold text-primary uppercase tracking-wide">
-                {plan.discipline?.name || "Entrenamiento"}
+                {plan.discipline?.name || "Entrenamiento"} Personalizado
                 {plan.discipline_level?.name && (
                   <span className="block text-foreground mt-0.5 text-base normal-case tracking-normal font-semibold">
                     {plan.discipline_level.name}

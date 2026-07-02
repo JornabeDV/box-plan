@@ -205,6 +205,100 @@ export async function GET(request: NextRequest) {
 
     const coachId = relationship.coach.id
 
+    // Fecha
+    const dateParam = searchParams.get('date')
+    let dateStr: string
+    if (dateParam) {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/
+      if (dateRegex.test(dateParam)) {
+        dateStr = dateParam
+      } else {
+        const today = new Date()
+        dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+      }
+    } else {
+      const today = new Date()
+      dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+    }
+
+    const normalizedDate = normalizeDateForArgentina(dateStr)
+    const [year, month, day] = dateStr.split('-').map(Number)
+    const nextDayStr = new Date(year, month - 1, day + 1)
+      .toISOString()
+      .split('T')[0]
+    const endOfDay = normalizeDateForArgentina(nextDayStr)
+
+    const planificationInclude = {
+      discipline: { select: { id: true, name: true, color: true } },
+      disciplineLevel: {
+        select: { id: true, name: true, description: true },
+      },
+      blocks: {
+        orderBy: { order: 'asc' },
+        include: {
+          items: {
+            orderBy: { order: 'asc' },
+            include: { exercise: true },
+          },
+          subBlocks: {
+            orderBy: { order: 'asc' },
+            include: {
+              items: {
+                orderBy: { order: 'asc' },
+                include: { exercise: true },
+              },
+            },
+          },
+        },
+      },
+    } as const
+
+    // Si el estudiante tiene plan personalizado, buscar primero su planificación personalizada
+    // antes de exigir disciplinas/niveles
+    const studentSubscription = await prisma.subscription.findFirst({
+      where: {
+        userId,
+        status: { in: ['active', 'Active', 'ACTIVE'] },
+      },
+      include: { plan: { select: { features: true } } },
+    })
+
+    let hasPersonalizedWorkouts = false
+    const rawFeatures = studentSubscription?.plan?.features
+    if (typeof rawFeatures === 'string') {
+      try {
+        const parsed = JSON.parse(rawFeatures)
+        hasPersonalizedWorkouts = parsed?.personalizedWorkouts === true
+      } catch (e) {
+        console.error('Error parsing features:', e)
+      }
+    } else if (rawFeatures && typeof rawFeatures === 'object') {
+      hasPersonalizedWorkouts = (rawFeatures as any)?.personalizedWorkouts === true
+    }
+
+    if (hasPersonalizedWorkouts) {
+      const personalizedPlanification = await prisma.planification.findFirst({
+        where: {
+          coachId,
+          targetUserId: userId,
+          isPersonalized: true,
+          date: { gte: normalizedDate, lt: endOfDay },
+        },
+        include: {
+          ...planificationInclude,
+          targetUser: { select: { id: true, name: true, email: true } },
+        },
+        orderBy: { date: 'asc' },
+      })
+
+      if (personalizedPlanification) {
+        return NextResponse.json({
+          data: transformPlanificationResponse(personalizedPlanification),
+          others: [],
+        })
+      }
+    }
+
     const userDisciplines = await prisma.userDiscipline.findMany({
       where: { userId },
       include: {
@@ -297,95 +391,10 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const dateParam = searchParams.get('date')
-    let dateStr: string
-    if (dateParam) {
-      const dateRegex = /^\d{4}-\d{2}-\d{2}$/
-      if (dateRegex.test(dateParam)) {
-        dateStr = dateParam
-      } else {
-        const today = new Date()
-        dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-      }
-    } else {
-      const today = new Date()
-      dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-    }
-
-    const normalizedDate = normalizeDateForArgentina(dateStr)
-    const [year, month, day] = dateStr.split('-').map(Number)
-    const nextDayStr = new Date(year, month - 1, day + 1)
-      .toISOString()
-      .split('T')[0]
-    const endOfDay = normalizeDateForArgentina(nextDayStr)
-
-    const planificationInclude = {
-      discipline: { select: { id: true, name: true, color: true } },
-      disciplineLevel: {
-        select: { id: true, name: true, description: true },
-      },
-      blocks: {
-        orderBy: { order: 'asc' },
-        include: {
-          items: {
-            orderBy: { order: 'asc' },
-            include: { exercise: true },
-          },
-          subBlocks: {
-            orderBy: { order: 'asc' },
-            include: {
-              items: {
-                orderBy: { order: 'asc' },
-                include: { exercise: true },
-              },
-            },
-          },
-        },
-      },
-    } as const
-
-    const personalizedPlanification = await prisma.planification.findFirst({
-      where: {
-        coachId,
-        targetUserId: userId,
-        isPersonalized: true,
-        date: { gte: normalizedDate, lt: endOfDay },
-      },
-      include: {
-        ...planificationInclude,
-        targetUser: { select: { id: true, name: true, email: true } },
-      },
-      orderBy: { date: 'asc' },
-    })
-
     let primary: any = null
     let others: any[] = []
 
-    if (personalizedPlanification) {
-      const studentSubscription = await prisma.subscription.findFirst({
-        where: { userId, status: 'active' },
-        include: { plan: { select: { features: true } } },
-      })
-
-      let studentFeatures: { personalizedWorkouts?: boolean } | null = null
-      const rawFeatures = studentSubscription?.plan?.features
-      if (typeof rawFeatures === 'string') {
-        try {
-          studentFeatures = JSON.parse(rawFeatures)
-        } catch (e) {
-          console.error('Error parsing features:', e)
-        }
-      } else if (rawFeatures && typeof rawFeatures === 'object') {
-        studentFeatures = rawFeatures as { personalizedWorkouts?: boolean }
-      }
-
-      if (studentFeatures?.personalizedWorkouts === true) {
-        primary = personalizedPlanification
-      }
-    }
-
-    if (!primary) {
-      if (!disciplineIdParam) {
+    if (!disciplineIdParam) {
         // Modo dashboard: buscar primary (preferida) y others
         let userPreference = await prisma.userPreference.findUnique({
           where: { userId },
@@ -482,7 +491,6 @@ export async function GET(request: NextRequest) {
           })
         }
       }
-    }
 
     if (!primary) {
       return NextResponse.json({

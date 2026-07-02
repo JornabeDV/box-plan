@@ -71,6 +71,7 @@ export default function BoxPlanApp() {
     isSubscribed,
     isExpired,
     loading: subscriptionLoading,
+    hasPersonalizedWorkouts,
   } = useStudentSubscription();
   const { coach: studentCoach, loading: studentCoachLoading } =
     useStudentCoach();
@@ -91,21 +92,24 @@ export default function BoxPlanApp() {
   const hasActiveSubscription = subscription?.status === "active";
 
   // El estudiante puede ver el calendario si el coach le asignó al menos una disciplina con nivel
+  // o si tiene plan personalizado (no requiere disciplinas asignadas)
   const hasPreferences = userDisciplines.some((d) => d.levelId !== null);
+  const hasPlanificationContent = hasPreferences || hasPersonalizedWorkouts;
 
   // Obtener frases motivacionales del coach (si tiene coach)
   const { quotes: coachQuotes, loading: coachQuotesLoading } =
     useCoachMotivationalQuotes();
 
-  // Obtener planificación de hoy (solo si tiene suscripción activa y preferencias)
-  // Solo cargar si tiene suscripción activa y preferencias para evitar llamadas innecesarias
+  // Obtener planificación de hoy (solo si tiene suscripción activa y contenido para mostrar)
+  // Solo cargar si tiene suscripción activa y preferencias o plan personalizado para evitar llamadas innecesarias
   const shouldLoadTodayPlanification =
     !authLoading &&
     !profileLoading &&
+    !subscriptionLoading &&
     !disciplinesLoading &&
     user?.id &&
     hasActiveSubscription &&
-    hasPreferences;
+    hasPlanificationContent;
   // Obtener una frase motivacional basada en el día del año para que cambie diariamente
   const getDailyMotivationalQuote = () => {
     // Priorizar frases del coach si existen
@@ -149,6 +153,7 @@ export default function BoxPlanApp() {
   }, [authLoading, subscriptionLoading, user, isCoach, isSubscribed, isExpired, router, isRedirectingStudent]);
 
   // Para alumnos con suscripción activa pero sin disciplinas asignadas, redirigir a plan-activated
+  // excepto si tiene plan personalizado, que no requiere disciplinas asignadas
   useEffect(() => {
     if (
       !authLoading &&
@@ -159,12 +164,13 @@ export default function BoxPlanApp() {
       isSubscribed &&
       !isExpired &&
       userDisciplines.length === 0 &&
+      !hasPersonalizedWorkouts &&
       !isRedirectingToPlanActivated
     ) {
       setIsRedirectingToPlanActivated(true);
       router.replace("/plan-activated");
     }
-  }, [authLoading, subscriptionLoading, disciplinesLoading, user, isCoach, isSubscribed, isExpired, userDisciplines.length, router, isRedirectingToPlanActivated]);
+  }, [authLoading, subscriptionLoading, disciplinesLoading, user, isCoach, isSubscribed, isExpired, userDisciplines.length, hasPersonalizedWorkouts, router, isRedirectingToPlanActivated]);
 
   // Mostrar toast cuando se activa una suscripción desde /subscription
   useEffect(() => {
@@ -287,7 +293,8 @@ export default function BoxPlanApp() {
     !isCoach &&
     isSubscribed &&
     !isExpired &&
-    userDisciplines.length === 0;
+    userDisciplines.length === 0 &&
+    !hasPersonalizedWorkouts;
 
   const isRedirecting =
     willRedirectCoach ||
@@ -536,15 +543,18 @@ export default function BoxPlanApp() {
           </section>
         )}
 
-        {/* Planificación de hoy: una card por disciplina */}
-        {user?.id && hasActiveSubscription && userDisciplines.length > 0 && (
+        {/* Planificación de hoy: una card por disciplina o plan personalizado */}
+        {user?.id && hasActiveSubscription && hasPlanificationContent && (
           <section>
-            <TodayPlanificationCards userDisciplines={userDisciplines} />
+            <TodayPlanificationCards
+              userDisciplines={userDisciplines}
+              hasPersonalizedWorkouts={hasPersonalizedWorkouts}
+            />
           </section>
         )}
 
         {/* Botón calendario completo */}
-        {user?.id && hasActiveSubscription && hasPreferences && (
+        {user?.id && hasActiveSubscription && hasPlanificationContent && (
           <section>
             <Button
               variant="outline"

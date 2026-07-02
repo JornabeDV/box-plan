@@ -144,7 +144,10 @@ export async function GET(request: NextRequest) {
     const dateParam = searchParams.get('date')
 
     const relationship = await prisma.coachStudentRelationship.findFirst({
-      where: { studentId: userId, status: 'active' },
+      where: {
+        studentId: userId,
+        status: { in: ['active', 'Active', 'ACTIVE'] },
+      },
       include: { coach: { select: { id: true } } },
     })
 
@@ -153,6 +156,28 @@ export async function GET(request: NextRequest) {
     }
 
     const coachId = relationship.coach.id
+
+    // Verificar primero si el estudiante tiene plan personalizado
+    const studentSubscription = await prisma.subscription.findFirst({
+      where: {
+        userId,
+        status: { in: ['active', 'Active', 'ACTIVE'] },
+      },
+      include: { plan: { select: { features: true } } },
+    })
+
+    let hasPersonalizedWorkouts = false
+    const rawFeatures = studentSubscription?.plan?.features
+    if (typeof rawFeatures === 'string') {
+      try {
+        const parsed = JSON.parse(rawFeatures)
+        hasPersonalizedWorkouts = parsed?.personalizedWorkouts === true
+      } catch (e) {
+        console.error('Error parsing features:', e)
+      }
+    } else if (rawFeatures && typeof rawFeatures === 'object') {
+      hasPersonalizedWorkouts = (rawFeatures as any)?.personalizedWorkouts === true
+    }
 
     let userDisciplines = await prisma.userDiscipline.findMany({
       where: { userId },
@@ -190,7 +215,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    if (userDisciplines.length === 0) {
+    // Si no tiene disciplinas ni plan personalizado, no hay nada que mostrar
+    if (userDisciplines.length === 0 && !hasPersonalizedWorkouts) {
       return NextResponse.json({ data: [] })
     }
 
@@ -218,7 +244,25 @@ export async function GET(request: NextRequest) {
 
     const disciplineIds = userDisciplines.map((ud) => ud.disciplineId)
 
-    // 1. Buscar todas las planificaciones del día del coach
+    // 1. Buscar planificaciones personalizadas del día para este estudiante
+    let personalizedPlanifications: any[] = []
+    if (hasPersonalizedWorkouts) {
+      personalizedPlanifications = await prisma.planification.findMany({
+        where: {
+          coachId,
+          isPersonalized: true,
+          targetUserId: userId,
+          date: { gte: normalizedDate, lt: endOfDay },
+        },
+        include: {
+          ...planificationInclude,
+          targetUser: { select: { id: true, name: true, email: true } },
+        },
+        orderBy: { date: 'asc' },
+      })
+    }
+
+    // 2. Buscar todas las planificaciones generales del día del coach
     const coachPlanifications = await prisma.planification.findMany({
       where: {
         coachId,
@@ -229,16 +273,28 @@ export async function GET(request: NextRequest) {
       orderBy: { date: 'asc' },
     })
 
-    // 2. Filtrar en memoria solo las disciplinas del usuario
+    // 3. Combinar resultados: primero personalizadas, luego generales por disciplina
     const result: any[] = []
     const seenDisciplineIds = new Set<number>()
 
+    // Agregar primero las personalizadas
+    for (const p of personalizedPlanifications) {
+      result.push(transformPlanificationResponse(p))
+      if (p.disciplineId != null) {
+        seenDisciplineIds.add(p.disciplineId)
+      }
+    }
+
+    // Luego agregar las generales que correspondan a disciplinas del usuario
+    // y que no hayan sido ya cubiertas por una personalizada
     for (const ud of userDisciplines) {
+      if (seenDisciplineIds.has(ud.disciplineId)) continue
+
       const plan = coachPlanifications.find(
         (p) => p.disciplineId === ud.disciplineId
       ) ?? null
 
-      if (plan && plan.disciplineId != null && !seenDisciplineIds.has(plan.disciplineId)) {
+      if (plan && plan.disciplineId != null) {
         seenDisciplineIds.add(plan.disciplineId)
         result.push(transformPlanificationResponse(plan))
       }

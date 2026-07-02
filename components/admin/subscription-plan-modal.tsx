@@ -50,6 +50,7 @@ export function SubscriptionPlanModal({
     interval: "month",
     features: [] as string[],
     is_active: true,
+    is_personalized: false,
   });
 
   const [newFeature, setNewFeature] = useState("");
@@ -66,6 +67,7 @@ export function SubscriptionPlanModal({
           interval: plan.interval,
           features: Array.isArray(plan.features) ? plan.features : [],
           is_active: plan.is_active,
+          is_personalized: plan.is_personalized ?? false,
         });
       } else {
         setFormData({
@@ -76,6 +78,7 @@ export function SubscriptionPlanModal({
           interval: "month",
           features: [],
           is_active: true,
+          is_personalized: false,
         });
       }
       setNewFeature("");
@@ -89,6 +92,7 @@ export function SubscriptionPlanModal({
     plan?.currency,
     plan?.interval,
     plan?.is_active,
+    plan?.is_personalized,
   ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -109,6 +113,7 @@ export function SubscriptionPlanModal({
         interval: formData.interval,
         features: formData.features,
         is_active: formData.is_active,
+        is_personalized: formData.is_personalized,
       };
 
       let result;
@@ -308,6 +313,23 @@ export function SubscriptionPlanModal({
               checked={formData.is_active}
               onCheckedChange={(checked) =>
                 setFormData({ ...formData, is_active: checked })
+              }
+            />
+          </div>
+
+          {/* Plan Personalizado */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="is_personalized">Plan Personalizado</Label>
+              <p className="text-sm text-muted-foreground">
+                No se muestra en la lista pública. El coach comparte el link directo con el alumno.
+              </p>
+            </div>
+            <Switch
+              id="is_personalized"
+              checked={formData.is_personalized}
+              onCheckedChange={(checked) =>
+                setFormData({ ...formData, is_personalized: checked })
               }
             />
           </div>
