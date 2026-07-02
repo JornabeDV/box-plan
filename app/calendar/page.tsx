@@ -5,6 +5,7 @@ import { FullCalendar } from "@/components/dashboard/full-calendar";
 import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { DisciplineSelector } from "@/components/planification/discipline-selector";
 import { useUserDisciplines } from "@/hooks/use-user-disciplines";
+import { useStudentSubscription } from "@/hooks/use-student-subscription";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
@@ -13,6 +14,7 @@ import { RequireActiveSubscription } from "@/components/auth/require-active-subs
 export default function CalendarPage() {
   const router = useRouter();
   const { disciplines, loading: disciplinesLoading } = useUserDisciplines();
+  const { hasPersonalizedWorkouts, loading: subscriptionLoading } = useStudentSubscription();
   const [selectedDisciplineId, setSelectedDisciplineId] = useState<number | null>(null);
 
   // Inicializar con la primera disciplina disponible
@@ -33,6 +35,13 @@ export default function CalendarPage() {
   const selectedDiscipline = availableDisciplineOptions.find(
     (d) => d.id === selectedDisciplineId
   );
+
+  // Si el atleta tiene plan personalizado, no mostrar selector de disciplina
+  const showDisciplineSelector =
+    !disciplinesLoading &&
+    !subscriptionLoading &&
+    disciplines.length > 0 &&
+    !hasPersonalizedWorkouts;
 
   return (
     <RequireActiveSubscription>
@@ -58,15 +67,17 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        {/* Selector de disciplina */}
-        <div className="flex justify-center">
-          <DisciplineSelector
-            selectedDisciplineId={selectedDisciplineId}
-            onDisciplineChange={setSelectedDisciplineId}
-            disabled={disciplinesLoading}
-            availableDisciplineOptions={availableDisciplineOptions}
-          />
-        </div>
+        {/* Selector de disciplina (solo si tiene disciplinas asignadas) */}
+        {showDisciplineSelector && (
+          <div className="flex justify-center">
+            <DisciplineSelector
+              selectedDisciplineId={selectedDisciplineId}
+              onDisciplineChange={setSelectedDisciplineId}
+              disabled={disciplinesLoading}
+              availableDisciplineOptions={availableDisciplineOptions}
+            />
+          </div>
+        )}
 
         {/* Calendario */}
         <FullCalendar discipline={selectedDiscipline} />

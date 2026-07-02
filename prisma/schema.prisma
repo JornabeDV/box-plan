@@ -167,9 +167,11 @@ model SubscriptionPlan {
 
   features      Json?
   isActive      Boolean        @default(true) @map("is_active")
-  planType      String?        @default("student") @map("plan_type") @db.VarChar(20)
-  isCoachPlan   Boolean        @default(false) @map("is_coach_plan")
-  coachId       Int?           @map("coach_id")
+  planType        String?        @default("student") @map("plan_type") @db.VarChar(20)
+  isCoachPlan     Boolean        @default(false) @map("is_coach_plan")
+  isPersonalized  Boolean        @default(false) @map("is_personalized")
+  shareToken      String?        @unique @map("share_token") @db.VarChar(64)
+  coachId         Int?           @map("coach_id")
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at")
   coach         CoachProfile?  @relation(fields: [coachId], references: [id], onDelete: Cascade)

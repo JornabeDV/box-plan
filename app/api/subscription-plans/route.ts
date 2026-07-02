@@ -3,78 +3,130 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isCoach, normalizeUserId } from '@/lib/auth-helpers'
 import { getPlanificationAccess, type StudentPlanTier } from '@/lib/coach-plan-features'
+import { nanoid } from 'nanoid'
 
 // GET /api/subscription-plans
+// - ?planId=123 -> Devuelve un plan específico (público, para links compartibles)
+// - Sin query -> Devuelve planes NO personalizados del coach asignado o globales
 export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const planIdParam = searchParams.get('planId')
+
+    // 1. Link compartible de plan personalizado: devolver plan por ID sin importar auth
+    if (planIdParam) {
+      const planId = parseInt(planIdParam, 10)
+      if (isNaN(planId)) {
+        return NextResponse.json({ error: 'ID de plan inválido' }, { status: 400 })
+      }
+
+      const plan = await prisma.subscriptionPlan.findUnique({
+        where: { id: planId },
+        include: {
+          coach: {
+            select: {
+              id: true,
+              businessName: true,
+              phone: true,
+              user: { select: { name: true, email: true } }
+            }
+          },
+          _count: { select: { subscriptions: true } }
+        }
+      })
+
+      if (!plan || !plan.isActive) {
+        return NextResponse.json({ error: 'Plan no encontrado' }, { status: 404 })
+      }
+
+      const serializedPlan = {
+        ...plan,
+        is_active: plan.isActive,
+        is_personalized: plan.isPersonalized,
+        features: typeof plan.features === 'string' ? JSON.parse(plan.features) : plan.features,
+        is_popular: plan.tier === 'premium' || plan.tier === 'vip',
+        price: Number(plan.price)
+      }
+
+      const response = NextResponse.json(serializedPlan)
+      response.headers.set('Cache-Control', 'private, max-age=30, stale-while-revalidate=15')
+      return response
+    }
+
+    // 2. Listado público general: solo planes no personalizados
     const session = await auth()
     let coachId: number | null = null
-    
-    // Verificar si el usuario es coach y obtener su coachId
+    let isCoachUser = false
+
     const userId = normalizeUserId(session?.user?.id)
     if (userId) {
       const authCheck = await isCoach(userId)
       if (authCheck.isAuthorized && authCheck.profile) {
-        // Si es coach, usar su propio coachId
         coachId = authCheck.profile.id
+        isCoachUser = true
       } else {
-        // Si no es coach, buscar su coach asignado (estudiante)
         const relationship = await prisma.coachStudentRelationship.findFirst({
-          where: {
-            studentId: userId,
-            status: 'active'
-          },
-          select: {
-            coachId: true
-          }
+          where: { studentId: userId, status: 'active' },
+          select: { coachId: true }
         })
-        
         if (relationship) {
           coachId = relationship.coachId
         }
       }
     }
 
-    // Construir el filtro:
-    // - Si es coach o tiene coach asignado, mostrar planes de ese coach
-    // - Si no tiene coach, mostrar planes globales (sin coachId) o vacío
-    const whereClause = coachId 
-      ? { coachId, isActive: true } // Planes del coach (activos)
-      : { isActive: true, coachId: null } // Planes globales activos (sin coach)
+    const whereClause: any = {
+      isActive: true
+    }
+
+    if (coachId) {
+      whereClause.coachId = coachId
+      // Solo el coach ve sus planes personalizados (para gestionarlos)
+      // Los estudiantes con coach asignado solo ven los planes públicos
+      if (!isCoachUser) {
+        whereClause.isPersonalized = false
+      }
+    } else {
+      // Usuarios sin coach solo ven planes globales no personalizados
+      whereClause.coachId = null
+      whereClause.isPersonalized = false
+    }
 
     const plans = await prisma.subscriptionPlan.findMany({
       where: whereClause,
       include: {
-        _count: {
+        coach: {
           select: {
-            subscriptions: true
+            id: true,
+            businessName: true,
+            phone: true,
+            user: { select: { name: true, email: true } }
           }
-        }
+        },
+        _count: { select: { subscriptions: true } }
       },
       orderBy: { price: 'asc' }
     })
 
-    // Transformar features de JSONB a array si es necesario
     const formattedPlans = plans.map(plan => ({
       ...plan,
       is_active: plan.isActive,
+      is_personalized: plan.isPersonalized,
       features: typeof plan.features === 'string' ? JSON.parse(plan.features) : plan.features,
       is_popular: plan.tier === 'premium' || plan.tier === 'vip'
     }))
 
     const response = NextResponse.json(formattedPlans)
-    // Caché moderado para reducir queries pero mantener datos relativamente frescos
     response.headers.set('Cache-Control', 'private, max-age=30, stale-while-revalidate=15')
     return response
   } catch (error: any) {
     console.error('Error fetching subscription plans:', error)
-    
-    // Si la tabla no existe, retornar array vacío en lugar de error
+
     if (error?.code === '42P01' || error?.message?.includes('does not exist')) {
       console.warn('Tabla subscription_plans no existe')
       return NextResponse.json([])
     }
-    
+
     return NextResponse.json(
       { error: 'Error al cargar los planes' },
       { status: 500 }
@@ -162,7 +214,8 @@ export async function POST(request: NextRequest) {
       interval, 
       tier = 'basic',
       features = {},
-      is_active = true 
+      is_active = true,
+      is_personalized = false
     } = body
 
     if (!name || !price || !currency || !interval) {
@@ -264,6 +317,8 @@ export async function POST(request: NextRequest) {
         planificationAccess,
         features: finalFeatures,
         isActive: is_active,
+        isPersonalized: is_personalized,
+        shareToken: is_personalized ? nanoid(24) : null,
         coachId: coachId
       }
     })
@@ -280,6 +335,8 @@ export async function POST(request: NextRequest) {
       planificationAccess: plan.planificationAccess,
       features: plan.features,
       is_active: plan.isActive,
+      is_personalized: plan.isPersonalized,
+      share_token: plan.shareToken,
       created_at: plan.createdAt.toISOString(),
       updated_at: plan.updatedAt.toISOString()
     }

@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useSession } from 'next-auth/react'
 
-interface Planification {
+export interface Planification {
 	id: string
 	title: string
 	description?: string
@@ -18,6 +18,12 @@ interface Planification {
 	estimatedDuration?: number
 	isCompleted: boolean
 	is_personalized?: boolean
+	target_user_id?: string | null
+	target_user?: {
+		id: string
+		name: string | null
+		email: string
+	} | null
 	discipline?: {
 		id: string
 		name: string

@@ -165,6 +165,7 @@ export function usePlanificationData({ userId }: UsePlanificationDataProps) {
 					let initialDisciplineId: number | null = urlDisciplineId
 
 					// Si no hay disciplineId en la URL, usar la primera disciplina del usuario
+					// Si no tiene disciplinas, dejar null para que el backend busque planificaciones personalizadas
 					if (!initialDisciplineId && userDisciplines.length > 0) {
 						initialDisciplineId = userDisciplines[0].disciplineId
 					}

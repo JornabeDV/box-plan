@@ -26,6 +26,8 @@ interface StudentPlan {
   planificationAccess: string;
   features: Record<string, any>;
   isActive: boolean;
+  is_personalized?: boolean;
+  shareToken?: string | null;
   _count?: {
     subscriptions: number;
   };

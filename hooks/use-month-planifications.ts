@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 
 interface MonthPlanificationsState {
 	datesWithPlanification: number[]
+	personalizedDays: number[]
 	firstAvailableDay: number | null
 	loading: boolean
 	error: string | null
@@ -13,6 +14,7 @@ interface MonthPlanificationsState {
 export function useMonthPlanifications(year: number, month: number, disciplineId?: number | null) {
 	const [state, setState] = useState<MonthPlanificationsState>({
 		datesWithPlanification: [],
+		personalizedDays: [],
 		firstAvailableDay: null,
 		loading: true,
 		error: null
@@ -27,6 +29,7 @@ export function useMonthPlanifications(year: number, month: number, disciplineId
 					...prev,
 					loading: false,
 					datesWithPlanification: [],
+					personalizedDays: [],
 					firstAvailableDay: null
 				}))
 				return
@@ -57,11 +60,15 @@ export function useMonthPlanifications(year: number, month: number, disciplineId
 
 				if (data.data && Array.isArray(data.data)) {
 					const dates = data.data.sort((a: number, b: number) => a - b)
+					const personalized = Array.isArray(data.personalizedDays)
+						? data.personalizedDays.sort((a: number, b: number) => a - b)
+						: []
 					const firstDay = dates.length > 0 ? dates[0] : null
 
 					setState(prev => ({
 						...prev,
 						datesWithPlanification: dates,
+						personalizedDays: personalized,
 						firstAvailableDay: firstDay,
 						loading: false
 					}))
@@ -69,6 +76,7 @@ export function useMonthPlanifications(year: number, month: number, disciplineId
 					setState(prev => ({
 						...prev,
 						datesWithPlanification: [],
+						personalizedDays: [],
 						firstAvailableDay: null,
 						loading: false
 					}))

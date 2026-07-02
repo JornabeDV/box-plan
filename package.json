@@ -11,7 +11,9 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed.ts",
     "db:seed:coach-plans": "tsx scripts/seed-coach-plans.ts",
+    "db:fix-personalized-tokens": "tsx scripts/fix-personalized-tokens.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -97,6 +99,9 @@
     "web-push": "^3.6.7",
     "xlsx": "^0.18.5",
     "zod": "3.25.67"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",

@@ -11,6 +11,43 @@ interface Plan {
   interval: string
   features: string[]
   is_popular?: boolean
+  is_personalized?: boolean
+  shareToken?: string | null
+  coach?: {
+    id: number
+    businessName: string | null
+    phone: string | null
+    user: { name: string | null; email: string }
+  } | null
+}
+
+const FEATURE_LABELS: Record<string, string> = {
+  whatsappSupport: 'Soporte por WhatsApp',
+  communityAccess: 'Acceso a la comunidad',
+  progressTracking: 'Seguimiento de progreso',
+  leaderboardAccess: 'Acceso al ranking',
+  timerAccess: 'Cronómetro de entrenamientos',
+  personalizedWorkouts: 'Planificaciones personalizadas'
+}
+
+function normalizeFeatures(features: any): string[] {
+  if (Array.isArray(features)) {
+    return features.filter(Boolean)
+  }
+  if (typeof features === 'string') {
+    try {
+      const parsed = JSON.parse(features)
+      return normalizeFeatures(parsed)
+    } catch {
+      return []
+    }
+  }
+  if (features && typeof features === 'object') {
+    return Object.entries(features)
+      .filter(([_, value]) => value === true)
+      .map(([key]) => FEATURE_LABELS[key] || key)
+  }
+  return []
 }
 
 interface Subscription {
@@ -36,9 +73,10 @@ interface Subscription {
   }
 }
 
-export function useSubscriptionManagement() {
+export function useSubscriptionManagement(initialPlanId?: string) {
   const { data: session } = useSession()
   const [plans, setPlans] = useState<Plan[]>([])
+  const [sharedPlan, setSharedPlan] = useState<Plan | null>(null)
   const [currentSubscription, setCurrentSubscription] = useState<Subscription | null>(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
@@ -67,23 +105,41 @@ export function useSubscriptionManagement() {
       const formattedPlans = data.map((plan: any) => ({
         ...plan,
         id: String(plan.id), // Asegurar que id sea string para consistencia
-        features: Array.isArray(plan.features) 
-          ? plan.features 
-          : typeof plan.features === 'string' 
-            ? (() => {
-                try {
-                  return JSON.parse(plan.features)
-                } catch {
-                  return []
-                }
-              })()
-            : []
+        features: normalizeFeatures(plan.features),
+        is_personalized: plan.is_personalized ?? false
       }))
       setPlans(formattedPlans)
     } catch (error) {
       console.error('Error loading plans:', error)
       setError(error instanceof Error ? error.message : 'Error al cargar los planes')
       setPlans([]) // Asegurar que planes esté vacío en caso de error
+    }
+  }
+
+  // Cargar plan compartido por link (plan personalizado) usando shareToken
+  const loadSharedPlan = async (shareToken: string) => {
+    try {
+      const response = await fetch(`/api/subscription-plans/shared/${shareToken}`)
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Error al cargar el plan')
+      }
+
+      const data = await response.json()
+      
+      const formattedPlan: Plan = {
+        ...data,
+        id: String(data.id),
+        features: normalizeFeatures(data.features),
+        is_personalized: data.is_personalized ?? false,
+        shareToken: data.shareToken || data.share_token || shareToken
+      }
+      setSharedPlan(formattedPlan)
+    } catch (error) {
+      console.error('Error loading shared plan:', error)
+      setError(error instanceof Error ? error.message : 'Error al cargar el plan')
+      setSharedPlan(null)
     }
   }
 
@@ -114,6 +170,8 @@ export function useSubscriptionManagement() {
 
   // Crear preferencia de pago en MercadoPago y redirigir
   const redirectToPayment = async (planId: string) => {
+    console.log('[redirectToPayment] planId:', planId, 'available plans:', plans.map(p => ({ id: p.id, name: p.name, shareToken: p.shareToken })))
+
     if (!session?.user?.id) {
       throw new Error('Usuario no autenticado')
     }
@@ -121,12 +179,16 @@ export function useSubscriptionManagement() {
     const userId = typeof session.user.id === 'string' ? session.user.id : String(session.user.id)
     const planIdNum = typeof planId === 'string' ? parseInt(planId, 10) : planId
     
-    if (isNaN(planIdNum)) {
-      throw new Error('ID de plan inválido')
-    }
+    // Usar el identificador original (ID numérico o shareToken) porque la API sabe buscar ambos
+    const planIdentifier = isNaN(planIdNum) ? planId : String(planIdNum)
     
-    // Obtener información del plan para crear la preferencia de pago
-    const plan = plans.find(p => p.id === planId || String(p.id) === String(planId))
+    // Obtener información del plan para crear la preferencia de pago.
+    // También buscamos en sharedPlan porque, cuando se accede por link compartido,
+    // la lista interna de planes puede estar vacía.
+    const allAvailablePlans = sharedPlan ? [sharedPlan, ...plans] : plans
+    const plan = allAvailablePlans.find(
+      p => p.id === planId || String(p.id) === String(planId) || p.shareToken === planId
+    )
     
     if (!plan) {
       throw new Error('Plan no encontrado')
@@ -144,10 +206,10 @@ export function useSubscriptionManagement() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        plan_id: String(planIdNum),
+        plan_id: planIdentifier,
         user_id: userId,
         plan: {
-          id: String(planIdNum),
+          id: planIdentifier,
           name: plan.name,
           price: planPrice,
           currency: plan.currency,
@@ -313,10 +375,17 @@ export function useSubscriptionManagement() {
       setLoading(true)
       setError(null)
       try {
-        await Promise.all([
-          loadPlans(),
-          loadCurrentSubscription()
-        ])
+        if (initialPlanId) {
+          await Promise.all([
+            loadSharedPlan(initialPlanId),
+            loadCurrentSubscription()
+          ])
+        } else {
+          await Promise.all([
+            loadPlans(),
+            loadCurrentSubscription()
+          ])
+        }
       } catch (error) {
         console.error('Error loading initial data:', error)
       } finally {
@@ -325,10 +394,15 @@ export function useSubscriptionManagement() {
     }
 
     loadData()
-  }, [])
+  }, [initialPlanId])
+
+  // Determinar los planes a mostrar (lista normal o plan compartido)
+  const displayPlans = sharedPlan ? [sharedPlan] : plans
 
   return {
-    plans,
+    plans: displayPlans,
+    allPlans: plans,
+    sharedPlan,
     currentSubscription,
     loading,
     actionLoading,
@@ -338,6 +412,7 @@ export function useSubscriptionManagement() {
     reactivateSubscription,
     renewSubscription,
     loadCurrentSubscription,
-    loadPlans
+    loadPlans,
+    loadSharedPlan
   }
 }

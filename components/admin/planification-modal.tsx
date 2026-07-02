@@ -1143,8 +1143,20 @@ export function PlanificationModal({
               <Select
                 value={isPersonalized ? "personalized" : "general"}
                 onValueChange={(val) => {
-                  setIsPersonalized(val === "personalized");
-                  if (val === "general") setSelectedStudent("");
+                  const willBePersonalized = val === "personalized";
+                  setIsPersonalized(willBePersonalized);
+                  if (val === "general") {
+                    setSelectedStudent("");
+                  }
+                  if (willBePersonalized) {
+                    // Las planificaciones personalizadas no requieren disciplina/nivel
+                    setFormData((prev) => ({
+                      ...prev,
+                      discipline_id: "",
+                      discipline_level_id: "",
+                    }));
+                    setIsDisciplineLocked(false);
+                  }
                 }}
                 disabled={
                   !canCreatePersonalized && !planification?.is_personalized
@@ -1237,59 +1249,59 @@ export function PlanificationModal({
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="discipline">
-                    Disciplina {!isPersonalized && "*"}
-                  </Label>
-                  <Select
-                    value={formData.discipline_id}
-                    onValueChange={(value) =>
-                      handleInputChange("discipline_id", value)
-                    }
-                    disabled={disciplinesLoading || isDisciplineLocked}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Seleccionar disciplina" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {disciplines.map((discipline) => (
-                        <SelectItem key={discipline.id} value={discipline.id}>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: discipline.color }}
-                            />
-                            {discipline.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              {!isPersonalized && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="discipline">Disciplina *</Label>
+                    <Select
+                      value={formData.discipline_id}
+                      onValueChange={(value) =>
+                        handleInputChange("discipline_id", value)
+                      }
+                      disabled={disciplinesLoading || isDisciplineLocked}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Seleccionar disciplina" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {disciplines.map((discipline) => (
+                          <SelectItem key={discipline.id} value={discipline.id}>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: discipline.color }}
+                              />
+                              {discipline.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div className="space-y-2 w-full">
-                  <Label htmlFor="level">Nivel {!isPersonalized && "*"}</Label>
-                  <Select
-                    value={formData.discipline_level_id}
-                    onValueChange={(value) =>
-                      handleInputChange("discipline_level_id", value)
-                    }
-                    disabled={!formData.discipline_id || disciplinesLoading}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Seleccionar nivel" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableLevels.map((level) => (
-                        <SelectItem key={level.id} value={level.id}>
-                          {level.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="space-y-2 w-full">
+                    <Label htmlFor="level">Nivel *</Label>
+                    <Select
+                      value={formData.discipline_level_id}
+                      onValueChange={(value) =>
+                        handleInputChange("discipline_level_id", value)
+                      }
+                      disabled={!formData.discipline_id || disciplinesLoading}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Seleccionar nivel" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableLevels.map((level) => (
+                          <SelectItem key={level.id} value={level.id}>
+                            {level.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="duration">Duración estimada (minutos)</Label>
@@ -2574,8 +2586,9 @@ export function PlanificationModal({
               disabled={
                 loading ||
                 !hasDisciplines ||
-                !formData.discipline_id ||
-                !formData.discipline_level_id
+                (isPersonalized
+                  ? !selectedStudent
+                  : !formData.discipline_id || !formData.discipline_level_id)
               }
               className="w-full sm:w-auto"
             >

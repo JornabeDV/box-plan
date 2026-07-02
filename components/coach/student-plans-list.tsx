@@ -14,6 +14,8 @@ import {
   Target,
   CheckCircle2,
   Timer,
+  Link as LinkIcon,
+  Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CoachPlanInfo } from "@/hooks/use-coach-plan-features";
@@ -29,6 +31,8 @@ interface StudentPlan {
   planificationAccess: string;
   features: Record<string, any>;
   isActive: boolean;
+  is_personalized?: boolean;
+  shareToken?: string | null;
   _count?: {
     subscriptions: number;
   };
@@ -71,6 +75,35 @@ export function StudentPlansList({
   onDeletePlan,
 }: StudentPlansListProps) {
   const [selectedPlan, setSelectedPlan] = useState<StudentPlan | null>(null);
+  const [copiedPlanId, setCopiedPlanId] = useState<number | null>(null);
+
+  const handleCopyLink = async (plan: StudentPlan) => {
+    let token = plan.shareToken;
+
+    // Si el plan es personalizado pero no tiene token, intentar regenerarlo
+    if (plan.is_personalized && !token) {
+      try {
+        const response = await fetch(`/api/subscription-plans/${plan.id}/share-token`, {
+          method: 'PATCH',
+        });
+        if (response.ok) {
+          const data = await response.json();
+          token = data.shareToken || data.share_token;
+        }
+      } catch (err) {
+        console.error('Error regenerating share token:', err);
+      }
+    }
+
+    // Último fallback al ID (no recomendado para planes personalizados)
+    token = token || String(plan.id);
+
+    const url = `${window.location.origin}/choose-plan?plan=${token}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedPlanId(plan.id);
+      setTimeout(() => setCopiedPlanId(null), 2000);
+    });
+  };
 
   if (!coachPlan) {
     return (
@@ -185,7 +218,14 @@ export function StudentPlansList({
                 )}
               >
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-xl pr-20">{plan.name}</CardTitle>
+                  <div className="flex items-start justify-between gap-2">
+                    <CardTitle className="text-xl">{plan.name}</CardTitle>
+                    {plan.is_personalized && (
+                      <Badge className="bg-primary/10 text-primary border-primary/20 flex-shrink-0">
+                        Personalizado
+                      </Badge>
+                    )}
+                  </div>
                   {plan.description && (
                     <p className="text-sm text-muted-foreground line-clamp-2">
                       {plan.description}
@@ -255,25 +295,46 @@ export function StudentPlansList({
 
                   {/* Botones de acción */}
                 </CardContent>
-                <div className="flex flex-col sm:flex-row gap-2 px-3 sm:px-6">
-                  {onEditPlan && (
+                <div className="flex flex-col gap-2 px-3 sm:px-6 pb-6">
+                  {plan.is_personalized && (
                     <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => onEditPlan(plan)}
+                      variant="secondary"
+                      className="w-full"
+                      onClick={() => handleCopyLink(plan)}
                     >
-                      Editar
+                      {copiedPlanId === plan.id ? (
+                        <>
+                          <Check className="w-4 h-4 mr-2" />
+                          Copiado
+                        </>
+                      ) : (
+                        <>
+                          <LinkIcon className="w-4 h-4 mr-2" />
+                          Copiar link
+                        </>
+                      )}
                     </Button>
                   )}
-                  {onDeletePlan && (
-                    <Button
-                      variant="outline"
-                      className="flex-1 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                      onClick={() => onDeletePlan(plan)}
-                    >
-                      Eliminar
-                    </Button>
-                  )}
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    {onEditPlan && (
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => onEditPlan(plan)}
+                      >
+                        Editar
+                      </Button>
+                    )}
+                    {onDeletePlan && (
+                      <Button
+                        variant="outline"
+                        className="flex-1 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        onClick={() => onDeletePlan(plan)}
+                      >
+                        Eliminar
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </Card>
             );

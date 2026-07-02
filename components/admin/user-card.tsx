@@ -330,15 +330,17 @@ export function UserCard({
               <span className="sm:hidden">Ajustes</span>
               <span className="hidden sm:inline">Configuración</span>
             </Button>
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={() => onManageDisciplines(user)}
-              className="hover:scale-100 active:scale-100"
-            >
-              <Dumbbell className="h-3.5 w-3.5 mr-1.5" />
-              Disciplinas
-            </Button>
+            {!hasPersonalizedWorkouts && (
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => onManageDisciplines(user)}
+                className="hover:scale-100 active:scale-100"
+              >
+                <Dumbbell className="h-3.5 w-3.5 mr-1.5" />
+                Disciplinas
+              </Button>
+            )}
             <Button 
               size="sm" 
               variant="destructive"

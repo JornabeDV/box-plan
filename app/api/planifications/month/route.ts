@@ -142,37 +142,48 @@ export async function GET(request: NextRequest) {
           in: disciplineIdsToUse
         }
       }
+
+      // Para planes no personalizados, excluir planificaciones personalizadas
+      whereClause.isPersonalized = false
     }
 
     // Buscar todas las planificaciones del coach del estudiante según el filtro
     const planifications = await prisma.planification.findMany({
       where: whereClause,
       select: {
-        date: true
+        date: true,
+        isPersonalized: true,
       },
       orderBy: { date: 'asc' }
     })
 
-    // Extraer solo las fechas (días del mes) que tienen planificación
+    // Extraer las fechas (días del mes) que tienen planificación
     // Usar UTC para evitar problemas de zona horaria al leer las fechas
+    const extractDay = (p: { date: Date; isPersonalized: boolean }) => {
+      const date = new Date(p.date)
+      const dateYear = date.getUTCFullYear()
+      const dateMonth = date.getUTCMonth() + 1
+      const dateDay = date.getUTCDate()
+
+      if (dateYear === year && dateMonth === month) {
+        return dateDay
+      }
+      return null
+    }
+
     const datesWithPlanification = planifications
-      .map((p) => {
-        const date = new Date(p.date)
-        // Usar métodos UTC para obtener año, mes y día sin problemas de timezone
-        const dateYear = date.getUTCFullYear()
-        const dateMonth = date.getUTCMonth() + 1
-        const dateDay = date.getUTCDate()
-        
-        // Verificar que la fecha pertenezca al mes y año correcto
-        if (dateYear === year && dateMonth === month) {
-          return dateDay // Retornar solo el día del mes (1-31)
-        }
-        return null
-      })
+      .map(extractDay)
       .filter((day): day is number => day !== null)
 
-    return NextResponse.json({ 
+    // Separar los días con planificaciones personalizadas
+    const personalizedDays = planifications
+      .filter((p) => p.isPersonalized)
+      .map(extractDay)
+      .filter((day): day is number => day !== null)
+
+    return NextResponse.json({
       data: datesWithPlanification,
+      personalizedDays,
       month,
       year
     })

@@ -64,7 +64,7 @@ const playBellSound = (isHigh: boolean = false) => {
 			oscillator.type = 'triangle' // Más similar a campana que sine
 
 			// Envolvente tipo campana (attack rápido, decay largo)
-			const volume = isHigh ? 0.5 : 0.4
+			const volume = isHigh ? 1.0 : 0.9
 			const now = ctx.currentTime
 			gainNode.gain.setValueAtTime(0, now)
 			gainNode.gain.linearRampToValueAtTime(volume / (i + 1), now + 0.02)
@@ -103,7 +103,7 @@ const playSimpleBeep = () => {
 
 		const now = ctx.currentTime
 		gainNode.gain.setValueAtTime(0, now)
-		gainNode.gain.linearRampToValueAtTime(0.25, now + 0.01)
+		gainNode.gain.linearRampToValueAtTime(0.8, now + 0.01)
 		gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.08)
 
 		oscillator.start(now)
@@ -133,7 +133,7 @@ const playFinishBeep = () => {
 			const now = ctx.currentTime
 			const startOffset = i * 0.12
 			gainNode.gain.setValueAtTime(0, now + startOffset)
-			gainNode.gain.linearRampToValueAtTime(0.5 / (i + 1), now + startOffset + 0.02)
+			gainNode.gain.linearRampToValueAtTime(1.0 / (i + 1), now + startOffset + 0.02)
 			gainNode.gain.exponentialRampToValueAtTime(0.001, now + startOffset + duration)
 
 			oscillator.start(now + startOffset)

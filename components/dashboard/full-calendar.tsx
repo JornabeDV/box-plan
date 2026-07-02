@@ -32,7 +32,7 @@ export function FullCalendar({ discipline }: FullCalendarProps) {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
-  const { datesWithPlanification, loading } = useMonthPlanifications(
+  const { datesWithPlanification, personalizedDays, loading } = useMonthPlanifications(
     year,
     month + 1,
     discipline?.id ?? null
@@ -148,6 +148,10 @@ export function FullCalendar({ discipline }: FullCalendarProps) {
     return datesWithPlanification.includes(day);
   };
 
+  const isPersonalizedDay = (day: number) => {
+    return personalizedDays.includes(day);
+  };
+
   // Verificar si es hoy
   const isToday = (day: number) => {
     const date = new Date(year, month, day);
@@ -256,8 +260,10 @@ export function FullCalendar({ discipline }: FullCalendarProps) {
 
             const hasWorkoutValue = hasWorkout(day);
             const isCurrentDay = isToday(day);
+            const isPersonalized = isPersonalizedDay(day);
             const isPast = isPastDay(day);
             const isClickable = hasWorkoutValue;
+            const todayHasWorkoutValue = isCurrentDay && hasWorkoutValue;
 
             return (
               <div
@@ -266,10 +272,14 @@ export function FullCalendar({ discipline }: FullCalendarProps) {
               >
                 <div
                   className={`
-                    w-full h-full flex items-center justify-center text-sm font-semibold transition-all duration-200
+                    relative w-full h-full flex items-center justify-center text-sm font-semibold transition-all duration-200
                     ${
                       isCurrentDay
-                        ? "bg-primary text-primary-foreground shadow-accent animate-pulse-glow"
+                        ? todayHasWorkoutValue
+                          ? `bg-primary text-primary-foreground shadow-accent animate-pulse-glow border-2 ${isPersonalized ? "border-amber-400" : "border-primary-foreground/60"}`
+                          : "bg-primary text-primary-foreground shadow-accent animate-pulse-glow"
+                        : isPersonalized
+                        ? "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 hover:scale-105 border-2 border-amber-500/50"
                         : hasWorkoutValue
                         ? discipline
                           ? "hover:scale-105 border-2 text-foreground"
@@ -280,7 +290,13 @@ export function FullCalendar({ discipline }: FullCalendarProps) {
                     ${isPast ? "opacity-50" : ""}
                   `}
                   style={
-                    !isCurrentDay && hasWorkoutValue && discipline
+                    todayHasWorkoutValue
+                      ? isPersonalized
+                        ? undefined
+                        : discipline
+                        ? { borderColor: discipline.color }
+                        : undefined
+                      : !isCurrentDay && hasWorkoutValue && !isPersonalized && discipline
                       ? {
                           borderColor: discipline.color,
                           backgroundColor: discipline.color + "18",
@@ -297,7 +313,7 @@ export function FullCalendar({ discipline }: FullCalendarProps) {
         </div>
 
         {/* Leyenda */}
-        <div className="flex items-center justify-between sm:justify-center gap-2 sm:gap-6 mt-6 pt-4 border-t border-border">
+        <div className="flex flex-wrap items-center justify-between sm:justify-center gap-2 sm:gap-6 mt-6 pt-4 border-t border-border">
           <div className="flex items-center gap-1 sm:gap-2">
             <div className="w-3 h-3 bg-primary rounded-full"></div>
             <span className="text-xs text-muted-foreground">Hoy</span>
@@ -318,6 +334,14 @@ export function FullCalendar({ discipline }: FullCalendarProps) {
               {discipline ? `Días de ${discipline.name}` : "Días de entrenamiento"}
             </span>
           </div>
+          {personalizedDays.length > 0 && (
+            <div className="flex items-center gap-1 sm:gap-2">
+              <div className="w-3 h-3 rounded-full border-2 bg-amber-500/20 border-amber-500/50"></div>
+              <span className="text-xs text-muted-foreground">
+                Personalizado
+              </span>
+            </div>
+          )}
           <div className="flex items-center gap-1 sm:gap-2">
             <div className="w-3 h-3 bg-background border-2 border-muted-foreground/40 rounded-full"></div>
             <span className="text-xs text-muted-foreground">Día libre</span>

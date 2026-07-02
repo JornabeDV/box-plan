@@ -120,16 +120,19 @@ export function usePlanifications(coachId?: string) {
         return { error: errorMessage }
       }
 
-      if (!planificationData.discipline_id) {
-        const errorMessage = 'ID de disciplina requerido'
-        setError(errorMessage)
-        return { error: errorMessage }
-      }
+      // Las planificaciones personalizadas no requieren disciplina ni nivel
+      if (!planificationData.is_personalized) {
+        if (!planificationData.discipline_id) {
+          const errorMessage = 'ID de disciplina requerido'
+          setError(errorMessage)
+          return { error: errorMessage }
+        }
 
-      if (!planificationData.discipline_level_id) {
-        const errorMessage = 'ID de nivel de disciplina requerido'
-        setError(errorMessage)
-        return { error: errorMessage }
+        if (!planificationData.discipline_level_id) {
+          const errorMessage = 'ID de nivel de disciplina requerido'
+          setError(errorMessage)
+          return { error: errorMessage }
+        }
       }
 
       if (!planificationData.date) {
