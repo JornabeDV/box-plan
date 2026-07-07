@@ -32,11 +32,24 @@ export function FullCalendar({ discipline }: FullCalendarProps) {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
-  const { datesWithPlanification, personalizedDays, loading } = useMonthPlanifications(
-    year,
-    month + 1,
-    discipline?.id ?? null
-  );
+  const {
+    datesWithPlanification,
+    personalizedDays,
+    loading,
+    year: dataYear,
+    month: dataMonth,
+    disciplineId: dataDisciplineId,
+  } = useMonthPlanifications(year, month + 1, discipline?.id ?? null);
+
+  // Solo usar los datos si corresponden al mes y disciplina que se está mostrando.
+  // Esto evita que, en cualquier escenario, se pinten días de otro mes/disciplina.
+  const dataMatchesView =
+    dataYear === year &&
+    dataMonth === month + 1 &&
+    dataDisciplineId === (discipline?.id ?? null);
+
+  const activeDates = dataMatchesView ? datesWithPlanification : [];
+  const activePersonalizedDays = dataMatchesView ? personalizedDays : [];
 
   // Obtener el primer día del mes y cuántos días tiene
   const firstDay = new Date(year, month, 1);
@@ -145,11 +158,11 @@ export function FullCalendar({ discipline }: FullCalendarProps) {
 
   // Verificar si un día tiene planificación
   const hasWorkout = (day: number) => {
-    return datesWithPlanification.includes(day);
+    return activeDates.includes(day);
   };
 
   const isPersonalizedDay = (day: number) => {
-    return personalizedDays.includes(day);
+    return activePersonalizedDays.includes(day);
   };
 
   // Verificar si es hoy
@@ -334,7 +347,7 @@ export function FullCalendar({ discipline }: FullCalendarProps) {
               {discipline ? `Días de ${discipline.name}` : "Días de entrenamiento"}
             </span>
           </div>
-          {personalizedDays.length > 0 && (
+          {activePersonalizedDays.length > 0 && (
             <div className="flex items-center gap-1 sm:gap-2">
               <div className="w-3 h-3 rounded-full border-2 bg-amber-500/20 border-amber-500/50"></div>
               <span className="text-xs text-muted-foreground">

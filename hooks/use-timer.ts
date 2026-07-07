@@ -196,7 +196,7 @@ export function useTimer({
 			}
 		}
 		if (mode === 'otm') {
-			const otmIntervalNum = (parseInt(workTime || '1') || 1) * 60
+			const otmIntervalNum = Math.max(60, (parseInt(workTime || '1') || 1) * 60)
 			const secondsIntoInterval = time % otmIntervalNum
 			// Últimos 3 segundos del intervalo - campana de conteo
 			if (secondsIntoInterval >= otmIntervalNum - 3 && secondsIntoInterval < otmIntervalNum) {
@@ -208,7 +208,7 @@ export function useTimer({
 	// Efecto para sonidos en cambios de fase (Tabata y AMRAP multipronda)
 	useEffect(() => {
 		if (!soundEnabled || !isRunning || isPaused || countdown) return
-		if (mode === 'tabata' || (mode === 'amrap' && parseInt(totalRounds || '1') > 1)) {
+		if (mode === 'tabata' || (mode === 'amrap' && Math.max(1, parseInt(totalRounds || '1')) > 1)) {
 			// Solo sonar cuando realmente cambia la fase, no en el render inicial
 			if (isWorkPhase !== prevIsWorkPhaseRef.current && prevIsRunningRef.current) {
 				playStartBeep()
@@ -231,7 +231,7 @@ export function useTimer({
 	// Inicializar tiempo de AMRAP cuando cambia el modo o el tiempo configurado
 	useEffect(() => {
 		if (mode === 'amrap' && !isRunning && !isPaused) {
-			const amrapTimeNum = parseInt(amrapTime) || 10
+			const amrapTimeNum = Math.max(1, parseInt(amrapTime) || 10)
 			const amrapTimeInSeconds = amrapTimeNum * 60
 			if (time === 0 || time === amrapInitialTime || time === parseInt(restTime || '60')) {
 				setTime(amrapTimeInSeconds)
@@ -253,7 +253,7 @@ export function useTimer({
 							setCountdown(null)
 							// Para AMRAP, establecer el tiempo inicial cuando termina la cuenta regresiva
 							if (mode === 'amrap') {
-								const amrapTimeNum = parseInt(amrapTime) || 10
+								const amrapTimeNum = Math.max(1, parseInt(amrapTime) || 10)
 								const amrapTimeInSeconds = amrapTimeNum * 60
 								setTime(amrapTimeInSeconds)
 								setAmrapInitialTime(amrapTimeInSeconds)
@@ -283,9 +283,9 @@ export function useTimer({
 					}
 
 					if (mode === 'amrap') {
-						const amrapTimeNum = parseInt(amrapTime) || 10
-						const restTimeNum = parseInt(restTime) || 60
-						const totalRoundsNum = parseInt(totalRounds) || 1
+						const amrapTimeNum = Math.max(1, parseInt(amrapTime) || 10)
+						const restTimeNum = Math.max(0, parseInt(restTime) || 60)
+						const totalRoundsNum = Math.max(1, parseInt(totalRounds) || 1)
 
 						// Si es una sola ronda, comportamiento clásico de AMRAP
 						if (totalRoundsNum <= 1) {
@@ -331,7 +331,7 @@ export function useTimer({
 
 					// Lógica FOR TIME: detener si se alcanza el time cap
 					if (mode === 'fortime') {
-						const forTimeCapNum = parseInt(forTimeCap || '0') || 0
+						const forTimeCapNum = Math.max(0, parseInt(forTimeCap || '0') || 0)
 						if (forTimeCapNum > 0 && newTime >= forTimeCapNum * 60) {
 							setIsRunning(false)
 							return forTimeCapNum * 60
@@ -339,8 +339,8 @@ export function useTimer({
 					}
 
 					if (mode === 'tabata') {
-						const workTimeNum = parseInt(workTime) || 20
-						const restTimeNum = parseInt(restTime) || 10
+						const workTimeNum = Math.max(1, parseInt(workTime) || 20)
+						const restTimeNum = Math.max(0, parseInt(restTime) || 10)
 						const totalWorkRest = workTimeNum + restTimeNum
 						const cycleTime = newTime % totalWorkRest
 
@@ -357,7 +357,7 @@ export function useTimer({
 							if (shouldBeWorkPhase) {
 								setCurrentRound(prev => {
 									const newRound = prev + 1
-									const totalRoundsNum = parseInt(totalRounds) || 8
+									const totalRoundsNum = Math.max(1, parseInt(totalRounds) || 8)
 									if (newRound > totalRoundsNum) {
 										setIsRunning(false)
 										return prev
@@ -370,7 +370,7 @@ export function useTimer({
 
 					// Lógica EMOM: incrementar ronda cada 60 segundos
 					if (mode === 'emom') {
-						const totalRoundsNum = parseInt(totalRounds) || 10
+						const totalRoundsNum = Math.max(1, parseInt(totalRounds) || 10)
 						const currentEmomRound = Math.floor(newTime / 60) + 1
 
 						if (currentEmomRound > totalRoundsNum) {
@@ -385,8 +385,8 @@ export function useTimer({
 
 					// Lógica OTM: incrementar ronda cada X minutos (configurable)
 					if (mode === 'otm') {
-						const totalRoundsNum = parseInt(totalRounds) || 10
-						const otmIntervalNum = (parseInt(workTime || '1') || 1) * 60 // Convertir minutos a segundos
+						const totalRoundsNum = Math.max(1, parseInt(totalRounds) || 10)
+						const otmIntervalNum = Math.max(60, (parseInt(workTime || '1') || 1) * 60) // Convertir minutos a segundos
 						const currentOtmRound = Math.floor(newTime / otmIntervalNum) + 1
 
 						if (currentOtmRound > totalRoundsNum) {
@@ -428,8 +428,8 @@ export function useTimer({
 
 	const getCurrentPhaseTime = () => {
 		if (mode === 'tabata') {
-			const workTimeNum = parseInt(workTime) || 20
-			const restTimeNum = parseInt(restTime) || 10
+			const workTimeNum = Math.max(1, parseInt(workTime) || 20)
+			const restTimeNum = Math.max(0, parseInt(restTime) || 10)
 			const totalWorkRest = workTimeNum + restTimeNum
 			const cycleTime = time % totalWorkRest
 
@@ -458,7 +458,7 @@ export function useTimer({
 
 	const getOtmCountdown = () => {
 		// OTM: cuenta regresiva desde el intervalo configurable (en minutos)
-		const otmIntervalNum = (parseInt(workTime || '1') || 1) * 60 // Convertir minutos a segundos
+		const otmIntervalNum = Math.max(60, (parseInt(workTime || '1') || 1) * 60) // Convertir minutos a segundos
 		const secondsIntoInterval = time % otmIntervalNum
 		return otmIntervalNum - secondsIntoInterval
 	}
@@ -501,7 +501,7 @@ export function useTimer({
 			return isWorkPhase ? 'TRABAJO' : 'DESCANSO'
 		}
 		if (mode === 'amrap') {
-			const totalRoundsNum = parseInt(totalRounds) || 1
+			const totalRoundsNum = Math.max(1, parseInt(totalRounds) || 1)
 			// Solo mostrar fase si hay múltiples rondas
 			if (totalRoundsNum > 1) {
 				return isWorkPhase ? 'TRABAJO' : 'DESCANSO'
@@ -515,7 +515,7 @@ export function useTimer({
 			return isWorkPhase ? 'text-primary' : 'text-green-500'
 		}
 		if (mode === 'amrap') {
-			const totalRoundsNum = parseInt(totalRounds) || 1
+			const totalRoundsNum = Math.max(1, parseInt(totalRounds) || 1)
 			// Solo cambiar color si hay múltiples rondas
 			if (totalRoundsNum > 1) {
 				return isWorkPhase ? 'text-primary' : 'text-green-500'
@@ -548,7 +548,7 @@ export function useTimer({
 
 	const handleReset = (resetToZero = false) => {
 		if (mode === 'amrap' && !resetToZero) {
-			const amrapTimeNum = parseInt(amrapTime) || 10
+			const amrapTimeNum = Math.max(1, parseInt(amrapTime) || 10)
 			const amrapTimeInSeconds = amrapTimeNum * 60
 			setTime(amrapTimeInSeconds)
 			setAmrapInitialTime(amrapTimeInSeconds)

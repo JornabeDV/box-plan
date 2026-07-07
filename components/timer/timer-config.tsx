@@ -5,6 +5,32 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TimerMode } from "@/hooks/use-timer";
 
+function sanitizePositiveInt(
+  value: string,
+  options: { max?: number; min?: number; allowEmpty?: boolean } = {}
+): string {
+  const { max, min = 1, allowEmpty = false } = options;
+
+  if (value === "") {
+    return allowEmpty ? "" : String(min);
+  }
+
+  // Rechazar signos negativos, decimales y caracteres no numéricos
+  if (!/^\d+$/.test(value)) {
+    return String(min);
+  }
+
+  const num = parseInt(value, 10);
+  if (Number.isNaN(num)) {
+    return String(min);
+  }
+
+  if (num < min) return String(min);
+  if (max !== undefined && num > max) return String(max);
+
+  return value;
+}
+
 interface TimerConfigProps {
   mode: TimerMode;
   workTime: string;
@@ -51,13 +77,9 @@ export function TimerConfig({
                 type="number"
                 value={workTime}
                 onChange={(e) => {
-                  const value = e.target.value;
-                  if (
-                    value === "" ||
-                    (value.length <= 3 && parseInt(value) <= 999)
-                  ) {
-                    onWorkTimeChange(value);
-                  }
+                  onWorkTimeChange(
+                    sanitizePositiveInt(e.target.value, { min: 1, max: 999 })
+                  );
                 }}
                 min="1"
                 max="999"
@@ -71,13 +93,9 @@ export function TimerConfig({
                 type="number"
                 value={restTime}
                 onChange={(e) => {
-                  const value = e.target.value;
-                  if (
-                    value === "" ||
-                    (value.length <= 3 && parseInt(value) <= 999)
-                  ) {
-                    onRestTimeChange(value);
-                  }
+                  onRestTimeChange(
+                    sanitizePositiveInt(e.target.value, { min: 1, max: 999 })
+                  );
                 }}
                 min="1"
                 max="999"
@@ -92,13 +110,9 @@ export function TimerConfig({
               type="number"
               value={totalRounds}
               onChange={(e) => {
-                const value = e.target.value;
-                if (
-                  value === "" ||
-                  (value.length <= 2 && parseInt(value) <= 99)
-                ) {
-                  onTotalRoundsChange(value);
-                }
+                onTotalRoundsChange(
+                  sanitizePositiveInt(e.target.value, { min: 1, max: 99 })
+                );
               }}
               min="1"
               max="20"
@@ -126,13 +140,9 @@ export function TimerConfig({
               type="number"
               value={amrapTime}
               onChange={(e) => {
-                const value = e.target.value;
-                if (
-                  value === "" ||
-                  (value.length <= 3 && parseInt(value) <= 999)
-                ) {
-                  onAmrapTimeChange(value);
-                }
+                onAmrapTimeChange(
+                  sanitizePositiveInt(e.target.value, { min: 1, max: 999 })
+                );
               }}
               min="1"
               max="999"
@@ -147,13 +157,9 @@ export function TimerConfig({
               type="number"
               value={totalRounds}
               onChange={(e) => {
-                const value = e.target.value;
-                if (
-                  value === "" ||
-                  (value.length <= 2 && parseInt(value) <= 99)
-                ) {
-                  onTotalRoundsChange(value);
-                }
+                onTotalRoundsChange(
+                  sanitizePositiveInt(e.target.value, { min: 1, max: 99 })
+                );
               }}
               min="1"
               max="99"
@@ -169,13 +175,9 @@ export function TimerConfig({
                 type="number"
                 value={restTime}
                 onChange={(e) => {
-                  const value = e.target.value;
-                  if (
-                    value === "" ||
-                    (value.length <= 3 && parseInt(value) <= 999)
-                  ) {
-                    onRestTimeChange(value);
-                  }
+                  onRestTimeChange(
+                    sanitizePositiveInt(e.target.value, { min: 0, max: 999 })
+                  );
                 }}
                 min="0"
                 max="999"
@@ -203,13 +205,9 @@ export function TimerConfig({
               type="number"
               value={totalRounds}
               onChange={(e) => {
-                const value = e.target.value;
-                if (
-                  value === "" ||
-                  (value.length <= 2 && parseInt(value) <= 99)
-                ) {
-                  onTotalRoundsChange(value);
-                }
+                onTotalRoundsChange(
+                  sanitizePositiveInt(e.target.value, { min: 1, max: 99 })
+                );
               }}
               min="1"
               max="99"
@@ -236,13 +234,13 @@ export function TimerConfig({
               type="number"
               value={forTimeCap}
               onChange={(e) => {
-                const value = e.target.value;
-                if (
-                  value === "" ||
-                  (value.length <= 3 && parseInt(value) <= 999)
-                ) {
-                  onForTimeCapChange(value);
-                }
+                onForTimeCapChange(
+                  sanitizePositiveInt(e.target.value, {
+                    min: 1,
+                    max: 999,
+                    allowEmpty: true,
+                  })
+                );
               }}
               min="1"
               max="999"
@@ -273,13 +271,9 @@ export function TimerConfig({
               type="number"
               value={totalRounds}
               onChange={(e) => {
-                const value = e.target.value;
-                if (
-                  value === "" ||
-                  (value.length <= 2 && parseInt(value) <= 99)
-                ) {
-                  onTotalRoundsChange(value);
-                }
+                onTotalRoundsChange(
+                  sanitizePositiveInt(e.target.value, { min: 1, max: 99 })
+                );
               }}
               min="1"
               max="99"
@@ -294,13 +288,9 @@ export function TimerConfig({
               type="number"
               value={workTime}
               onChange={(e) => {
-                const value = e.target.value;
-                if (
-                  value === "" ||
-                  (value.length <= 2 && parseInt(value) <= 99)
-                ) {
-                  onWorkTimeChange(value);
-                }
+                onWorkTimeChange(
+                  sanitizePositiveInt(e.target.value, { min: 1, max: 60 })
+                );
               }}
               min="1"
               max="60"

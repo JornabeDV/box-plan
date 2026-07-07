@@ -14,7 +14,6 @@ import { ReviewsSection } from "@/components/home/reviews-section";
 import { CoachInfoCard } from "@/components/dashboard/coach-info-card";
 import { CoachSelector } from "@/components/auth/coach-selector";
 import { TrialCalendar } from "@/components/dashboard/trial-calendar";
-import { StudentWhatsAppButton } from "@/components/dashboard/student-whatsapp-button";
 import { useCurrentUserPreferences } from "@/hooks/use-current-user-preferences";
 import { useUserDisciplines } from "@/hooks/use-user-disciplines";
 import {
@@ -625,7 +624,10 @@ export default function BoxPlanApp() {
         {/* Información del coach */}
         {user?.id && !coachLoading && userCoach && (
           <section>
-            <CoachInfoCard coach={userCoach} />
+            <CoachInfoCard
+              coach={userCoach}
+              showWhatsAppButton={canUseWhatsAppSupport}
+            />
           </section>
         )}
 
@@ -673,16 +675,6 @@ export default function BoxPlanApp() {
       </main>
 
       <BottomNavigation />
-
-      {!coachLoading &&
-        !subscriptionLoading &&
-        userCoach &&
-        canUseWhatsAppSupport && (
-          <StudentWhatsAppButton
-            phone={userCoach.phone}
-            coachName={userCoach.name}
-          />
-        )}
     </div>
     </RequireActiveSubscription>
   );
