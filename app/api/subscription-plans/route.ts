@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isCoach, normalizeUserId } from '@/lib/auth-helpers'
+import { isCoach, normalizeUserId } from '@/lib/auth-server-helpers'
 import { getPlanificationAccess, type StudentPlanTier } from '@/lib/coach-plan-features'
 import { nanoid } from 'nanoid'
 
@@ -27,8 +27,7 @@ export async function GET(request: NextRequest) {
             select: {
               id: true,
               businessName: true,
-              phone: true,
-              user: { select: { name: true, email: true } }
+              user: { select: { name: true } }
             }
           },
           _count: { select: { subscriptions: true } }
@@ -99,8 +98,7 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             businessName: true,
-            phone: true,
-            user: { select: { name: true, email: true } }
+            user: { select: { name: true } }
           }
         },
         _count: { select: { subscriptions: true } }

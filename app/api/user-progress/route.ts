@@ -24,7 +24,8 @@ export async function PUT(request: NextRequest) {
     const { user_id, planification_id, coach_id, progress_data, notes, completed_at } = body
     
     // Verificar que el usuario solo pueda modificar su propio progreso
-    if (user_id !== userId) {
+    const targetUserId = normalizeUserId(user_id)
+    if (targetUserId !== userId) {
       return NextResponse.json({ error: 'No puedes modificar el progreso de otro usuario' }, { status: 403 })
     }
 

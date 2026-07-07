@@ -75,8 +75,12 @@ export async function POST(request: NextRequest) {
     const studentName = user.name || user.email
     const coachName = relationship.coach.businessName || relationship.coach.user.name || 'Coach'
 
+    const cleanedPhone = coachPhone.replace(/[^\d+]/g, '').replace(/\+/g, '')
+    const text = `Hola ${coachName}, soy ${studentName}. Olvidé mi contraseña de BoxPlan, ¿me la podés resetear?`
+    const whatsappUrl = `https://wa.me/${cleanedPhone}?text=${encodeURIComponent(text)}`
+
     return NextResponse.json({
-      coachPhone,
+      whatsappUrl,
       studentName,
       coachName
     })

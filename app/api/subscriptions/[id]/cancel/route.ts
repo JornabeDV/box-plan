@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isCoach, normalizeUserId } from '@/lib/auth-helpers'
+import { isCoach, normalizeUserId } from '@/lib/auth-server-helpers'
 
 // PATCH /api/subscriptions/[id]/cancel
 export async function PATCH(
@@ -21,30 +21,51 @@ export async function PATCH(
 
     const subscriptionId = parseInt(params.id, 10)
 
-    // Verificar si el usuario es coach
+    // Obtener la suscripción para verificar propiedad
+    const subscription = await prisma.subscription.findUnique({
+      where: { id: subscriptionId },
+      select: { id: true, userId: true }
+    })
+
+    if (!subscription) {
+      return NextResponse.json(
+        { error: 'Suscripción no encontrada' },
+        { status: 404 }
+      )
+    }
+
+    // Verificar autorización
     const authCheck = await isCoach(userId)
     const isCoachUser = authCheck.isAuthorized
 
-    // Si es coach, puede cancelar cualquier suscripción
-    // Si no es coach, solo puede cancelar su propia suscripción
-    const whereClause = isCoachUser
-      ? { id: subscriptionId }
-      : { id: subscriptionId, userId }
+    let canCancel = false
+    if (subscription.userId === userId) {
+      canCancel = true
+    } else if (isCoachUser && authCheck.profile) {
+      const relationship = await prisma.coachStudentRelationship.findFirst({
+        where: {
+          coachId: authCheck.profile.id,
+          studentId: subscription.userId,
+          status: 'active'
+        }
+      })
+      canCancel = !!relationship
+    }
+
+    if (!canCancel) {
+      return NextResponse.json(
+        { error: 'No autorizado para cancelar esta suscripción' },
+        { status: 403 }
+      )
+    }
 
     try {
-      const updated = await prisma.subscription.updateMany({
-        where: whereClause,
+      await prisma.subscription.update({
+        where: { id: subscriptionId },
         data: {
           cancelAtPeriodEnd: true
         }
       })
-
-      if (updated.count === 0) {
-        return NextResponse.json(
-          { error: 'Suscripción no encontrada o no autorizado' },
-          { status: 404 }
-        )
-      }
 
       return NextResponse.json({ success: true })
     } catch (error) {

@@ -51,9 +51,9 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
         return
       }
 
-      const { coachPhone, studentName, coachName } = await response.json()
+      const { whatsappUrl, studentName, coachName } = await response.json()
 
-      if (!coachPhone) {
+      if (!whatsappUrl) {
         setMessage({
           type: 'error',
           text: 'No se encontró información. Verificá tu email o contactá a tu coach directamente.'
@@ -61,10 +61,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
         return
       }
 
-      const text = `Hola ${coachName}, soy ${studentName}. Olvidé mi contraseña de BoxPlan, ¿me la podés resetear?`
-      const waUrl = `https://wa.me/${coachPhone}?text=${encodeURIComponent(text)}`
-
-      window.location.href = waUrl
+      window.location.href = whatsappUrl
     } catch (err) {
       setMessage({
         type: 'error',

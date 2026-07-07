@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { normalizeUserId, isCoach } from '@/lib/auth-helpers'
+import { normalizeUserId, isCoach } from '@/lib/auth-server-helpers'
 import * as XLSX from 'xlsx'
 
 export const dynamic = 'force-dynamic'
@@ -36,7 +36,7 @@ export async function POST(
       include: {
         discipline: { select: { id: true, name: true, color: true } },
         disciplineLevel: { select: { id: true, name: true, description: true } },
-        targetUser: { select: { id: true, name: true, email: true } },
+        targetUser: { select: { id: true, name: true } },
         blocks: {
           orderBy: { order: 'asc' },
           include: {

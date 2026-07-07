@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { isCoach, isAnyAdmin, normalizeUserId } from '@/lib/auth-server-helpers'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -11,7 +12,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const coachId = searchParams.get('coachId')
 
-    if (!session?.user?.id) {
+    const userId = normalizeUserId(session?.user?.id)
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -23,6 +25,16 @@ export async function GET(request: NextRequest) {
     const coachIdNum = parseInt(coachId, 10)
     if (isNaN(coachIdNum)) {
       return NextResponse.json({ error: 'Invalid coach ID' }, { status: 400 })
+    }
+
+    // Verificar que el usuario autenticado sea el coach solicitado o un administrador
+    const [authCheck, adminCheck] = await Promise.all([
+      isCoach(userId),
+      isAnyAdmin(userId)
+    ])
+
+    if (!adminCheck && (!authCheck.isAuthorized || authCheck.profile!.id !== coachIdNum)) {
+      return NextResponse.json({ error: 'No autorizado para ver estos estudiantes' }, { status: 403 })
     }
 
     try {

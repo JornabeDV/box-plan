@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { isCoach, normalizeUserId } from '@/lib/auth-server-helpers'
 
 // GET /api/disciplines/[id]
 export async function GET(
@@ -79,8 +80,14 @@ export async function PATCH(
 ) {
 	try {
 		const session = await auth()
-		if (!session?.user?.id) {
+		const userId = normalizeUserId(session?.user?.id)
+		if (!userId) {
 			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+		}
+
+		const authCheck = await isCoach(userId)
+		if (!authCheck.isAuthorized) {
+			return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
 		}
 
 		const disciplineId = parseInt(params.id)
@@ -100,6 +107,13 @@ export async function PATCH(
 			return NextResponse.json(
 				{ error: 'Disciplina no encontrada' },
 				{ status: 404 }
+			)
+		}
+
+		if (existing.coachId !== (authCheck.profile as any).id) {
+			return NextResponse.json(
+				{ error: 'No autorizado para modificar esta disciplina' },
+				{ status: 403 }
 			)
 		}
 
@@ -308,11 +322,36 @@ export async function DELETE(
 ) {
 	try {
 		const session = await auth()
-		if (!session?.user?.id) {
+		const userId = normalizeUserId(session?.user?.id)
+		if (!userId) {
 			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 		}
 
+		const authCheck = await isCoach(userId)
+		if (!authCheck.isAuthorized) {
+			return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+		}
+
 		const disciplineId = parseInt(params.id)
+
+		const existing = await prisma.discipline.findFirst({
+			where: { id: disciplineId },
+			select: { coachId: true }
+		})
+
+		if (!existing) {
+			return NextResponse.json(
+				{ error: 'Disciplina no encontrada' },
+				{ status: 404 }
+			)
+		}
+
+		if (existing.coachId !== (authCheck.profile as any).id) {
+			return NextResponse.json(
+				{ error: 'No autorizado para eliminar esta disciplina' },
+				{ status: 403 }
+			)
+		}
 
 		// Verificar si hay usuarios con preferencias vinculadas a esta disciplina
 		const usersWithDisciplinePreference = await prisma.userPreference.findMany({

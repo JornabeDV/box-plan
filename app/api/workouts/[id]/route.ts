@@ -27,12 +27,20 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return NextResponse.json({ error: 'No updates provided' }, { status: 400 })
     }
 
-    const result = await prisma.workout.update({
-      where: { id: workoutId },
+    const result = await prisma.workout.updateMany({
+      where: { id: workoutId, userId },
       data: updateData
     })
 
-    return NextResponse.json(result)
+    if (result.count === 0) {
+      return NextResponse.json({ error: 'Workout no encontrado o no autorizado' }, { status: 404 })
+    }
+
+    const updatedWorkout = await prisma.workout.findFirst({
+      where: { id: workoutId, userId }
+    })
+
+    return NextResponse.json(updatedWorkout)
   } catch (error) {
     console.error('Error updating workout:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

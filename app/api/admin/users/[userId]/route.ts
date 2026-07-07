@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
-import { isCoach } from '@/lib/auth-helpers'
+import { isCoach } from '@/lib/auth-server-helpers'
 
 // PATCH /api/admin/users/[userId]
 export async function PATCH(

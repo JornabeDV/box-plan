@@ -193,7 +193,7 @@ export async function GET(request: NextRequest) {
         workout: {
           include: {
             user: {
-              select: { id: true, name: true, email: true }
+              select: { id: true, name: true }
             }
           }
         }

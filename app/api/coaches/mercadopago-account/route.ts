@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * Endpoint para actualizar manualmente el Account ID de MercadoPago
  * Útil como alternativa al OAuth o para correcciones manuales

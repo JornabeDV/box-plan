@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { normalizeUserId, isCoach, isCoachOfStudent } from '@/lib/auth-server-helpers'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -12,14 +13,23 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
 
-    if (!session?.user?.id && !userId) {
+    const sessionUserId = normalizeUserId(session?.user?.id)
+    if (!sessionUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const targetUserId = userId ? parseInt(userId) : session?.user?.id
+    const targetUserId = userId ? parseInt(userId, 10) : sessionUserId
 
-    if (!targetUserId) {
+    if (!targetUserId || isNaN(targetUserId)) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 })
+    }
+
+    // Verificar propiedad: solo el propio usuario o su coach pueden ver las estadísticas
+    if (targetUserId !== sessionUserId) {
+      const coachCheck = await isCoach(sessionUserId)
+      if (!coachCheck.isAuthorized || !(await isCoachOfStudent(coachCheck.profile!.id, targetUserId))) {
+        return NextResponse.json({ error: 'No autorizado para ver estas estadísticas' }, { status: 403 })
+      }
     }
 
     const workouts = await prisma.workout.findMany({

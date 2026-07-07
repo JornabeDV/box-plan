@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { normalizeUserId } from '@/lib/auth-helpers'
+import { normalizeUserId, isCoach, isCoachOfStudent } from '@/lib/auth-server-helpers'
 import { requireProgressTracking } from '@/lib/api-feature-guards'
 
 // GET /api/rms?userId=xxx
@@ -12,14 +12,22 @@ export async function GET(request: NextRequest) {
 		const userId = searchParams.get('userId')
 
 		const sessionUserId = normalizeUserId(session?.user?.id)
-		if (!sessionUserId && !userId) {
+		if (!sessionUserId) {
 			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 		}
 
 		const targetUserId = userId ? parseInt(userId, 10) : sessionUserId
 
-		if (!targetUserId) {
+		if (!targetUserId || isNaN(targetUserId)) {
 			return NextResponse.json({ error: 'User ID required' }, { status: 400 })
+		}
+
+		// Verificar propiedad: solo el propio usuario o su coach pueden ver los RM
+		if (targetUserId !== sessionUserId) {
+			const coachCheck = await isCoach(sessionUserId)
+			if (!coachCheck.isAuthorized || !(await isCoachOfStudent(coachCheck.profile!.id, targetUserId))) {
+				return NextResponse.json({ error: 'No autorizado para ver estos récords' }, { status: 403 })
+			}
 		}
 
 		const rmRecords = await prisma.rMRecord.findMany({

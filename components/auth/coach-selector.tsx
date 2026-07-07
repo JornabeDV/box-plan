@@ -9,18 +9,9 @@ import { Input } from '@/components/ui/input'
 
 interface Coach {
 	id: number
-	userId: number
 	name: string
-	email: string
 	image: string | null
 	businessName: string | null
-	phone: string | null
-	address: string | null
-	maxStudents: number
-	currentStudentCount: number
-	availableSlots: number
-	hasCapacity: boolean
-	hasActiveSubscription: boolean
 }
 
 interface CoachSelectorProps {
