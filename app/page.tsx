@@ -557,7 +557,7 @@ export default function BoxPlanApp() {
           <section>
             <Button
               variant="outline"
-              className="w-full h-auto py-3"
+              className="w-full h-auto py-3 rounded-none bg-primary/5 border-primary/50 text-primary hover:bg-primary/10 uppercase tracking-[0.15em] font-bold"
               onClick={() => router.push("/calendar")}
             >
               <Calendar className="w-4 h-4 mr-2" />
