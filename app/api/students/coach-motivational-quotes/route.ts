@@ -3,6 +3,8 @@ import { auth } from '@/lib/auth'
 import { normalizeUserId } from '@/lib/auth-helpers'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/students/coach-motivational-quotes
  * Obtiene las frases motivacionales del coach del estudiante autenticado

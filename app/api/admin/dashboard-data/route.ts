@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { normalizeUserId } from '@/lib/auth-helpers'
+import { normalizeUserId, isCoach, isAnyAdmin } from '@/lib/auth-server-helpers'
 
 // Forzar modo dinámico para evitar errores en build time
 // Estas configuraciones aseguran que la ruta nunca se pre-renderice
@@ -62,6 +62,16 @@ export async function GET(request: NextRequest) {
 
 		if (!coachId) {
 			return NextResponse.json({ error: 'No autorizado. Solo coaches pueden acceder.' }, { status: 403 })
+		}
+
+		// Verificar que el usuario autenticado sea el coach solicitado o un administrador
+		const [authCheck, adminCheck] = await Promise.all([
+			isCoach(userId),
+			isAnyAdmin(userId)
+		])
+
+		if (!adminCheck && (!authCheck.isAuthorized || authCheck.profile!.id !== coachId)) {
+			return NextResponse.json({ error: 'No autorizado para ver este dashboard' }, { status: 403 })
 		}
 
 		// Obtener qué datos incluir (por defecto todos)

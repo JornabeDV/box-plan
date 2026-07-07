@@ -40,9 +40,18 @@ export async function requireFeature(
     return { allowed: true }
   } catch (error) {
     console.error(`Error al validar feature ${feature}:`, error)
-    // En caso de error, permitir el acceso para no bloquear al usuario por problemas técnicos
-    // pero loguear el error para investigación
-    return { allowed: true }
+    // En caso de error de base de datos, fallar cerrado por seguridad
+    return {
+      allowed: false,
+      response: NextResponse.json(
+        { 
+          error: `No se pudo validar la funcionalidad de ${featureName}. Intentá nuevamente más tarde.`,
+          code: 'FEATURE_VALIDATION_ERROR',
+          feature: feature
+        },
+        { status: 503 }
+      )
+    }
   }
 }
 

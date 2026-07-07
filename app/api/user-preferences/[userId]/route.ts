@@ -3,17 +3,27 @@ import { revalidateTag } from 'next/cache'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getCachedUserPreferences } from '@/lib/cache'
+import { normalizeUserId } from '@/lib/auth-helpers'
+
+function canManagePreferences(sessionUserId: number, targetUserId: number) {
+  return sessionUserId === targetUserId
+}
 
 // GET /api/user-preferences/[userId]
 export async function GET(request: NextRequest, { params }: { params: { userId: string } }) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    const sessionUserId = normalizeUserId(session?.user?.id)
+    if (!sessionUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const userId = parseInt(params.userId)
+    if (!canManagePreferences(sessionUserId, userId)) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+    }
+
     const result = await getCachedUserPreferences(userId)
 
     const response = NextResponse.json(result)
@@ -30,13 +40,18 @@ export async function PUT(request: NextRequest, { params }: { params: { userId: 
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    const sessionUserId = normalizeUserId(session?.user?.id)
+    if (!sessionUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const userId = parseInt(params.userId)
+    if (!canManagePreferences(sessionUserId, userId)) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
 
     const body = await request.json()
     const { preferred_discipline_id, preferred_level_id } = body
-    const userId = parseInt(params.userId)
 
     // Convertir preferred_discipline_id y preferred_level_id a números enteros
     const preferredDisciplineIdNum = preferred_discipline_id 
@@ -117,12 +132,18 @@ export async function DELETE(request: NextRequest, { params }: { params: { userI
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    const sessionUserId = normalizeUserId(session?.user?.id)
+    if (!sessionUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const userId = parseInt(params.userId)
+    if (!canManagePreferences(sessionUserId, userId)) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+    }
+
     await prisma.userPreference.delete({
-      where: { userId: parseInt(params.userId) }
+      where: { userId }
     }).catch(() => {
       // Si no existe, no es un error
     })

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isCoach, normalizeUserId } from '@/lib/auth-helpers'
+import { isCoach, normalizeUserId } from '@/lib/auth-server-helpers'
 
 // PATCH /api/disciplines/levels/[id]
 export async function PATCH(
@@ -93,8 +93,14 @@ export async function DELETE(
 ) {
 	try {
 		const session = await auth()
-		if (!session?.user?.id) {
+		const userId = normalizeUserId(session?.user?.id)
+		if (!userId) {
 			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+		}
+
+		const authCheck = await isCoach(userId)
+		if (!authCheck.isAuthorized) {
+			return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
 		}
 
 		const levelId = parseInt(params.id)
@@ -106,9 +112,14 @@ export async function DELETE(
 			)
 		}
 
-		// Verificar que el nivel existe
-		const existingLevel = await prisma.disciplineLevel.findUnique({
-			where: { id: levelId },
+		// Verificar que el nivel existe y pertenece al coach autenticado
+		const existingLevel = await prisma.disciplineLevel.findFirst({
+			where: {
+				id: levelId,
+				discipline: {
+					coachId: (authCheck.profile as any).id
+				}
+			},
 			select: { id: true, disciplineId: true }
 		})
 

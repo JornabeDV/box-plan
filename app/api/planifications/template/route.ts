@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { normalizeUserId, isCoach } from '@/lib/auth-helpers'
+import { normalizeUserId, isCoach } from '@/lib/auth-server-helpers'
 import * as XLSX from 'xlsx'
 
 export const dynamic = 'force-dynamic'

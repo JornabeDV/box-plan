@@ -4,6 +4,8 @@ import { normalizeUserId } from '@/lib/auth-helpers'
 import { prisma } from '@/lib/prisma'
 import { deleteImageFromCloudinary, isCloudinaryUrl } from '@/lib/cloudinary'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * PUT /api/coaches/logo
  * Actualiza el logo del coach

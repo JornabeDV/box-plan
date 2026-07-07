@@ -3,6 +3,8 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { MercadoPagoConfig, OAuth } from 'mercadopago'
 
+export const dynamic = 'force-dynamic'
+
 function getBaseUrl(request: NextRequest): string {
   const envUrl = process.env.NEXT_PUBLIC_APP_URL
   if (envUrl) return envUrl.replace(/\/$/, '')

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isCoach, normalizeUserId } from '@/lib/auth-helpers'
+import { isCoach, isAnyAdmin, normalizeUserId } from '@/lib/auth-server-helpers'
 
 // POST /api/subscriptions
 export async function POST(request: NextRequest) {
@@ -46,47 +46,59 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Determinar el coachId
+    // Determinar autorización y coachId asociado
     let coachIdNum: number | null = null
-    
-    // Si viene explícitamente en el body, usarlo
-    if (coach_id !== undefined && coach_id !== null) {
-      const parsedCoachId = typeof coach_id === 'string' ? parseInt(coach_id, 10) : coach_id
-      if (!isNaN(parsedCoachId) && typeof parsedCoachId === 'number') {
-        coachIdNum = parsedCoachId
+
+    const [authCheck, adminCheck] = await Promise.all([
+      isCoach(userId),
+      isAnyAdmin(userId)
+    ])
+
+    if (adminCheck) {
+      // Los administradores pueden crear suscripciones para cualquier usuario,
+      // pero solo usamos coach_id del body si es un número válido.
+      if (coach_id !== undefined && coach_id !== null) {
+        const parsedCoachId = typeof coach_id === 'string' ? parseInt(coach_id, 10) : coach_id
+        if (!isNaN(parsedCoachId) && typeof parsedCoachId === 'number') {
+          coachIdNum = parsedCoachId
+        }
       }
+    } else if (authCheck.isAuthorized && authCheck.profile) {
+      // El usuario autenticado es coach: solo puede crear suscripciones para sus estudiantes
+      const relationship = await prisma.coachStudentRelationship.findFirst({
+        where: {
+          coachId: authCheck.profile.id,
+          studentId: userIdNum,
+          status: 'active'
+        }
+      })
+
+      if (!relationship) {
+        return NextResponse.json(
+          { error: 'No autorizado para crear suscripciones para este usuario' },
+          { status: 403 }
+        )
+      }
+
+      coachIdNum = authCheck.profile.id
     } else {
-      // Si no viene en el body, buscar el coach asociado al estudiante
-      // Primero verificar si el usuario autenticado es coach
-      const authCheck = await isCoach(userId)
-      if (authCheck.isAuthorized && authCheck.profile) {
-        const coachId = authCheck.profile.id
-        
-        // Verificar que el estudiante esté asociado a este coach
-        const relationship = await prisma.coachStudentRelationship.findFirst({
-          where: {
-            coachId: coachId,
-            studentId: userIdNum,
-            status: 'active'
-          }
-        })
-        
-        if (relationship) {
-          coachIdNum = coachId
+      // Usuario común: solo puede crear su propia suscripción
+      if (userIdNum !== userId) {
+        return NextResponse.json(
+          { error: 'No autorizado para crear suscripciones para otro usuario' },
+          { status: 403 }
+        )
+      }
+
+      const studentRelationship = await prisma.coachStudentRelationship.findFirst({
+        where: {
+          studentId: userIdNum,
+          status: 'active'
         }
-      } else {
-        // Si el usuario autenticado no es coach, buscar el coach del estudiante
-        // (esto ocurre cuando un estudiante crea su propia suscripción)
-        const studentRelationship = await prisma.coachStudentRelationship.findFirst({
-          where: {
-            studentId: userIdNum,
-            status: 'active'
-          }
-        })
-        
-        if (studentRelationship) {
-          coachIdNum = studentRelationship.coachId
-        }
+      })
+
+      if (studentRelationship) {
+        coachIdNum = studentRelationship.coachId
       }
     }
 
@@ -99,6 +111,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Plan no encontrado' },
         { status: 404 }
+      )
+    }
+
+    // Verificar que el plan pertenezca al coach o sea global (excepto para admins)
+    if (!adminCheck && plan.coachId !== null && plan.coachId !== coachIdNum) {
+      return NextResponse.json(
+        { error: 'No autorizado para asignar este plan' },
+        { status: 403 }
       )
     }
 

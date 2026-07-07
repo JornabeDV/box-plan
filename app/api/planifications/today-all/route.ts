@@ -81,7 +81,6 @@ function transformPlanificationResponse(p: any) {
       ? {
           id: String(p.targetUser.id),
           name: p.targetUser.name,
-          email: p.targetUser.email,
         }
       : null,
     created_at: p.createdAt.toISOString(),
@@ -256,7 +255,7 @@ export async function GET(request: NextRequest) {
         },
         include: {
           ...planificationInclude,
-          targetUser: { select: { id: true, name: true, email: true } },
+          targetUser: { select: { id: true, name: true } },
         },
         orderBy: { date: 'asc' },
       })

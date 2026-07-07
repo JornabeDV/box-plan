@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { revalidateTag } from 'next/cache'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { normalizeUserId, isCoach } from '@/lib/auth-helpers'
+import { normalizeUserId, isCoach } from '@/lib/auth-server-helpers'
 import { getCachedCoachProfile } from '@/lib/cache'
 
 /**

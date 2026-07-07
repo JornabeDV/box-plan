@@ -2,7 +2,7 @@ import { revalidateTag } from 'next/cache'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { normalizeUserId, isCoach } from '@/lib/auth-helpers'
+import { normalizeUserId, isCoach } from '@/lib/auth-server-helpers'
 import { normalizeDateForArgentina } from '@/lib/utils'
 import {
   getCoachPlanificationWeeks,
@@ -89,7 +89,6 @@ function transformPlanificationResponse(p: any) {
       ? {
           id: String(p.targetUser.id),
           name: p.targetUser.name,
-          email: p.targetUser.email,
         }
       : null,
     created_at: p.createdAt.toISOString(),
@@ -163,7 +162,7 @@ export async function GET(request: NextRequest) {
           disciplineLevel: {
             select: { id: true, name: true, description: true },
           },
-          targetUser: { select: { id: true, name: true, email: true } },
+          targetUser: { select: { id: true, name: true } },
           blocks: {
             orderBy: { order: 'asc' },
             include: {
@@ -286,7 +285,7 @@ export async function GET(request: NextRequest) {
         },
         include: {
           ...planificationInclude,
-          targetUser: { select: { id: true, name: true, email: true } },
+          targetUser: { select: { id: true, name: true } },
         },
         orderBy: { date: 'asc' },
       })
@@ -765,7 +764,7 @@ export async function POST(request: NextRequest) {
           disciplineLevel: {
             select: { id: true, name: true, description: true },
           },
-          targetUser: { select: { id: true, name: true, email: true } },
+          targetUser: { select: { id: true, name: true } },
         },
       })
 
@@ -835,7 +834,7 @@ export async function POST(request: NextRequest) {
         disciplineLevel: {
           select: { id: true, name: true, description: true },
         },
-        targetUser: { select: { id: true, name: true, email: true } },
+        targetUser: { select: { id: true, name: true } },
         blocks: {
           orderBy: { order: 'asc' },
           include: {

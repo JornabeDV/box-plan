@@ -2,7 +2,7 @@ import { revalidateTag } from 'next/cache'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isCoach, normalizeUserId } from '@/lib/auth-helpers'
+import { isCoach, normalizeUserId } from '@/lib/auth-server-helpers'
 import { normalizeDateForArgentina } from '@/lib/utils'
 
 function normalizeItem(item: any): {
@@ -93,7 +93,6 @@ function transformPlanificationResponse(p: any) {
       ? {
           id: String(p.targetUser.id),
           name: p.targetUser.name,
-          email: p.targetUser.email,
         }
       : null,
     created_at: p.createdAt.toISOString(),
@@ -271,7 +270,7 @@ export async function PATCH(
         disciplineLevel: {
           select: { id: true, name: true, description: true },
         },
-        targetUser: { select: { id: true, name: true, email: true } },
+        targetUser: { select: { id: true, name: true } },
         blocks: {
           orderBy: { order: 'asc' },
           include: {

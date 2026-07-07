@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isCoach, normalizeUserId } from '@/lib/auth-helpers'
+import { isCoach, normalizeUserId } from '@/lib/auth-server-helpers'
 import { nanoid } from 'nanoid'
 
 // GET /api/subscription-plans/[id]
@@ -23,8 +23,7 @@ export async function GET(
           select: {
             id: true,
             businessName: true,
-            phone: true,
-            user: { select: { name: true, email: true } }
+            user: { select: { name: true } }
           }
         },
         _count: { select: { subscriptions: true } }

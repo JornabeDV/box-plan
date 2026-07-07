@@ -36,9 +36,7 @@ export async function GET(request: NextRequest) {
 			include: {
 				user: {
 					select: {
-						id: true,
 						name: true,
-						email: true,
 						image: true
 					}
 				},
@@ -74,18 +72,11 @@ export async function GET(request: NextRequest) {
 
 				return {
 					id: coach.id,
-					userId: coach.userId,
 					name: coach.user.name,
-					email: coach.user.email,
 					image: coach.user.image,
 					businessName: coach.businessName,
-					phone: coach.phone,
-					address: coach.address,
-					maxStudents: coach.maxStudents,
-					currentStudentCount: activeStudentsCount,
-					availableSlots,
 					hasCapacity,
-					hasActiveSubscription: coach.subscriptions.length > 0 || coach.trialEndsAt !== null
+					availableSlots
 				}
 			})
 			.filter(coach => coach.hasCapacity) // Solo coaches con capacidad disponible
@@ -96,6 +87,7 @@ export async function GET(request: NextRequest) {
 				}
 				return (a.name || '').localeCompare(b.name || '')
 			})
+			.map(({ hasCapacity, availableSlots, ...publicCoach }) => publicCoach)
 
 		return NextResponse.json({
 			success: true,

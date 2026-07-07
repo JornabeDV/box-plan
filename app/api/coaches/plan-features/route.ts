@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { normalizeUserId, isCoach } from '@/lib/auth-helpers'
+import { normalizeUserId, isCoach } from '@/lib/auth-server-helpers'
 import { getCoachActivePlan, getStudentCoachPlan } from '@/lib/coach-plan-features'
+
+export const dynamic = 'force-dynamic'
 
 /**
  * GET /api/coaches/plan-features

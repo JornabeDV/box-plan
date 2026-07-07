@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isCoach, normalizeUserId } from '@/lib/auth-helpers'
+import { isCoach, normalizeUserId } from '@/lib/auth-server-helpers'
 import { sendPushToUsers } from '@/lib/push-notifications'
 
 // GET /api/coach/user-disciplines/[studentId] - Obtener disciplinas de un estudiante

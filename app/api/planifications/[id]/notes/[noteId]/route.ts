@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { normalizeUserId } from '@/lib/auth-helpers'
+import { normalizeUserId } from '@/lib/auth-server-helpers'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'

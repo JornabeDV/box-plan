@@ -4,10 +4,13 @@ import { prisma } from '@/lib/prisma'
 import { MercadoPagoConfig, Preference } from 'mercadopago'
 import { decryptToken } from '@/lib/crypto'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+function getCorsHeaders(origin: string | null) {
+  const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL || origin || 'http://localhost:3000'
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  }
 }
 
 interface Plan {
@@ -25,10 +28,13 @@ interface CreatePreferenceRequest {
 }
 
 export async function OPTIONS() {
-  return new Response('ok', { headers: corsHeaders })
+  return new Response('ok', { headers: getCorsHeaders(null) })
 }
 
 export async function POST(request: NextRequest) {
+  const origin = request.headers.get('origin')
+  const corsHeaders = getCorsHeaders(origin)
+
   try {
     const session = await auth()
     if (!session?.user?.id) {

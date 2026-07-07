@@ -167,8 +167,7 @@ export async function loadDashboardPlanifications(coachId: number): Promise<Dash
 			targetUser: {
 				select: {
 					id: true,
-					name: true,
-					email: true
+					name: true
 				}
 			},
 			blocks: {
@@ -202,8 +201,7 @@ export async function loadDashboardPlanifications(coachId: number): Promise<Dash
 			target_user_id: p.targetUserId ? String(p.targetUserId) : null,
 			target_user: p.targetUser ? {
 				id: String(p.targetUser.id),
-				name: p.targetUser.name,
-				email: p.targetUser.email
+				name: p.targetUser.name
 			} : null,
 			discipline: p.discipline ? {
 				id: p.discipline.id,

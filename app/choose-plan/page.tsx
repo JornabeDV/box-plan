@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { PlanSwitcher } from "@/components/subscription/plan-switcher";
 import { useSubscriptionManagement } from "@/hooks/use-subscription-management";
 import { Loader2, MessageCircle, User, Star, Check } from "lucide-react";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 
 function formatPhoneForWhatsApp(phoneNumber: string): string {
   let cleaned = phoneNumber.replace(/[^\d+]/g, "");
@@ -107,7 +107,7 @@ function PersonalizedPlanCard({
   );
 }
 
-export default function ChoosePlanPage() {
+function ChoosePlanContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sharedPlanId = searchParams.get("plan");
@@ -261,5 +261,27 @@ export default function ChoosePlanPage() {
         )}
       </main>
     </div>
+  );
+}
+
+
+export default function ChoosePlanPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[100dvh] relative overflow-hidden bg-gradient-to-br from-background via-background to-card text-foreground flex items-center justify-center">
+          <div
+            className="absolute inset-0 kinetic-grid-bg pointer-events-none"
+            aria-hidden="true"
+          />
+          <div className="text-center space-y-4">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto" />
+            <p className="text-muted-foreground">Cargando planes disponibles...</p>
+          </div>
+        </div>
+      }
+    >
+      <ChoosePlanContent />
+    </Suspense>
   );
 }
