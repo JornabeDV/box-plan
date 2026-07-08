@@ -24,7 +24,7 @@ export function RMHeader() {
 						Registro
 					</p>
 					<h1 className="text-3xl md:text-4xl font-bold italic text-primary">
-						Repeticiones Máximas
+						RM
 					</h1>
 				</div>
 			</div>
