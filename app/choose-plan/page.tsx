@@ -146,7 +146,7 @@ function ChoosePlanContent() {
 
   if (loading) {
     return (
-      <div className="min-h-[100dvh] relative overflow-hidden bg-gradient-to-br from-background via-background to-card text-foreground flex items-center justify-center">
+      <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground flex items-center justify-center">
         <div
           className="absolute inset-0 kinetic-grid-bg pointer-events-none"
           aria-hidden="true"
@@ -162,7 +162,7 @@ function ChoosePlanContent() {
   }
 
   return (
-    <div className="min-h-[100dvh] relative overflow-hidden bg-gradient-to-br from-background via-background to-card text-foreground">
+    <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground">
       <div
         className="absolute inset-0 kinetic-grid-bg pointer-events-none"
         aria-hidden="true"
@@ -269,7 +269,7 @@ export default function ChoosePlanPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-[100dvh] relative overflow-hidden bg-gradient-to-br from-background via-background to-card text-foreground flex items-center justify-center">
+        <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground flex items-center justify-center">
           <div
             className="absolute inset-0 kinetic-grid-bg pointer-events-none"
             aria-hidden="true"

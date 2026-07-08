@@ -40,7 +40,7 @@ export const getLast7Days = (): Date[] => {
 }
 
 export const formatDateForDisplay = (date: Date): string => {
-	return format(date, 'PPP', { locale: es })
+	return format(date, "d 'de' MMMM", { locale: es })
 }
 
 export const formatDateShort = (date: Date): string => {

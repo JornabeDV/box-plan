@@ -46,24 +46,27 @@ export default function CalendarPage() {
   return (
     <RequireActiveSubscription>
     <div className="min-h-screen pb-24">
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <main className="px-5 py-6 space-y-8 max-w-md mx-auto md:max-w-2xl">
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.back()}
-            className="shrink-0"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground">
-              Vista General
-            </p>
-            <h1 className="text-2xl md:text-3xl font-bold italic text-primary">
-              Calendario Completo
-            </h1>
+        <div className="mb-6">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => router.back()}
+              className="h-11 w-11 rounded-none bg-primary/5 border-primary/50 text-primary hover:bg-primary/10 shrink-0"
+              aria-label="Volver"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground mb-1">
+                Vista General
+              </p>
+              <h1 className="text-3xl md:text-4xl font-bold italic text-primary">
+                Calendario
+              </h1>
+            </div>
           </div>
         </div>
 
@@ -81,7 +84,7 @@ export default function CalendarPage() {
 
         {/* Calendario */}
         <FullCalendar discipline={selectedDiscipline} />
-      </div>
+      </main>
 
       <BottomNavigation />
     </div>

@@ -250,7 +250,7 @@ export function UserCard({
                   size="sm"
                   variant="default"
                   onClick={() => setShowAssignPlanModal(true)}
-                  className="hover:scale-100 active:scale-100"
+                  className="hover:scale-100 active:scale-100 max-sm:rounded-none"
                 >
                   <span className="sm:hidden">Asignar Plan</span>
                   <span className="hidden sm:inline">Asignar Plan</span>
@@ -261,6 +261,7 @@ export function UserCard({
                   variant="outline"
                   disabled
                   title="No hay planes disponibles. Crea planes en la base de datos."
+                  className="max-sm:rounded-none max-sm:bg-primary/5 max-sm:border-primary/50 max-sm:text-primary"
                 >
                   <span className="sm:hidden">Sin planes</span>
                   <span className="hidden sm:inline">Sin planes disponibles</span>
@@ -274,7 +275,7 @@ export function UserCard({
                     size="sm" 
                     variant="outline"
                     onClick={() => user.subscription && setShowCancelSubscriptionDialog(true)}
-                    className="hover:scale-100 active:scale-100"
+                    className="hover:scale-100 active:scale-100 max-sm:rounded-none max-sm:bg-primary/5 max-sm:border-primary/50 max-sm:text-primary max-sm:hover:bg-primary/10"
                   >
                     <span className="sm:hidden">Cancelar</span>
                     <span className="hidden sm:inline">Cancelar Suscripción</span>
@@ -286,7 +287,7 @@ export function UserCard({
                     size="sm" 
                     variant="outline"
                     onClick={() => setShowChangePlanModal(true)}
-                    className="hover:scale-100 active:scale-100"
+                    className="hover:scale-100 active:scale-100 max-sm:rounded-none max-sm:bg-primary/5 max-sm:border-primary/50 max-sm:text-primary max-sm:hover:bg-primary/10"
                   >
                     <ArrowRightLeft className="h-3.5 w-3.5 mr-1.5" />
                     <span className="sm:hidden">Cambiar</span>
@@ -299,7 +300,7 @@ export function UserCard({
                     size="sm" 
                     variant="default"
                     onClick={() => setShowReactivateDialog(true)}
-                    className="hover:scale-100 active:scale-100 bg-green-600 hover:bg-green-700"
+                    className="hover:scale-100 active:scale-100 bg-green-600 hover:bg-green-700 max-sm:rounded-none"
                   >
                     <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
                     Reactivar
@@ -312,7 +313,7 @@ export function UserCard({
                 size="sm" 
                 variant="outline"
                 onClick={() => onImportPlanification(user)}
-                className="hover:scale-100 active:scale-100 border-dashed border-2"
+                className="hover:scale-100 active:scale-100 border-dashed border-2 max-sm:rounded-none max-sm:bg-primary/5 max-sm:border-primary/50 max-sm:text-primary max-sm:hover:bg-primary/10"
               >
                 <Upload className="h-3.5 w-3.5 mr-1.5" />
                 <span className="sm:hidden">Importar</span>
@@ -323,7 +324,7 @@ export function UserCard({
               size="sm" 
               variant="outline"
               onClick={() => onEditUser(user)}
-              className="hover:scale-100 active:scale-100"
+              className="hover:scale-100 active:scale-100 max-sm:rounded-none max-sm:bg-primary/5 max-sm:border-primary/50 max-sm:text-primary max-sm:hover:bg-primary/10"
               title="Configuración"
             >
               <Settings className="h-3.5 w-3.5 mr-1.5" />
@@ -335,7 +336,7 @@ export function UserCard({
                 size="sm" 
                 variant="outline"
                 onClick={() => onManageDisciplines(user)}
-                className="hover:scale-100 active:scale-100"
+                className="hover:scale-100 active:scale-100 max-sm:rounded-none max-sm:bg-primary/5 max-sm:border-primary/50 max-sm:text-primary max-sm:hover:bg-primary/10"
               >
                 <Dumbbell className="h-3.5 w-3.5 mr-1.5" />
                 Disciplinas
@@ -345,7 +346,7 @@ export function UserCard({
               size="sm" 
               variant="destructive"
               onClick={() => setShowDeleteDialog(true)}
-              className="hover:scale-100 active:scale-100 col-span-2 sm:col-auto"
+              className="hover:scale-100 active:scale-100 col-span-2 sm:col-auto max-sm:rounded-none"
             >
               Eliminar
             </Button>

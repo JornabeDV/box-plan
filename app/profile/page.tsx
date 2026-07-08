@@ -46,6 +46,7 @@ import {
   Eye,
   EyeOff,
   Target,
+  ArrowLeft,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -313,13 +314,26 @@ export default function ProfilePage() {
 
       <main className="px-5 py-6 space-y-8 pb-[calc(5rem+env(safe-area-inset-bottom))] max-w-md mx-auto md:max-w-2xl">
         {/* Header info */}
-        <div className="space-y-2">
-          <span className="label-md text-primary tracking-[0.2em]">Atleta</span>
-          <h3 className="text-foreground uppercase">
-            <span className="italic text-3xl sm:text-5xl">
-              {profile?.full_name || user?.name || "Atleta"}
-            </span>
-          </h3>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => router.push('/')}
+              className="h-11 w-11 rounded-none bg-primary/5 border-primary/50 text-primary hover:bg-primary/10 shrink-0"
+              aria-label="Volver"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground mb-1">
+                Atleta
+              </p>
+              <h1 className="text-3xl sm:text-4xl font-bold italic text-primary">
+                Perfil
+              </h1>
+            </div>
+          </div>
         </div>
 
         <Card>
@@ -384,7 +398,7 @@ export default function ProfilePage() {
                   {userDisciplines.map((userDiscipline) => (
                     <div
                       key={userDiscipline.id}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-surface-container-high border border-outline/10"
+                      className="flex items-center gap-3 p-3 rounded-none bg-surface-container-high border border-outline/10"
                     >
                       <div
                         className="w-4 h-4 rounded-full flex-shrink-0"
@@ -451,7 +465,7 @@ export default function ProfilePage() {
                     return (
                       <div
                         key={ud.id}
-                        className="p-3 rounded-xl bg-surface-container-high border border-outline/10 space-y-2"
+                        className="p-3 rounded-none bg-surface-container-high border border-outline/10 space-y-2"
                       >
                         <div className="flex items-center gap-2">
                           <div
@@ -476,7 +490,7 @@ export default function ProfilePage() {
                           }
                           disabled={isSavingAll || levels.length === 0}
                         >
-                          <SelectTrigger className="w-full bg-surface-container border-outline/20 text-primary font-semibold uppercase text-xs tracking-wider h-10">
+                          <SelectTrigger className="w-full bg-surface-container border-outline/20 text-primary font-semibold uppercase text-xs tracking-wider h-10 rounded-none">
                             <SelectValue placeholder="Seleccionar nivel" />
                           </SelectTrigger>
                           <SelectContent>
@@ -661,15 +675,16 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
               onClick={() => setIsEditModalOpen(false)}
               disabled={isSaving}
+              className="w-full sm:w-auto"
             >
               Cancelar
             </Button>
-            <Button onClick={handleSave} disabled={isSaving}>
+            <Button onClick={handleSave} disabled={isSaving} className="w-full sm:w-auto">
               {isSaving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />

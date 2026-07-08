@@ -58,7 +58,7 @@ export default function ProgresoPage() {
     return (
       <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground">
         <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
-        <main className="p-6 pb-32 max-w-4xl mx-auto">
+        <main className="px-5 py-6 space-y-8 pb-24 max-w-md mx-auto md:max-w-2xl">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -93,7 +93,7 @@ export default function ProgresoPage() {
     <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground">
       <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
 
-      <main className="p-6 space-y-6 pb-32 max-w-6xl mx-auto">
+      <main className="px-5 py-6 space-y-8 pb-24 max-w-md mx-auto md:max-w-2xl">
         <ProgressHeader />
 
         <ProgressStatsCards

@@ -153,17 +153,19 @@ export function RMModal({
 					</Card>
 				</div>
 
-				<DialogFooter className="gap-2">
+				<DialogFooter className="flex-col sm:flex-row gap-2">
 					<Button
 						variant="outline"
 						onClick={handleClose}
 						disabled={loading}
+						className="w-full sm:w-auto"
 					>
 						Cancelar
 					</Button>
 					<Button
 						onClick={handleSubmit}
 						disabled={loading}
+						className="w-full sm:w-auto"
 					>
 						{loading ? (
 							<>

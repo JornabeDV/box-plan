@@ -42,41 +42,29 @@ export function RMList({ rmRecords, loading, onNewRMClick, onEdit, onDelete }: R
 
 	if (rmRecords.length === 0) {
 		return (
-			<>
-				{/* Empty state en mobile */}
-				<div className="sm:hidden text-center py-8 text-muted-foreground">
-					<Weight className="w-12 h-12 mx-auto mb-4 opacity-50" />
-					<p>No hay RMs registrados aún</p>
-					<Button
-						className="mt-4"
-						onClick={onNewRMClick}
-					>
-						Registrar Primer RM
-					</Button>
-				</div>
-				{/* Empty state en desktop */}
-				<Card className="hidden sm:block">
+			<div className="space-y-4">
+				<Card>
 					<CardContent>
 						<div className="text-center py-8 text-muted-foreground">
 							<Weight className="w-12 h-12 mx-auto mb-4 opacity-50" />
 							<p>No hay RMs registrados aún</p>
-							<Button
-								className="mt-4"
-								onClick={onNewRMClick}
-							>
-								Registrar Primer RM
-							</Button>
 						</div>
 					</CardContent>
 				</Card>
-			</>
+				<Button
+					className="w-full"
+					onClick={onNewRMClick}
+				>
+					Registrar Primer RM
+				</Button>
+			</div>
 		)
 	}
 
 	return (
-		<>
+		<div className="space-y-4">
 			{/* Título en mobile */}
-			<div className="sm:hidden mb-4">
+			<div className="sm:hidden">
 				<h2 className="text-xl font-semibold flex items-center gap-2">
 					<History className="w-5 h-5" />
 					Mis RMs Registrados
@@ -131,6 +119,15 @@ export function RMList({ rmRecords, loading, onNewRMClick, onEdit, onDelete }: R
 					</Card>
 				))}
 			</div>
-		</>
+
+			<Button
+				variant="outline"
+				className="w-full rounded-none bg-primary/5 border-primary/50 text-primary hover:bg-primary/10"
+				onClick={onNewRMClick}
+			>
+				<Plus className="w-4 h-4 mr-2" />
+				Nuevo RM
+			</Button>
+		</div>
 	)
 }

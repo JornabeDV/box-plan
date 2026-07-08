@@ -40,22 +40,24 @@ export function PushNotificationButton() {
 
   return (
     <Button
-      variant={isSubscribed ? 'default' : 'outline'}
-      size="sm"
+      variant="outline"
+      size="icon"
       onClick={handleToggle}
       disabled={loading}
-      className="gap-2"
+      className={`h-11 w-11 rounded-none shrink-0 ${
+        isSubscribed
+          ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90'
+          : 'bg-primary/5 border-primary/50 text-primary hover:bg-primary/10'
+      }`}
+      aria-label={isSubscribed ? 'Notificaciones activas' : 'Activar notificaciones'}
     >
       {loading ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
+        <Loader2 className="w-5 h-5 animate-spin" />
       ) : isSubscribed ? (
-        <Bell className="w-4 h-4" />
+        <Bell className="w-5 h-5" />
       ) : (
-        <BellOff className="w-4 h-4" />
+        <BellOff className="w-5 h-5" />
       )}
-      <span className="hidden sm:inline">
-        {isSubscribed ? 'Notificaciones activas' : 'Activar notificaciones'}
-      </span>
     </Button>
   )
 }

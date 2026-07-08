@@ -80,7 +80,7 @@ export function TimerInfo({ mode }: TimerInfoProps) {
   };
 
   return (
-    <Card className="max-w-md mx-auto">
+    <Card className="w-full">
       <CardHeader>
         <CardTitle>Información del Modo</CardTitle>
       </CardHeader>

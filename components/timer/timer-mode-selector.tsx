@@ -21,7 +21,7 @@ const modeConfigs = {
 
 export function TimerModeSelector({ mode, onModeChange }: TimerModeSelectorProps) {
 	return (
-		<Card className="max-w-md mx-auto">
+		<Card className="w-full">
 			<CardHeader>
 				<CardTitle>Tipo de Timer</CardTitle>
 			</CardHeader>

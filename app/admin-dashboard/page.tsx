@@ -606,7 +606,7 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] relative overflow-hidden bg-gradient-to-br from-background via-background to-card text-foreground">
+    <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground">
       <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
       {/* Banner de período de prueba */}
       {coachAccess?.isTrial && coachAccess.hasAccess && (
