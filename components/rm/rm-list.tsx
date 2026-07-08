@@ -2,7 +2,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Weight, History, Loader2, Plus } from 'lucide-react'
+import { Weight, History, Loader2, Plus, Calculator } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { RMCard } from './rm-card'
 
 interface RMRecord {
@@ -21,6 +22,7 @@ interface RMListProps {
 }
 
 export function RMList({ rmRecords, loading, onNewRMClick, onEdit, onDelete }: RMListProps) {
+	const router = useRouter()
 	if (loading) {
 		return (
 			<>
@@ -51,18 +53,47 @@ export function RMList({ rmRecords, loading, onNewRMClick, onEdit, onDelete }: R
 						</div>
 					</CardContent>
 				</Card>
-				<Button
-					className="w-full"
-					onClick={onNewRMClick}
-				>
-					Registrar Primer RM
-				</Button>
+				<div className="grid grid-cols-2 gap-3">
+					<Button
+						variant="outline"
+						className="w-full rounded-none bg-primary/5 border-primary/50 text-primary hover:bg-primary/10"
+						onClick={() => router.push('/rm-calculator')}
+					>
+						<Calculator className="w-4 h-4 mr-2" />
+						Calculadora
+					</Button>
+					<Button
+						className="w-full"
+						onClick={onNewRMClick}
+					>
+						Registrar Primer RM
+					</Button>
+				</div>
 			</div>
 		)
 	}
 
 	return (
 		<div className="space-y-4">
+			<div className="grid grid-cols-2 gap-3">
+				<Button
+					variant="outline"
+					className="w-full rounded-none bg-primary/5 border-primary/50 text-primary hover:bg-primary/10"
+					onClick={() => router.push('/rm-calculator')}
+				>
+					<Calculator className="w-4 h-4 mr-2" />
+					Calculadora
+				</Button>
+				<Button
+					variant="outline"
+					className="w-full rounded-none bg-primary/5 border-primary/50 text-primary hover:bg-primary/10"
+					onClick={onNewRMClick}
+				>
+					<Plus className="w-4 h-4 mr-2" />
+					Nuevo RM
+				</Button>
+			</div>
+
 			{/* Título en mobile */}
 			<div className="sm:hidden">
 				<h2 className="text-xl font-semibold flex items-center gap-2">
@@ -119,15 +150,6 @@ export function RMList({ rmRecords, loading, onNewRMClick, onEdit, onDelete }: R
 					</Card>
 				))}
 			</div>
-
-			<Button
-				variant="outline"
-				className="w-full rounded-none bg-primary/5 border-primary/50 text-primary hover:bg-primary/10"
-				onClick={onNewRMClick}
-			>
-				<Plus className="w-4 h-4 mr-2" />
-				Nuevo RM
-			</Button>
 		</div>
 	)
 }
