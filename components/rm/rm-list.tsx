@@ -45,14 +45,6 @@ export function RMList({ rmRecords, loading, onNewRMClick, onEdit, onDelete }: R
 	if (rmRecords.length === 0) {
 		return (
 			<div className="space-y-4">
-				<Card>
-					<CardContent>
-						<div className="text-center py-8 text-muted-foreground">
-							<Weight className="w-12 h-12 mx-auto mb-4 opacity-50" />
-							<p>No hay RMs registrados aún</p>
-						</div>
-					</CardContent>
-				</Card>
 				<div className="grid grid-cols-2 gap-3">
 					<Button
 						variant="outline"
@@ -63,12 +55,22 @@ export function RMList({ rmRecords, loading, onNewRMClick, onEdit, onDelete }: R
 						Calculadora
 					</Button>
 					<Button
-						className="w-full"
+						variant="outline"
+						className="w-full rounded-none bg-primary/5 border-primary/50 text-primary hover:bg-primary/10"
 						onClick={onNewRMClick}
 					>
-						Registrar Primer RM
+						<Plus className="w-4 h-4 mr-2" />
+						Nuevo RM
 					</Button>
 				</div>
+				<Card>
+					<CardContent>
+						<div className="text-center py-8 text-muted-foreground">
+							<Weight className="w-12 h-12 mx-auto mb-4 opacity-50" />
+							<p>No hay RMs registrados aún</p>
+						</div>
+					</CardContent>
+				</Card>
 			</div>
 		)
 	}
