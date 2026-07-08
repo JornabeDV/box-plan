@@ -223,7 +223,7 @@ export function MonthlyCalendar() {
         onClick={handleViewFullCalendar}
         className="w-full text-sm font-semibold tracking-widest uppercase text-muted-foreground hover:text-primary hover:bg-primary/10 text-primary bg-primary/10"
       >
-        Ver calendario completo
+        Ver calendario
       </Button>
     </Card>
   );

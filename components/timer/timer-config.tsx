@@ -64,7 +64,7 @@ export function TimerConfig({
 }: TimerConfigProps) {
   if (mode === "tabata") {
     return (
-      <Card className="max-w-md mx-auto">
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>Configuración TABATA</CardTitle>
         </CardHeader>
@@ -128,7 +128,7 @@ export function TimerConfig({
     const totalRoundsNum = parseInt(totalRounds) || 1;
 
     return (
-      <Card className="max-w-md mx-auto">
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>Configuración AMRAP</CardTitle>
         </CardHeader>
@@ -193,7 +193,7 @@ export function TimerConfig({
 
   if (mode === "emom") {
     return (
-      <Card className="max-w-md mx-auto">
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>Configuración EMOM</CardTitle>
         </CardHeader>
@@ -222,7 +222,7 @@ export function TimerConfig({
 
   if (mode === "fortime") {
     return (
-      <Card className="max-w-md mx-auto">
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>Configuración FOR TIME</CardTitle>
         </CardHeader>
@@ -259,7 +259,7 @@ export function TimerConfig({
 
   if (mode === "otm") {
     return (
-      <Card className="max-w-md mx-auto">
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>Configuración OTM</CardTitle>
         </CardHeader>

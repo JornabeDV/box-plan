@@ -561,7 +561,7 @@ export default function BoxPlanApp() {
               onClick={() => router.push("/calendar")}
             >
               <Calendar className="w-4 h-4 mr-2" />
-              Ver calendario completo
+              Ver calendario
             </Button>
           </section>
         )}

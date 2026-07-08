@@ -234,7 +234,7 @@ export default function SubscriptionPage() {
 
   if (loading || verifyingPayment) {
     return (
-      <div className="min-h-[100dvh] relative overflow-hidden bg-gradient-to-br from-background via-background to-card text-foreground flex items-center justify-center">
+      <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground flex items-center justify-center">
         <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
         <div className="text-center space-y-4">
           <Loader2 className="w-8 h-8 animate-spin mx-auto" />
@@ -249,7 +249,7 @@ export default function SubscriptionPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] relative overflow-hidden bg-gradient-to-br from-background via-background to-card text-foreground">
+    <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground">
       <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
 
       <main className={`container mx-auto px-6 py-8 ${isExpiredMode ? "pb-8" : "pb-32"}`}>
@@ -269,17 +269,17 @@ export default function SubscriptionPage() {
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-4 md:justify-between mb-2">
+              <div className="flex items-center gap-3 mb-2">
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="icon"
                   onClick={() => router.push("/profile")}
-                  className="flex items-center gap-2 md:order-2"
+                  className="h-11 w-11 rounded-none bg-primary/5 border-primary/50 text-primary hover:bg-primary/10 shrink-0"
+                  aria-label="Volver"
                 >
-                  <ArrowLeft className="h-4 w-4" />
-                  <span className="hidden sm:inline">Volver</span>
+                  <ArrowLeft className="h-5 w-5" />
                 </Button>
-                <div className="md:order-1">
+                <div>
                   <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground mb-1">
                     Miembro
                   </p>

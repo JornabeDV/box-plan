@@ -134,7 +134,7 @@ export default function SuperAdminPage() {
 
   if (authLoading) {
     return (
-      <div className="min-h-[100dvh] relative overflow-hidden flex items-center justify-center">
+      <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground flex items-center justify-center">
         <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
         <Loader2 className="w-8 h-8 animate-spin" />
       </div>
@@ -143,7 +143,7 @@ export default function SuperAdminPage() {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-[100dvh] relative overflow-hidden flex items-center justify-center">
+      <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground flex items-center justify-center">
         <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
         <Card className="max-w-md">
           <CardHeader>
@@ -161,7 +161,7 @@ export default function SuperAdminPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] relative overflow-hidden bg-gradient-to-br from-background via-background to-card text-foreground">
+    <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground">
       <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
       {/* Header */}
       <SuperAdminHeader />

@@ -88,7 +88,7 @@ export function TimerDisplay({
     countdown > 0;
 
   return (
-    <Card className="max-w-md mx-auto relative">
+    <Card className="w-full relative">
       <CardHeader className="text-center">
         <div className="flex items-center justify-between">
           <div className="flex-1" />
