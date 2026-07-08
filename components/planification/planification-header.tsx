@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { DisciplineLevel } from "@/hooks/use-planification-data";
-import { ChevronLeft, ChevronRight, ArrowLeft } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowLeft, Calculator } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "../ui/button";
 
@@ -112,7 +112,7 @@ export function PlanificationHeader({
         </div>
       </div>
 
-      {/* Selector de nivel */}
+      {/* Selector de nivel + calculadora */}
       {!isPersonalized && levels.length > 0 && onLevelChange && (
         <div className="space-y-2">
           <Label
@@ -121,24 +121,34 @@ export function PlanificationHeader({
           >
             Nivel
           </Label>
-          <Select
-            value={selectedLevelId?.toString() || ""}
-            onValueChange={(value) => onLevelChange(parseInt(value))}
-          >
-            <SelectTrigger
-              id="level-select"
-              className="w-full sm:max-w-xs bg-surface-container-high border-outline/20 text-primary font-semibold uppercase text-xs tracking-wider h-12"
+          <div className="flex flex-row gap-3">
+            <Select
+              value={selectedLevelId?.toString() || ""}
+              onValueChange={(value) => onLevelChange(parseInt(value))}
             >
-              <SelectValue placeholder="Seleccionar" />
-            </SelectTrigger>
-            <SelectContent>
-              {levels.map((level) => (
-                <SelectItem key={level.id} value={level.id.toString()}>
-                  {level.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              <SelectTrigger
+                id="level-select"
+                className="w-full bg-surface-container-high border-outline/20 text-primary font-semibold uppercase text-xs tracking-wider h-12"
+              >
+                <SelectValue placeholder="Seleccionar" />
+              </SelectTrigger>
+              <SelectContent>
+                {levels.map((level) => (
+                  <SelectItem key={level.id} value={level.id.toString()}>
+                    {level.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push("/rm-calculator")}
+              className="rounded-none bg-primary/5 border-primary/50 text-primary hover:bg-primary/10 shrink-0"
+            >
+              Calculadora RM
+            </Button>
+          </div>
         </div>
       )}
     </div>
