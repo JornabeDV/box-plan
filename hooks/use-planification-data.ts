@@ -67,7 +67,7 @@ export function usePlanificationData({ userId }: UsePlanificationDataProps) {
 	// Función para cargar info de disciplina
 	const fetchDisciplineInfo = useCallback(async (id: number) => {
 		try {
-			const response = await fetch(`/api/disciplines/${id}`)
+			const response = await fetch(`/api/disciplines/${id}`, { cache: 'no-store' })
 			if (response.ok) {
 				const data = await response.json()
 				setDisciplineName(data.name || '')
@@ -92,7 +92,7 @@ export function usePlanificationData({ userId }: UsePlanificationDataProps) {
 
 		try {
 			const userIdStr = String(userId)
-			const response = await fetch(`/api/workouts?userId=${userIdStr}`)
+			const response = await fetch(`/api/workouts?userId=${userIdStr}`, { cache: 'no-store' })
 			if (response.ok) {
 				const workouts = await response.json()
 				const planificationIdNum = parseInt(planificationId, 10)
@@ -217,7 +217,13 @@ export function usePlanificationData({ userId }: UsePlanificationDataProps) {
 					// No pasamos levelId en la carga inicial para que el backend use el nivel favorito
 					// y haga fallback si es necesario. Solo pasamos levelId en reloadWithLevel (cambio manual).
 					const disciplineParam = initialDisciplineId ? `&disciplineId=${initialDisciplineId}` : ''
-					const planifResponse = await fetch(`/api/planifications?date=${dateString}${disciplineParam}`)
+					const planifResponse = await fetch(`/api/planifications?date=${dateString}${disciplineParam}`, {
+							cache: 'no-store',
+							headers: {
+								'Cache-Control': 'no-cache, no-store, must-revalidate',
+								'Pragma': 'no-cache',
+							},
+						})
 
 				if (!planifResponse.ok) {
 					throw new Error('Error al cargar la planificación')
