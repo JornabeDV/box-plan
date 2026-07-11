@@ -101,6 +101,7 @@ export async function POST(request: NextRequest) {
     const planificationBlock = await prisma.planificationBlock.findUnique({
       where: { id: planificationBlockId },
       select: {
+        id: true,
         planificationId: true,
         planification: { select: { coachId: true } }
       },
