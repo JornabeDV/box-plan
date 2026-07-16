@@ -41,6 +41,32 @@ const ensureAudioContext = async (): Promise<AudioContext | null> => {
 	return ctx
 }
 
+// Detectar iOS/iPadOS para aplicar ajustes específicos de audio
+const isIOS = (): boolean => {
+	if (typeof window === 'undefined' || typeof navigator === 'undefined') return false
+	const ua = navigator.userAgent
+	const isAppleDevice = /iPad|iPhone|iPod/.test(ua)
+	const isIPadOS = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1
+	return isAppleDevice || isIPadOS
+}
+
+// Compresor compartido para maximizar el volumen percibido sin clipping
+let sharedCompressor: DynamicsCompressorNode | null = null
+
+const getCompressor = (ctx: AudioContext): DynamicsCompressorNode => {
+	if (!sharedCompressor) {
+		sharedCompressor = ctx.createDynamicsCompressor()
+		// Configuración optimizada para sonidos cortos y volumen máximo percibido
+		sharedCompressor.threshold.setValueAtTime(-6, ctx.currentTime)
+		sharedCompressor.knee.setValueAtTime(6, ctx.currentTime)
+		sharedCompressor.ratio.setValueAtTime(6, ctx.currentTime)
+		sharedCompressor.attack.setValueAtTime(0.001, ctx.currentTime)
+		sharedCompressor.release.setValueAtTime(0.05, ctx.currentTime)
+		sharedCompressor.connect(ctx.destination)
+	}
+	return sharedCompressor
+}
+
 // SONIDO TIPO CAMPANA DE GIMNASIO (estándar CrossFit)
 // Usa múltiples armónicos para simular una campana metálica
 const playBellSound = (isHigh: boolean = false) => {
@@ -48,26 +74,32 @@ const playBellSound = (isHigh: boolean = false) => {
 		const ctx = getAudioContext()
 		if (!ctx) return
 
-		// Frecuencias base: campana grave para conteo, aguda para inicio
-		const baseFreq = isHigh ? 880 : 523 // La5 (agudo) o Do5 (grave)
-		const freqs = [baseFreq, baseFreq * 1.5, baseFreq * 2] // Fundamental + 5ta + octava
-		const duration = isHigh ? 0.6 : 0.15 // Más largo para inicio
+		const iOS = isIOS()
+		// Frecuencias base más agudas en iOS para que el parlante pequeño las reproduzca mejor
+		const baseFreq = isHigh ? (iOS ? 1760 : 880) : (iOS ? 1047 : 523)
+		// Más armónicos en iOS para darle más energía y corte al sonido
+		const freqMultipliers = iOS ? [1, 2, 3, 4] : [1, 1.5, 2]
+		const duration = isHigh ? (iOS ? 0.9 : 0.6) : (iOS ? 0.25 : 0.15)
+		const masterVolume = 1.0
+
+		const freqs = freqMultipliers.map(m => baseFreq * m)
+		const now = ctx.currentTime
 
 		freqs.forEach((freq, i) => {
 			const oscillator = ctx.createOscillator()
 			const gainNode = ctx.createGain()
 
 			oscillator.connect(gainNode)
-			gainNode.connect(ctx.destination)
+			gainNode.connect(getCompressor(ctx))
 
 			oscillator.frequency.value = freq
 			oscillator.type = 'triangle' // Más similar a campana que sine
 
 			// Envolvente tipo campana (attack rápido, decay largo)
-			const volume = isHigh ? 1.0 : 0.9
-			const now = ctx.currentTime
+			const volume = masterVolume / (i + 1)
+			const attack = iOS ? 0.005 : 0.02
 			gainNode.gain.setValueAtTime(0, now)
-			gainNode.gain.linearRampToValueAtTime(volume / (i + 1), now + 0.02)
+			gainNode.gain.linearRampToValueAtTime(volume, now + attack)
 			gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration)
 
 			oscillator.start(now)
@@ -92,22 +124,27 @@ const playSimpleBeep = () => {
 		const ctx = getAudioContext()
 		if (!ctx) return
 
+		const iOS = isIOS()
 		const oscillator = ctx.createOscillator()
 		const gainNode = ctx.createGain()
 
 		oscillator.connect(gainNode)
-		gainNode.connect(ctx.destination)
+		gainNode.connect(getCompressor(ctx))
 
-		oscillator.frequency.value = 600
+		// Frecuencia más alta en iOS para mejorar audibilidad en su parlante pequeño
+		oscillator.frequency.value = iOS ? 1200 : 600
 		oscillator.type = 'sine'
 
 		const now = ctx.currentTime
+		const duration = iOS ? 0.12 : 0.08
+		const volume = 1.0
+
 		gainNode.gain.setValueAtTime(0, now)
-		gainNode.gain.linearRampToValueAtTime(0.8, now + 0.01)
-		gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.08)
+		gainNode.gain.linearRampToValueAtTime(volume, now + 0.01)
+		gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration)
 
 		oscillator.start(now)
-		oscillator.stop(now + 0.08)
+		oscillator.stop(now + duration)
 	} catch (e) {}
 }
 
@@ -117,28 +154,59 @@ const playFinishBeep = () => {
 		const ctx = getAudioContext()
 		if (!ctx) return
 
-		const freqs = [880, 1175] // La5 + Re6
-		const duration = 0.5
+		const iOS = isIOS()
+		const baseFreqs = iOS ? [1760, 2350] : [880, 1175] // La6 + Re#7 en iOS
+		const duration = iOS ? 0.7 : 0.5
 
-		freqs.forEach((freq, i) => {
+		const now = ctx.currentTime
+
+		baseFreqs.forEach((freq, i) => {
 			const oscillator = ctx.createOscillator()
 			const gainNode = ctx.createGain()
 
 			oscillator.connect(gainNode)
-			gainNode.connect(ctx.destination)
+			gainNode.connect(getCompressor(ctx))
 
 			oscillator.frequency.value = freq
 			oscillator.type = 'triangle'
 
-			const now = ctx.currentTime
 			const startOffset = i * 0.12
+			const volume = iOS ? 1.0 : 1.0
+
 			gainNode.gain.setValueAtTime(0, now + startOffset)
-			gainNode.gain.linearRampToValueAtTime(1.0 / (i + 1), now + startOffset + 0.02)
+			gainNode.gain.linearRampToValueAtTime(volume / (i + 1), now + startOffset + 0.02)
 			gainNode.gain.exponentialRampToValueAtTime(0.001, now + startOffset + duration)
 
 			oscillator.start(now + startOffset)
 			oscillator.stop(now + startOffset + duration)
 		})
+	} catch (e) {}
+}
+
+// Warm-up del audio dentro del flujo de interacción del usuario.
+// En iOS/Safari es fundamental reproducir un sonido (aunque sea inaudible)
+// dentro del handler táctil para despertar la sesión de audio antes de los beeps.
+const warmUpAudio = async () => {
+	try {
+		const ctx = await ensureAudioContext()
+		if (!ctx) return
+
+		const oscillator = ctx.createOscillator()
+		const gainNode = ctx.createGain()
+
+		oscillator.connect(gainNode)
+		gainNode.connect(getCompressor(ctx))
+
+		oscillator.frequency.value = 1000
+		oscillator.type = 'sine'
+
+		const now = ctx.currentTime
+		gainNode.gain.setValueAtTime(0.001, now)
+		gainNode.gain.linearRampToValueAtTime(0.001, now + 0.005)
+		gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.01)
+
+		oscillator.start(now)
+		oscillator.stop(now + 0.01)
 	} catch (e) {}
 }
 
@@ -178,12 +246,12 @@ export function useTimer({
 			}
 			lastCountdownRef.current = countdown
 		}
-		// Sonido de inicio cuando termina la cuenta regresiva (campana larga y aguda)
-		if (lastCountdownRef.current !== null && countdown === null && isRunning) {
-			playStartBeep()
+		// La campana de inicio ahora se reproduce inmediatamente al presionar "Iniciar"
+		// dentro del flujo de interacción del usuario, evitando que iOS/Safari la silencie.
+		if (lastCountdownRef.current !== null && countdown === null) {
 			lastCountdownRef.current = null
 		}
-	}, [countdown, isRunning, soundEnabled])
+	}, [countdown, soundEnabled])
 
 	// Efecto para sonidos en EMOM y OTM (últimos 3 segundos de cada intervalo)
 	useEffect(() => {
@@ -526,8 +594,15 @@ export function useTimer({
 
 	const handleStart = useCallback(async () => {
 		// Asegurar que el AudioContext esté activo dentro del flujo de interacción del usuario
+		// y reproducir un sonido de warm-up para despertar la sesión de audio en iOS/Safari.
 		if (soundEnabled) {
 			await ensureAudioContext()
+			await warmUpAudio()
+			// En iOS el primer sonido fuera del gesto táctil puede salir muy bajo o silenciado,
+			// por eso reproducimos la campana de inicio inmediatamente al presionar el botón.
+			if (!isRunning && !isPaused) {
+				playStartBeep()
+			}
 		}
 
 		// Iniciar cuenta regresiva de 10 segundos cuando se larga desde cero
@@ -568,7 +643,9 @@ export function useTimer({
 		setSoundEnabled(next)
 		if (next) {
 			// Si se activa el sonido dentro de una interacción, reanudar el contexto
+			// y calentar la sesión de audio para iOS/Safari.
 			await ensureAudioContext()
+			await warmUpAudio()
 		}
 	}, [soundEnabled])
 

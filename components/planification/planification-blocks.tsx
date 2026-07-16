@@ -58,7 +58,6 @@ function BlockTimerDisplay({
 }) {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
   const timerRef = useRef<HTMLDivElement>(null);
   const timerColor = color || "#22c55e";
   const modeLabels: Record<TimerMode, string> = {
@@ -179,7 +178,7 @@ function BlockTimerDisplay({
     getPhaseColor,
     getEmomTotalTime,
     getOtmTotalTime,
-    soundEnabled: timerSoundEnabled,
+    soundEnabled,
     toggleSound,
     handleStart,
     handlePause,
@@ -192,7 +191,7 @@ function BlockTimerDisplay({
     amrapTime,
   });
 
-  const effectiveSoundEnabled = timerSoundEnabled && soundEnabled;
+  const effectiveSoundEnabled = soundEnabled;
 
   const handleModeChange = (newMode: TimerModeType) => {
     setMode(newMode);
@@ -225,7 +224,7 @@ function BlockTimerDisplay({
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setSoundEnabled(!soundEnabled)}
+              onClick={toggleSound}
               className="text-foreground hover:text-white hover:bg-white/10 h-10 w-10"
             >
               {effectiveSoundEnabled ? (
@@ -348,7 +347,7 @@ function BlockTimerDisplay({
               size="icon"
               onClick={(e) => {
                 e.stopPropagation();
-                setSoundEnabled(!soundEnabled);
+                toggleSound();
               }}
               className="h-8 w-8 p-0 text-foreground hover:text-foreground"
             >
