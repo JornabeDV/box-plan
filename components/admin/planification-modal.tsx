@@ -46,6 +46,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useDisciplines } from "@/hooks/use-disciplines";
 import { useToast } from "@/hooks/use-toast";
+import { TimeInput } from "@/components/timer/time-input";
+import { RoundsInput } from "@/components/timer/rounds-input";
 import { BlockScoreConfig, type ScoreConfig } from "./block-score-config";
 
 interface ItemData {
@@ -1433,144 +1435,109 @@ export function PlanificationModal({
                               {/* Timer config para el bloque */}
                               {block.timer_mode === "tabata" && (
                                 <div className="ml-6 sm:ml-9 grid grid-cols-3 gap-2">
-                                  <div className="space-y-1">
-                                    <Label className="text-xs text-muted-foreground">
-                                      Trabajo
-                                    </Label>
-                                    <Input
-                                      type="number"
-                                      value={
-                                        block.timer_config?.workTime || "20"
-                                      }
-                                      onChange={(e) =>
-                                        updateBlockTimerConfig(block.id, {
-                                          ...block.timer_config,
-                                          workTime: e.target.value,
-                                        })
-                                      }
-                                      className="h-8 text-xs"
-                                    />
-                                  </div>
-                                  <div className="space-y-1">
-                                    <Label className="text-xs text-muted-foreground">
-                                      Descanso
-                                    </Label>
-                                    <Input
-                                      type="number"
-                                      value={
-                                        block.timer_config?.restTime || "10"
-                                      }
-                                      onChange={(e) =>
-                                        updateBlockTimerConfig(block.id, {
-                                          ...block.timer_config,
-                                          restTime: e.target.value,
-                                        })
-                                      }
-                                      className="h-8 text-xs"
-                                    />
-                                  </div>
-                                  <div className="space-y-1">
-                                    <Label className="text-xs text-muted-foreground">
-                                      Rondas
-                                    </Label>
-                                    <Input
-                                      type="number"
-                                      value={
-                                        block.timer_config?.totalRounds || "8"
-                                      }
-                                      onChange={(e) =>
-                                        updateBlockTimerConfig(block.id, {
-                                          ...block.timer_config,
-                                          totalRounds: e.target.value,
-                                        })
-                                      }
-                                      className="h-8 text-xs"
-                                    />
-                                  </div>
+                                  <TimeInput
+                                    id={`block-${block.id}-workTime`}
+                                    label="Trabajo"
+                                    value={block.timer_config?.workTime || "20"}
+                                    onChange={(value) =>
+                                      updateBlockTimerConfig(block.id, {
+                                        ...block.timer_config,
+                                        workTime: value,
+                                      })
+                                    }
+                                    max={999}
+                                    inputClassName="h-8 text-xs"
+                                  />
+                                  <TimeInput
+                                    id={`block-${block.id}-restTime`}
+                                    label="Descanso"
+                                    value={block.timer_config?.restTime || "10"}
+                                    onChange={(value) =>
+                                      updateBlockTimerConfig(block.id, {
+                                        ...block.timer_config,
+                                        restTime: value,
+                                      })
+                                    }
+                                    max={999}
+                                    inputClassName="h-8 text-xs"
+                                  />
+                                  <RoundsInput
+                                    id={`block-${block.id}-totalRounds`}
+                                    value={block.timer_config?.totalRounds || "8"}
+                                    onChange={(value) =>
+                                      updateBlockTimerConfig(block.id, {
+                                        ...block.timer_config,
+                                        totalRounds: value,
+                                      })
+                                    }
+                                    min={1}
+                                    max={99}
+                                    inputClassName="h-8 text-xs"
+                                  />
                                 </div>
                               )}
 
                               {block.timer_mode === "amrap" && (
                                 <div className="ml-6 sm:ml-9 grid grid-cols-2 gap-2">
-                                  <div className="space-y-1">
-                                    <Label className="text-xs text-muted-foreground">
-                                      Tiempo (min)
-                                    </Label>
-                                    <Input
-                                      type="number"
-                                      value={
-                                        block.timer_config?.amrapTime || "10"
-                                      }
-                                      onChange={(e) =>
-                                        updateBlockTimerConfig(block.id, {
-                                          ...block.timer_config,
-                                          amrapTime: e.target.value,
-                                        })
-                                      }
-                                      className="h-8 text-xs"
-                                    />
-                                  </div>
-                                  <div className="space-y-1">
-                                    <Label className="text-xs text-muted-foreground">
-                                      Rondas
-                                    </Label>
-                                    <Input
-                                      type="number"
-                                      value={
-                                        block.timer_config?.totalRounds || "1"
-                                      }
-                                      onChange={(e) =>
-                                        updateBlockTimerConfig(block.id, {
-                                          ...block.timer_config,
-                                          totalRounds: e.target.value,
-                                        })
-                                      }
-                                      className="h-8 text-xs"
-                                    />
-                                  </div>
+                                  <TimeInput
+                                    id={`block-${block.id}-amrapTime`}
+                                    label="Tiempo total"
+                                    value={block.timer_config?.amrapTime || "600"}
+                                    onChange={(value) =>
+                                      updateBlockTimerConfig(block.id, {
+                                        ...block.timer_config,
+                                        amrapTime: value,
+                                      })
+                                    }
+                                    max={59940}
+                                    inputClassName="h-8 text-xs"
+                                  />
+                                  <RoundsInput
+                                    id={`block-${block.id}-totalRounds`}
+                                    value={block.timer_config?.totalRounds || "1"}
+                                    onChange={(value) =>
+                                      updateBlockTimerConfig(block.id, {
+                                        ...block.timer_config,
+                                        totalRounds: value,
+                                      })
+                                    }
+                                    min={1}
+                                    max={99}
+                                    inputClassName="h-8 text-xs"
+                                  />
                                 </div>
                               )}
 
                               {(block.timer_mode === "emom" ||
                                 block.timer_mode === "otm") && (
                                 <div className="ml-6 sm:ml-9 grid grid-cols-2 gap-2">
-                                  <div className="space-y-1">
-                                    <Label className="text-xs text-muted-foreground">
-                                      Rondas
-                                    </Label>
-                                    <Input
-                                      type="number"
-                                      value={
-                                        block.timer_config?.totalRounds || "10"
-                                      }
-                                      onChange={(e) =>
+                                  <RoundsInput
+                                    id={`block-${block.id}-totalRounds`}
+                                    value={block.timer_config?.totalRounds || "10"}
+                                    onChange={(value) =>
+                                      updateBlockTimerConfig(block.id, {
+                                        ...block.timer_config,
+                                        totalRounds: value,
+                                      })
+                                    }
+                                    min={1}
+                                    max={99}
+                                    inputClassName="h-8 text-xs"
+                                  />
+                                  {block.timer_mode === "otm" && (
+                                    <TimeInput
+                                      id={`block-${block.id}-workTime`}
+                                      label="Tiempo por ronda"
+                                      value={block.timer_config?.workTime || "120"}
+                                      onChange={(value) =>
                                         updateBlockTimerConfig(block.id, {
                                           ...block.timer_config,
-                                          totalRounds: e.target.value,
+                                          workTime: value,
                                         })
                                       }
-                                      className="h-8 text-xs"
+                                      max={3600}
+                                      inputClassName="h-8 text-xs"
                                     />
-                                  </div>
-                                  {block.timer_mode === "otm" && (
-                                    <div className="space-y-1">
-                                      <Label className="text-xs text-muted-foreground">
-                                        Min/ronda
-                                      </Label>
-                                      <Input
-                                        type="number"
-                                        value={
-                                          block.timer_config?.workTime || "2"
-                                        }
-                                        onChange={(e) =>
-                                          updateBlockTimerConfig(block.id, {
-                                            ...block.timer_config,
-                                            workTime: e.target.value,
-                                          })
-                                        }
-                                        className="h-8 text-xs"
-                                      />
-                                    </div>
                                   )}
                                 </div>
                               )}
@@ -1959,187 +1926,159 @@ export function PlanificationModal({
                                           {/* Timer config para el sub-bloque */}
                                           {subBlock.timer_mode === "tabata" && (
                                             <div className="grid grid-cols-3 gap-2 pl-6">
-                                              <div className="space-y-1">
-                                                <Label className="text-xs text-muted-foreground">
-                                                  Trabajo
-                                                </Label>
-                                                <Input
-                                                  type="number"
-                                                  value={
-                                                    subBlock.timer_config
-                                                      ?.workTime || "20"
-                                                  }
-                                                  onChange={(e) =>
-                                                    updateSubBlockTimerConfig(
-                                                      block.id,
-                                                      subBlock.id,
-                                                      {
-                                                        ...subBlock.timer_config,
-                                                        workTime:
-                                                          e.target.value,
-                                                      },
-                                                    )
-                                                  }
-                                                  className="h-7 text-xs"
-                                                />
-                                              </div>
-                                              <div className="space-y-1">
-                                                <Label className="text-xs text-muted-foreground">
-                                                  Descanso
-                                                </Label>
-                                                <Input
-                                                  type="number"
-                                                  value={
-                                                    subBlock.timer_config
-                                                      ?.restTime || "10"
-                                                  }
-                                                  onChange={(e) =>
-                                                    updateSubBlockTimerConfig(
-                                                      block.id,
-                                                      subBlock.id,
-                                                      {
-                                                        ...subBlock.timer_config,
-                                                        restTime:
-                                                          e.target.value,
-                                                      },
-                                                    )
-                                                  }
-                                                  className="h-7 text-xs"
-                                                />
-                                              </div>
-                                              <div className="space-y-1">
-                                                <Label className="text-xs text-muted-foreground">
-                                                  Rondas
-                                                </Label>
-                                                <Input
-                                                  type="number"
-                                                  value={
-                                                    subBlock.timer_config
-                                                      ?.totalRounds || "8"
-                                                  }
-                                                  onChange={(e) =>
-                                                    updateSubBlockTimerConfig(
-                                                      block.id,
-                                                      subBlock.id,
-                                                      {
-                                                        ...subBlock.timer_config,
-                                                        totalRounds:
-                                                          e.target.value,
-                                                      },
-                                                    )
-                                                  }
-                                                  className="h-7 text-xs"
-                                                />
-                                              </div>
+                                              <TimeInput
+                                                id={`sub-${subBlock.id}-workTime`}
+                                                label="Trabajo"
+                                                value={
+                                                  subBlock.timer_config
+                                                    ?.workTime || "20"
+                                                }
+                                                onChange={(value) =>
+                                                  updateSubBlockTimerConfig(
+                                                    block.id,
+                                                    subBlock.id,
+                                                    {
+                                                      ...subBlock.timer_config,
+                                                      workTime: value,
+                                                    },
+                                                  )
+                                                }
+                                                max={999}
+                                                inputClassName="h-7 text-xs"
+                                              />
+                                              <TimeInput
+                                                id={`sub-${subBlock.id}-restTime`}
+                                                label="Descanso"
+                                                value={
+                                                  subBlock.timer_config
+                                                    ?.restTime || "10"
+                                                }
+                                                onChange={(value) =>
+                                                  updateSubBlockTimerConfig(
+                                                    block.id,
+                                                    subBlock.id,
+                                                    {
+                                                      ...subBlock.timer_config,
+                                                      restTime: value,
+                                                    },
+                                                  )
+                                                }
+                                                max={999}
+                                                inputClassName="h-7 text-xs"
+                                              />
+                                              <RoundsInput
+                                                id={`sub-${subBlock.id}-totalRounds`}
+                                                value={
+                                                  subBlock.timer_config
+                                                    ?.totalRounds || "8"
+                                                }
+                                                onChange={(value) =>
+                                                  updateSubBlockTimerConfig(
+                                                    block.id,
+                                                    subBlock.id,
+                                                    {
+                                                      ...subBlock.timer_config,
+                                                      totalRounds: value,
+                                                    },
+                                                  )
+                                                }
+                                                min={1}
+                                                max={99}
+                                                inputClassName="h-7 text-xs"
+                                              />
                                             </div>
                                           )}
 
                                           {subBlock.timer_mode === "amrap" && (
                                             <div className="grid grid-cols-2 gap-2 pl-6">
-                                              <div className="space-y-1">
-                                                <Label className="text-xs text-muted-foreground">
-                                                  Tiempo
-                                                </Label>
-                                                <Input
-                                                  type="number"
-                                                  value={
-                                                    subBlock.timer_config
-                                                      ?.amrapTime || "10"
-                                                  }
-                                                  onChange={(e) =>
-                                                    updateSubBlockTimerConfig(
-                                                      block.id,
-                                                      subBlock.id,
-                                                      {
-                                                        ...subBlock.timer_config,
-                                                        amrapTime:
-                                                          e.target.value,
-                                                      },
-                                                    )
-                                                  }
-                                                  className="h-7 text-xs"
-                                                />
-                                              </div>
-                                              <div className="space-y-1">
-                                                <Label className="text-xs text-muted-foreground">
-                                                  Rondas
-                                                </Label>
-                                                <Input
-                                                  type="number"
-                                                  value={
-                                                    subBlock.timer_config
-                                                      ?.totalRounds || "1"
-                                                  }
-                                                  onChange={(e) =>
-                                                    updateSubBlockTimerConfig(
-                                                      block.id,
-                                                      subBlock.id,
-                                                      {
-                                                        ...subBlock.timer_config,
-                                                        totalRounds:
-                                                          e.target.value,
-                                                      },
-                                                    )
-                                                  }
-                                                  className="h-7 text-xs"
-                                                />
-                                              </div>
+                                              <TimeInput
+                                                id={`sub-${subBlock.id}-amrapTime`}
+                                                label="Tiempo total"
+                                                value={
+                                                  subBlock.timer_config
+                                                    ?.amrapTime || "600"
+                                                }
+                                                onChange={(value) =>
+                                                  updateSubBlockTimerConfig(
+                                                    block.id,
+                                                    subBlock.id,
+                                                    {
+                                                      ...subBlock.timer_config,
+                                                      amrapTime: value,
+                                                    },
+                                                  )
+                                                }
+                                                max={59940}
+                                                inputClassName="h-7 text-xs"
+                                              />
+                                              <RoundsInput
+                                                id={`sub-${subBlock.id}-totalRounds`}
+                                                value={
+                                                  subBlock.timer_config
+                                                    ?.totalRounds || "1"
+                                                }
+                                                onChange={(value) =>
+                                                  updateSubBlockTimerConfig(
+                                                    block.id,
+                                                    subBlock.id,
+                                                    {
+                                                      ...subBlock.timer_config,
+                                                      totalRounds: value,
+                                                    },
+                                                  )
+                                                }
+                                                min={1}
+                                                max={99}
+                                                inputClassName="h-7 text-xs"
+                                              />
                                             </div>
                                           )}
 
                                           {(subBlock.timer_mode === "emom" ||
                                             subBlock.timer_mode === "otm") && (
                                             <div className="grid grid-cols-2 gap-2 pl-6">
-                                              <div className="space-y-1">
-                                                <Label className="text-xs text-muted-foreground">
-                                                  Rondas
-                                                </Label>
-                                                <Input
-                                                  type="number"
+                                              <RoundsInput
+                                                id={`sub-${subBlock.id}-totalRounds`}
+                                                value={
+                                                  subBlock.timer_config
+                                                    ?.totalRounds || "10"
+                                                }
+                                                onChange={(value) =>
+                                                  updateSubBlockTimerConfig(
+                                                    block.id,
+                                                    subBlock.id,
+                                                    {
+                                                      ...subBlock.timer_config,
+                                                      totalRounds: value,
+                                                    },
+                                                  )
+                                                }
+                                                min={1}
+                                                max={99}
+                                                inputClassName="h-7 text-xs"
+                                              />
+                                              {subBlock.timer_mode ===
+                                                "otm" && (
+                                                <TimeInput
+                                                  id={`sub-${subBlock.id}-workTime`}
+                                                  label="Tiempo por ronda"
                                                   value={
                                                     subBlock.timer_config
-                                                      ?.totalRounds || "10"
+                                                      ?.workTime || "120"
                                                   }
-                                                  onChange={(e) =>
+                                                  onChange={(value) =>
                                                     updateSubBlockTimerConfig(
                                                       block.id,
                                                       subBlock.id,
                                                       {
                                                         ...subBlock.timer_config,
-                                                        totalRounds:
-                                                          e.target.value,
+                                                        workTime: value,
                                                       },
                                                     )
                                                   }
-                                                  className="h-7 text-xs"
+                                                  max={3600}
+                                                  inputClassName="h-7 text-xs"
                                                 />
-                                              </div>
-                                              {subBlock.timer_mode ===
-                                                "otm" && (
-                                                <div className="space-y-1">
-                                                  <Label className="text-xs text-muted-foreground">
-                                                    Min/ronda
-                                                  </Label>
-                                                  <Input
-                                                    type="number"
-                                                    value={
-                                                      subBlock.timer_config
-                                                        ?.workTime || "2"
-                                                    }
-                                                    onChange={(e) =>
-                                                      updateSubBlockTimerConfig(
-                                                        block.id,
-                                                        subBlock.id,
-                                                        {
-                                                          ...subBlock.timer_config,
-                                                          workTime:
-                                                            e.target.value,
-                                                        },
-                                                      )
-                                                    }
-                                                    className="h-7 text-xs"
-                                                  />
-                                                </div>
                                               )}
                                             </div>
                                           )}

@@ -17,8 +17,6 @@ import type { Planification, TimerMode, WorkoutBlockResult, ScoreMetric } from "
 import { BlockScoreInput } from "./block-score-input";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -27,6 +25,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useTimer, TimerMode as TimerModeType } from "@/hooks/use-timer";
+import { TimeInput } from "@/components/timer/time-input";
+import { RoundsInput } from "@/components/timer/rounds-input";
 import { cn } from "@/lib/utils";
 
 interface PlanificationBlocksProps {
@@ -58,7 +58,6 @@ function BlockTimerDisplay({
 }) {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
   const timerRef = useRef<HTMLDivElement>(null);
   const timerColor = color || "#22c55e";
   const modeLabels: Record<TimerMode, string> = {
@@ -118,38 +117,38 @@ function BlockTimerDisplay({
     switch (mode) {
       case "amrap":
         return {
-          workTime: "20",
+          workTime: "60",
           restTime: "60",
           totalRounds: "1",
-          amrapTime: "10",
+          amrapTime: "600",
         };
       case "tabata":
         return {
           workTime: "20",
           restTime: "10",
           totalRounds: "8",
-          amrapTime: "10",
+          amrapTime: "600",
         };
       case "emom":
         return {
           workTime: "20",
           restTime: "10",
           totalRounds: "10",
-          amrapTime: "10",
+          amrapTime: "600",
         };
       case "otm":
         return {
-          workTime: "2",
+          workTime: "120",
           restTime: "0",
           totalRounds: "5",
-          amrapTime: "10",
+          amrapTime: "600",
         };
       default:
         return {
           workTime: "20",
           restTime: "10",
           totalRounds: "8",
-          amrapTime: "10",
+          amrapTime: "600",
         };
     }
   };
@@ -179,7 +178,7 @@ function BlockTimerDisplay({
     getPhaseColor,
     getEmomTotalTime,
     getOtmTotalTime,
-    soundEnabled: timerSoundEnabled,
+    soundEnabled,
     toggleSound,
     handleStart,
     handlePause,
@@ -192,7 +191,7 @@ function BlockTimerDisplay({
     amrapTime,
   });
 
-  const effectiveSoundEnabled = timerSoundEnabled && soundEnabled;
+  const effectiveSoundEnabled = soundEnabled;
 
   const handleModeChange = (newMode: TimerModeType) => {
     setMode(newMode);
@@ -225,7 +224,7 @@ function BlockTimerDisplay({
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setSoundEnabled(!soundEnabled)}
+              onClick={toggleSound}
               className="text-foreground hover:text-white hover:bg-white/10 h-10 w-10"
             >
               {effectiveSoundEnabled ? (
@@ -348,7 +347,7 @@ function BlockTimerDisplay({
               size="icon"
               onClick={(e) => {
                 e.stopPropagation();
-                setSoundEnabled(!soundEnabled);
+                toggleSound();
               }}
               className="h-8 w-8 p-0 text-foreground hover:text-foreground"
             >
@@ -409,87 +408,82 @@ function BlockTimerDisplay({
               <div className="grid grid-cols-3 gap-2">
                 {mode === "tabata" && (
                   <>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">
-                        Trabajo
-                      </Label>
-                      <Input
-                        type="number"
-                        value={workTime}
-                        onChange={(e) => setWorkTime(e.target.value)}
-                        disabled={isRunning}
-                        className="h-8"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">
-                        Descanso
-                      </Label>
-                      <Input
-                        type="number"
-                        value={restTime}
-                        onChange={(e) => setRestTime(e.target.value)}
-                        disabled={isRunning}
-                        className="h-8"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">
-                        Rondas
-                      </Label>
-                      <Input
-                        type="number"
-                        value={totalRounds}
-                        onChange={(e) => setTotalRounds(e.target.value)}
-                        disabled={isRunning}
-                        className="h-8"
-                      />
-                    </div>
+                    <TimeInput
+                      id={`block-${timerMode}-workTime`}
+                      label="Trabajo"
+                      value={workTime}
+                      onChange={setWorkTime}
+                      disabled={isRunning}
+                      max={999}
+                      inputClassName="h-8"
+                    />
+                    <TimeInput
+                      id={`block-${timerMode}-restTime`}
+                      label="Descanso"
+                      value={restTime}
+                      onChange={setRestTime}
+                      disabled={isRunning}
+                      max={999}
+                      inputClassName="h-8"
+                    />
+                    <RoundsInput
+                      id={`block-${timerMode}-totalRounds`}
+                      value={totalRounds}
+                      onChange={setTotalRounds}
+                      disabled={isRunning}
+                      min={1}
+                      max={99}
+                      inputClassName="h-8"
+                    />
                   </>
                 )}
                 {(mode === "emom" || mode === "otm") && (
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">
-                      Rondas
-                    </Label>
-                    <Input
-                      type="number"
+                  <>
+                    <RoundsInput
+                      id={`block-${timerMode}-totalRounds`}
                       value={totalRounds}
-                      onChange={(e) => setTotalRounds(e.target.value)}
+                      onChange={setTotalRounds}
                       disabled={isRunning}
-                      className="h-8"
+                      min={1}
+                      max={99}
+                      inputClassName="h-8"
                     />
-                  </div>
+                    {mode === "otm" && (
+                      <TimeInput
+                        id={`block-${timerMode}-workTime`}
+                        label="Tiempo por ronda"
+                        value={workTime}
+                        onChange={setWorkTime}
+                        disabled={isRunning}
+                        max={3600}
+                        inputClassName="h-8"
+                      />
+                    )}
+                  </>
                 )}
               </div>
             )}
 
             {mode === "amrap" && (
               <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">
-                    Tiempo (min)
-                  </Label>
-                  <Input
-                    type="number"
-                    value={amrapTime}
-                    onChange={(e) => setAmrapTime(e.target.value)}
-                    disabled={isRunning}
-                    className="h-8"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">
-                    Rondas
-                  </Label>
-                  <Input
-                    type="number"
-                    value={totalRounds}
-                    onChange={(e) => setTotalRounds(e.target.value)}
-                    disabled={isRunning}
-                    className="h-8"
-                  />
-                </div>
+                <TimeInput
+                  id={`block-${timerMode}-amrapTime`}
+                  label="Tiempo total"
+                  value={amrapTime}
+                  onChange={setAmrapTime}
+                  disabled={isRunning}
+                  max={59940}
+                  inputClassName="h-8"
+                />
+                <RoundsInput
+                  id={`block-${timerMode}-totalRounds`}
+                  value={totalRounds}
+                  onChange={setTotalRounds}
+                  disabled={isRunning}
+                  min={1}
+                  max={99}
+                  inputClassName="h-8"
+                />
               </div>
             )}
 

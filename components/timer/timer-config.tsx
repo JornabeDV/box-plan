@@ -1,35 +1,9 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { TimeInput } from "@/components/timer/time-input";
+import { RoundsInput } from "@/components/timer/rounds-input";
 import { TimerMode } from "@/hooks/use-timer";
-
-function sanitizePositiveInt(
-  value: string,
-  options: { max?: number; min?: number; allowEmpty?: boolean } = {}
-): string {
-  const { max, min = 1, allowEmpty = false } = options;
-
-  if (value === "") {
-    return allowEmpty ? "" : String(min);
-  }
-
-  // Rechazar signos negativos, decimales y caracteres no numéricos
-  if (!/^\d+$/.test(value)) {
-    return String(min);
-  }
-
-  const num = parseInt(value, 10);
-  if (Number.isNaN(num)) {
-    return String(min);
-  }
-
-  if (num < min) return String(min);
-  if (max !== undefined && num > max) return String(max);
-
-  return value;
-}
 
 interface TimerConfigProps {
   mode: TimerMode;
@@ -69,53 +43,27 @@ export function TimerConfig({
           <CardTitle>Configuración TABATA</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="workTime">Trabajo (seg)</Label>
-              <Input
-                id="workTime"
-                type="number"
-                value={workTime}
-                onChange={(e) => {
-                  onWorkTimeChange(
-                    sanitizePositiveInt(e.target.value, { min: 1, max: 999 })
-                  );
-                }}
-                min="1"
-                max="999"
-                placeholder="20"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="restTime">Descanso (seg)</Label>
-              <Input
-                id="restTime"
-                type="number"
-                value={restTime}
-                onChange={(e) => {
-                  onRestTimeChange(
-                    sanitizePositiveInt(e.target.value, { min: 1, max: 999 })
-                  );
-                }}
-                min="1"
-                max="999"
-                placeholder="10"
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="totalRounds">Rondas</Label>
-            <Input
+          <div className="grid grid-cols-3 gap-4">
+            <TimeInput
+              id="workTime"
+              label="Trabajo"
+              value={workTime}
+              onChange={onWorkTimeChange}
+              max={999}
+            />
+            <TimeInput
+              id="restTime"
+              label="Descanso"
+              value={restTime}
+              onChange={onRestTimeChange}
+              max={999}
+            />
+            <RoundsInput
               id="totalRounds"
-              type="number"
               value={totalRounds}
-              onChange={(e) => {
-                onTotalRoundsChange(
-                  sanitizePositiveInt(e.target.value, { min: 1, max: 99 })
-                );
-              }}
-              min="1"
-              max="20"
+              onChange={onTotalRoundsChange}
+              min={1}
+              max={99}
               placeholder="8"
             />
           </div>
@@ -133,58 +81,34 @@ export function TimerConfig({
           <CardTitle>Configuración AMRAP</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="amrapTime">Tiempo (minutos)</Label>
-            <Input
+          <div className="grid grid-cols-2 gap-4">
+            <TimeInput
               id="amrapTime"
-              type="number"
+              label="Tiempo total"
               value={amrapTime}
-              onChange={(e) => {
-                onAmrapTimeChange(
-                  sanitizePositiveInt(e.target.value, { min: 1, max: 999 })
-                );
-              }}
-              min="1"
-              max="999"
-              placeholder="10"
+              onChange={onAmrapTimeChange}
               disabled={isRunning || isPaused}
+              max={59940}
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="totalRounds">Número de rondas</Label>
-            <Input
+            <RoundsInput
               id="totalRounds"
-              type="number"
               value={totalRounds}
-              onChange={(e) => {
-                onTotalRoundsChange(
-                  sanitizePositiveInt(e.target.value, { min: 1, max: 99 })
-                );
-              }}
-              min="1"
-              max="99"
-              placeholder="1"
+              onChange={onTotalRoundsChange}
               disabled={isRunning || isPaused}
+              min={1}
+              max={99}
+              placeholder="1"
             />
           </div>
           {totalRoundsNum > 1 && (
-            <div className="space-y-2">
-              <Label htmlFor="restTime">Descanso entre rondas (segundos)</Label>
-              <Input
-                id="restTime"
-                type="number"
-                value={restTime}
-                onChange={(e) => {
-                  onRestTimeChange(
-                    sanitizePositiveInt(e.target.value, { min: 0, max: 999 })
-                  );
-                }}
-                min="0"
-                max="999"
-                placeholder="60"
-                disabled={isRunning || isPaused}
-              />
-            </div>
+            <TimeInput
+              id="restTime"
+              label="Descanso entre rondas"
+              value={restTime}
+              onChange={onRestTimeChange}
+              disabled={isRunning || isPaused}
+              max={999}
+            />
           )}
         </CardContent>
       </Card>
@@ -198,23 +122,16 @@ export function TimerConfig({
           <CardTitle>Configuración EMOM</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="totalRounds">Número de Rondas</Label>
-            <Input
-              id="totalRounds"
-              type="number"
-              value={totalRounds}
-              onChange={(e) => {
-                onTotalRoundsChange(
-                  sanitizePositiveInt(e.target.value, { min: 1, max: 99 })
-                );
-              }}
-              min="1"
-              max="99"
-              placeholder="10"
-              disabled={isRunning || isPaused}
-            />
-          </div>
+          <RoundsInput
+            id="totalRounds"
+            label="Número de Rondas"
+            value={totalRounds}
+            onChange={onTotalRoundsChange}
+            disabled={isRunning || isPaused}
+            min={1}
+            max={99}
+            placeholder="10"
+          />
         </CardContent>
       </Card>
     );
@@ -227,31 +144,19 @@ export function TimerConfig({
           <CardTitle>Configuración FOR TIME</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="forTimeCap">Time Cap (minutos)</Label>
-            <Input
-              id="forTimeCap"
-              type="number"
-              value={forTimeCap}
-              onChange={(e) => {
-                onForTimeCapChange(
-                  sanitizePositiveInt(e.target.value, {
-                    min: 1,
-                    max: 999,
-                    allowEmpty: true,
-                  })
-                );
-              }}
-              min="1"
-              max="999"
-              placeholder="Sin límite"
-              disabled={isRunning || isPaused}
-            />
-            <p className="text-sm text-muted-foreground">
-              Tiempo límite para completar el entrenamiento. Déjalo vacío para
-              cronómetro sin límite.
-            </p>
-          </div>
+          <TimeInput
+            id="forTimeCap"
+            label="Time Cap"
+            value={forTimeCap}
+            onChange={onForTimeCapChange}
+            disabled={isRunning || isPaused}
+            allowEmpty
+            max={59940}
+          />
+          <p className="text-sm text-muted-foreground">
+            Tiempo límite para completar el entrenamiento. Déjalo vacío para
+            cronómetro sin límite.
+          </p>
         </CardContent>
       </Card>
     );
@@ -264,44 +169,30 @@ export function TimerConfig({
           <CardTitle>Configuración OTM</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="totalRounds">Número de Rondas</Label>
-            <Input
+          <div className="grid grid-cols-2 gap-4">
+            <RoundsInput
               id="totalRounds"
-              type="number"
+              label="Número de Rondas"
               value={totalRounds}
-              onChange={(e) => {
-                onTotalRoundsChange(
-                  sanitizePositiveInt(e.target.value, { min: 1, max: 99 })
-                );
-              }}
-              min="1"
-              max="99"
+              onChange={onTotalRoundsChange}
+              disabled={isRunning || isPaused}
+              min={1}
+              max={99}
               placeholder="10"
-              disabled={isRunning || isPaused}
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="workTime">Tiempo por ronda (minutos)</Label>
-            <Input
+            <TimeInput
               id="workTime"
-              type="number"
+              label="Tiempo por ronda"
               value={workTime}
-              onChange={(e) => {
-                onWorkTimeChange(
-                  sanitizePositiveInt(e.target.value, { min: 1, max: 60 })
-                );
-              }}
-              min="1"
-              max="60"
-              placeholder="2"
+              onChange={onWorkTimeChange}
               disabled={isRunning || isPaused}
+              max={3600}
             />
-            <p className="text-sm text-muted-foreground">
-              Completa todos los ejercicios en este tiempo. El tiempo restante
-              es tu descanso.
-            </p>
           </div>
+          <p className="text-sm text-muted-foreground">
+            Completa todos los ejercicios en este tiempo. El tiempo restante
+            es tu descanso.
+          </p>
         </CardContent>
       </Card>
     );

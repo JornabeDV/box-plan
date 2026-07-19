@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -25,6 +24,8 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { useTimer, TimerMode } from "@/hooks/use-timer";
+import { TimeInput } from "@/components/timer/time-input";
+import { RoundsInput } from "@/components/timer/rounds-input";
 import { cn } from "@/lib/utils";
 
 interface PlanificationTimerProps {
@@ -45,38 +46,38 @@ const getDefaultValues = (mode: TimerMode) => {
   switch (mode) {
     case "amrap":
       return {
-        workTime: "20",
+        workTime: "60",
         restTime: "60",
         totalRounds: "1",
-        amrapTime: "10",
+        amrapTime: "600",
       };
     case "tabata":
       return {
         workTime: "20",
         restTime: "10",
         totalRounds: "8",
-        amrapTime: "10",
+        amrapTime: "600",
       };
     case "emom":
       return {
         workTime: "20",
         restTime: "10",
         totalRounds: "10",
-        amrapTime: "10",
+        amrapTime: "600",
       };
     case "otm":
       return {
-        workTime: "2",
+        workTime: "120",
         restTime: "0",
         totalRounds: "5",
-        amrapTime: "10",
+        amrapTime: "600",
       };
     default:
       return {
         workTime: "20",
         restTime: "10",
         totalRounds: "8",
-        amrapTime: "10",
+        amrapTime: "600",
       };
   }
 };
@@ -404,75 +405,53 @@ export function PlanificationTimer({
 
           {mode === "tabata" && (
             <div className="grid grid-cols-3 gap-2">
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Trabajo</Label>
-                <Input
-                  type="number"
-                  value={workTime}
-                  onChange={(e) => setWorkTime(e.target.value)}
-                  min="1"
-                  max="999"
-                  disabled={isRunning}
-                  className="h-11"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">
-                  Descanso
-                </Label>
-                <Input
-                  type="number"
-                  value={restTime}
-                  onChange={(e) => setRestTime(e.target.value)}
-                  min="1"
-                  max="999"
-                  disabled={isRunning}
-                  className="h-11"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Rondas</Label>
-                <Input
-                  type="number"
-                  value={totalRounds}
-                  onChange={(e) => setTotalRounds(e.target.value)}
-                  min="1"
-                  max="99"
-                  disabled={isRunning}
-                  className="h-11"
-                />
-              </div>
+              <TimeInput
+                id="plan-workTime"
+                label="Trabajo"
+                value={workTime}
+                onChange={setWorkTime}
+                disabled={isRunning}
+                max={999}
+              />
+              <TimeInput
+                id="plan-restTime"
+                label="Descanso"
+                value={restTime}
+                onChange={setRestTime}
+                disabled={isRunning}
+                max={999}
+              />
+              <RoundsInput
+                id="plan-totalRounds"
+                value={totalRounds}
+                onChange={setTotalRounds}
+                disabled={isRunning}
+                min={1}
+                max={99}
+                placeholder="8"
+              />
             </div>
           )}
 
           {mode === "amrap" && (
             <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">
-                  Tiempo (min)
-                </Label>
-                <Input
-                  type="number"
-                  value={amrapTime}
-                  onChange={(e) => setAmrapTime(e.target.value)}
-                  min="1"
-                  max="999"
-                  disabled={isRunning}
-                  className="h-11"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Rondas</Label>
-                <Input
-                  type="number"
-                  value={totalRounds}
-                  onChange={(e) => setTotalRounds(e.target.value)}
-                  min="1"
-                  max="99"
-                  disabled={isRunning}
-                  className="h-11"
-                />
-              </div>
+              <TimeInput
+                id="plan-amrapTime"
+                label="Tiempo total"
+                value={amrapTime}
+                onChange={setAmrapTime}
+                disabled={isRunning}
+                max={59940}
+              />
+              <RoundsInput
+                id="plan-totalRounds"
+                value={totalRounds}
+                onChange={setTotalRounds}
+                disabled={isRunning}
+                min={1}
+                max={99}
+                placeholder="1"
+              />
             </div>
           )}
 
@@ -483,33 +462,24 @@ export function PlanificationTimer({
                 mode === "otm" ? "grid-cols-2" : "grid-cols-1",
               )}
             >
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Rondas</Label>
-                <Input
-                  type="number"
-                  value={totalRounds}
-                  onChange={(e) => setTotalRounds(e.target.value)}
-                  min="1"
-                  max="99"
-                  disabled={isRunning}
-                  className="h-11"
-                />
-              </div>
+              <RoundsInput
+                id="plan-totalRounds"
+                value={totalRounds}
+                onChange={setTotalRounds}
+                disabled={isRunning}
+                min={1}
+                max={99}
+                placeholder="10"
+              />
               {mode === "otm" && (
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">
-                    Min/ronda
-                  </Label>
-                  <Input
-                    type="number"
-                    value={workTime}
-                    onChange={(e) => setWorkTime(e.target.value)}
-                    min="1"
-                    max="60"
-                    disabled={isRunning}
-                    className="h-11"
-                  />
-                </div>
+                <TimeInput
+                  id="plan-workTime"
+                  label="Tiempo por ronda"
+                  value={workTime}
+                  onChange={setWorkTime}
+                  disabled={isRunning}
+                  max={3600}
+                />
               )}
             </div>
           )}
