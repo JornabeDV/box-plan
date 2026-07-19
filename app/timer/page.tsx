@@ -32,7 +32,7 @@ function TimerPageContent() {
   const [workTime, setWorkTime] = useState("20");
   const [restTime, setRestTime] = useState("10");
   const [totalRounds, setTotalRounds] = useState("8");
-  const [amrapTime, setAmrapTime] = useState("10");
+  const [amrapTime, setAmrapTime] = useState("600");
   const [forTimeCap, setForTimeCap] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const timerContainerRef = useRef<HTMLDivElement>(null);
@@ -75,10 +75,10 @@ function TimerPageContent() {
     
     if (newMode === 'amrap') {
       // Valores por defecto para AMRAP (1 ronda = comportamiento clásico)
-      setWorkTime("20");
+      setWorkTime("60");
       setRestTime("60"); // 60 segundos de descanso entre rondas (solo si > 1 ronda)
       setTotalRounds("1"); // 1 ronda por defecto (clásico)
-      setAmrapTime("10"); // 10 minutos clásico
+      setAmrapTime("600"); // 10 minutos clásico
       setForTimeCap("");
     } else if (newMode === 'fortime') {
       setForTimeCap("");
@@ -94,7 +94,7 @@ function TimerPageContent() {
       setRestTime("10");
       setTotalRounds("10");
     } else if (newMode === 'otm') {
-      setWorkTime("2");    // 2 minutos por ronda por defecto
+      setWorkTime("120");    // 2 minutos por ronda por defecto
       setRestTime("0");    // No hay descanso explícito
       setTotalRounds("3"); // 5 rondas por defecto
     } else {
@@ -349,14 +349,14 @@ function TimerPageContent() {
           {/* Tiempo restante para AMRAP */}
           {mode === "amrap" && (
             <div className="text-lg md:text-2xl text-white/60 mb-4">
-              de {amrapTime} minutos
+              de {formatTime(parseInt(amrapTime) || 600)}
             </div>
           )}
 
           {/* Time Cap para FOR TIME */}
           {mode === "fortime" && forTimeCap && parseInt(forTimeCap) > 0 && (
             <div className="text-lg md:text-2xl text-white/60 mb-4">
-              Time Cap: {forTimeCap} min
+              Time Cap: {formatTime(parseInt(forTimeCap))}
             </div>
           )}
         </div>

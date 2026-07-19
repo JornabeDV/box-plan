@@ -264,7 +264,7 @@ export function useTimer({
 			}
 		}
 		if (mode === 'otm') {
-			const otmIntervalNum = Math.max(60, (parseInt(workTime || '1') || 1) * 60)
+			const otmIntervalNum = Math.max(60, parseInt(workTime || '60') || 60)
 			const secondsIntoInterval = time % otmIntervalNum
 			// Últimos 3 segundos del intervalo - campana de conteo
 			if (secondsIntoInterval >= otmIntervalNum - 3 && secondsIntoInterval < otmIntervalNum) {
@@ -299,11 +299,10 @@ export function useTimer({
 	// Inicializar tiempo de AMRAP cuando cambia el modo o el tiempo configurado
 	useEffect(() => {
 		if (mode === 'amrap' && !isRunning && !isPaused) {
-			const amrapTimeNum = Math.max(1, parseInt(amrapTime) || 10)
-			const amrapTimeInSeconds = amrapTimeNum * 60
+			const amrapTimeNum = Math.max(1, parseInt(amrapTime) || 600)
 			if (time === 0 || time === amrapInitialTime || time === parseInt(restTime || '60')) {
-				setTime(amrapTimeInSeconds)
-				setAmrapInitialTime(amrapTimeInSeconds)
+				setTime(amrapTimeNum)
+				setAmrapInitialTime(amrapTimeNum)
 			}
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -321,10 +320,9 @@ export function useTimer({
 							setCountdown(null)
 							// Para AMRAP, establecer el tiempo inicial cuando termina la cuenta regresiva
 							if (mode === 'amrap') {
-								const amrapTimeNum = Math.max(1, parseInt(amrapTime) || 10)
-								const amrapTimeInSeconds = amrapTimeNum * 60
-								setTime(amrapTimeInSeconds)
-								setAmrapInitialTime(amrapTimeInSeconds)
+								const amrapTimeNum = Math.max(1, parseInt(amrapTime) || 600)
+								setTime(amrapTimeNum)
+								setAmrapInitialTime(amrapTimeNum)
 								setIsWorkPhase(true)
 								setCurrentRound(1)
 							} else if (mode === 'emom') {
@@ -351,7 +349,7 @@ export function useTimer({
 					}
 
 					if (mode === 'amrap') {
-						const amrapTimeNum = Math.max(1, parseInt(amrapTime) || 10)
+						const amrapTimeNum = Math.max(1, parseInt(amrapTime) || 600)
 						const restTimeNum = Math.max(0, parseInt(restTime) || 60)
 						const totalRoundsNum = Math.max(1, parseInt(totalRounds) || 1)
 
@@ -389,7 +387,7 @@ export function useTimer({
 								// Terminó el descanso, pasar a siguiente ronda
 								setIsWorkPhase(true)
 								setCurrentRound(prev => prev + 1)
-								return amrapTimeNum * 60
+								return amrapTimeNum
 							}
 							return newTime
 						}
@@ -400,9 +398,9 @@ export function useTimer({
 					// Lógica FOR TIME: detener si se alcanza el time cap
 					if (mode === 'fortime') {
 						const forTimeCapNum = Math.max(0, parseInt(forTimeCap || '0') || 0)
-						if (forTimeCapNum > 0 && newTime >= forTimeCapNum * 60) {
+						if (forTimeCapNum > 0 && newTime >= forTimeCapNum) {
 							setIsRunning(false)
-							return forTimeCapNum * 60
+							return forTimeCapNum
 						}
 					}
 
@@ -451,10 +449,10 @@ export function useTimer({
 						}
 					}
 
-					// Lógica OTM: incrementar ronda cada X minutos (configurable)
+					// Lógica OTM: incrementar ronda cada X segundos (configurable)
 					if (mode === 'otm') {
 						const totalRoundsNum = Math.max(1, parseInt(totalRounds) || 10)
-						const otmIntervalNum = Math.max(60, (parseInt(workTime || '1') || 1) * 60) // Convertir minutos a segundos
+						const otmIntervalNum = Math.max(60, parseInt(workTime || '60') || 60)
 						const currentOtmRound = Math.floor(newTime / otmIntervalNum) + 1
 
 						if (currentOtmRound > totalRoundsNum) {
@@ -525,8 +523,8 @@ export function useTimer({
 	}
 
 	const getOtmCountdown = () => {
-		// OTM: cuenta regresiva desde el intervalo configurable (en minutos)
-		const otmIntervalNum = Math.max(60, (parseInt(workTime || '1') || 1) * 60) // Convertir minutos a segundos
+		// OTM: cuenta regresiva desde el intervalo configurable (en segundos)
+		const otmIntervalNum = Math.max(60, parseInt(workTime || '60') || 60)
 		const secondsIntoInterval = time % otmIntervalNum
 		return otmIntervalNum - secondsIntoInterval
 	}
@@ -623,10 +621,9 @@ export function useTimer({
 
 	const handleReset = (resetToZero = false) => {
 		if (mode === 'amrap' && !resetToZero) {
-			const amrapTimeNum = Math.max(1, parseInt(amrapTime) || 10)
-			const amrapTimeInSeconds = amrapTimeNum * 60
-			setTime(amrapTimeInSeconds)
-			setAmrapInitialTime(amrapTimeInSeconds)
+			const amrapTimeNum = Math.max(1, parseInt(amrapTime) || 600)
+			setTime(amrapTimeNum)
+			setAmrapInitialTime(amrapTimeNum)
 		} else {
 			setTime(0)
 		}
