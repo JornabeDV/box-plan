@@ -43,6 +43,7 @@ export default function SubscriptionPage() {
     []
   );
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const { coach: userCoach } = useUserCoach();
   const { canUseWhatsApp } = useCoachPlanFeatures();
 
@@ -130,6 +131,30 @@ export default function SubscriptionPage() {
       setIsExpiredMode(expiredParam || subscriptionExpired);
     }
   }, [currentSubscription]);
+
+  // Proteger la URL de renovación: si el usuario accede manualmente a ?expired=1
+  // pero su suscripción está activa, redirigir a la pantalla principal
+  useEffect(() => {
+    if (loading || isRedirecting) return;
+
+    if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    const expiredParam = params.get("expired") === "1";
+
+    if (!expiredParam) return;
+
+    const isActiveSubscription = Boolean(
+      currentSubscription &&
+      currentSubscription.status === "active" &&
+      !currentSubscription.is_expired
+    );
+
+    if (isActiveSubscription) {
+      setIsRedirecting(true);
+      router.replace("/");
+    }
+  }, [loading, currentSubscription, isRedirecting, router]);
 
   // Verificar pago exitoso al volver de MercadoPago (solución optimista)
   const [verifyingPayment, setVerifyingPayment] = useState(false);
@@ -232,7 +257,7 @@ export default function SubscriptionPage() {
     }
   }, [activeTab]);
 
-  if (loading || verifyingPayment) {
+  if (loading || verifyingPayment || isRedirecting) {
     return (
       <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground flex items-center justify-center">
         <div className="absolute inset-0 kinetic-grid-bg pointer-events-none" aria-hidden="true" />
