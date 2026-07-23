@@ -38,6 +38,17 @@ export default function SubscriptionExpiredPage() {
   } = useStudentSubscription();
 
   const [visibleItems, setVisibleItems] = useState<number>(0);
+  const [isRedirecting, setIsRedirecting] = useState(false);
+
+  // Redirigir a la pantalla principal si el usuario ya tiene una suscripción activa
+  useEffect(() => {
+    if (subscriptionLoading || coachLoading) return;
+
+    if (subscription && !isExpired) {
+      setIsRedirecting(true);
+      router.replace("/");
+    }
+  }, [subscriptionLoading, coachLoading, subscription, isExpired, router]);
 
   // Limpiar cache de suscripción para forzar datos frescos en la próxima carga
   useEffect(() => {
@@ -76,7 +87,7 @@ export default function SubscriptionExpiredPage() {
       })
     : null;
 
-  if (subscriptionLoading || coachLoading) {
+  if (subscriptionLoading || coachLoading || isRedirecting) {
     return (
       <div className="min-h-[100dvh] relative overflow-hidden bg-background text-foreground flex items-center justify-center">
         <div

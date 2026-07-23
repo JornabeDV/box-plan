@@ -238,35 +238,9 @@ export function useSubscriptionManagement(initialPlanId?: string) {
   const changePlan = async (newPlanId: string) => {
     setActionLoading(true)
     try {
-      // Si no hay suscripción o está vencida, redirigir a MercadoPago
-      const isExpiredSubscription = currentSubscription?.status === 'expired' || currentSubscription?.is_expired
-      if (!currentSubscription || isExpiredSubscription) {
-        await redirectToPayment(newPlanId)
-      } else {
-        // Si hay suscripción, cambiar de plan
-        const response = await fetch('/api/subscriptions/change-plan', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            newPlanId,
-            currentSubscriptionId: currentSubscription.id
-          })
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.error || 'Error al cambiar plan')
-        }
-
-        // Recargar la suscripción actual después del cambio
-        await loadCurrentSubscription()
-        
-        toast({
-          title: "Plan cambiado exitosamente",
-          description: `Tu suscripción ha sido actualizada exitosamente`,
-        })
-      }
-
+      // El flujo de self-service siempre pasa por MercadoPago para evitar
+      // que un usuario con suscripción activa extienda/cambie de plan sin pagar.
+      await redirectToPayment(newPlanId)
     } catch (error) {
       console.error('Error changing/creating plan:', error)
       toast({

@@ -151,6 +151,16 @@ export async function POST(request: NextRequest) {
         )
       }
       
+      // Los estudiantes deben usar el flujo de pago de MercadoPago para renovar o
+      // cambiar de plan. Los coaches pueden cambiar su propio plan por este endpoint.
+      const authCheck = await isCoach(currentUserId)
+      if (!authCheck.isAuthorized) {
+        return NextResponse.json(
+          { error: 'No autorizado. Para cambiar tu plan, completá el pago desde la app.' },
+          { status: 403 }
+        )
+      }
+      
       // Si no hay coachId en la suscripción, buscar el coach del estudiante
       if (coachIdNum === null) {
         const studentRelationship = await prisma.coachStudentRelationship.findFirst({
