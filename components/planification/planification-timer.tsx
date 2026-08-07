@@ -404,7 +404,7 @@ export function PlanificationTimer({
           </div>
 
           {mode === "tabata" && (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               <TimeInput
                 id="plan-workTime"
                 label="Trabajo"
@@ -434,7 +434,7 @@ export function PlanificationTimer({
           )}
 
           {mode === "amrap" && (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <TimeInput
                 id="plan-amrapTime"
                 label="Tiempo total"
@@ -459,7 +459,7 @@ export function PlanificationTimer({
             <div
               className={cn(
                 "grid gap-2",
-                mode === "otm" ? "grid-cols-2" : "grid-cols-1",
+                mode === "otm" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1",
               )}
             >
               <RoundsInput

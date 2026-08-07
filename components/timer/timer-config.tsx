@@ -43,7 +43,7 @@ export function TimerConfig({
           <CardTitle>Configuración TABATA</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <TimeInput
               id="workTime"
               label="Trabajo"
@@ -81,7 +81,7 @@ export function TimerConfig({
           <CardTitle>Configuración AMRAP</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <TimeInput
               id="amrapTime"
               label="Tiempo total"
@@ -169,7 +169,7 @@ export function TimerConfig({
           <CardTitle>Configuración OTM</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <RoundsInput
               id="totalRounds"
               label="Número de Rondas"
