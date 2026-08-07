@@ -2,6 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 function sanitizeInt(
   value: string,
@@ -77,10 +78,12 @@ export function TimeInput({
   };
 
   return (
-    <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
-      <div className="flex items-center gap-2">
-        <div className="flex-1">
+    <div className="space-y-1.5 sm:space-y-2">
+      <Label htmlFor={id} className="text-xs sm:text-sm">
+        {label}
+      </Label>
+      <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex-1 min-w-0">
           <Input
             id={id ? `${id}-minutes` : undefined}
             type="number"
@@ -90,12 +93,14 @@ export function TimeInput({
             min={0}
             disabled={disabled}
             placeholder="0"
-            className={inputClassName}
+            className={cn("w-full px-1 sm:px-3", inputClassName)}
           />
-          <span className="text-xs text-muted-foreground mt-1 block">min</span>
+          <span className="text-xs text-muted-foreground mt-1 block truncate">
+            min
+          </span>
         </div>
-        <span className="text-muted-foreground font-medium">:</span>
-        <div className="flex-1">
+        <span className="text-muted-foreground font-medium pb-4">:</span>
+        <div className="flex-1 min-w-0">
           <Input
             id={id ? `${id}-seconds` : undefined}
             type="number"
@@ -106,9 +111,11 @@ export function TimeInput({
             max={59}
             disabled={disabled}
             placeholder="00"
-            className={inputClassName}
+            className={cn("w-full px-1 sm:px-3", inputClassName)}
           />
-          <span className="text-xs text-muted-foreground mt-1 block">seg</span>
+          <span className="text-xs text-muted-foreground mt-1 block truncate">
+            seg
+          </span>
         </div>
       </div>
     </div>

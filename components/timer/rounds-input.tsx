@@ -2,6 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 interface RoundsInputProps {
   id?: string;
@@ -57,8 +58,11 @@ export function RoundsInput({
   };
 
   return (
-    <div className="space-y-2">
-      <Label htmlFor={id} className="text-xs text-muted-foreground">
+    <div className="space-y-1.5 sm:space-y-2">
+      <Label
+        htmlFor={id}
+        className="text-xs sm:text-sm text-muted-foreground"
+      >
         {label}
       </Label>
       <Input
@@ -71,10 +75,12 @@ export function RoundsInput({
         max={max}
         disabled={disabled}
         placeholder={placeholder}
-        className={inputClassName}
+        className={cn("w-full px-1 sm:px-3", inputClassName)}
       />
       {/* Espaciador para alinear con los textos min/seg de TimeInput */}
-      <span className="text-xs text-muted-foreground mt-1 block invisible">&nbsp;</span>
+      <span className="text-[10px] sm:text-xs text-muted-foreground mt-1 block invisible">
+        &nbsp;
+      </span>
     </div>
   );
 }

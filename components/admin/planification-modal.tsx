@@ -1085,7 +1085,7 @@ export function PlanificationModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-3xl xl:max-w-5xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg">
+      <DialogContent className="w-full max-w-3xl md:max-w-5xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg">
         <DialogHeader className="pb-0">
           <div className="flex items-end justify-between gap-4">
             <div className="flex-1">
@@ -1434,7 +1434,7 @@ export function PlanificationModal({
 
                               {/* Timer config para el bloque */}
                               {block.timer_mode === "tabata" && (
-                                <div className="ml-6 sm:ml-9 grid grid-cols-3 gap-2">
+                                <div className="sm:ml-3 md:ml-9 grid grid-cols-1 md:grid-cols-3 gap-2">
                                   <TimeInput
                                     id={`block-${block.id}-workTime`}
                                     label="Trabajo"
@@ -1478,7 +1478,7 @@ export function PlanificationModal({
                               )}
 
                               {block.timer_mode === "amrap" && (
-                                <div className="ml-6 sm:ml-9 grid grid-cols-2 gap-2">
+                                <div className="sm:ml-9 grid grid-cols-1 sm:grid-cols-2 gap-2">
                                   <TimeInput
                                     id={`block-${block.id}-amrapTime`}
                                     label="Tiempo total"
@@ -1510,7 +1510,7 @@ export function PlanificationModal({
 
                               {(block.timer_mode === "emom" ||
                                 block.timer_mode === "otm") && (
-                                <div className="ml-6 sm:ml-9 grid grid-cols-2 gap-2">
+                                <div className="ml-3 sm:ml-9 grid grid-cols-1 sm:grid-cols-2 gap-2">
                                   <RoundsInput
                                     id={`block-${block.id}-totalRounds`}
                                     value={block.timer_config?.totalRounds || "10"}
@@ -1925,7 +1925,7 @@ export function PlanificationModal({
 
                                           {/* Timer config para el sub-bloque */}
                                           {subBlock.timer_mode === "tabata" && (
-                                            <div className="grid grid-cols-3 gap-2 pl-6">
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:pl-4">
                                               <TimeInput
                                                 id={`sub-${subBlock.id}-workTime`}
                                                 label="Trabajo"
@@ -1990,7 +1990,7 @@ export function PlanificationModal({
                                           )}
 
                                           {subBlock.timer_mode === "amrap" && (
-                                            <div className="grid grid-cols-2 gap-2 pl-6">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:pl-4">
                                               <TimeInput
                                                 id={`sub-${subBlock.id}-amrapTime`}
                                                 label="Tiempo total"
@@ -2036,7 +2036,7 @@ export function PlanificationModal({
 
                                           {(subBlock.timer_mode === "emom" ||
                                             subBlock.timer_mode === "otm") && (
-                                            <div className="grid grid-cols-2 gap-2 pl-6">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-3 sm:pl-6">
                                               <RoundsInput
                                                 id={`sub-${subBlock.id}-totalRounds`}
                                                 value={
