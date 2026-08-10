@@ -71,7 +71,7 @@ export function AthleteNotesSection({
                 value={newNote}
                 onChange={(e) => setNewNote(e.target.value)}
                 className="min-h-[60px] max-sm:min-h-[48px] text-sm max-sm:text-xs resize-none bg-surface-container-low"
-                maxLength={100}
+                maxLength={150}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                     handleSubmit();
@@ -80,7 +80,7 @@ export function AthleteNotesSection({
               />
               <div className="flex items-center justify-between">
                 <span className="text-xs max-sm:text-[10px] text-muted-foreground">
-                  {newNote.length}/100
+                  {newNote.length}/150
                 </span>
                 <Button
                   size="sm"
@@ -190,11 +190,11 @@ export function AthleteNotesSection({
                       value={editText}
                       onChange={(e) => setEditText(e.target.value)}
                       className="min-h-[48px] max-sm:min-h-[40px] text-sm max-sm:text-xs resize-none bg-surface-container-low"
-                      maxLength={100}
+                      maxLength={150}
                     />
                     <div className="flex items-center justify-between">
                       <span className="text-xs max-sm:text-[10px] text-muted-foreground">
-                        {editText.length}/100
+                        {editText.length}/150
                       </span>
                       <div className="flex gap-1">
                         <Button
