@@ -264,7 +264,7 @@ export function useTimer({
 			}
 		}
 		if (mode === 'otm') {
-			const otmIntervalNum = Math.max(60, parseInt(workTime || '60') || 60)
+			const otmIntervalNum = Math.max(1, parseInt(workTime || '60') || 60)
 			const secondsIntoInterval = time % otmIntervalNum
 			// Últimos 3 segundos del intervalo - campana de conteo
 			if (secondsIntoInterval >= otmIntervalNum - 3 && secondsIntoInterval < otmIntervalNum) {
@@ -452,7 +452,7 @@ export function useTimer({
 					// Lógica OTM: incrementar ronda cada X segundos (configurable)
 					if (mode === 'otm') {
 						const totalRoundsNum = Math.max(1, parseInt(totalRounds) || 10)
-						const otmIntervalNum = Math.max(60, parseInt(workTime || '60') || 60)
+						const otmIntervalNum = Math.max(1, parseInt(workTime || '60') || 60)
 						const currentOtmRound = Math.floor(newTime / otmIntervalNum) + 1
 
 						if (currentOtmRound > totalRoundsNum) {
@@ -524,7 +524,7 @@ export function useTimer({
 
 	const getOtmCountdown = () => {
 		// OTM: cuenta regresiva desde el intervalo configurable (en segundos)
-		const otmIntervalNum = Math.max(60, parseInt(workTime || '60') || 60)
+		const otmIntervalNum = Math.max(1, parseInt(workTime || '60') || 60)
 		const secondsIntoInterval = time % otmIntervalNum
 		return otmIntervalNum - secondsIntoInterval
 	}
